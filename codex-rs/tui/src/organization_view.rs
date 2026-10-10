@@ -64,7 +64,7 @@ impl Dashboard {
             return;
         }
         let diff = (|| -> anyhow::Result<String> {
-            let artifact = result.artifacts.first().ok_or_else(|| anyhow::anyhow!("No declared artifact"))?;
+            let artifact = result.artifacts.get(self.review_file % result.artifacts.len().max(1)).ok_or_else(|| anyhow::anyhow!("No declared artifact"))?;
             anyhow::ensure!(artifact.bytes <= 65536, "Artifact exceeds the 64 KiB inline diff limit; use actual Neovim");
             let workspace = view.attempts.iter().find(|a| a.id == result.attempt_id).and_then(|a| a.workspace.as_ref()).ok_or_else(|| anyhow::anyhow!("Attempt workspace unavailable"))?;
             let project = self.selected_project().ok_or_else(|| anyhow::anyhow!("Project unavailable"))?;
@@ -605,7 +605,13 @@ impl Dashboard {
                         .collect();
                     Paragraph::new(lines)
                         .scroll((self.scroll, 0))
-                        .block(panel("Diff · first artifact · F2/d native review", false))
+                        .block(panel(
+                            format!(
+                                "Diff · file {} · n next · F2/d Neovim",
+                                self.review_file + 1
+                            ),
+                            false,
+                        ))
                         .render(parts[1], buffer);
                 }
                 _ => self.rows_view(sections[1], buffer, false),
@@ -642,7 +648,7 @@ impl Dashboard {
                 let actions = if self.preferences.preset == Preset::Workspace {
                     "[t] Follow AI   [d] Live Diff\n[o] Independent Editing\n[e] Editor focus   [n] Next file\nCtrl-G returns host focus"
                 } else {
-                    "[s] Authorize   [a] Approve\n[v] Accept      [c] Changes\n[A] Apply accepted result\n[p] Pause       [x] Cancel"
+                    "[s] Authorize   [a] Approve\n[v] Accept      [c] Changes\n[A] Select files to Apply\n[p] Pause       [x] Cancel"
                 };
                 Paragraph::new(actions)
                     .style(Style::default().fg(foreground(BLUE)))

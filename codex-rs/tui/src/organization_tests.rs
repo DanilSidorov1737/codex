@@ -308,6 +308,7 @@ fn dashboard() -> Dashboard {
         scroll: 0,
         detail_text: String::new(),
         review_diff: None,
+        review_file: 0,
         search: String::new(),
         input: None,
         changes: false,
@@ -528,6 +529,7 @@ async fn inline_review_diff_uses_verified_artifact_and_cannot_enable_acceptance(
     let attempt = tempfile::tempdir().unwrap();
     std::fs::write(original.path().join("report.txt"), "Original\n").unwrap();
     std::fs::write(attempt.path().join("report.txt"), "Verified output\n").unwrap();
+    std::fs::write(attempt.path().join("notes.md"), "Second artifact\n").unwrap();
     let mut d = dashboard();
     d.path = home.path().join("layouts.json");
     d.snapshot
@@ -547,11 +549,18 @@ async fn inline_review_diff_uses_verified_artifact_and_cannot_enable_acceptance(
     detail.attempts = vec![serde_json::from_value(serde_json::json!({"id":"attempt","taskId":"one","authorizationId":"grant","generation":1,"threadId":"thread","turnId":null,"workspace":attempt.path(),"state":"needsReview","startedAt":0,"leaseUntil":0,"reportedTokens":0,"modelRequests":0,"reportedModelRequests":0})).unwrap()];
     detail.result = Some(OrganizationTaskResult {
         attempt_id: "attempt".into(),
-        artifacts: vec![OrganizationArtifactEvidence {
-            path: "report.txt".into(),
-            bytes: 16,
-            sha256: format!("{:x}", Sha256::digest(b"Verified output\n")),
-        }],
+        artifacts: vec![
+            OrganizationArtifactEvidence {
+                path: "report.txt".into(),
+                bytes: 16,
+                sha256: format!("{:x}", Sha256::digest(b"Verified output\n")),
+            },
+            OrganizationArtifactEvidence {
+                path: "notes.md".into(),
+                bytes: 16,
+                sha256: format!("{:x}", Sha256::digest(b"Second artifact\n")),
+            },
+        ],
         artifact_bases: vec![],
         checks: vec![],
         digest: "evidence-digest".into(),
@@ -564,6 +573,29 @@ async fn inline_review_diff_uses_verified_artifact_and_cannot_enable_acceptance(
     assert!(diff.contains("+Verified output"));
     assert!(d.confirmation.is_none());
     assert!(!d.detail.as_ref().unwrap().result.as_ref().unwrap().accepted);
+    d.key(KeyEvent::new(
+        KeyCode::Char('n'),
+        crossterm::event::KeyModifiers::NONE,
+    ));
+    assert!(
+        d.review_diff
+            .as_ref()
+            .unwrap()
+            .2
+            .contains("+Second artifact")
+    );
+    assert!(
+        !d.review_diff
+            .as_ref()
+            .unwrap()
+            .2
+            .contains("+Verified output")
+    );
+    assert_eq!(d.editor_file, 1);
+    d.key(KeyEvent::new(
+        KeyCode::Char('n'),
+        crossterm::event::KeyModifiers::NONE,
+    ));
     std::fs::write(attempt.path().join("report.txt"), "Unreviewed bytes\n").unwrap();
     d.review_diff = None;
     d.refresh_diff();
@@ -600,7 +632,11 @@ async fn actual_dirty_editor_blocks_host_exit_and_owner_apply_dispatch() {
     v.task.state = "accepted".into();
     v.result = Some(OrganizationTaskResult {
         attempt_id: "attempt".into(),
-        artifacts: vec![],
+        artifacts: vec![OrganizationArtifactEvidence {
+            path: "human.txt".into(),
+            sha256: "a".repeat(64),
+            bytes: 7,
+        }],
         artifact_bases: vec![],
         checks: vec![],
         digest: "exact-result".into(),
@@ -615,13 +651,74 @@ async fn actual_dirty_editor_blocks_host_exit_and_owner_apply_dispatch() {
     ));
     assert!(!d.is_done);
     assert!(d.message.contains("modified Neovim"));
-    d.decision('A');
+    d.open_form('A');
+    assert!(d.form.is_some());
+    d.key(KeyEvent::new(
+        KeyCode::F(6),
+        crossterm::event::KeyModifiers::NONE,
+    ));
     d.key(KeyEvent::new(
         KeyCode::Char('y'),
         crossterm::event::KeyModifiers::NONE,
     ));
     assert!(rx.try_recv().is_err());
     assert!(!d.applying);
+    assert!(d.message.contains("Cannot freeze editor revision"));
     assert!(d.editor.as_mut().unwrap().dirty().unwrap());
     assert!(!home.path().join("human.txt").exists());
+}
+
+#[tokio::test]
+async fn selective_apply_confirmation_keeps_captured_paths_task_and_revision() {
+    let mut d = dashboard();
+    d.preferences.preset = Preset::Review;
+    d.selected = Some("one".into());
+    let mut accepted = view("one");
+    accepted.task.state = "accepted".into();
+    accepted.result = Some(OrganizationTaskResult {
+        attempt_id: "attempt".into(),
+        artifacts: ["report.txt", "notes.md"]
+            .into_iter()
+            .map(|p| OrganizationArtifactEvidence {
+                path: p.into(),
+                sha256: "a".repeat(64),
+                bytes: 1,
+            })
+            .collect(),
+        artifact_bases: vec![],
+        checks: vec![],
+        digest: "captured-result".into(),
+        accepted: true,
+    });
+    d.detail = Some(Box::new(accepted));
+    let (tx, mut rx) = mpsc::channel(4);
+    d.commands = tx;
+    let key = |code| KeyEvent::new(code, crossterm::event::KeyModifiers::NONE);
+    d.key(key(KeyCode::Char('A')));
+    d.key(key(KeyCode::Tab));
+    d.key(key(KeyCode::Char(' ')));
+    assert!(rx.try_recv().is_err());
+    d.selected = Some("two".into());
+    d.detail = Some(Box::new(view("two")));
+    d.key(key(KeyCode::F(6)));
+    assert!(d.confirmation_text.contains("installed subset"));
+    d.key(key(KeyCode::Esc));
+    assert!(d.form.is_some());
+    assert!(rx.try_recv().is_err());
+    d.key(key(KeyCode::F(6)));
+    d.key(key(KeyCode::Char('y')));
+    let Command::Execution(OrganizationExecutionMutation::Apply {
+        task_id,
+        expected_revision,
+        digest,
+        paths,
+    }) = rx.try_recv().unwrap()
+    else {
+        panic!("missing apply")
+    };
+    assert_eq!(task_id, "one");
+    assert_eq!(expected_revision, 4);
+    assert_eq!(digest, "captured-result");
+    assert_eq!(paths, Some(vec!["report.txt".into()]));
+    assert!(d.applying && d.form.is_none());
 }

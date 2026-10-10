@@ -9,8 +9,10 @@ Owner-approved usability slice (2026-10-10): TUI owner creation/authorization an
 concept-art dashboard styling are delivered and physically qualified on source
 `46d999bf5b`. Existing RPC/widgets, 23 affected tests and two fresh complete native
 workflows passed; screenshots/evidence are linked from status.md. This is a bounded
-usability continuation of the MVP;
-selective Apply, knowledge retrieval and recurring schedules remain later work.
+usability continuation of the MVP. The owner subsequently approved whole-file
+[selective Apply](selective-apply.md); backend/API checkpoint `32edc1cc71` is
+committed and native UI/package qualification is in progress. Knowledge retrieval,
+recurring schedules, hunks and staged repeated Apply remain later work.
 
 Sequence is based on technical dependencies and risk, not date estimates.
 Implementation proceeds within the approved scope and records evidence at each gate.

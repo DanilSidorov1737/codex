@@ -209,19 +209,26 @@ remains owner-only. All descendants share the root budget.
 
 ## Apply an accepted result
 
-Read the accepted task's current revision/digest, then use another owner mutation:
+Read the accepted task's current revision/digest, then use another owner mutation.
+Omit `paths` for legacy apply-all, or select exact whole-file artifact paths:
 
 ```json
 {
   "type": "apply",
   "taskId": "TASK_ID",
   "expectedRevision": 5,
-  "digest": "EXACT_ACCEPTED_RESULT_DIGEST"
+  "digest": "EXACT_ACCEPTED_RESULT_DIGEST",
+  "paths": ["report.txt"]
 }
 ```
 
-`codex organization execute apply.json` verifies the accepted bytes and original
-base hashes before a protected durable intent and per-file atomic replacement.
+`codex organization execute apply.json` verifies the selected accepted bytes and
+original base hashes before a protected durable intent and per-file atomic replacement.
+Explicit empty, duplicate and unknown selections are rejected before an intent/write.
+Unselected files are untouched. The receipt records exact selected paths, and there
+is still one Apply per accepted result: choosing a subset consumes that application.
+Full-result checks do not certify the installed subset; inspect/test that composition
+separately. See [selective Apply](selective-apply.md) for scope and current evidence.
 An application receipt is separate from acceptance; completed/uncertain receipts
 block replay. Close or explicitly coordinate other editors/writers first: a CLI
 client cannot inspect the TUI's dirty buffers. The embedded Workspace also fences

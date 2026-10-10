@@ -20,6 +20,12 @@ subset. File hunks, staged repeated Apply, memory retrieval and scheduling remai
 scope. Backend, schema and UI checks plus actual CLI/Neovim qualification are required
 before marking this slice complete. Preserve prior successful evidence below.
 
+Backend/API/schema checkpoint committed as `32edc1cc71`. Full state suite (259),
+schema comparisons (4), Python contracts (25), native API cases (5) and targeted
+TUI cases (25, including official Neovim) passed. Final protocol test, production
+TUI Clippy, formatting and the post-lint 25-case rerun passed. Full package and fresh
+physical workflow remain in progress; see [selective Apply](selective-apply.md).
+
 ## Completed usability slice — 2026-10-10 UTC
 
 The owner approved TUI project/task creation and clear bounded authorization with

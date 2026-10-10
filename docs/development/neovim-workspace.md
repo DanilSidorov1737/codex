@@ -45,6 +45,11 @@ through declared artifacts/inputs. `Ctrl-G` returns focus to the host. While edi
 focus is active, ordinary keys, escape, digits, function keys, paste and mouse go
 to Neovim; host layout shortcuts do not steal its editing keys.
 
+In host Review, `n` cycles the verified artifact diff and aligns the next Neovim
+artifact. `A` opens whole-file Apply selection after exact result acceptance; F6
+captures the selection and `y` dispatches only after every loaded native buffer
+passes the existing dirty/changedtick fence. No editor engine is added.
+
 Neovim never opens an agent-writable artifact directly. A shared directory-FD
 reader rejects ancestor/leaf symlinks, nonregular files and hard links; reads are
 bounded to 8 MiB. The exact bytes are atomically staged in an owner-only preview
@@ -63,12 +68,17 @@ Mode changes reject dirty buffers instead of discarding changes.
 
 ## Application contract
 
-Owner-only Apply captures the exact accepted task revision/digest. It validates
-all artifact bytes, original SHA256/absence, relative paths, protected state and
+Owner-only Apply captures the exact accepted task revision/digest and optional
+whole-file selection. It validates selected artifact bytes, original SHA256/absence,
+relative paths, protected state and
 .git exclusions before persisting an intent. Directory-descriptor-based private
 staging and synchronized atomic replacement reuse the existing snapshot writer.
 A separate application record distinguishes pending, completed and uncertain.
-Interrupted intents become uncertain at startup and cannot be replayed.
+Interrupted intents become uncertain at startup and cannot be replayed. The receipt
+records exact selected paths; a subset still consumes the result's one Apply.
+Unselected originals/artifacts are left untouched. Acceptance and recorded checks
+describe the full isolated result, not the installed subset. See
+[selective Apply](selective-apply.md) for current qualification.
 
 The TUI checks all loaded buffers, captures native changedticks and freezes their
 modifiable options in one Neovim main-loop operation before sending Apply. It

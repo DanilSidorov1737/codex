@@ -390,6 +390,7 @@ pub(crate) struct Dashboard {
     scroll: u16,
     detail_text: String,
     review_diff: Option<(String, String, String)>,
+    review_file: usize,
     search: String,
     input: Option<String>,
     changes: bool,
@@ -473,6 +474,7 @@ impl Dashboard {
             scroll: 0,
             detail_text: String::new(),
             review_diff: None,
+            review_file: 0,
             search: String::new(),
             input: None,
             changes: false,
@@ -610,6 +612,7 @@ impl Dashboard {
         self.scroll = 0;
         self.detail = None;
         self.review_diff = None;
+        self.review_file = 0;
         self.detail_text = clean(&self.details());
         if let Some(id) = &self.selected
             && self
@@ -799,14 +802,6 @@ impl Dashboard {
                         digest: r.digest.clone(),
                     })
                 }),
-                'A' => view.result.as_ref().filter(|r| r.accepted).map(|r| {
-                    Command::Execution(OrganizationExecutionMutation::Apply {
-                        task_id,
-                        expected_revision,
-                        digest: r.digest.clone(),
-                        paths: None,
-                    })
-                }),
                 'p' | 'x' => Some(Command::Execution(OrganizationExecutionMutation::Stop {
                     task_id,
                     expected_revision,
@@ -854,6 +849,34 @@ impl Dashboard {
     }
     fn open_form(&mut self, key: char) {
         let kind = match key {
+            'A' => {
+                let Some(view) = self
+                    .detail
+                    .as_ref()
+                    .filter(|v| Some(&v.task.id) == self.selected.as_ref())
+                else {
+                    self.message = "Select an accepted task and wait for its details.".into();
+                    return;
+                };
+                let Some(result) = view
+                    .result
+                    .as_ref()
+                    .filter(|r| r.accepted && !r.artifacts.is_empty())
+                else {
+                    self.message = "Accept the exact result before choosing files to Apply.".into();
+                    return;
+                };
+                if view.applications.iter().any(|a| a.digest == result.digest) {
+                    self.message =
+                        "Application already recorded; inspect its receipt before reconciliation."
+                            .into();
+                    return;
+                }
+                form::Kind::Apply {
+                    task: view.task.clone(),
+                    result: result.clone(),
+                }
+            }
             'U' => form::Kind::Agent,
             'G' => form::Kind::Goal,
             'N' => form::Kind::Project,
@@ -944,6 +967,7 @@ impl Dashboard {
                         match self.commands.try_send(command) {
                             Ok(()) => {
                                 self.applying = true;
+                                self.form = None;
                                 if let Some(editor) = &mut self.editor {
                                     editor.focused = false;
                                 }
@@ -1146,8 +1170,22 @@ impl Dashboard {
                 self.changes = false;
             }
             KeyCode::Char('f') => self.send(Command::Refresh),
-            KeyCode::Char(c @ ('U' | 'G' | 'N' | 'T' | 's')) => self.open_form(c),
-            KeyCode::Char(c @ ('a' | 'r' | 'v' | 'c' | 'p' | 'x' | 'A')) => self.decision(c),
+            KeyCode::Char(c @ ('U' | 'G' | 'N' | 'T' | 's' | 'A')) => self.open_form(c),
+            KeyCode::Char('n') if self.preferences.preset == Preset::Review => {
+                if let Some(result) = self
+                    .detail
+                    .as_ref()
+                    .filter(|v| Some(&v.task.id) == self.selected.as_ref())
+                    .and_then(|v| v.result.as_ref())
+                {
+                    self.review_file = (self.review_file + 1) % result.artifacts.len().max(1);
+                    self.editor_file = self.review_file;
+                    self.review_diff = None;
+                    self.refresh_diff();
+                    self.scroll = 0;
+                }
+            }
+            KeyCode::Char(c @ ('a' | 'r' | 'v' | 'c' | 'p' | 'x')) => self.decision(c),
             _ => {}
         }
     }
@@ -1423,6 +1461,14 @@ impl Dashboard {
                 } else {
                     text.push_str("Cost estimate unavailable: no matching owner price quote.\n");
                 }
+            }
+            if matches!(
+                command,
+                Command::Execution(OrganizationExecutionMutation::Apply { .. })
+            ) {
+                // The form's payload is frozen independently of later selection.
+                text.clear();
+                text.push_str("\nOnly the selected whole files will be replaced; unselected files remain unchanged.\nOne Apply per accepted result, including uncertain outcomes; inspect the receipt before reconciliation.\nRecorded checks describe the full isolated result, not the installed subset.\n");
             }
             text = format!(
                 "EXACT OWNER DECISION (y confirms)\n{}\n\n{text}",

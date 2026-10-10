@@ -1,7 +1,7 @@
 # Whole-file selective Apply
 
-Owner-approved implementation slice, 2026-10-10 UTC. Backend contract is implemented;
-UI/native qualification is in progress. This follows the selective acceptance,
+Owner-approved implementation slice, 2026-10-10 UTC. Backend and Review controls are
+implemented; complete package/physical qualification is in progress. This follows the selective acceptance,
 isolated workspace and conflict checks in `docs/Codex CLI Fork.txt`, lines 692–712.
 Ponytail reuses the existing Apply RPC, application ledger, prepared native writer
 and fixed TUI form. There is no new dependency, migration or patch framework.
@@ -29,7 +29,7 @@ before manual reconciliation; never blindly replay a request after a timeout.
 
 ## Review interaction
 
-The Review form is being qualified: `n` cycles inline artifact diffs and aligns the
+The Review form reuses the existing owner UI: `n` cycles inline artifact diffs and aligns the
 next real-Neovim file; `A` opens whole-file choices with all files selected. Tab/Enter
 move between files, arrows/Space toggle Apply/Leave unchanged, F6 displays the frozen
 paths/revision/digest and subset warning, and `y` confirms. Esc retains a reviewed
@@ -46,9 +46,11 @@ Neovim remains the editor; inline UTF-8 diffs are limited to 64 KiB per side.
 Evidence root: `/workspace/.onboarding/qualification/selective-apply-20261010/`.
 Backend production Clippy, the complete state suite (259 tests) and all four schema
 comparisons and 25 Python contract/signature tests passed. Stable/experimental schema
-fixtures and Python contracts are regenerated. Final protocol compatibility,
-native app-server selected/legacy Apply, TUI tests,
-complete package and physical CLI/Neovim workflow are being checked before release.
+fixtures and Python contracts are regenerated. All five native API cases and 25
+TUI cases passed, including actual Neovim. Final protocol compatibility (one test),
+production TUI Clippy and affected formatting also passed; the 25 TUI cases were
+rerun after Clippy's iterator simplification. Complete package and physical
+CLI/Neovim workflow are being checked before release.
 See [testing](testing.md) and [status](status.md) for exact results as they complete.
 
 The initial protocol validator accidentally used a dev-only dependency and failed

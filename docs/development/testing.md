@@ -30,6 +30,35 @@ system interpreter, then the venv interpreter without its installed `ruff` on PA
 activate `sdk/python/.venv/bin/activate` for generation/tests. Original failure logs
 remain. Pending final protocol/native/TUI/package/physical checks are not claimed here.
 
+The same root's `tui-tests.log` now records **25 passed, 0 failed/ignored** from
+`cargo test -p codex-tui --lib organization -- --nocapture`, with the flags above
+and authorized native execution. New cases prove nonempty exact selection,
+Unicode/whitespace path preservation, canceled draft retention and frozen captured
+task/revision/digest despite later selection changes. Existing actual official-Neovim
+editing/diff/dirty-buffer tests passed through the new selection path; two-artifact
+inline cycling checks real verified bytes. Production TUI Clippy/build and the
+complete physical workflow remain pending.
+
+Native API qualification now passed **5 tests, 0 failed/ignored**:
+`cargo test -p codex-app-server --test all suite::v2::organization -- --nocapture`
+with the same flags and authorized native execution. The new report-only variant
+preserves an independently human-edited unselected file, denies selected stale bases
+and tampered artifacts before intent/write, records only `report.txt`, and rejects
+replay. Legacy apply-all, exact approvals, crash/reconnect and real delegation also
+passed. Evidence: `native-api-tests.log`; these use the existing localhost Responses
+fixture and real native commands, not paid GPT inference.
+
+Final protocol legacy-JSON/selection validator test passed (**1 test**,
+`protocol-tests-final.log`). Production TUI Clippy initially denied
+`filter_map_bool_then`; replaced it with direct `filter`/`map`, retained the failure
+log, then warnings-denied Clippy passed (`tui-clippy-final.log`). Affected-package
+format check passed (`format-final.log`). The affected TUI tests are rerunning after
+that simplification; the complete CLI/package and physical workflow remain pending.
+
+That final TUI rerun passed **25 tests, 0 failed/ignored** (`tui-tests-final.log`).
+The backend and Review controls are ready as a source checkpoint; complete package
+and physical checks are still required before this slice is marked qualified.
+
 ## Completed TUI creation and concept-art qualification — 2026-10-10 UTC
 
 Application source `46d999bf5bf868d4ac7b8eaf2f96c66ac8b51cac`, following owner

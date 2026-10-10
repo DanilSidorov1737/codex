@@ -10,6 +10,10 @@ pub(super) enum Kind {
     Project,
     Task,
     Authorize(OrganizationTask),
+    Apply {
+        task: OrganizationTask,
+        result: OrganizationTaskResult,
+    },
 }
 
 #[cfg(test)]
@@ -128,10 +132,59 @@ mod tests {
             form.render(area, &mut Buffer::empty(area));
         }
     }
+
+    #[test]
+    fn apply_selection_preserves_exact_paths_and_requires_a_nonempty_set() {
+        let result = OrganizationTaskResult {
+            attempt_id: "attempt".into(),
+            artifacts: ["report.txt", " notes café.md "]
+                .into_iter()
+                .map(|p| OrganizationArtifactEvidence {
+                    path: p.into(),
+                    sha256: "a".repeat(64),
+                    bytes: 1,
+                })
+                .collect(),
+            artifact_bases: vec![],
+            checks: vec![],
+            digest: "exact-result".into(),
+            accepted: true,
+        };
+        let mut form = Form::new(
+            Kind::Apply {
+                task: task(),
+                result,
+            },
+            &[],
+            None,
+            "unused",
+        );
+        form.key(KeyEvent::new(KeyCode::Char(' '), KeyModifiers::NONE));
+        let Command::Execution(OrganizationExecutionMutation::Apply {
+            task_id,
+            expected_revision,
+            digest,
+            paths,
+        }) = form.command().unwrap()
+        else {
+            panic!("missing apply")
+        };
+        assert_eq!(task_id, "original-task");
+        assert_eq!(expected_revision, 7);
+        assert_eq!(digest, "exact-result");
+        assert_eq!(paths, Some(vec![" notes café.md ".into()]));
+        form.key(KeyEvent::new(KeyCode::Tab, KeyModifiers::NONE));
+        form.key(KeyEvent::new(KeyCode::Char(' '), KeyModifiers::NONE));
+        assert!(form.command().is_err());
+        for size in [(1, 1), (50, 20), (160, 48)] {
+            let area = Rect::new(0, 0, size.0, size.1);
+            form.render(area, &mut Buffer::empty(area));
+        }
+    }
 }
 
 struct Field {
-    label: &'static str,
+    label: String,
     hint: &'static str,
     input: TextArea,
     choices: Vec<(String, String)>,
@@ -139,18 +192,22 @@ struct Field {
 }
 
 impl Field {
-    fn text(label: &'static str, hint: &'static str, value: &str) -> Self {
+    fn text(label: impl Into<String>, hint: &'static str, value: &str) -> Self {
         let mut input = TextArea::new();
         input.set_text_clearing_elements(value);
         Self {
-            label,
+            label: clean(&label.into()),
             hint,
             input,
             choices: vec![],
             choice: 0,
         }
     }
-    fn select(label: &'static str, choices: Vec<(String, String)>, selected: Option<&str>) -> Self {
+    fn select(
+        label: impl Into<String>,
+        choices: Vec<(String, String)>,
+        selected: Option<&str>,
+    ) -> Self {
         let choice = choices
             .iter()
             .position(|(id, _)| Some(id.as_str()) == selected)
@@ -165,8 +222,7 @@ impl Field {
         self.choices
             .get(self.choice)
             .map(|(id, _)| id.as_str())
-            .unwrap_or(self.input.text())
-            .trim()
+            .unwrap_or(self.input.text().trim())
     }
 }
 
@@ -230,6 +286,20 @@ impl Form {
             .or_else(|| project.and_then(|p| p.goal_id.as_deref()));
         let owner = project.and_then(|p| p.owner_id.as_deref());
         let fields = match &kind {
+            Kind::Apply { result, .. } => result
+                .artifacts
+                .iter()
+                .map(|artifact| {
+                    Field::select(
+                        artifact.path.clone(),
+                        vec![
+                            (artifact.path.clone(), "[x] Apply this file".into()),
+                            (String::new(), "[ ] Leave unchanged".into()),
+                        ],
+                        None,
+                    )
+                })
+                .collect(),
             Kind::Agent => vec![
                 Field::text("Agent name", "Your own name and hierarchy", ""),
                 Field::select(
@@ -378,6 +448,7 @@ impl Form {
             Kind::Project => "New project",
             Kind::Task => "New task",
             Kind::Authorize(_) => "Authorize task",
+            Kind::Apply { .. } => "Select files to Apply",
         }
     }
     pub(super) fn key(&mut self, key: KeyEvent) {
@@ -397,7 +468,7 @@ impl Form {
                             field.choice =
                                 (field.choice + field.choices.len() - 1) % field.choices.len()
                         }
-                        KeyCode::Right | KeyCode::Down => {
+                        KeyCode::Right | KeyCode::Down | KeyCode::Char(' ') => {
                             field.choice = (field.choice + 1) % field.choices.len()
                         }
                         _ => {}
@@ -448,6 +519,25 @@ impl Form {
             Ok(lines(i))
         };
         Ok(match &self.kind {
+            Kind::Apply { task, result } => {
+                anyhow::ensure!(result.accepted, "Result must be accepted before Apply");
+                let paths = self
+                    .fields
+                    .iter()
+                    .filter(|field| !field.value().is_empty())
+                    .map(|field| field.value().to_string())
+                    .collect::<Vec<_>>();
+                Command::Execution(OrganizationExecutionMutation::Apply {
+                    task_id: task.id.clone(),
+                    expected_revision: task.revision,
+                    digest: result.digest.clone(),
+                    paths: Some(
+                        result
+                            .application_paths(Some(&paths))
+                            .map_err(anyhow::Error::msg)?,
+                    ),
+                })
+            }
             Kind::Agent => Command::Definition(OrganizationMutation::PutNode {
                 id: None,
                 expected_revision: None,
@@ -581,7 +671,12 @@ impl Form {
             Constraint::Length(3),
         ])
         .split(inner.inner(Margin::new(1, 0)));
-        Paragraph::new("Tab / Enter next · Shift-Tab previous · Left / Right choose\nAlt-Enter newline · F6 review · Esc close (no changes)").render(regions[0], buffer);
+        let help = if matches!(self.kind, Kind::Apply { .. }) {
+            "Tab / Enter next · Shift-Tab previous · Arrows / Space toggle\nF6 review exact selection · Esc close (no changes)"
+        } else {
+            "Tab / Enter next · Shift-Tab previous · Left / Right choose\nAlt-Enter newline · F6 review · Esc close (no changes)"
+        };
+        Paragraph::new(help).render(regions[0], buffer);
         let height = 4;
         let visible = usize::from(regions[1].height / height).max(1);
         let start = self.focus.saturating_sub(visible - 1);
@@ -625,13 +720,19 @@ impl Form {
                 }
             }
         }
-        Paragraph::new(clean(&format!(
-            "{}\n{}",
-            self.fields[self.focus].hint, self.error
-        )))
-        .style(Style::default().fg(Color::Yellow))
-        .wrap(Wrap { trim: false })
-        .render(regions[2], buffer);
+        let hint = if matches!(self.kind, Kind::Apply { .. }) {
+            format!(
+                "{} / {} files selected · One Apply per accepted result\nFull result checks do not certify the installed subset",
+                self.fields.iter().filter(|f| !f.value().is_empty()).count(),
+                self.fields.len()
+            )
+        } else {
+            self.fields[self.focus].hint.to_string()
+        };
+        Paragraph::new(clean(&format!("{hint}\n{}", self.error)))
+            .style(Style::default().fg(Color::Yellow))
+            .wrap(Wrap { trim: false })
+            .render(regions[2], buffer);
         cursor
     }
 }

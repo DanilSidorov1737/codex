@@ -91,11 +91,20 @@ Projects shows accepted/total task progress. Workspace centers actual Neovim,
 with declared-file exploration and Follow/Diff/Independent controls. Its clean
 native grid has line numbers and matching background colors.
 
-Review adds a hash-verified first-artifact inline diff through existing Preview,
+Review adds a hash-verified per-artifact inline diff through existing Preview,
 regular-file checks and diffy. It is bounded to 64 KiB per side and cached by
-result identity/digest; the original is a snapshot at load. Apply still checks
+result identity/digest; `n` cycles artifacts and aligns the next native Neovim file.
+The original is a snapshot at load. Apply still checks
 current base hashes independently. Other/large/binary files use native Neovim.
 This preview neither accepts evidence nor applies files.
+
+The approved selective Apply follow-up reuses the fixed owner form: `A` chooses
+whole accepted files, arrows/Space toggle, Tab/Enter moves, F6 freezes exact paths
+and `y` confirms. Empty selection is rejected; Esc retains a reviewed draft.
+The confirmation warns that full-result checks do not certify an installed subset,
+and that a subset consumes the result's one Apply. The existing native dirty-buffer
+fence remains. UI tests passed; complete package/physical checks are in progress in
+[selective Apply](selective-apply.md).
 
 Terminal cells require adaptations: at narrow widths the sidebar disappears and
 panes stack; inspectors can be hidden and ratios retain user preferences. Existing
