@@ -25,6 +25,7 @@ token cost is $0.345433 including failed attempts. Provider invoice is unverifie
 | D10 | Ponytail throughout implementation/review; current session skill reused                  | Upstream standalone plugin/hooks installation remains separate                         | Active process rule; installation pending |
 | D11 | Local owner/Linux pilot, real tests and bounded provider requests                        | Immediate cross-platform/distributed/financial autonomy too broad                      | Qualified Linux/local native GPT-5.5 scope |
 | D12 | Explicit whole-file Apply subset; keep complete-result acceptance/checks and one durable application per result | Hunks, repeated staged Apply and new storage state deferred; omission preserves existing apply-all API | Qualified on `9fadf32797`; see selective-apply.md |
+| D13 | Search existing bounded notes after SQLite scope filtering; retain provenance and current tool fences | Embeddings, FTS, new services and automatic promotion are unnecessary for 128 notes/project | Qualified on `d6d049cc49`; 691 automated checks and real restart/isolation/CLI/TUI/Neovim evidence; see memory-search.md |
 
 ## Major risks and mitigations
 

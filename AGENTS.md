@@ -20,7 +20,8 @@ work requires its matching scope.
 The owner approved the next slice with “continue and begin”: whole-file selective
 Apply in Review, using Ponytail and periodic commits. Preserve exact acceptance,
 owner confirmation, base/artifact checks, native dirty-buffer protection and the
-one-application-per-result recovery rule. Memory retrieval/schedules remain later scope.
+one-application-per-result recovery rule. Memory retrieval/schedules were later
+scope at that checkpoint; N1 was subsequently approved below.
 This selective Apply slice is qualified on `9fadf32797`; see
 [selective Apply](docs/development/selective-apply.md) and [testing](docs/development/testing.md).
 Record new approvals and scope in status.md; a plan alone does not authorize work.
@@ -28,7 +29,11 @@ The owner approved N1 scoped persistent memory search with “Ok do this”: reu
 durable notes, enforce existing project/agent boundaries, expose agent retrieval
 and owner CLI/TUI search with provenance, and qualify restart/isolation through
 meaningful tests and actual interaction. Continue Ponytail and logical local
-commits. Recurring schedules and N2–N8 remain later scope.
+commits. N1 is qualified on `d6d049cc49` with 691 automated tests and actual
+CLI/TUI/official-Neovim restart/isolation evidence; see
+[memory search](docs/development/memory-search.md) and testing/status.
+Recurring schedules and N2–N8 remain later scope. Preserve its accepted writer
+and three needsReview reader fixtures; never blindly rerun authorization scripts.
 
 Read [docs/development/README.md](docs/development/README.md) and
 [status.md](docs/development/status.md) at the start of every session.

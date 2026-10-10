@@ -22,6 +22,15 @@ launches report the requirement rather than silently taking terminal ownership.
   stack navigation and inspector. Each preset retains its own pane preferences.
 - `f` refreshes real state. One bounded loader also refreshes every three seconds;
   it performs owner metadata requests, never model requests or per-node sessions.
+- Select a project/task in Projects and press `m` for project memory; select a
+  task and press `M` for that owner's private memory. Workspace and Review task
+  selections also support these keys with host focus. Operations' nodes do not
+  select a project; use F3 first. Enter searches, empty Enter lists recent notes,
+  `/` edits the query, `f` refreshes, arrows/PageUp/PageDown scroll, and Esc closes
+  the memory view or query entry. Scope, source IDs/timestamps and match counts
+  remain visible. Memory captures its selected scope and owns keyboard/paste/mouse
+  routing while open; close it before normal layout/editor shortcuts resume.
+  See [memory search](memory-search.md) for the literal query contract and evidence.
 - `p` toggles a selected node's enabled flag through revision-checked owner
   mutation, or pauses a selected task. `x` cancels a task.
 - Review/task inspection: `a` approves the first pending exact action, `r` rejects

@@ -1,5 +1,161 @@
 # Testing procedures and evidence
 
+## Scoped memory search qualification — 2026-10-10 UTC
+
+Application source `d6d049cc49b42f3ed6f6a22c02974f051bfba5ff`, following backend/CLI
+`8d33c5e0d8`. Ponytail and correctness review reused durable bounded notes, existing
+coordination fences, protected owner RPC, CLI and dashboard input/panel/worker.
+No dependency, migration, embeddings or automatic capture was added. Automated
+checks and actual qualification passed; current details are in [status](status.md).
+
+### Automated checks
+
+From `/workspace/codex/codex-rs`, `. /workspace/.onboarding/activate.sh`, with
+`CARGO_INCREMENTAL=0 RUST_MIN_STACK=8388608` and Cargo test/Clippy/build flags
+`--locked --offline --profile dev-small -j4`:
+
+| Command/target | Result | Evidence log |
+| --- | --- | --- |
+| `cargo test -p codex-protocol -p codex-state --lib` | 370 protocol + 260 state passed, 0 failed/ignored | `state-protocol-tests.log` |
+| `cargo test -p codex-app-server-protocol --lib schema_fixtures_tests -- --skip write_schema_fixtures_from_env` | 4 fixture comparisons passed | `schema-comparisons.log` |
+| `cargo test -p codex-app-server --test all suite::v2::organization -- --nocapture` | 5 native API tests passed | `native-api-tests-corrected.log` |
+| `cargo test -p codex-tui --lib organization -- --nocapture` | 26 tests passed, including actual official Neovim | `native-tui-tests-final.log` |
+| `cargo test -p codex-app-server --lib request_processors::organization -- --nocapture` | 1 owner-origin test passed | `owner-origin-unit.log` |
+| `cargo clippy -p codex-protocol -p codex-state -p codex-app-server-protocol -p codex-app-server -p codex-tui --lib -- -D warnings` | Exit 0 | `production-clippy-final.log` |
+| `cargo clippy -p codex-cli --bin codex -- -D warnings` | Exit 0 | `cli-clippy.log` |
+| `cargo fmt -p codex-protocol -p codex-state -p codex-app-server-protocol -p codex-app-server -p codex-tui -p codex-cli -- --check` | Exit 0 | `format-check.log` |
+| `cargo build -p codex-cli --bin codex` | Complete CLI, exit 0 | `cli-build.log` |
+
+Python, from `/workspace/codex/sdk/python`, `. .venv/bin/activate`:
+`python -m pytest tests/test_contract_generation.py tests/test_public_api_signatures.py -q`
+passed 25 checks (`sdk-contract-tests.log`, exit 0). **691 distinct automated tests
+passed**; targeted initial/repeated runs and the two schema-writing helpers are
+not double-counted. Native API/TUI/process checks use authorized native execution
+because the outer sandbox masks protected paths; inner security assertions remain.
+
+Old-note discovery past the 16-note recent window, exact original provenance,
+Unicode lowercase matching, literal `%_`/SQL-like text, empty browse/count/cap,
+overlong multibyte/control queries, scope isolation, new-task retrieval after
+store reopen, identity spoofing/deduplication and paused cached calls are covered.
+TUI checks cover captured identities, wrong-query/project and closed-view replies,
+query size, queue failure, narrow rendering and real Neovim focus/dirty guards.
+The API's real delegated child uses `searchNotes` and produces checked artifacts.
+
+Schema generation uses the existing ignored helper with
+`CODEX_APP_SERVER_SCHEMA_ROOT=/workspace/codex/codex-rs/app-server-protocol/schema`
+and `CODEX_APP_SERVER_SCHEMA_EXPERIMENTAL=0`, then `1`:
+`cargo test -p codex-app-server-protocol --lib schema_fixtures_tests::write_schema_fixtures_from_env -- --exact --ignored`.
+Both helpers passed; all four stable/experimental comparisons pass. The new owner
+method is experimental; filtered flat stable exports intentionally omit its params
+and response, like other organization methods. Shared note DTOs remain exported.
+SDK regeneration: `python scripts/update_sdk_artifacts.py generate-types --schema-dir ../../codex-rs/app-server-protocol/schema/json` with the venv activated.
+
+### Complete package and retained failures
+
+Evidence root: `/workspace/.onboarding/qualification/memory-search-20261010/`.
+Pinned Rust 1.95.0, Node 24.19.0, pnpm 10.34.5 and checksum-verified official
+Neovim 0.12.6 are reused; no installation occurred in this slice.
+From `/workspace/codex/codex-rs`, after the full CLI build:
+
+```sh
+CODEX_REPO_ROOT=/workspace/codex python3 /workspace/codex/scripts/build_codex_package.py --target x86_64-unknown-linux-gnu --package-dir /workspace/.onboarding/qualification/memory-search-20261010/package --entrypoint-bin /workspace/codex/codex-rs/target/dev-small/codex --code-mode-host-bin /workspace/.onboarding/qualification/selective-apply-20261010/package-v2/bin/codex-code-mode-host --bwrap-bin /workspace/.onboarding/qualification/selective-apply-20261010/package-v2/codex-resources/bwrap --rg-bin /workspace/.onboarding/qualification/selective-apply-20261010/package-v2/codex-path/rg --strip none
+```
+
+Exit 0 (`package-build.log`); unchanged verified helpers are reused. CLI SHA256:
+`655660afa5a090b0806463f7a7d0b488c93deec549b7ad33c0b13bb776a9ab36`.
+Fresh native daemon start installed the complete package. `preflight.json` confirms
+all five source/installed hashes and source HEAD before physical checks.
+Private home: `/workspace/.onboarding/qualification/mem-home`; both CODEX_HOME
+and CODEX_SQLITE_HOME select it. Existing user/historical homes are preserved.
+
+Initial evidence is retained, not counted as passing: TUI's protocol `Result`
+alias compile collision (`production-clippy-initial.log`), prohibited unwrap
+(`production-clippy-corrected.log`), SDK generation without the required `/json`
+schema suffix (`sdk-generation.log`), and the API success-only helper panicking
+on the correct expected `-32602` rejection (`native-api-tests.log`). Each was fixed
+and the relevant final checks passed without weakening assertions.
+Physical writer search/approval/checks passed, but `/quit` plus Enter in one burst
+left Console's composer unsubmitted. Split keystrokes exited the CLI; polling a
+released Neovim job then returned `-3` instead of its exit status. The harness now
+records actual native `on_exit` status. Safe owner-read/exit recovery passed with
+exit 0 and no task reauthorization or additional model calls. Initial logs,
+`physical-write-initial.json` and `failure-write` capture remain. Final logs:
+`physical-write-final.log` and `daemon-restart.log`; actual restart preserved notes.
+
+
+### Physical memory workflow and independent verification
+
+From `/workspace/codex`, with activation and authorized native execution, the
+owned scripts under the evidence root ran in this order: `launch-provider.py`,
+`setup.py`, `preflight.py`, `physical.py write`; after preserving its exit-harness
+failures, `resume-write.py` completed only owner reads/normal exit; `restart.py`
+performed a real daemon stop/start; `physical.py read` executed three fresh tasks;
+`resume-read.py` completed only resize/focus/read/normal-exit checks. Do not rerun
+these authorization scripts against the existing fixture. Two custom agents and
+two projects were created through actual CLI commands; each of four tasks had
+one exact native tool approval and a passing real immutable report check.
+The writer was accepted; three readers remain needsReview; no Apply or original
+project writes occurred. All new tasks have independent grants/source identities.
+
+The writer's shared/private notes retained their exact IDs, author, source task/
+attempt, timestamp and body after daemon PID 41696 stopped and PID 42714 started.
+Owner CLI retrieval matched the prior result byte-for-byte. New agent-tool searches
+returned shared/private matches 1/1 for the same agent/project, 1/0 for another
+agent in that project, and 0/0 for the same agent in another project. Fixture
+responses consume the actual returned notes and assert provenance before writing
+reports; they do not fabricate retrieval. Physical TUI Unicode query, refresh,
+empty recent browse, no-match, query cancellation and provenance views passed.
+
+After launching actual official Neovim Follow, Ctrl-G returned host focus; memory
+owned `e/o/t/d/n`, remained visible and left the editor unfocused after Esc. Final
+36 rapid layout commands and memory queries passed at 120×36, 50×20 and 160×48,
+with no duplicate-ID/timeout frames. Initial narrow selection checks incorrectly
+required an unwrapped UUID, then included neighboring panels when normalizing;
+`physical-read.log`, `physical-read-final.log`, `physical-read-initial.json` and
+`failure-read` preserve those failures. Matching the inspector's actual cells
+corrected the assertion without application changes. `physical-read-resumed.log`
+records the passing recovery, with no new tasks/reauthorizations/model calls.
+
+`remote-denial.py` initialized a real TCP WebSocket client and requested both
+project and private `organization/memory/search`; each received `-32600` requiring
+a protected local owner connection, with no notes/result. `verify.py` then exited
+0 (`verification.log`/`verification.json`), independently confirming exactly two
+canonical notes, six persisted reader `searchNotes` calls and their scoped cached
+results, correct source links, four exact report bodies/hashes and independently
+rerun immutable oracles, four completed actions/approved approvals, unchanged
+originals, and all five source/installed package hashes. **16 localhost deterministic
+Responses/240 fixture-reported tokens, zero paid calls**. `gpt-5.5` is a fixture
+catalog label; earlier real-GPT evidence retains its original source/limits.
+
+Visual inspection showed later metadata/body below the 50×20 viewport, so a final
+read-only `scroll.py` follow-up physically verified PageDown shows the timestamp
+and full wrapped body, PageUp restores the match count, and native frontend exit
+is 0. `physical-memory-scroll.json`/`.log` passed with the provider stopped, no new
+inference and the same 16-request ledger. Its owned daemon was started/stopped
+through real lifecycle commands. `cleanup.json`/`cleanup-final.log` confirm the
+last successful stop, removed actual PID record and known stopped/zombie services;
+frontends are closed and canonical state/packages/failure evidence remain.
+
+18 selected actual PNG/text captures, README and canonical/restart/denial/scroll/
+cleanup evidence are at `/workspace/artifacts/cli-memory-search/`. The archive
+`cli-memory-search-screenshots.zip` contains 42 files and passed CRC verification.
+Images come from real native terminal/external-UI cells; no generated mockups or
+custom editor. Narrow headers/hints clip and long content requires scrolling.
+Controls and bounds are in [memory search](memory-search.md).
+
+The cloud startup guide was saved and read back exactly (draft revision 10,
+`cloud-draft-receipt.json`). Installation, network, repositories, secrets and
+runtime requirement metadata remained unchanged. `requires_publish=true`:
+review/save updated settings and publish the refreshed snapshot for later tasks.
+No publication or fresh-task restoration is claimed.
+
+Unrun/deferred: new live-model retrieval quality/provider billing, other operating
+systems, user Neovim plugins/LSP, semantic search/pagination, larger note quotas,
+automatic capture/promotion/retention, N2 recurring schedules and N3–N8. Ponytail
+and correctness review found no remaining actionable complexity/contract issue
+in this scope; this is not a whole-repository security audit. Initial failures
+are separate from the 691 distinct passing automated checks.
+
 ## Completed selective Apply qualification — 2026-10-10 UTC
 
 Application source `9fadf32797275291322fcc536376a58d27683938`, following backend/API

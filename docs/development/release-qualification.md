@@ -34,6 +34,17 @@ oracle (expected exit 1); full isolated and independent selected checks pass.
 Exact current evidence/retained failures: [testing](testing.md),
 [selective Apply](selective-apply.md) and status.md.
 
+The subsequent N1 scoped persistent memory slice is qualified on `d6d049cc49`:
+691 distinct automated tests, production format/Clippy and complete CLI/package
+passed. Actual daemon restart and three new bounded readers proved original note
+provenance, project/private isolation and protected owner access. Real CLI/TUI,
+official Neovim focus, empty/literal search, narrow scrolling and 36 rapid layout
+switches passed. Four independent immutable reports and five installed hashes match;
+originals remain unchanged. Six persisted reader searches used 16 total localhost
+fixture Responses/240 reported tokens, zero paid calls. This qualifies local memory
+control/retrieval, not new live-model quality or broader platforms/plugins.
+See [memory search](memory-search.md), [testing](testing.md) and status.md.
+
 ## Acceptance evidence
 
 | Criterion | Local result and evidence | Remaining boundary |

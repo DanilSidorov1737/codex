@@ -9,6 +9,8 @@ owner socket are accepted; TCP WebSocket and Remote Control are not.
 codex organization list nodes --limit 100
 codex organization mutate agent.json
 codex organization project-create "My project" --root ./project --idempotency-key my-project-1
+codex organization memory-search PROJECT_ID 'SQLite'
+codex organization memory-search PROJECT_ID 'decision' --agent-id AGENT_ID
 codex organization backup
 codex organization restore --backup /absolute/path/snapshot.sqlite --destination /fresh/sqlite-home
 ```
@@ -16,6 +18,15 @@ codex organization restore --backup /absolute/path/snapshot.sqlite --destination
 `list` accepts `nodes`, `roles`, `goals`, `projects`, `tasks`, or `memberships`.
 Follow `nextCursor` using `--cursor`; page limits are 1–200. Output is JSON.
 `--no-daemon` uses the existing embedded server for isolated qualification.
+
+`memory-search` reads existing durable notes; omit the query to browse recent
+notes. The default scope is project-shared; `--agent-id` selects that agent's
+private notes within the named project for owner inspection. Output wraps
+`notes` and `matchedCount` under `result`, with original note IDs, author,
+task/attempt and timestamp. Literal queries use Unicode lowercase, at most 256
+UTF-8 bytes and no control characters; up to 16 notes are returned. Notes are
+untrusted context, never authorization. See [memory search](memory-search.md)
+for agent retrieval, scope boundaries, limits and actual qualification evidence.
 
 The mutation file is at most 128 KiB and uses camelCase fields. Create a
 standalone agent with:

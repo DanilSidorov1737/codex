@@ -41,6 +41,8 @@ charge usage without restoring authority.
 {"type":"wait","taskIds":["direct-child-task-id"]}
 {"type":"writeNote","scope":"project","body":"Observed project context"}
 {"type":"readNotes","scope":"agent"}
+{"type":"searchNotes","scope":"project","query":"SQLite"}
+{"type":"searchNotes","scope":"agent","query":"previous decision"}
 {"type":"send","taskId":"authorized-task-id","body":"Critical instruction"}
 {"type":"inbox"}
 {"type":"acknowledge","messageId":"received-message-id"}
@@ -62,6 +64,14 @@ untrusted context; their content
 cannot become role instructions or authority. MVP bounds: 128 notes/project,
 256 messages/root, 4 KiB bodies, 16 notes/read, 32 messages/read and 256 coordination
 calls/attempt. Exhausted limits fail explicitly.
+
+N1 `searchNotes` uses these same host-bound scopes and fences. Literal Unicode
+lowercase substring matching searches the existing bounded store, returning
+`notes` (at most 16) and `matchedCount`, with unchanged provenance. Empty queries
+browse recent notes. Unknown identity fields are rejected; another project or
+agent's private notes cannot be selected. `readNotes` retains its legacy array
+contract. There is no automatic capture or permission-bearing memory. See
+[memory search](memory-search.md) for the complete contract and current evidence.
 
 ## Waiting and files
 

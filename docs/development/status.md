@@ -1,36 +1,76 @@
 # Current status and resumption instructions
 
 Phase 0: **exploration and planning complete for available inputs**.
-Current work: **N1 scoped memory search implementation and qualification**.
+Current work: **N1 scoped memory search complete; N2 recurring schedules is the next recommendation**.
 Application features: **delivered for the documented single-owner Linux envelope**.
 The MVP's release criteria are **qualified for the documented single-owner Linux/GPT-5.5 envelope**.
 
-## Approved memory slice — 2026-10-10 UTC
+## Completed memory slice — 2026-10-10 UTC
 
-The owner approved the scoped memory recommendation with “Ok do this”. Scope:
-search existing SQLite notes, agent retrieval within existing project/agent
-boundaries, owner CLI/TUI inspection with provenance, and restart/isolation
-qualification using actual application interaction. Use Ponytail and periodic
-local commits. Literal Unicode-aware search is sufficient for the bounded
-128-note/project store; no embeddings, new database, automatic promotion,
-recurring schedules or paid-provider repeats are needed for this slice.
-Implementation and tests are in progress; selective Apply evidence below remains
-the previous qualified application baseline. Do not claim memory qualification yet.
-Backend checkpoint: agent `searchNotes`, protected owner memory RPC/CLI and the
-shared scoped search are implemented without a migration/dependency in
-`8d33c5e0d8`. The full protocol/state suites passed 630 tests, schema comparisons
-passed 4, and Python contracts passed 25. The native organization API suite now
-passes 5 tests, the final TUI/actual-Neovim suite passes 26, and the owner-origin
-unit check passes 1. Physical restart qualification and the complete build are pending.
-Initial TUI compile/lint failures (protocol `Result` alias collision and prohibited
-unwrap) were corrected; final production library Clippy with warnings denied and
-affected-package formatting checks passed. SDK
-generation's initial schema-directory error was corrected and evidence retained.
-The first native API run correctly rejected a private search without an agent ID;
-its success-only test helper panicked on that expected error. Switching to the
-existing error-response helper made all 5 tests pass. Workspace memory now owns
-keyboard/paste/mouse routing while open; the existing real-Neovim dirty-buffer
-test additionally verifies that editor-focus shortcuts cannot bypass the view.
+The owner approved N1 with “Ok do this”, Ponytail and periodic local commits.
+Scoped persistent memory search is delivered and qualified on application source
+**`d6d049cc49b42f3ed6f6a22c02974f051bfba5ff`**, following backend/CLI `8d33c5e0d8`.
+The existing SQLite notes now support literal Unicode lowercase substring search:
+agent `searchNotes`, protected owner `organization/memory/search`, and
+`codex organization memory-search PROJECT_ID [QUERY] [--agent-id AGENT_ID]`.
+Projects `m` searches shared notes; task `M` searches its owner's private notes.
+Workspace/Review task selections use the same host-focused view; Operations
+requires F3 to select an explicit project/task. Count, original body, author,
+source task/attempt and timestamp are retained. See [memory search](memory-search.md).
+
+SQLite applies project/scope/private-author filters before decoding or matching.
+Agent identities come from the current fenced task; selectors cannot be spoofed.
+Existing lease/role/policy/pause/revoke/budget and dedupe gates remain. Notes are
+untrusted context, never instructions/permission. Legacy `readNotes` is unchanged.
+Queries are at most 256 UTF-8 bytes without controls; empty queries browse recent
+notes. Existing 128 notes/project, 4 KiB body and 16 returned-note bounds remain,
+with visible `matchedCount`. No dependency/migration/embeddings/automatic promotion.
+
+**691 distinct automated tests passed**: protocol 370, state 260, schema comparisons
+4, Python contracts 25, native API 5, native TUI/actual-Neovim 26 and owner-origin
+1. Production library/CLI Clippy with warnings denied, affected formatting and the
+complete CLI/package passed. Actual packaged CLI/TUI created two custom agents,
+two projects and four bounded tasks. The writer explicitly stored shared/private
+notes, passed its immutable report check and exact native approval, and was accepted.
+After real daemon stop/start, three new tasks retrieved shared/private notes only
+within their own scopes. Correct source IDs survived; other-agent private and
+other-project notes were excluded. All four independent report oracles passed.
+Remote TCP WebSocket owner searches were denied for both scopes.
+
+Physical Unicode search, empty browse, no-match, query cancel/refresh, real Neovim
+host-focus guards and **36 rapid layout switches at 120×36, 50×20 and 160×48**
+passed. Normal frontend exits are recorded from native Neovim `on_exit`, code 0.
+The narrow view requires scrolling for later source fields/body; that interaction
+passed actual PageDown/PageUp and exit 0 without additional inference; see
+testing.md. Independent read-only verification confirms exactly
+two canonical notes, six persisted reader search calls, original provenance,
+unchanged originals, checks/approvals and all five source/installed package hashes.
+The localhost fixture used **16 Responses/240 reported tokens, zero paid calls**;
+`gpt-5.5` is its catalog label, not new live-model quality or billing evidence.
+
+Current package: `/workspace/.onboarding/qualification/memory-search-20261010/package/`.
+CLI SHA256: `655660afa5a090b0806463f7a7d0b488c93deec549b7ad33c0b13bb776a9ab36`.
+Evidence: `/workspace/.onboarding/qualification/memory-search-20261010/`.
+Private home: `/workspace/.onboarding/qualification/mem-home` (88-byte owner socket).
+Final canonical states: writer accepted; three readers needsReview; **no Apply**.
+All owned fixture services/frontends are stopped; successful native stop, removed
+PID record and known stopped/zombie PIDs are recorded in `cleanup.json`. State,
+packages, immutable reports and failures are preserved. The 18 actual PNG/text
+captures and CRC-checked archive are at `/workspace/artifacts/cli-memory-search/`.
+The tested startup guide was saved and read back exactly at cloud draft revision
+10; installation/network/repository/credential fields remain unchanged.
+`requires_publish=true`: review/save the updated settings and publish the refreshed
+environment snapshot to retain this local work. Saving does not publish it or
+verify fresh-task restoration of local-only commits/packages.
+Do not rerun setup/writer/read authorization scripts or replay accepted/applied
+historical tasks. Initial compile/generation/test-helper and physical-harness
+failures remain, with corrected passing evidence; see [testing](testing.md).
+
+Limits: literal substring retrieval, no pagination/semantic search, retention,
+automatic capture/promotion or broader memory ACLs; additional platforms/user
+Neovim plugins and new live-provider checks are unrun. Earlier live GPT-5.5 and
+selective Apply evidence stays tied to its stated source below. N2 recurring
+schedules is the next bounded recommendation; N2–N8 need their matching scope.
 
 ## Expanded next-step proposal — 2026-10-10 UTC
 
@@ -39,12 +79,14 @@ on the fork text. The [recommended next slices](roadmap.md#recommended-next-slic
 are scoped memory search, recurring schedules, reusable workflows, structured
 handoffs/blockers, Operations organization editing, operational summaries,
 Neovim selection-to-task requests and a capability inventory with one additional
-read-only integration. N1 memory search remains the recommended first step.
+read-only integration. This planning checkpoint preceded the N1 approval and
+completed implementation recorded above; N2 recurring schedules is now next.
 
-This update changes planning documentation only. Application source remains
-`9fadf32797`; the existing selective Apply qualification remains current. No
+That proposal changed planning documentation only. Application source then remained
+`9fadf32797`; selective Apply was the current checkpoint. No
 new feature, installation, paid call or feature test was performed for this
-proposal. Implementation scope has not been granted by this planning request.
+proposal. That planning request itself did not grant implementation scope; the subsequent
+N1 approval is recorded above.
 Documentation validation: all 43 local links and referenced heading anchors in
 the four changed documents resolved; `git diff --check` passed.
 
@@ -91,8 +133,8 @@ Private home: `/workspace/.onboarding/qualification/select-home` (91-byte socket
 Current screenshot archive: `/workspace/artifacts/cli-selective-apply/cli-selective-apply-screenshots.zip`.
 Owned daemon/provider/frontends are stopped; canonical state, packages and failures
 remain. Do not blindly rerun its accepted/applied task or repeat paid pilots.
-Next bounded recommendation: scoped memory search using existing durable context,
-then recurring scheduling. Both need their matching implementation scope.
+The subsequent owner-approved N1 memory slice above supersedes this package.
+Its original next recommendation was memory followed by recurring scheduling.
 The cloud startup guide was saved for this qualified package and resume procedure;
 installation/network/repository/credential fields were omitted and preserved.
 The tool reports `requires_publish=true`: the updated snapshot has not been published
@@ -147,13 +189,16 @@ retained setup failures and the monochrome/RGB capture distinction.
 That usability checkpoint is superseded by the completed selective Apply slice above.
 Choose the next bounded roadmap scope with the owner. Preserve accepted/applied fixture tasks; do not automatically rerun
 paid pilots, start later features or push/merge/deploy. More platforms/providers,
-user Neovim plugins, hunk review, memory retrieval and scheduling remain separate work.
+user Neovim plugins, hunk review, broader knowledge promotion and recurring scheduling
+remain separate work; the completed N1 search slice above supersedes this checkpoint.
 
 ## Current result and next action
 
 Persistent configurable agents/roles/goals/projects/tasks, protected canonical state,
 bounded daemon work/delegation/context, all five layouts, official embedded Neovim,
-exact human review/Apply, owner boot limits and trusted price estimates are delivered.
+exact human review/Apply, owner boot limits, trusted price estimates and N1 scoped
+memory search are delivered. Next recommendation: N2 recurring schedules after
+matching scope; preserve current fixture state and do not repeat paid pilots.
 Ponytail reuse-first implementation/review and logical local commits were used.
 
 Previous startup/workflow application source: **`6a4a9f6329`**, following request-ID fix `4a19208b2c`.
@@ -423,12 +468,13 @@ authorize push/publication, outbound communications or unbounded provider spendi
 1. Read AGENTS.md, this status, release matrix, MVP, decisions and testing.
 2. Check Git status/log and preserve changes in the existing checkout.
 3. Activate the pinned environment with `. /workspace/.onboarding/activate.sh`.
-   Final package: `/workspace/.onboarding/qualification/selective-apply-20261010/package-v2/bin/codex`.
+   Final package: `/workspace/.onboarding/qualification/memory-search-20261010/package/bin/codex`.
    Evidence root: `/workspace/.onboarding/qualification/`; fixture services are stopped.
-4. A05 is complete. Read live-gpt/verification.json and retained failure evidence;
-   its tasks are accepted/applied and its daemon is stopped. Do not redo paid
-   qualification or create automatic inference loops. Discuss the next bounded
-   roadmap slice; use fresh explicitly scoped projects/grants if new work is approved.
+4. N1 and A05 are complete. Read memory-search-20261010/verification.json and the
+   separate live-gpt/ evidence. Preserve accepted/needsReview/applied fixture tasks;
+   services are stopped. Do not replay authorization/Apply, redo paid qualification
+   or create automatic inference loops. Next recommendation: N2 recurring schedules
+   after matching scope; use fresh scoped projects/grants for new approved tests.
 5. Update acceptance/status/testing and make logical local commits after results.
    Do not start later roadmap phases without matching user scope, or infer push,
    merge, deploy, external messaging or financial authority.

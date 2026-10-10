@@ -1,6 +1,7 @@
 # Scoped persistent memory search
 
-Status: N1 is owner-approved; implementation and qualification are in progress.
+Status: N1 is owner-approved, delivered and qualified on application source
+`d6d049cc49`, following backend/CLI `8d33c5e0d8`.
 This extends the existing durable coordination notes rather than introducing a
 new memory service, vector database or automatic knowledge promotion.
 
@@ -79,9 +80,17 @@ palette and text sanitization are reused; no editor or Apply semantics change.
 
 ## Qualification
 
-See [testing](testing.md) and [status](status.md) for actual outcomes. Required
-checks cover old-note discovery beyond the recent 16-note window, Unicode and
-literal matching, count/limit visibility, provenance, fresh-task retrieval after
+691 distinct automated tests and production format/Clippy/full CLI/package passed.
+Actual CLI/TUI checks retrieved exact prior-task notes after real daemon stop/start,
+excluded other-project/agent-private notes, enforced remote owner denial, preserved
+native Neovim host focus and passed 36 rapid switches at three terminal sizes.
+Four independently checked reports used 16 localhost fixture Responses/240 reported
+tokens and zero paid calls. See [testing](testing.md) and [status](status.md) for
+source/package hashes, retained corrected failures, fixture states and limitations.
+Automated checks also cover old-note discovery beyond the recent 16-note window,
+Unicode and literal matching, count/limit visibility, provenance, fresh-task retrieval after
 restart, other-project/private-agent exclusion, invalid/spoofed identities,
 paused/stale calls, wire/schema/SDK contracts, and actual CLI/TUI operation.
 Deterministic localhost provider evidence remains distinct from live-model work.
+No new live-model quality/provider compatibility, other-platform or user-plugin
+qualification is claimed. N2 schedules and broader memory capabilities remain later.
