@@ -462,3 +462,33 @@ an expected-revision conflict when relinking the reused project; the final run
 created a fresh project and passed. Original failure evidence remains retained.
 Current CLI build, production Clippy, state/native/wire/contracts and formatting
 gates are documented above. B4/B5 and broader B6 gates remain outstanding.
+
+## B4 layouts — automated checkpoint
+
+From `codex-rs`, with onboarding activated and `CARGO_INCREMENTAL=0`:
+`RUST_MIN_STACK=8388608 cargo test --locked --offline --profile dev-small -j4
+-p codex-tui --lib organization::tests` passed **5**, ignored **0**. It proves
+1,000-deep iterative projection/search through collapsed branches, all-preset
+private preferences and alias rejection, stable selection across refresh, stale
+selection denial/frozen approval identity and narrow/wide sanitized rendering.
+The same current test binary ran `slash_command::tests` (**5**),
+`chatwidget::tests::slash_commands` (**136**) and
+`app::tests::transcript_composer` (**5**), all passing without ignored tests.
+These 151 tests are targeted; the 5,717-test frontend suite was not run wholesale.
+
+`cargo clippy --locked --offline --profile dev-small -j4 -p codex-tui --lib
+-- -D warnings` and `cargo fmt -p codex-tui -- --check` passed. No production
+dependency was added. Machine-local logs: `mvp-b4-layout-tests.log`,
+`mvp-b4-slash-regression.log`, `mvp-b4-slash-dispatch-tests.log`,
+`mvp-b4-overlay-regression.log`, `mvp-b4-clippy.log`, `mvp-b4-format.log` under
+`/workspace/.onboarding/qualification/`.
+
+The first compile required a selection type annotation and exhaustive slash
+routing. Offline testing then found missing already-pinned vt100/vte archives;
+`cargo test --locked` downloaded those without changing the lockfile. The first
+link failed on the 32 GiB workspace's full disk (no tests ran). Its log remains
+`mvp-b4-test-link-disk-failure.log`. With no compiler running, obsolete first-party
+library variants were retired using the latest CLI dependency fingerprints and
+the actual test link inputs; current dependency sets, sources and state remained.
+The corrected offline rerun passed. Physical TUI interaction/full CLI build remain
+pending, so these checks do not yet qualify B4 or the complete MVP.

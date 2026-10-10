@@ -1940,6 +1940,22 @@ impl App {
                 self.overlay = Some(Overlay::Analytics(view));
                 tui.frame_requester().schedule_frame();
             }
+            AppEvent::OpenOrganizationLayout { preset } => {
+                if preset == Some(crate::organization::Preset::Console) {
+                    self.close_transcript_overlay(tui);
+                    if let Err(e) = crate::organization::select_console(self.local_settings.codex_home.as_path()) {
+                        self.chat_widget.add_error_message(format!("Console preference was not saved: {e}"));
+                    }
+                } else if !tui.is_alt_screen_enabled() {
+                    self.chat_widget.add_error_message("Organization layouts require the alternate screen; relaunch without --no-alt-screen.".into());
+                } else {
+                    tui.enter_alt_screen()?;
+                    self.overlay = Some(Overlay::Organization(Box::new(crate::organization::Dashboard::open(
+                        app_server.request_handle(), tui.frame_requester(), self.local_settings.codex_home.as_path(), preset,
+                    ))));
+                    tui.frame_requester().schedule_frame();
+                }
+            }
             AppEvent::OpenRateLimitResetCredits => {
                 let request_id = self.chat_widget.show_rate_limit_reset_loading_popup();
                 self.refresh_rate_limits(

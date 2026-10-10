@@ -761,6 +761,9 @@ pub(crate) enum AppEvent {
     OpenAnalytics {
         view: Option<crate::analytics::TokenActivityView>,
     },
+    OpenOrganizationLayout {
+        preset: Option<crate::organization::Preset>,
+    },
 
     /// Open the reset-credit flow selected from the `/usage` menu.
     OpenRateLimitResetCredits,

@@ -22,6 +22,7 @@ organization is a template, not the product's fixed structure.
 
 B1 usage: [organization command guide](organization-commands.md).
 B3 contracts and bounds: [coordination](coordination.md).
+B4 layout usage and qualification: [layouts](layouts.md).
 
 Other focused plans: [security and recovery](security-and-recovery.md),
 [TUI and Neovim](tui-and-neovim.md), [Ponytail setup](ponytail.md).

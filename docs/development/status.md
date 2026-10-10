@@ -4,7 +4,30 @@ Phase 0: **exploration and planning complete for available inputs**.
 Current work: **approved MVP implementation; B1–B3 locally qualified; B4 layouts underway**.
 Application feature implementation: **B1–B3 locally qualified; B4–B6 outstanding**.
 
-## B3 current slice
+## B4 current slice
+
+Added shared owner layouts around the existing overlay, typed app-server client,
+Ratatui and transcript sanitizer. Console remains the existing conversation;
+Workspace/Projects/Operations/Review share one bounded metadata loader. Operations
+uses iterative searchable/collapsible hierarchy traversal; owner controls retain
+revision/hash fences and explicit captured confirmation. Pane ratios, visibility,
+focus, optional j/k keys and preset persist privately outside project config.
+Readable inspection shows actual tasks, usage, checks, approval arguments and
+result hashes; no synthetic metrics or model session per stored node.
+
+**151 relevant tests passed**: five new layout tests, five slash-command unit
+checks, 136 existing slash-dispatch tests and five overlay regressions. Production
+TUI Clippy passed with warnings denied, and package formatting passed. Initial
+compile errors were corrected. A missing pinned test dependency was downloaded;
+a disk-full linker failure was fixed by retiring obsolete compiled artifacts
+while no compiler ran. Current CLI/test dependency sets and all state/evidence
+were retained; the exact test rerun passed. No assertion was weakened or skipped.
+The current full CLI build and physical TUI qualification are next. A bounded
+localhost fixture is prepared with a live detached daemon, definitions and zero
+idle inference. See [layouts](layouts.md). B4 is not yet physically qualified;
+actual Neovim remains B5. Continue the entire approved MVP after this checkpoint.
+
+## B3 qualification
 
 Added shared-root budgets, bounded plan/DAG validation and delegation, durable
 scoped notes, deduplicated inbox/acknowledgement and child waits that yield
@@ -85,7 +108,7 @@ authorize push/publication, outbound communications or unbounded provider spendi
 - `a360de3115` committed the tested runtime/API, contract fixtures and command clients.
 - Corrected CLI build and complete package qualification passed. Thirteen real CLI/native/IPC assertions cover exact approval/artifact/oracle/acceptance, detach, actual owner socket denial, private-home state, pause, post-dispatch SIGKILL/restart, uncertain action and no idle inference/replay. Cleanup also passes for a SIGTERM-ignoring native command, checked before ordinary timeout. Seven local fixture Responses were recorded; no live model was called. Fixture services were stopped.
 - B2 is qualified for the local deterministic operating envelope; final provider/fault/scale qualification remains B6. See testing.md for commands, timing, failures and evidence.
-- Next: implement B3 bounded delegation with shared root budgets, prerequisite wait/yield, planner validation and scoped durable notes/inbox. Then B4 five layouts, B5 actual Neovim and B6 pilots/fault/scale/live testing. Continue ordinary work without another implementation approval.
+- B3 is subsequently qualified. Continue B4–B6 ordinary work without another implementation approval.
 
 ## MVP planning completed before implementation
 
@@ -167,7 +190,7 @@ authorize push/publication, outbound communications or unbounded provider spendi
 3. Verify the owner's latest explicit approval and constraints. Without approval,
    answer planning questions or revise documentation only.
 4. Review qualification evidence and remaining gates rather than repeating the
-   baseline. Continue B3 delegation/context after the qualified B1/B2 slices.
+   baseline. Qualify B4 layouts, then implement B5 official Neovim and B6 gates.
    Do not restart the completed storage/definition work.
    Full Neovim pane integration remains B5/M8. Keep broader
    feature scope and live-provider budget explicit.

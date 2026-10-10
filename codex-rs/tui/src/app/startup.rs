@@ -981,6 +981,14 @@ See the Codex keymap documentation for supported actions and examples."
             _test_codex_home: None,
         };
         app.remember_launch_permissions();
+        if tui.is_alt_screen_enabled()
+            && let Some(preset) =
+                crate::organization::saved_preset(app.local_settings.codex_home.as_path())
+        {
+            app.app_event_tx.send(AppEvent::OpenOrganizationLayout {
+                preset: Some(preset),
+            });
+        }
         if !tui.is_terminal_focused() {
             app.recap.note_focus_lost(Instant::now());
         }

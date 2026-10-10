@@ -573,6 +573,9 @@ impl ChatWidget {
                     self.open_usage_menu();
                 }
             }
+            SlashCommand::Layout => self
+                .app_event_tx
+                .send(AppEvent::OpenOrganizationLayout { preset: None }),
             SlashCommand::Ide => {
                 self.handle_ide_command();
             }
@@ -826,6 +829,14 @@ impl ChatWidget {
                     }
                 }
             }
+            SlashCommand::Layout => match crate::organization::Preset::parse(trimmed) {
+                Some(preset) => self.app_event_tx.send(AppEvent::OpenOrganizationLayout {
+                    preset: Some(preset),
+                }),
+                None => self.add_error_message(
+                    "Usage: /layout [console|workspace|projects|operations|review]".to_string(),
+                ),
+            },
             SlashCommand::Voice => match trimmed.to_ascii_lowercase().as_str() {
                 "settings" => self.app_event_tx.send(AppEvent::OpenRealtimeSettings),
                 "mute" => self.app_event_tx.send(AppEvent::VoiceControl {
@@ -1269,6 +1280,7 @@ impl ChatWidget {
             | SlashCommand::Daemon
             | SlashCommand::Pwd
             | SlashCommand::Usage
+            | SlashCommand::Layout
             | SlashCommand::DebugConfig
             | SlashCommand::Ps
             | SlashCommand::Stop

@@ -175,6 +175,7 @@ mod keymap_setup;
 mod line_truncation;
 pub(crate) mod live_wrap;
 mod local_settings;
+mod organization;
 mod rendered_selection;
 pub use live_wrap::RowBuilder;
 mod local_chatgpt_auth;
