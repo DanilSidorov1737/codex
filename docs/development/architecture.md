@@ -1,6 +1,7 @@
 # Recommended architecture
 
-All choices are **proposed**, pending the Phase 0 approval gate.
+Product choices are **proposed**, pending MVP scope approval. CLI/daemon/editor
+foundations have been qualified; see [qualification](qualification.md).
 
 ## One daemon, several responsibilities
 
@@ -92,8 +93,10 @@ owner-controlled.
 4. Start or resume the existing Codex thread with captured role version, task
    context, environment, tools and permissions. Save thread/turn correlation.
 5. Renew the lease and record useful checkpoints, events and actual usage.
-6. On output, validate artifacts and criteria. Transition to review; an agent's
-   “done” message alone never completes a task.
+6. On output, validate artifacts and criteria. Final results require owner review;
+   internal tasks may use explicit preauthorized machine-checkable acceptance.
+   Persist the evidence and accepting actor/policy. An agent's “done” message
+   alone never completes a task.
 7. Release settled reservations and wake dependents only after acceptance.
 
 Use a small configurable concurrency cap (suggested initial 2, qualification

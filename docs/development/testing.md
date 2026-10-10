@@ -1,5 +1,19 @@
 # Testing procedures and evidence
 
+## MVP planning verification
+
+Planning-only update on 2026-10-10 UTC: no application source, dependency or
+lockfile changed. Checked the revised scope against recorded foundation evidence;
+pending approval replay on reconnect is not presented as approval crash recovery.
+No application tests or live requests were rerun for this documentation change.
+
+- From the repository root, activate the documented environment and run
+  `pnpm exec prettier --check AGENTS.md 'docs/development/*.md'`: exit 0.
+- Local Markdown path/anchor validation: 16 files checked; 85 local links/anchors
+  valid after the architecture qualification link was added.
+- `git diff --check`: exit 0. Reviewed changed paths/diffs for documentation-only
+  scope; MVP A01–A21 remain future product acceptance tests, not passed results.
+
 ## Current M0/M1 evidence
 
 Owner-authorized foundation work is recorded in [qualification](qualification.md).

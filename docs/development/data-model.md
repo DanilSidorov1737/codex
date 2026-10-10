@@ -59,6 +59,9 @@ Additional states: `blocked`, `paused`, `failed`, `cancelled`, `archived`.
 - An approved safe retry goes from failed/blocked back to queued with a new attempt.
 - Review rejection/request changes creates tracked follow-up/requeue.
 - Completion records acceptance; archive preserves history.
+- Internal task review may be performed by deterministic checks only when the
+  owner has preauthorized those exact criteria. Record checked evidence and the
+  policy version; final project acceptance remains an owner action.
 - Reopening completed work is explicit and invalidates dependent assumptions
   according to a recorded policy; never silently erase old acceptance.
 - Pausing a subtree affects dispatch, requests cancellation/checkpoints for active

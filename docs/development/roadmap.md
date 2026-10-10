@@ -4,21 +4,29 @@ Current execution: scoped Phase 1 / M0–M1 foundation checks are approved and c
 [qualification evidence](qualification.md) and [status](status.md).
 
 Sequence is based on technical dependencies and risk, not date estimates.
-Each implementation phase requires an approved scope and evidence at its gate.
+Implementation proceeds within the approved scope and records evidence at each gate.
+Approval of the complete MVP covers ordinary slices/commits; do not request it
+again for each checkpoint. Broader authority or a material scope change is separate.
 Parallel independent work is useful once interfaces and ownership are clear;
-no feature implementation or installations are authorized by Phase 0.
+the latest request is to plan the MVP, not begin feature implementation.
 
-| Phase                           | Scope                                                                                                                                  | Exit evidence                                                                                                               |
-| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| 0: research/planning            | Review inputs and source, architecture, risks, roadmap, MVP, AGENTS.md                                                                 | Documentation reviewed; owner approves implementation boundary                                                              |
-| 1: baseline and spikes          | Build real CLI on selected host; inspect daemon detach/approval lifecycle; official Neovim external-UI spike; IPC/policy/storage tests | Actual TUI input, real editor editing/resize, safe daemon detach, selected dependencies/licenses; revise plan if seams fail |
-| 2: durable vertical slice (MVP) | Stable definitions, tasks/claims/budgets/approvals, bounded execution, recovery, five minimal layouts and real editor                  | All [MVP criteria](mvp.md) plus interactive/restart/restore evidence pass                                                   |
-| 3: collaboration and knowledge  | Safe selective patch review, version-checked buffer proposals, scoped knowledge retrieval/promotion, handoffs, recurring schedules     | Dirty-buffer conflict/undo tests, isolation and memory ACL tests, schedule/timezone/restart tests                           |
-| 4: workflow/integration breadth | Reusable DAG templates, events/meetings, more providers/tools, capability registry, authorized human/external workflows                | Provider matrix, idempotency/reconciliation, explicit integration grants and measured usefulness                            |
-| 5: scale and operations         | Larger registries, fair dispatch, recovery/soak tests, platform supervision, optional multi-process/remote workers                     | Benchmarks, quotas, audit completeness, failure isolation and restore drill at declared scale                               |
-| 6: protected improvement        | Outcome-based role/model/workflow optimization, controlled self-modification proposals and rollback                                    | Improvements measured against baseline; no weakening of protected controls                                                  |
+| Phase                           | Scope                                                                                                                              | Exit evidence                                                                                                       |
+| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| 0: research/planning            | Review inputs and source, architecture, risks, roadmap, MVP, AGENTS.md                                                             | Documentation reviewed; owner approves implementation boundary                                                      |
+| 1: baseline and spikes          | Completed scoped CLI build, daemon lifecycle/approval reconnect and official Neovim external-UI qualification                      | Evidence recorded; production RPC choice, canonical state, crash approval recovery and agent denial remain MVP work |
+| 2: durable vertical slice (MVP) | Stable definitions, tasks/claims/budgets/approvals, bounded execution, recovery, five minimal layouts and real editor              | All [MVP criteria](mvp.md) plus interactive/restart/restore evidence pass                                           |
+| 3: collaboration and knowledge  | Safe selective patch review, version-checked buffer proposals, scoped knowledge retrieval/promotion, handoffs, recurring schedules | Dirty-buffer conflict/undo tests, isolation and memory ACL tests, schedule/timezone/restart tests                   |
+| 4: workflow/integration breadth | Reusable DAG templates, events/meetings, more providers/tools, capability registry, authorized human/external workflows            | Provider matrix, idempotency/reconciliation, explicit integration grants and measured usefulness                    |
+| 5: scale and operations         | Larger registries, fair dispatch, recovery/soak tests, platform supervision, optional multi-process/remote workers                 | Benchmarks, quotas, audit completeness, failure isolation and restore drill at declared scale                       |
+| 6: protected improvement        | Outcome-based role/model/workflow optimization, controlled self-modification proposals and rollback                                | Improvements measured against baseline; no weakening of protected controls                                          |
 
 ## Scope discipline
+
+The proposed MVP build order is B1 durable definitions -> B2 one safe background
+task -> B3 bounded delegation/context -> B4 five useful layouts -> B5 actual
+Neovim Workspace -> B6 complete release qualification. Detailed steps and checks
+are maintained in [the MVP plan](mvp.md#build-order-and-usable-checkpoints).
+The first implementation slice is B1/M2–M3; none of these product slices has started.
 
 Deliver a complete small workflow rather than a screen full of invented metrics.
 Keep features behind normal supported flags/settings until qualification.

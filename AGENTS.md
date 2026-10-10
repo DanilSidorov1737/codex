@@ -6,7 +6,10 @@ This project extends Codex CLI into a general-purpose autonomous multi-agent
 system. Phase 0 research and planning are complete. The owner approved the next
 step with “Okay, let's do this”: M0/M1 qualification of the real CLI, detached
 daemon and official Neovim embedding, including the tools needed for those checks.
-Complete these foundations before expanding into organization/task features.
+These foundations are qualified; see [qualification](docs/development/qualification.md).
+The latest request is to plan the MVP. Keep product changes at the recorded
+approval boundary; organization/task features and the integrated editor are not
+implemented or authorized by that planning request.
 Record new approvals and scope in status.md; a plan alone does not authorize work.
 
 Read [docs/development/README.md](docs/development/README.md) and

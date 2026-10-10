@@ -23,28 +23,28 @@ proposals until accepted or validated in the relevant implementation scope.
 
 ## Major risks and mitigations
 
-| Risk                                                          | Consequence                                    | Mitigation / proof needed                                                           |
-| ------------------------------------------------------------- | ---------------------------------------------- | ----------------------------------------------------------------------------------- |
-| Runtime and organization identity conflated                   | Retiring/restarting a thread loses roles/tasks | Stable IDs and explicit mappings; restart/reparent tests                            |
-| Existing goal continuations/delegation bypass scheduler gates | Unaccounted work or authority expansion        | Trace every start path; negative direct/delegated/automatic/mailbox tests           |
-| Agent can reach owner socket or DB                            | Prompt injection becomes administrative access | Protected paths/IPC scoped identities and sandbox denial tests                      |
-| Runtime SQLite rebuild behavior reused for canonical data     | Silent loss of budgets/approvals/work          | Dedicated fail-closed authoritative DB and restore test                             |
-| Cross-store project/history writes interrupted                | Orphaned tasks/projects or duplicate starts    | Idempotent intents/outbox and reconciliation with correlated runtime evidence       |
-| In-memory mailbox treated as durable                          | Lost cross-session instructions                | Persist critical inbox/dedupe; discussions use qualified board adapter              |
-| Board ACL assumptions                                         | Cross-project information disclosure           | Current templates lack ACL configuration; service-enforced scope before broad reuse |
-| Parent waits while holding all execution slots                | Deadlock/starvation                            | Yield/checkpoint waiting work and fair scheduling                                   |
-| Provider usage/price is delayed or unbounded                  | Claimed monetary hard cap fails                | Reservations/in-flight bounds, provider ceilings or reject strict-money workflow    |
-| Replay after uncertain external effect                        | Duplicate payment/message/change               | Intent/receipt/idempotency/reconciliation; no financial or messaging MVP            |
-| Human dirty buffers/concurrent agent writes                   | Lost edits or wrong patch acceptance           | Isolated task changes, exact base hashes and buffer revision checks                 |
-| Neovim input/render compatibility                             | Lost keys, broken mode/cursor/Unicode          | Actual-editor spike and real interaction matrix                                     |
-| RPC library LGPL/API instability                              | License/build/maintenance conflict             | Existing deny policy respected; smaller permissive alternative reviewed             |
-| Thousands of stored roles mistaken for active capacity        | Memory/token/rate-limit overload               | Bounded residency/execution; measured staged scale targets                          |
-| UI invents status/CPU/test results                            | Misleading completion/safety claims            | Canonical state, timestamp/source, explicit estimates and unavailable metrics       |
-| Updates/suspended host disrupt unattended work                | Interrupted tasks despite daemon               | Pin pilot binaries, supervise approved host and reconcile restarts                  |
-| Knowledge promotion leaks/poisons context                     | Wrong decisions or secret exposure             | ACL-filter first, provenance/freshness, controlled promotion and redaction          |
-| Main CLI/native dependencies not yet qualified                | Planning hides runtime build blocker           | M0 build before feature work, inspect toolchain/targets/resources                   |
-| Self-improvement modifies safeguards                          | Lost independent human control                 | Protected policy/recovery/update boundary and separate authorization                |
-| Missing separate PDF                                          | Undiscovered requirements                      | Record limitation; compare if supplied before scope freeze                          |
+| Risk                                                          | Consequence                                    | Mitigation / proof needed                                                                       |
+| ------------------------------------------------------------- | ---------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| Runtime and organization identity conflated                   | Retiring/restarting a thread loses roles/tasks | Stable IDs and explicit mappings; restart/reparent tests                                        |
+| Existing goal continuations/delegation bypass scheduler gates | Unaccounted work or authority expansion        | Trace every start path; negative direct/delegated/automatic/mailbox tests                       |
+| Agent can reach owner socket or DB                            | Prompt injection becomes administrative access | Protected paths/IPC scoped identities and sandbox denial tests                                  |
+| Runtime SQLite rebuild behavior reused for canonical data     | Silent loss of budgets/approvals/work          | Dedicated fail-closed authoritative DB and restore test                                         |
+| Cross-store project/history writes interrupted                | Orphaned tasks/projects or duplicate starts    | Idempotent intents/outbox and reconciliation with correlated runtime evidence                   |
+| In-memory mailbox treated as durable                          | Lost cross-session instructions                | Persist critical inbox/dedupe; discussions use qualified board adapter                          |
+| Board ACL assumptions                                         | Cross-project information disclosure           | Current templates lack ACL configuration; service-enforced scope before broad reuse             |
+| Parent waits while holding all execution slots                | Deadlock/starvation                            | Yield/checkpoint waiting work and fair scheduling                                               |
+| Provider usage/price is delayed or unbounded                  | Claimed monetary hard cap fails                | Reservations/in-flight bounds, provider ceilings or reject strict-money workflow                |
+| Replay after uncertain external effect                        | Duplicate payment/message/change               | Intent/receipt/idempotency/reconciliation; no financial or messaging MVP                        |
+| Human dirty buffers/concurrent agent writes                   | Lost edits or wrong patch acceptance           | Isolated task changes, exact base hashes and buffer revision checks                             |
+| Neovim input/render compatibility                             | Lost keys, broken mode/cursor/Unicode          | Actual-editor spike and real interaction matrix                                                 |
+| RPC library LGPL/API instability                              | License/build/maintenance conflict             | Existing deny policy respected; smaller permissive alternative reviewed                         |
+| Thousands of stored roles mistaken for active capacity        | Memory/token/rate-limit overload               | Bounded residency/execution; measured staged scale targets                                      |
+| UI invents status/CPU/test results                            | Misleading completion/safety claims            | Canonical state, timestamp/source, explicit estimates and unavailable metrics                   |
+| Updates/suspended host disrupt unattended work                | Interrupted tasks despite daemon               | Pin pilot binaries, supervise approved host and reconcile restarts                              |
+| Knowledge promotion leaks/poisons context                     | Wrong decisions or secret exposure             | ACL-filter first, provenance/freshness, controlled promotion and redaction                      |
+| Native build/package setup regresses on a new host            | Runtime/helper or sandbox startup fails        | Reuse qualified pinned setup; fresh-task restoration and additional platforms remain unverified |
+| Self-improvement modifies safeguards                          | Lost independent human control                 | Protected policy/recovery/update boundary and separate authorization                            |
+| Missing separate PDF                                          | Undiscovered requirements                      | Record limitation; compare if supplied before scope freeze                                      |
 
 ## Defaults and unresolved choices
 
@@ -56,19 +56,24 @@ clean-config qualification.
 Choices for implementation approval:
 
 1. Approve the MVP scope, reuse architecture and Linux-first qualification.
-2. Authorize installation/verification of an official pinned Neovim release for M1,
-   and review the minimal RPC dependency. This is not an editor implementation approval alone.
-3. Decide whether the existing session Ponytail skill is sufficient initially, or
-   authorize a pinned standalone Ponytail plugin and trusting reviewed hooks.
+2. Select the minimal production Rust MessagePack transport within approved editor
+   scope and existing license policy. Official Neovim v0.12.6 is already installed
+   and qualified; another installation approval is not needed for that same work.
+3. Use the existing session Ponytail skills initially. A pinned standalone upstream
+   plugin with reviewed hooks is optional and not an MVP prerequisite.
 4. Approve a small bounded live-provider test, including provider/auth route and
    maximum budget, after inspecting available credentials.
-5. Confirm initial editing semantics: isolated AI task changes with safe review,
+5. Accept initial editing semantics: isolated AI task changes with safe review,
    then version-checked shared-buffer proposals later.
 6. Provide any separate PDF or clarify additional non-local deployment/platform
    needs before freezing requirements. Its absence does not invalidate reviewed text/images.
 
 There is no need to decide on Temporal, Redis, vector databases or distributed
 workers now. These remain conditional future choices.
+
+The proposed scope and editing semantics are part of one MVP decision. Provider
+binding/model and a numeric live-test budget are needed before the paid pilot,
+not before writing this plan. Planning does not require new installations.
 
 ## Gate
 

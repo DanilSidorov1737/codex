@@ -1,7 +1,7 @@
 # Current status and resumption instructions
 
 Phase 0: **exploration and planning complete for available inputs**.
-Current work: **scoped M0/M1 foundation qualification complete; owner approved**.
+Current work: **MVP build plan updated after completed M0/M1 qualification**.
 Application feature implementation: **not started**.
 
 ## Current authorization
@@ -10,7 +10,22 @@ The owner's “Okay, let's do this” approved the described next step: build an
 physically exercise the real CLI, check detached daemon/reconnect behavior, obtain
 verified official Neovim and test its embedding API. Required local prerequisites
 are included. No push, publication, external spending or broader operational
-authority is inferred. Finish this qualification before organization/task work.
+authority is inferred. This qualification is complete. The latest request,
+“ok lets plan out the mvp that we are going to create”, authorizes planning and
+documentation; organization/task/editor product implementation has not started.
+
+## Current MVP planning
+
+- Replaced stale build/editor prerequisites with the actual qualification results.
+- Defined one complete goal -> authorized plan -> background work -> reviewed result
+  workflow, covering standalone and custom multi-agent use, coding and documents.
+- Organized the MVP into B1 durable definitions, B2 one safe background task,
+  B3 bounded delegation/context, B4 five layouts, B5 actual Neovim Workspace and
+  B6 live/interactive/recovery qualification. See [MVP](mvp.md).
+- Clarified in-scope autonomy, checked internal task acceptance, owner final
+  acceptance, separate safe patch application and initial operating limits.
+- Product code is unchanged. Documentation verification is recorded in
+  [testing](testing.md); foundation checks were not rerun for a planning-only change.
 
 ## Phase 0 completed
 
@@ -79,7 +94,8 @@ authority is inferred. Finish this qualification before organization/task work.
    answer planning questions or revise documentation only.
 4. Review qualification evidence and remaining gates rather than repeating the
    baseline. The next proposed product slice is M2's protected organization store
-   and recovery checks. Full Neovim pane integration remains M8. Keep broader
+   and recovery checks, followed by B1's definitions/goal/project operations.
+   Full Neovim pane integration remains B5/M8. Keep broader
    feature scope and live-provider budget explicit.
 5. Recheck runtime/environment readiness and existing credential bindings without
    printing values. Use established proxy/TLS/auth routes.
