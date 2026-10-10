@@ -15,6 +15,34 @@ committed; Review `51f914a851` and refresh-denial fix `9fadf32797` are qualified
 319 automated tests and real CLI/official-Neovim interaction. Knowledge retrieval,
 recurring schedules, hunks and staged repeated Apply remain later work.
 
+## Recommended next slices
+
+The owner requested an expanded plan based on `docs/Codex CLI Fork.txt` on
+2026-10-10. The sequence below is proposed work after the qualified selective
+Apply slice, not implementation authorization or a claim of delivered features.
+Memory and recurring schedules remain the first two recommendations. The added
+steps cover practical portions of the text's workflow, continuity, organization,
+visibility, editor and capability requirements.
+
+| Order | Capability and bounded scope | Reuse and dependencies | Testable completion |
+| --- | --- | --- | --- |
+| N1 | Scoped persistent memory search: find relevant notes and evidence from previous work; preserve source, author and time. Start with existing project/agent scopes and explicit capture. Broader knowledge promotion needs its own access rules. | Existing SQLite notes, coordination tool, owner RPC and layout inspectors. Apply scope filtering before ranking; use lexical search before considering embeddings. | Relevant authorized notes are retrievable after daemon restart; another project/agent's private notes are denied; retrieved content cannot change permissions. Physically search and inspect source evidence in the CLI/TUI. |
+| N2 | Recurring schedules: repeat an authorized task template at an interval, with pause/cancel, next-run visibility, occurrence and aggregate resource limits. Start with UTC intervals and explicit missed-run behavior. | Existing daemon, one-shot due time, durable task creation, grants, budgets and reconciliation. Use a stable occurrence identity; skip missed occurrences by default and avoid overlapping runs. | Closing the TUI leaves scheduling active on a running host; restart does not duplicate an occurrence; pause/cancel and exhausted aggregate limits prevent admission. Each run retains existing exact-action approvals and recovery fences. No claim of exactly-once external effects. |
+| N3 | Reusable workflows: save a small task/dependency template for coding, research or documents, preview assignments and success criteria, then authorize a bounded run. | Existing validated plan proposals, prerequisites and delegation. Use structured templates instead of a workflow language. Repeated use may reference N2; research may retrieve N1. | Invalid dependencies/cycles roll back; unmet prerequisites block dispatch; each invocation gets distinct task identities and cannot expand its authorization. Physically run a short dependency chain and inspect its evidence. |
+| N4 | Structured handoffs and blocker handling: checkpoint completed work, artifacts, remaining steps and the blocker; let the owner reassign within permitted scope or escalate for a decision. | Existing task ownership, attempts, leases, inbox/acknowledgment and memory. Add explicit ownership-transition semantics before permitting reassignment; old attempts stay fenced. | The replacement receives permitted context after restart, without repeating completed effects; a stale worker cannot mutate the task; uncertain actions remain blocked for reconciliation. Unrelated work continues while a human decision is pending. |
+| N5 | Complete organization editing in Operations: edit role instructions, memberships, hierarchy and enabled/retired state from the interactive tree. | Existing owner CLI/RPC versioned edits and TUI forms. Preserve arbitrary user-defined roles/levels and stable identities; inspect consequences for active grants before confirmation. | Physical create/edit/reparent/retire/reload works, cycles and stale edits are refused, and active attempts retain captured role/policy versions. Role labels cannot confer new permissions. |
+| N6 | Operational summaries and human action visibility: show upcoming runs, blockers, approval requests, recorded checks, failures and reported usage with links to source records. Start with on-demand local reports. | Existing canonical task/action/approval/audit/usage records and the five layouts; add N2 schedule projections and N4 blockers as available. Scheduled local reports can follow N2. | Counts and drill-downs match canonical records across reconnect/restart; unknown measurements remain unavailable and price quotes remain labeled estimates. Reports preserve scope and redact secrets; no external delivery is implied. |
+| N7 | Neovim requests from selected code: send an explicit file/range/context snapshot to a proposed explanation, refactoring, debugging or test task. Separately qualify supported user configuration/LSP/plugins. | Existing actual official Neovim embedding, task forms, isolated execution and exact Review/Apply. Pin file/buffer revision in the request; captured context grants no additional paths/tools. | Physically select Unicode code in actual Neovim, inspect/cancel/authorize the proposed task, review isolated changes and prove dirty/stale original buffers still block Apply. User configuration tests preserve existing files. Live shared-buffer edits and hunk/staged Apply remain separate. |
+| N8 | Capability inventory and one additional integration: show available tools/providers and their required permissions; qualify one useful read-only integration before broader automation. | Existing MCP, plugins/skills and provider configuration. Inventory configured capabilities separately from ones actually tested. External access and paid compatibility checks need matching authority. | A granted task can use the selected integration; an ungranted task is denied; failures and compatibility status are visible and credentials stay out of prompts/logs. No automatic installation, purchases, outbound messaging or silent model fallback. |
+
+These are bounded increments rather than separate services or mandatory permanent
+agents for the shared system functions. Use Ponytail, meaningful automated checks,
+physical CLI/TUI interaction, actual Neovim checks when affected, updated evidence
+and logical local commits for each approved slice. N1 is the recommended next
+implementation step; choose and record scope before starting application changes.
+Distributed workers, multimodal production, meetings, full-environment backup
+automation and protected self-improvement remain in their later roadmap phases.
+
 Sequence is based on technical dependencies and risk, not date estimates.
 Implementation proceeds within the approved scope and records evidence at each gate.
 Approval of the complete MVP covers ordinary slices/commits; do not request it

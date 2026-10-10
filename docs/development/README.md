@@ -37,6 +37,7 @@ Release evidence/gates: [qualification](release-qualification.md).
 
 Other focused plans: [security and recovery](security-and-recovery.md),
 [TUI and Neovim](tui-and-neovim.md), [Ponytail setup](ponytail.md).
+Proposed follow-up order: [recommended next slices](roadmap.md#recommended-next-slices).
 Current foundation evidence: [CLI, daemon and real Neovim qualification](qualification.md).
 
 ## Recommended direction

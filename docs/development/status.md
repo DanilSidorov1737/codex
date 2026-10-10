@@ -5,6 +5,22 @@ Current work: **whole-file selective Apply completed and qualified**.
 Application features: **delivered for the documented single-owner Linux envelope**.
 The MVP's release criteria are **qualified for the documented single-owner Linux/GPT-5.5 envelope**.
 
+## Expanded next-step proposal — 2026-10-10 UTC
+
+The owner asked to add practical capabilities to the memory/scheduling plan based
+on the fork text. The [recommended next slices](roadmap.md#recommended-next-slices)
+are scoped memory search, recurring schedules, reusable workflows, structured
+handoffs/blockers, Operations organization editing, operational summaries,
+Neovim selection-to-task requests and a capability inventory with one additional
+read-only integration. N1 memory search remains the recommended first step.
+
+This update changes planning documentation only. Application source remains
+`9fadf32797`; the existing selective Apply qualification remains current. No
+new feature, installation, paid call or feature test was performed for this
+proposal. Implementation scope has not been granted by this planning request.
+Documentation validation: all 43 local links and referenced heading anchors in
+the four changed documents resolved; `git diff --check` passed.
+
 ## Completed selective Apply slice — 2026-10-10 UTC
 
 The owner approved “continue and begin”, Ponytail, periodic commits and the supplied
