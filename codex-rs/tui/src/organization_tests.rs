@@ -98,6 +98,7 @@ fn view(id: &str) -> OrganizationExecutionView {
             expires_at: 100,
         }],
         result: None,
+        applications: vec![],
     }
 }
 
@@ -130,6 +131,13 @@ fn dashboard() -> Dashboard {
         commands,
         updates,
         worker: tokio::spawn(std::future::pending()),
+        editor: None,
+        preview: None,
+        editor_area: Rect::default(),
+        editor_file: 0,
+        following: false,
+        applying: false,
+        frame: FrameRequester::test_dummy(),
         is_done: false,
     }
 }
@@ -238,4 +246,58 @@ async fn all_dashboard_presets_render_narrow_empty_and_untrusted_content_safely(
             );
         }
     }
+}
+
+#[tokio::test]
+async fn actual_dirty_editor_blocks_host_exit_and_owner_apply_dispatch() {
+    let home = tempfile::tempdir().unwrap();
+    let mut editor = Editor::start(FrameRequester::test_dummy()).unwrap();
+    editor.open(&home.path().join("human.txt"), false).unwrap();
+    editor
+        .key(KeyEvent::new(
+            KeyCode::Char('i'),
+            crossterm::event::KeyModifiers::NONE,
+        ))
+        .unwrap();
+    editor.paste("unsaved human change").unwrap();
+    editor
+        .key(KeyEvent::new(
+            KeyCode::Esc,
+            crossterm::event::KeyModifiers::NONE,
+        ))
+        .unwrap();
+    editor.focused = false;
+    let mut d = dashboard();
+    d.editor = Some(editor);
+    d.preferences.preset = Preset::Review;
+    d.rebuild();
+    d.selected = Some("one".into());
+    let mut v = view("one");
+    v.task.state = "accepted".into();
+    v.result = Some(OrganizationTaskResult {
+        attempt_id: "attempt".into(),
+        artifacts: vec![],
+        artifact_bases: vec![],
+        checks: vec![],
+        digest: "exact-result".into(),
+        accepted: true,
+    });
+    d.detail = Some(Box::new(v));
+    let (tx, mut rx) = mpsc::channel(4);
+    d.commands = tx;
+    d.key(KeyEvent::new(
+        KeyCode::Char('q'),
+        crossterm::event::KeyModifiers::NONE,
+    ));
+    assert!(!d.is_done);
+    assert!(d.message.contains("modified Neovim"));
+    d.decision('A');
+    d.key(KeyEvent::new(
+        KeyCode::Char('y'),
+        crossterm::event::KeyModifiers::NONE,
+    ));
+    assert!(rx.try_recv().is_err());
+    assert!(!d.applying);
+    assert!(d.editor.as_mut().unwrap().dirty().unwrap());
+    assert!(!home.path().join("human.txt").exists());
 }

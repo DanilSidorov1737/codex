@@ -568,6 +568,42 @@ async fn host_evidence_and_owner_digest_gate_result_acceptance() -> Result<()> {
     let view = store.execution_view(&attempt.task_id).await?;
     assert!(view.result.unwrap().accepted);
     assert_eq!(view.task.state, "accepted");
+    assert!(
+        store
+            .begin_application(&attempt.task_id, view.task.revision - 1, &result.digest)
+            .await
+            .is_err()
+    );
+    assert!(
+        store
+            .begin_application(&attempt.task_id, view.task.revision, "changed-digest")
+            .await
+            .is_err()
+    );
+    let application = store
+        .begin_application(&attempt.task_id, view.task.revision, &result.digest)
+        .await?;
+    assert_eq!(
+        store.execution_view(&attempt.task_id).await?.applications[0].state,
+        OrganizationApplicationState::Pending
+    );
+    store.reconcile_interrupted_attempts().await?;
+    assert_eq!(
+        store.execution_view(&attempt.task_id).await?.applications[0].state,
+        OrganizationApplicationState::Uncertain
+    );
+    assert!(
+        store
+            .begin_application(&attempt.task_id, view.task.revision, &result.digest)
+            .await
+            .is_err()
+    );
+    assert!(
+        store
+            .settle_application(&application.id, true, "late stale completion")
+            .await
+            .is_err()
+    );
     let (worker, attempt) = authorized_attempt(&store, false).await?;
     let scope = store
         .execution_view(&attempt.task_id)

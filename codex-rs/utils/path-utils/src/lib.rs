@@ -5,6 +5,8 @@ pub use env::is_wsl;
 mod system_commands;
 pub use system_commands::system_executable;
 pub use system_commands::system_path;
+mod relative_file;
+pub use relative_file::open_relative_regular_file;
 
 use codex_utils_absolute_path::AbsolutePathBuf;
 use std::collections::HashSet;

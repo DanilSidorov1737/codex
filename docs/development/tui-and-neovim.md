@@ -2,7 +2,9 @@
 
 Foundation update: official Neovim v0.12.6 and its external UI API passed real
 editing/redraw/conflict-check qualification. See [evidence](qualification.md).
-The pane design below remains proposed; no integrated Workspace pane exists yet.
+B4 layouts are qualified; the actual Workspace pane and safe application are now
+being implemented/tested in B5. See [current contracts](neovim-workspace.md).
+The remaining design below is historical guidance where not superseded.
 
 ## Shared pane model
 

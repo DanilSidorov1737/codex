@@ -412,14 +412,77 @@ Path('report.txt').write_text('checked background artifact')
     let accepted = execute(
         &mut server,
         OrganizationExecutionMutation::Accept {
-            task_id: task.id,
+            task_id: task.id.clone(),
             expected_revision: result.task.revision,
             digest: evidence.digest,
         },
     )
     .await?;
     assert_eq!(accepted.task.state, "accepted");
-    assert!(accepted.result.unwrap().accepted);
+    let result = accepted.result.unwrap();
+    assert!(result.accepted);
+    // Changed originals and changed accepted artifacts are rejected before any
+    // application intent/write. The exact reviewed bytes are then applied once.
+    std::fs::write(project.path().join("report.txt"), "human change")?;
+    assert!(
+        execute(
+            &mut server,
+            OrganizationExecutionMutation::Apply {
+                task_id: task.id.clone(),
+                expected_revision: accepted.task.revision,
+                digest: result.digest.clone()
+            }
+        )
+        .await
+        .is_err()
+    );
+    assert_eq!(
+        std::fs::read_to_string(project.path().join("report.txt"))?,
+        "human change"
+    );
+    std::fs::remove_file(project.path().join("report.txt"))?;
+    let original = std::fs::read(workspace.join("report.txt"))?;
+    std::fs::write(workspace.join("report.txt"), "unreviewed artifact")?;
+    assert!(
+        execute(
+            &mut server,
+            OrganizationExecutionMutation::Apply {
+                task_id: task.id.clone(),
+                expected_revision: accepted.task.revision,
+                digest: result.digest.clone()
+            }
+        )
+        .await
+        .is_err()
+    );
+    assert!(!project.path().join("report.txt").exists());
+    std::fs::write(workspace.join("report.txt"), &original)?;
+    let applied = execute(
+        &mut server,
+        OrganizationExecutionMutation::Apply {
+            task_id: task.id.clone(),
+            expected_revision: accepted.task.revision,
+            digest: result.digest.clone(),
+        },
+    )
+    .await?;
+    assert_eq!(
+        applied.applications[0].state,
+        OrganizationApplicationState::Completed
+    );
+    assert_eq!(std::fs::read(project.path().join("report.txt"))?, original);
+    assert!(
+        execute(
+            &mut server,
+            OrganizationExecutionMutation::Apply {
+                task_id: task.id.clone(),
+                expected_revision: accepted.task.revision,
+                digest: result.digest
+            }
+        )
+        .await
+        .is_err()
+    );
     assert!(server.shutdown_gracefully().await?.success());
     Ok(())
 }

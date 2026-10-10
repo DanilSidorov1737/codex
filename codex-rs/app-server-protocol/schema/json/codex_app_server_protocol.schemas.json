@@ -16278,6 +16278,47 @@
         ],
         "type": "string"
       },
+      "OrganizationApplication": {
+        "description": "Owner-only application evidence. An uncertain operation is never replayed.",
+        "properties": {
+          "digest": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "paths": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "receipt": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "state": {
+            "$ref": "#/definitions/v2/OrganizationApplicationState"
+          }
+        },
+        "required": [
+          "digest",
+          "id",
+          "paths",
+          "state"
+        ],
+        "type": "object"
+      },
+      "OrganizationApplicationState": {
+        "enum": [
+          "pending",
+          "completed",
+          "uncertain"
+        ],
+        "type": "string"
+      },
       "OrganizationApprovalState": {
         "enum": [
           "pending",
@@ -16509,6 +16550,36 @@
             ],
             "title": "RequestChangesOrganizationExecutionMutation",
             "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "digest": {
+                "type": "string"
+              },
+              "expectedRevision": {
+                "format": "int64",
+                "type": "integer"
+              },
+              "taskId": {
+                "type": "string"
+              },
+              "type": {
+                "enum": [
+                  "apply"
+                ],
+                "title": "ApplyOrganizationExecutionMutationType",
+                "type": "string"
+              }
+            },
+            "required": [
+              "digest",
+              "expectedRevision",
+              "taskId",
+              "type"
+            ],
+            "title": "ApplyOrganizationExecutionMutation",
+            "type": "object"
           }
         ]
       },
@@ -16622,6 +16693,12 @@
             },
             "type": "array"
           },
+          "applications": {
+            "items": {
+              "$ref": "#/definitions/v2/OrganizationApplication"
+            },
+            "type": "array"
+          },
           "approvals": {
             "items": {
               "$ref": "#/definitions/v2/OrganizationActionApproval"
@@ -16670,6 +16747,7 @@
         },
         "required": [
           "actions",
+          "applications",
           "approvals",
           "attempts",
           "authorizationModelRequests",

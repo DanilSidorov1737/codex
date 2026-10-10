@@ -544,6 +544,15 @@ impl OrganizationStore {
                     .await?;
             result = data.map(|data| serde_json::from_str(&data)).transpose()?;
         }
+        let applications = sqlx::query_scalar::<_, String>(
+            "SELECT data FROM organization_applications WHERE task_id=? ORDER BY id DESC LIMIT 32",
+        )
+        .bind(task_id)
+        .fetch_all(&mut *tx)
+        .await?
+        .into_iter()
+        .map(|data| serde_json::from_str(&data))
+        .collect::<std::result::Result<_, _>>()?;
         tx.commit().await?;
         Ok(OrganizationExecutionView {
             task,
@@ -554,7 +563,88 @@ impl OrganizationStore {
             actions,
             approvals,
             result,
+            applications,
         })
+    }
+
+    /// Persist before any original-project write. Repeating an uncertain or
+    /// completed digest is refused; restoration never silently replays it.
+    pub async fn begin_application(
+        &self,
+        task_id: &str,
+        revision: i64,
+        digest: &str,
+    ) -> Result<OrganizationApplication> {
+        let mut tx = self.pool.begin_with("BEGIN IMMEDIATE").await?;
+        let task = read_task(&mut tx, task_id).await?;
+        ensure!(
+            task.state == "accepted" && task.revision == revision,
+            "application requires the exact accepted task revision"
+        );
+        let data:String=sqlx::query_scalar("SELECT r.data FROM organization_results r JOIN organization_attempts p ON p.id=r.attempt_id WHERE p.task_id=? ORDER BY p.generation DESC LIMIT 1").bind(task_id).fetch_one(&mut *tx).await?;
+        let result: OrganizationTaskResult = serde_json::from_str(&data)?;
+        ensure!(
+            result.accepted && result.digest == digest,
+            "accepted result digest changed"
+        );
+        let existing: i64 = sqlx::query_scalar(
+            "SELECT COUNT(*) FROM organization_applications WHERE task_id=? AND digest=?",
+        )
+        .bind(task_id)
+        .bind(digest)
+        .fetch_one(&mut *tx)
+        .await?;
+        ensure!(
+            existing == 0,
+            "result application already recorded; inspect its receipt, never replay an uncertain operation"
+        );
+        let application = OrganizationApplication {
+            id: Uuid::now_v7().to_string(),
+            digest: digest.into(),
+            paths: result.artifacts.iter().map(|a| a.path.clone()).collect(),
+            state: OrganizationApplicationState::Pending,
+            receipt: None,
+        };
+        sqlx::query("INSERT INTO organization_applications(id,task_id,digest,state,data) VALUES(?,?,?,'pending',?)").bind(&application.id).bind(task_id).bind(digest).bind(serde_json::to_string(&application)?).execute(&mut *tx).await?;
+        owner_event(&mut tx, "application/intent", &application.id).await?;
+        tx.commit().await?;
+        Ok(application)
+    }
+
+    pub async fn settle_application(&self, id: &str, completed: bool, receipt: &str) -> Result<()> {
+        ensure!(receipt.len() <= 4096, "application receipt too large");
+        let mut tx = self.pool.begin_with("BEGIN IMMEDIATE").await?;
+        let data: String = sqlx::query_scalar(
+            "SELECT data FROM organization_applications WHERE id=? AND state='pending'",
+        )
+        .bind(id)
+        .fetch_one(&mut *tx)
+        .await?;
+        let mut application: OrganizationApplication = serde_json::from_str(&data)?;
+        application.state = if completed {
+            OrganizationApplicationState::Completed
+        } else {
+            OrganizationApplicationState::Uncertain
+        };
+        application.receipt = Some(receipt.into());
+        sqlx::query("UPDATE organization_applications SET state=?,data=? WHERE id=?")
+            .bind(if completed { "completed" } else { "uncertain" })
+            .bind(serde_json::to_string(&application)?)
+            .bind(id)
+            .execute(&mut *tx)
+            .await?;
+        owner_event(
+            &mut tx,
+            if completed {
+                "application/completed"
+            } else {
+                "application/uncertain"
+            },
+            id,
+        )
+        .await?;
+        tx.commit().await?;
+        Ok(())
     }
 
     /// Evidence must be collected by the trusted host, never a model declaration.

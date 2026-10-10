@@ -1,5 +1,7 @@
 //! Owner-only organization commands over the existing app-server transport.
 
+use anyhow::Context;
+
 use crate::error_code::internal_error;
 use crate::error_code::invalid_params;
 use crate::error_code::invalid_request;
@@ -27,6 +29,8 @@ use std::sync::Arc;
 pub(crate) struct OrganizationRequestProcessor {
     runtime: Arc<OrganizationRuntime>,
     thread_store: Arc<dyn ThreadStore>,
+    config: Arc<Config>,
+    application_lock: Arc<tokio::sync::Semaphore>,
 }
 
 impl OrganizationRequestProcessor {
@@ -37,11 +41,13 @@ impl OrganizationRequestProcessor {
     ) -> Self {
         Self {
             runtime: OrganizationRuntime::new(
-                config,
+                config.clone(),
                 Arc::downgrade(manager),
                 thread_store.clone(),
             ),
             thread_store,
+            config,
+            application_lock: Arc::new(tokio::sync::Semaphore::new(1)),
         }
     }
 
@@ -232,6 +238,33 @@ impl OrganizationRequestProcessor {
                     store
                         .request_changes(&task_id, expected_revision, &instructions)
                         .await?
+                }
+                OrganizationExecutionMutation::Apply {task_id,expected_revision,digest} => {
+                    let _application = self.application_lock.clone().acquire_owned().await?;
+                    let view = store.execution_view(&task_id).await?;
+                    anyhow::ensure!(view.task.state=="accepted"&&view.task.revision==expected_revision,"application requires exact accepted task revision");
+                    let result=view.result.context("accepted result missing")?;
+                    anyhow::ensure!(result.accepted&&result.digest==digest,"accepted result digest changed");
+                    let linked=self.thread_store.read_project(view.task.project_id.clone()).await?.context("project missing")?;
+                    let codex_protocol::organization::OrganizationRecord::Project(project)=store.read_definition(codex_protocol::organization::OrganizationRecordKind::Projects,&view.task.project_id).await? else {anyhow::bail!("invalid project record")};
+                    anyhow::ensure!(linked.roots.iter().map(|r|&r.path).eq(project.roots.iter()),"project roots changed");
+                    let source=view.attempts.iter().find(|a|a.id==result.attempt_id).and_then(|a|a.workspace.as_deref()).context("accepted workspace missing")?;
+                    let prepared=crate::organization_workspace::PreparedApplication::prepare(&self.config,std::path::Path::new(project.roots.first().context("project root missing")?),std::path::Path::new(source),&result)?;
+                    let intent=store.begin_application(&task_id,expected_revision,&digest).await?;
+                    let applied=tokio::task::spawn_blocking(move||{
+                        // A disconnected/cancelled owner RPC must not release
+                        // serialization while its native file writes still run.
+                        let _permit=_application;
+                        prepared.apply()
+                    }).await;
+                    match applied {
+                        Ok(Ok(()))=>store.settle_application(&intent.id,true,"all accepted artifacts replaced and directory entries synchronized").await?,
+                        outcome=>{
+                            let receipt=format!("application failed or interrupted; files may be partially applied; inspect originals before manual reconciliation: {outcome:?}");
+                            store.settle_application(&intent.id,false,&receipt.chars().take(4000).collect::<String>()).await?;
+                            anyhow::bail!("{receipt}");
+                        }
+                    }
                 }
             }
             Ok::<(), anyhow::Error>(())

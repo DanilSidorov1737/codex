@@ -247,6 +247,26 @@ pub struct OrganizationExecutionView {
     pub actions: Vec<OrganizationActionIntent>,
     pub approvals: Vec<OrganizationActionApproval>,
     pub result: Option<OrganizationTaskResult>,
+    pub applications: Vec<OrganizationApplication>,
+}
+
+/// Owner-only application evidence. An uncertain operation is never replayed.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct OrganizationApplication {
+    pub id: String,
+    pub digest: String,
+    pub paths: Vec<String>,
+    pub state: OrganizationApplicationState,
+    pub receipt: Option<String>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
+#[serde(rename_all = "camelCase")]
+pub enum OrganizationApplicationState {
+    Pending,
+    Completed,
+    Uncertain,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
@@ -287,6 +307,13 @@ pub enum OrganizationExecutionMutation {
         expected_revision: i64,
         instructions: String,
     },
+    #[serde(rename_all = "camelCase")]
+    Apply {
+        task_id: String,
+        #[ts(type = "number")]
+        expected_revision: i64,
+        digest: String,
+    },
 }
 
 impl OrganizationExecutionMutation {
@@ -296,7 +323,8 @@ impl OrganizationExecutionMutation {
             | Self::Stop { task_id, .. }
             | Self::DecideApproval { task_id, .. }
             | Self::Accept { task_id, .. }
-            | Self::RequestChanges { task_id, .. } => task_id,
+            | Self::RequestChanges { task_id, .. }
+            | Self::Apply { task_id, .. } => task_id,
         }
     }
 }

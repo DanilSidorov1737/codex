@@ -23,6 +23,7 @@ fn execution_mutation_schema_matches_owner_wire_fields_and_rejects_unknown_grant
         json!({"type":"decideApproval","taskId":"task","approvalId":"approval","expectedHash":"exact","approve":true}),
         json!({"type":"accept","taskId":"task","expectedRevision":1,"digest":"checked"}),
         json!({"type":"requestChanges","taskId":"task","expectedRevision":1,"instructions":"Revise citations"}),
+        json!({"type":"apply","taskId":"task","expectedRevision":1,"digest":"checked"}),
     ] {
         let mutation: OrganizationExecutionMutation = serde_json::from_value(example).unwrap();
         assert_eq!(mutation.task_id(), "task");

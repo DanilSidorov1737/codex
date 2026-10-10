@@ -2122,6 +2122,7 @@ dependencies = [
  "codex-utils-json-to-toml",
  "codex-utils-path-uri",
  "codex-utils-process",
+ "codex-utils-path",
  "codex-utils-pty",
  "codex-web-search-extension",
  "codex-websocket-auth",
@@ -4853,6 +4854,7 @@ dependencies = [
  "ratatui-macros",
  "regex-lite",
  "rmcp",
+ "rmpv",
  "semver",
  "serde",
  "serde_json",
@@ -5069,6 +5071,7 @@ version = "0.0.0"
 dependencies = [
  "codex-utils-absolute-path",
  "dunce",
+ "libc",
  "pretty_assertions",
  "tempfile",
  "windows-sys 0.61.2",
@@ -13106,6 +13109,24 @@ dependencies = [
  "quote",
  "serde_json",
  "syn 3.0.3",
+]
+
+[[package]]
+name = "rmp"
+version = "0.8.15"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4ba8be72d372b2c9b35542551678538b562e7cf86c3315773cae48dfbfe7790c"
+dependencies = [
+ "num-traits",
+]
+
+[[package]]
+name = "rmpv"
+version = "1.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7a4e1d4b9b938a26d2996af33229f0ca0956c652c1375067f0b45291c1df8417"
+dependencies = [
+ "rmp",
 ]
 
 [[package]]

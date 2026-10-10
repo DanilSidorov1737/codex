@@ -33,6 +33,107 @@ use uuid::Uuid;
 const MAX_FILE_BYTES: u64 = 8 * 1024 * 1024;
 const MAX_INPUT_BYTES: u64 = 64 * 1024 * 1024;
 
+/// Frozen bytes are prepared before the durable intent; every base is checked
+/// again immediately before its atomic replacement. No cross-file transaction
+/// is claimed: interruptions get an uncertain receipt and are never replayed.
+pub(crate) struct PreparedApplication {
+    project: PathBuf,
+    files: Vec<(String, Vec<u8>, Option<String>)>,
+}
+impl PreparedApplication {
+    pub(crate) fn prepare(
+        config: &Config,
+        project: &Path,
+        source: &Path,
+        result: &codex_protocol::organization_execution::OrganizationTaskResult,
+    ) -> Result<Self> {
+        ensure!(
+            cfg!(target_os = "linux"),
+            "artifact application is qualified only on Linux"
+        );
+        ensure!(result.accepted, "unaccepted result cannot be applied");
+        ensure!(
+            std::fs::canonicalize(project)? == project && std::fs::canonicalize(source)? == source,
+            "aliased application root rejected"
+        );
+        private_directory(source, false)?;
+        let protected = [
+            std::fs::canonicalize(&config.codex_home)?,
+            std::fs::canonicalize(config.sqlite_config().home())?,
+        ];
+        let mut files = Vec::new();
+        let mut total = 0;
+        ensure!(
+            result.artifacts.len() == result.artifact_bases.len()
+                && result
+                    .artifacts
+                    .iter()
+                    .map(|a| &a.path)
+                    .eq(result.artifact_bases.iter().map(|a| &a.path)),
+            "artifact base evidence mismatch"
+        );
+        for (artifact, base) in result.artifacts.iter().zip(&result.artifact_bases) {
+            ensure!(
+                Path::new(&artifact.path)
+                    .components()
+                    .all(|p| matches!(p,std::path::Component::Normal(name) if name!=".git")),
+                "protected or invalid artifact destination"
+            );
+            let destination = project.join(&artifact.path);
+            ensure!(
+                !protected
+                    .iter()
+                    .any(|root| destination.starts_with(root) || root.starts_with(&destination)),
+                "protected state destination rejected"
+            );
+            let bytes = read_relative(source, &artifact.path)?;
+            total += bytes.len() as u64;
+            ensure!(total <= MAX_INPUT_BYTES, "application exceeds 64 MiB");
+            ensure!(
+                bytes.len() as u64 == artifact.bytes
+                    && format!("{:x}", Sha256::digest(&bytes)) == artifact.sha256,
+                "artifact changed after acceptance"
+            );
+            ensure!(
+                current_base(project, &artifact.path)? == base.sha256,
+                "original file changed since task snapshot"
+            );
+            files.push((artifact.path.clone(), bytes, base.sha256.clone()));
+        }
+        Ok(Self {
+            project: project.into(),
+            files,
+        })
+    }
+    pub(crate) fn apply(self) -> Result<()> {
+        // Check every original again before the first write, then each immediately
+        // before rename. The host freezes its editor inputs during this operation.
+        for (path, _, base) in &self.files {
+            ensure!(
+                current_base(&self.project, path)? == *base,
+                "original file changed before application"
+            );
+        }
+        for (path, bytes, base) in self.files {
+            write_relative_checked(&self.project, &path, &bytes, Some(base.as_deref()))?;
+        }
+        Ok(())
+    }
+}
+fn current_base(root: &Path, path: &str) -> Result<Option<String>> {
+    match read_relative(root, path) {
+        Ok(bytes) => Ok(Some(format!("{:x}", Sha256::digest(bytes)))),
+        Err(error)
+            if error
+                .downcast_ref::<std::io::Error>()
+                .is_some_and(|e| e.kind() == std::io::ErrorKind::NotFound) =>
+        {
+            Ok(None)
+        }
+        Err(error) => Err(error),
+    }
+}
+
 pub(crate) struct TaskWorkspace {
     pub(crate) root: AbsolutePathBuf,
     pub(crate) profile: PermissionProfile,
@@ -410,8 +511,15 @@ fn relative_parent(root: &Path, relative: &str, create: bool) -> Result<(File, s
 
 #[cfg(unix)]
 fn read_relative(root: &Path, relative: &str) -> Result<Vec<u8>> {
+    read_bounded_file(codex_utils_path::open_relative_regular_file(
+        root,
+        Path::new(relative),
+    )?)
+}
+
+#[cfg(unix)]
+fn file_at(parent: &File, name: &std::ffi::CStr) -> Result<File> {
     use std::os::fd::{AsRawFd, FromRawFd};
-    let (parent, name) = relative_parent(root, relative, false)?;
     // SAFETY: descriptors and CString are live; returned descriptor is owned.
     let fd = unsafe {
         libc::openat(
@@ -424,13 +532,41 @@ fn read_relative(root: &Path, relative: &str) -> Result<Vec<u8>> {
         return Err(std::io::Error::last_os_error().into());
     }
     // SAFETY: openat returned a new owned descriptor.
-    read_bounded_file(unsafe { File::from_raw_fd(fd) })
+    Ok(unsafe { File::from_raw_fd(fd) })
 }
 
 #[cfg(unix)]
 fn write_relative(root: &Path, relative: &str, bytes: &[u8]) -> Result<()> {
+    write_relative_checked(root, relative, bytes, None)
+}
+
+#[cfg(unix)]
+fn write_relative_checked(
+    root: &Path,
+    relative: &str,
+    bytes: &[u8],
+    expected: Option<Option<&str>>,
+) -> Result<()> {
     use std::os::fd::{AsRawFd, FromRawFd};
     let (parent, name) = relative_parent(root, relative, true)?;
+    let base_at = || -> Result<Option<(String, std::fs::Permissions)>> {
+        match file_at(&parent, &name) {
+            Ok(file) => {
+                let permissions = file.metadata()?.permissions();
+                let bytes = read_bounded_file(file)?;
+                Ok(Some((format!("{:x}", Sha256::digest(bytes)), permissions)))
+            }
+            Err(error)
+                if error
+                    .downcast_ref::<std::io::Error>()
+                    .is_some_and(|e| e.kind() == std::io::ErrorKind::NotFound) =>
+            {
+                Ok(None)
+            }
+            Err(error) => Err(error),
+        }
+    };
+    let old = base_at()?;
     // Reading an existing destination rejects links and hard links before replacing
     // its name. renameat never follows a destination swapped after that check.
     match read_relative(root, relative) {
@@ -458,7 +594,20 @@ fn write_relative(root: &Path, relative: &str, bytes: &[u8]) -> Result<()> {
     let mut file = unsafe { File::from_raw_fd(fd) };
     let result = (|| -> Result<()> {
         file.write_all(bytes)?;
+        if expected.is_some()
+            && let Some((_, permissions)) = &old
+        {
+            use std::os::unix::fs::PermissionsExt;
+            // Preserve ordinary executable/access bits without copying set-id bits.
+            file.set_permissions(std::fs::Permissions::from_mode(permissions.mode() & 0o777))?;
+        }
         file.sync_all()?;
+        if let Some(expected) = expected {
+            ensure!(
+                base_at()?.as_ref().map(|(hash, _)| hash.as_str()) == expected,
+                "original file changed before atomic rename"
+            );
+        }
         // SAFETY: both names are relative to the same live pinned directory.
         if unsafe {
             libc::renameat(
@@ -481,6 +630,16 @@ fn write_relative(root: &Path, relative: &str, bytes: &[u8]) -> Result<()> {
         }
     }
     result
+}
+
+#[cfg(not(unix))]
+fn write_relative_checked(
+    _root: &Path,
+    _relative: &str,
+    _bytes: &[u8],
+    _expected: Option<Option<&str>>,
+) -> Result<()> {
+    anyhow::bail!("safe application requires the qualified Linux filesystem backend")
 }
 
 #[cfg(not(unix))]
@@ -536,6 +695,42 @@ fn current_uid() -> u32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[cfg(unix)]
+    #[test]
+    fn checked_replacement_preserves_changed_bases_and_rejects_aliases() -> Result<()> {
+        let directory = tempfile::tempdir()?;
+        let root = directory.path().canonicalize()?;
+        write_relative(&root, "file", b"base")?;
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(root.join("file"), std::fs::Permissions::from_mode(0o755))?;
+        let base = current_base(&root, "file")?;
+        write_relative_checked(&root, "file", b"accepted", Some(base.as_deref()))?;
+        assert_eq!(read_relative(&root, "file")?, b"accepted");
+        assert_eq!(
+            std::fs::metadata(root.join("file"))?.permissions().mode() & 0o777,
+            0o755
+        );
+        assert!(
+            write_relative_checked(&root, "file", b"lost edit", Some(base.as_deref())).is_err()
+        );
+        assert_eq!(read_relative(&root, "file")?, b"accepted");
+        write_relative_checked(&root, "new", b"new file", Some(None))?;
+        assert!(write_relative_checked(&root, "new", b"overwrite", Some(None)).is_err());
+        std::os::unix::fs::symlink(root.join("file"), root.join("link"))?;
+        assert!(write_relative_checked(&root, "link", b"lost edit", Some(None)).is_err());
+        std::fs::hard_link(root.join("file"), root.join("hard"))?;
+        assert!(write_relative_checked(&root, "file", b"lost edit", Some(None)).is_err());
+        assert_eq!(std::fs::read(root.join("file"))?, b"accepted");
+        assert!(!std::fs::read_dir(&root)?.any(|entry| {
+            entry
+                .unwrap()
+                .file_name()
+                .to_string_lossy()
+                .starts_with(".snapshot-")
+        }));
+        Ok(())
+    }
 
     #[cfg(unix)]
     #[test]

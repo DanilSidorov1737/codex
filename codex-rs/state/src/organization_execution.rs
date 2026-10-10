@@ -364,6 +364,21 @@ impl OrganizationStore {
     /// Startup reconciliation never dispatches an uncertain action or accepts an approval.
     pub async fn reconcile_interrupted_attempts(&self) -> Result<u64> {
         let mut tx = self.pool.begin_with("BEGIN IMMEDIATE").await?;
+        let applications: Vec<String> =
+            sqlx::query_scalar("SELECT data FROM organization_applications WHERE state='pending'")
+                .fetch_all(&mut *tx)
+                .await?;
+        for data in applications {
+            let mut application: OrganizationApplication = serde_json::from_str(&data)?;
+            application.state = OrganizationApplicationState::Uncertain;
+            application.receipt=Some("daemon interrupted; inspect original files before manual reconciliation; no automatic replay".into());
+            sqlx::query("UPDATE organization_applications SET state='uncertain',data=? WHERE id=?")
+                .bind(serde_json::to_string(&application)?)
+                .bind(&application.id)
+                .execute(&mut *tx)
+                .await?;
+            event(&mut tx, "application/reconcile", &application.id).await?;
+        }
         let data: Vec<String> = sqlx::query_scalar("SELECT data FROM organization_attempts WHERE occupied=1 OR state IN ('running','waitingApproval','waitingDependency')").fetch_all(&mut *tx).await?;
         let mut count = 0;
         for data in data {

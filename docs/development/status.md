@@ -4,6 +4,34 @@ Phase 0: **exploration and planning complete for available inputs**.
 Current work: **approved MVP implementation; B1–B4 locally qualified; B5 Neovim underway**.
 Application feature implementation: **B1–B4 locally qualified; B5–B6 outstanding**.
 
+## B5 current slice
+
+The actual official Neovim external line-grid pane and bounded pipe RPC are written.
+The initial two editor/key-encoding tests passed with real Neovim: Unicode edit,
+save/undo, native diff, resize, dirty mode-change protection, follow reload/cursor
+retention and child exit. The augmented application/editor fence tests remain
+pending. MIT rmpv 1.3.1/rmp 0.8.15 are the only new dependencies; unrelated Cargo
+Windows dependency changes were removed. No LGPL client or custom editor was added.
+
+Owner-only Apply now has exact accepted revision/digest checks, protected path
+and artifact/base validation, private FD-based staging, permission preservation
+and separate durable intent/completion/uncertainty records (migration 6). Pending
+application intents reconcile as uncertain and cannot replay. The frontend freezes
+loaded buffer options and captures/checks native changedticks around application.
+Production checks caught forbidden await-held MutexGuard; replaced it with a
+bounded semaphore permit retained by native writes even if the owner RPC cancels.
+Production Clippy passed before the last small safety corrections. The augmented
+checks passed: 31 organization state tests, five runtime/application units and
+ten layout/editor tests, all without failures or ignored tests. The shared
+protected-preview read handoff is now being checked, with new alias/hash/size
+and real dirty-editor dispatch tests. Its first check required adding the existing
+path-utils crate directly to app-server; no new third-party library was needed.
+Corrected schemas passed all four comparisons; the protected reader and final five app-server, 31 state and 13 TUI/editor/preview tests passed. Full state regression passed 259 tests and regenerated Python contracts passed 25. The complete CLI build is underway; native API/physical editor qualification and B6 remain outstanding. Do not claim B5 qualified yet.
+
+See [Neovim Workspace](neovim-workspace.md) for keys, limits and current editing
+semantics. Continue through B6; the live-provider credentials/spending question
+remains pending and does not block independent local work.
+
 ## B4 qualification
 
 All five presets are physically qualified with the complete current CLI and

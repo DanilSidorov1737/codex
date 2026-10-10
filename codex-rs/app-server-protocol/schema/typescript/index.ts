@@ -59,6 +59,8 @@ export type { NetworkPolicyRuleAction } from "./NetworkPolicyRuleAction";
 export type { OrganizationActionApproval } from "./OrganizationActionApproval";
 export type { OrganizationActionIntent } from "./OrganizationActionIntent";
 export type { OrganizationActionState } from "./OrganizationActionState";
+export type { OrganizationApplication } from "./OrganizationApplication";
+export type { OrganizationApplicationState } from "./OrganizationApplicationState";
 export type { OrganizationApprovalState } from "./OrganizationApprovalState";
 export type { OrganizationArtifactBase } from "./OrganizationArtifactBase";
 export type { OrganizationArtifactEvidence } from "./OrganizationArtifactEvidence";

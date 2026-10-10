@@ -2523,6 +2523,36 @@
           ],
           "title": "RequestChangesOrganizationExecutionMutation",
           "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "digest": {
+              "type": "string"
+            },
+            "expectedRevision": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "taskId": {
+              "type": "string"
+            },
+            "type": {
+              "enum": [
+                "apply"
+              ],
+              "title": "ApplyOrganizationExecutionMutationType",
+              "type": "string"
+            }
+          },
+          "required": [
+            "digest",
+            "expectedRevision",
+            "taskId",
+            "type"
+          ],
+          "title": "ApplyOrganizationExecutionMutation",
+          "type": "object"
         }
       ]
     },

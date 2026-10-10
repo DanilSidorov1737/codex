@@ -3027,6 +3027,12 @@ class OrganizationActionState(Enum):
     rejected = "rejected"
 
 
+class OrganizationApplicationState(Enum):
+    pending = "pending"
+    completed = "completed"
+    uncertain = "uncertain"
+
+
 class OrganizationApprovalState(Enum):
     pending = "pending"
     approved = "approved"
@@ -3113,6 +3119,17 @@ class RequestChangesOrganizationExecutionMutation(BaseModel):
     type: Annotated[
         Literal["requestChanges"], Field(title="RequestChangesOrganizationExecutionMutationType")
     ]
+
+
+class ApplyOrganizationExecutionMutation(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    digest: str
+    expected_revision: Annotated[int, Field(alias="expectedRevision")]
+    task_id: Annotated[str, Field(alias="taskId")]
+    type: Annotated[Literal["apply"], Field(title="ApplyOrganizationExecutionMutationType")]
 
 
 class OrganizationExecutionScope(BaseModel):
@@ -9330,6 +9347,17 @@ class OrganizationActionIntent(BaseModel):
     tool: str
 
 
+class OrganizationApplication(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    digest: str
+    id: str
+    paths: list[str]
+    receipt: str | None = None
+    state: OrganizationApplicationState
+
+
 class AuthorizeOrganizationExecutionMutation(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
@@ -9348,6 +9376,7 @@ class OrganizationExecutionMutation(
         | DecideApprovalOrganizationExecutionMutation
         | AcceptOrganizationExecutionMutation
         | RequestChangesOrganizationExecutionMutation
+        | ApplyOrganizationExecutionMutation
     ]
 ):
     model_config = ConfigDict(
@@ -9359,6 +9388,7 @@ class OrganizationExecutionMutation(
         | DecideApprovalOrganizationExecutionMutation
         | AcceptOrganizationExecutionMutation
         | RequestChangesOrganizationExecutionMutation
+        | ApplyOrganizationExecutionMutation
     )
 
 
@@ -11710,6 +11740,7 @@ class OrganizationExecutionView(BaseModel):
         populate_by_name=True,
     )
     actions: list[OrganizationActionIntent]
+    applications: list[OrganizationApplication]
     approvals: list[OrganizationActionApproval]
     attempts: Annotated[
         list[OrganizationTaskAttempt],

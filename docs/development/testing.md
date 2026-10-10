@@ -526,3 +526,43 @@ Evidence: `/workspace/.onboarding/qualification/mvp-b4-cli/{tui-terminal.log,
 tui-narrow.log,tui-corrected.log,paused-nodes.json,pending.json,expired.json,
 changes.json,accepted.json,qualification.json}`. Actual Neovim inside Workspace,
 safe application and broader release gates remain B5/B6.
+
+## B5 intermediate evidence (not release qualification)
+
+The initial real Neovim tests passed two checks with official v0.12.6. After
+adding application/changedtick fences, the combined organization unit command
+passed **5 application/runtime**, **31 state** and **10 layout/editor** tests,
+with no failed or ignored tests. Logs: `mvp-b5-editor-tests.log` and
+`mvp-b5-organization-unit-tests.log` under the qualification directory.
+This covers actual Neovim edit/save/undo/Unicode/diff/resize/follow/exit,
+changedtick/dirty flags, bounded decoding and real checked filesystem replacement
+with permission preservation. Constructed hashes in state tests are ledger
+fixtures; native API and physical application evidence are still required.
+
+Production Clippy passed before the final small safety refinements; protected
+preview Clippy then passed with the latest source (`mvp-b5-preview-corrected-clippy.log`).
+The first pass rejected await-held MutexGuard; a bounded owned semaphore permit
+now serializes application and remains held by native writes if the RPC cancels.
+Frontend unwrap/deprecated-cell/style lints were corrected. A narrowly justified
+RGB exception preserves native Neovim highlight values; the rest of the frontend
+color policy is unchanged. The shared preview reader initially needed an explicit
+existing path-utils dependency in app-server; that was added and the check passed.
+No assertion or authority guard was disabled.
+
+The two current wire contracts passed (`mvp-b5-wire-tests.log`), including the new
+owner Apply variant. Shared-reader/preview/actual dirty-editor dispatch tests,
+updated schemas, native API, full CLI physical editor/application and B6 gates
+remain pending. Do not treat these intermediate checks as B5 completion.
+
+The first schema comparison found an incorrectly selected experimental output
+root: the generation command wrote a new nested directory instead of updating
+the existing compressed experimental bundle. Stable generation and three
+comparisons passed; the experimental comparison failed as intended. Wrong-output
+files were moved intact to `mvp-b5-wrong-schema-root` in qualification evidence;
+the corrected writer uses the same repository schema root with experimental=1.
+The corrected comparison passed all four schema checks. The shared protected reader test and final combined unit run passed: five app-server, 31 state and 13 TUI/editor/preview tests, all with zero failures or ignored tests. Full state regression then passed all 259 tests, and regenerated Python contracts/signatures passed all 25 checks. With no
+compiler running, two obsolete 435 MiB frontend test executables were retired;
+current tests/dependencies/source/evidence were retained. No schema assertion
+was changed or disabled.
+
+Final intermediate logs: `mvp-b5-schema-final-comparisons.log`, `mvp-b5-shared-reader-tests.log`, `mvp-b5-preview-final-unit-tests.log`, `mvp-b5-state-full-tests.log`, `mvp-b5-sdk-generation.log` and `mvp-b5-sdk-contracts.log`. Four schema comparisons passed; the generator helper remains intentionally ignored in the comparison command and was run explicitly for both bundles. The complete CLI build and physical/native API gates remain pending.

@@ -18,6 +18,8 @@ use ratatui::widgets::{Block, Borders, Clear, Paragraph, Widget, Wrap};
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc;
 
+use crate::organization_editor::Editor;
+use crate::organization_preview::Preview;
 use crate::tui::{FrameRequester, Tui, TuiEvent};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -353,6 +355,13 @@ pub(crate) struct Dashboard {
     commands: mpsc::Sender<Command>,
     updates: mpsc::Receiver<Update>,
     worker: tokio::task::JoinHandle<()>,
+    editor: Option<Editor>,
+    preview: Option<Preview>,
+    editor_area: Rect,
+    editor_file: usize,
+    following: bool,
+    applying: bool,
+    frame: FrameRequester,
     pub(crate) is_done: bool,
 }
 
@@ -401,7 +410,7 @@ impl Dashboard {
         }
         let (commands, command_rx) = mpsc::channel(4);
         let (update_tx, updates) = mpsc::channel(4);
-        let worker = tokio::spawn(worker(handle, frame, command_rx, update_tx));
+        let worker = tokio::spawn(worker(handle, frame.clone(), command_rx, update_tx));
         Self {
             preferences,
             path,
@@ -422,6 +431,13 @@ impl Dashboard {
             commands,
             updates,
             worker,
+            editor: None,
+            preview: None,
+            editor_area: Rect::default(),
+            editor_file: 0,
+            following: false,
+            applying: false,
+            frame,
             is_done: false,
         }
     }
@@ -439,6 +455,9 @@ impl Dashboard {
         }
     }
     fn switch(&mut self, preset: Preset) {
+        if let Some(editor) = &mut self.editor {
+            editor.focused = false;
+        }
         self.preferences.preset = preset;
         self.search.clear();
         self.selected = None;
@@ -554,6 +573,147 @@ impl Dashboard {
             _ => false,
         })
     }
+    fn editor_open(&mut self, key: KeyCode) {
+        if self.applying {
+            self.message = "Application outcome pending; editor inputs remain frozen".into();
+            return;
+        }
+        let result = (|| -> anyhow::Result<()> {
+            if self.editor.is_none() || self.editor.as_ref().is_some_and(|e| e.error.is_some()) {
+                self.editor = Some(Editor::start(self.frame.clone())?);
+            }
+            if key == KeyCode::Char('e') {
+                if let Some(editor) = &mut self.editor {
+                    editor.focused = true;
+                }
+                return Ok(());
+            }
+            let view = self
+                .detail
+                .as_ref()
+                .filter(|v| Some(&v.task.id) == self.selected.as_ref())
+                .ok_or_else(|| anyhow::anyhow!("select a task and wait for its details"))?;
+            let project = self
+                .snapshot
+                .records
+                .iter()
+                .find_map(|r| match r {
+                    OrganizationRecord::Project(p) if p.id == view.task.project_id => Some(p),
+                    _ => None,
+                })
+                .ok_or_else(|| anyhow::anyhow!("task project unavailable"))?;
+            let grant = view
+                .authorization
+                .as_ref()
+                .ok_or_else(|| anyhow::anyhow!("task has no declared files yet"))?;
+            let files: Vec<_> = grant
+                .scope
+                .artifacts
+                .iter()
+                .chain(&grant.scope.input_files)
+                .collect();
+            anyhow::ensure!(!files.is_empty(), "task has no declared files");
+            let relative = files[self.editor_file % files.len()];
+            anyhow::ensure!(
+                Path::new(relative)
+                    .components()
+                    .all(|p| matches!(p, std::path::Component::Normal(_))),
+                "invalid declared file"
+            );
+            let base = PathBuf::from(
+                project
+                    .roots
+                    .first()
+                    .ok_or_else(|| anyhow::anyhow!("project root missing"))?,
+            )
+            .join(relative);
+            // Host-selected task files cannot redirect the human editor through
+            // a model-created symlink. Human native :edit commands stay human authority.
+            let confined = |root: &Path, path: &Path| -> anyhow::Result<()> {
+                let root = std::fs::canonicalize(root)?;
+                if std::fs::symlink_metadata(path).is_ok() {
+                    anyhow::ensure!(
+                        std::fs::canonicalize(path)? == path && path.starts_with(&root),
+                        "linked or escaped editor file rejected"
+                    );
+                } else {
+                    anyhow::ensure!(
+                        std::fs::canonicalize(
+                            path.parent()
+                                .ok_or_else(|| anyhow::anyhow!("file parent missing"))?
+                        )?
+                        .starts_with(root),
+                        "escaped editor parent"
+                    );
+                }
+                Ok(())
+            };
+            confined(
+                Path::new(
+                    project
+                        .roots
+                        .first()
+                        .ok_or_else(|| anyhow::anyhow!("project root missing"))?,
+                ),
+                &base,
+            )?;
+            let editor = self
+                .editor
+                .as_mut()
+                .ok_or_else(|| anyhow::anyhow!("editor unavailable"))?;
+            if key == KeyCode::Char('o') {
+                editor.open(&base, false)?;
+                self.following = false;
+                self.message = format!("Independent: {} · Ctrl-G host focus", base.display());
+            } else {
+                let root = PathBuf::from(
+                    view.attempts
+                        .first()
+                        .and_then(|a| a.workspace.as_ref())
+                        .ok_or_else(|| anyhow::anyhow!("task workspace is not prepared"))?,
+                );
+                let artifact = root.join(relative);
+                anyhow::ensure!(
+                    artifact.is_file(),
+                    "selected task file is not present yet; n selects the next declared file"
+                );
+                confined(&root, &artifact)?;
+                let expected = view
+                    .result
+                    .as_ref()
+                    .and_then(|r| r.artifacts.iter().find(|a| a.path == *relative));
+                let preview = Preview::new(
+                    self.path
+                        .parent()
+                        .ok_or_else(|| anyhow::anyhow!("owner home missing"))?,
+                    &root,
+                    relative,
+                    expected,
+                )?;
+                if key == KeyCode::Char('d') {
+                    editor.diff(&base, &preview.path())?;
+                    self.following = false;
+                } else {
+                    editor.open(&preview.path(), true)?;
+                    self.following = true;
+                }
+                self.preview = Some(preview);
+                self.message = format!(
+                    "{}: {} · Ctrl-G host focus",
+                    if self.following {
+                        "Follow AI (read only)"
+                    } else {
+                        "Native diff"
+                    },
+                    artifact.display()
+                );
+            }
+            Ok(())
+        })();
+        if let Err(e) = result {
+            self.message = e.to_string();
+        }
+    }
     fn decision(&mut self, key: char) {
         let command = if let Some(view) = self
             .detail
@@ -577,6 +737,13 @@ impl Dashboard {
                     }),
                 'v' => view.result.as_ref().map(|r| {
                     Command::Execution(OrganizationExecutionMutation::Accept {
+                        task_id,
+                        expected_revision,
+                        digest: r.digest.clone(),
+                    })
+                }),
+                'A' => view.result.as_ref().filter(|r| r.accepted).map(|r| {
+                    Command::Execution(OrganizationExecutionMutation::Apply {
                         task_id,
                         expected_revision,
                         digest: r.digest.clone(),
@@ -631,9 +798,79 @@ impl Dashboard {
         if key.kind == KeyEventKind::Release {
             return;
         }
+        if self.preferences.preset == Preset::Workspace {
+            if let Some(editor) = &mut self.editor
+                && editor.focused
+            {
+                if key.code == KeyCode::Char('g')
+                    && key
+                        .modifiers
+                        .contains(crossterm::event::KeyModifiers::CONTROL)
+                {
+                    editor.focused = false;
+                    self.message =
+                        "Host focus · e editor · o independent · t follow · d diff · n next file"
+                            .into();
+                } else if let Err(e) = editor.key(key) {
+                    self.message = e.to_string();
+                }
+                return;
+            }
+            if self.confirmation.is_none() && self.input.is_none() {
+                match key.code {
+                    KeyCode::Char('e' | 'o' | 't' | 'd') => {
+                        self.editor_open(key.code);
+                        return;
+                    }
+                    KeyCode::Char('n') => {
+                        self.editor_file = self.editor_file.saturating_add(1);
+                        self.editor_open(KeyCode::Char(if self.following { 't' } else { 'o' }));
+                        return;
+                    }
+                    _ => {}
+                }
+            }
+        }
         if self.confirmation.is_some() {
             match key.code {
                 KeyCode::Char('y') => {
+                    if matches!(
+                        &self.confirmation,
+                        Some(Command::Execution(
+                            OrganizationExecutionMutation::Apply { .. }
+                        ))
+                    ) {
+                        if self.applying {
+                            self.message = "Previous application outcome is pending".into();
+                            return;
+                        }
+                        if let Some(editor) = &mut self.editor
+                            && let Err(e) = editor.freeze()
+                        {
+                            self.message = format!("Cannot freeze editor revision: {e}");
+                            return;
+                        }
+                        let Some(command) = self.confirmation.take() else {
+                            return;
+                        };
+                        match self.commands.try_send(command) {
+                            Ok(()) => {
+                                self.applying = true;
+                                if let Some(editor) = &mut self.editor {
+                                    editor.focused = false;
+                                }
+                                self.message =
+                                    "Applying exact accepted result; editor inputs frozen".into();
+                            }
+                            Err(_) => {
+                                if let Some(editor) = &mut self.editor {
+                                    let _ = editor.thaw();
+                                }
+                                self.message = "Owner queue busy; refresh before retrying".into();
+                            }
+                        }
+                        return;
+                    }
                     if let Some(c) = self.confirmation.take() {
                         self.send(c);
                     }
@@ -683,6 +920,21 @@ impl Dashboard {
         }
         match key.code {
             KeyCode::Esc | KeyCode::Char('q' | '1') | KeyCode::F(1) => {
+                if let Some(editor) = &mut self.editor
+                    && editor.error.is_none()
+                {
+                    match editor.dirty() {
+                        Ok(false) => {}
+                        Ok(true) => {
+                            self.message="Save or discard modified Neovim buffers before closing Workspace; e returns to editor".into();
+                            return;
+                        }
+                        Err(e) => {
+                            self.message = e.to_string();
+                            return;
+                        }
+                    }
+                }
                 if matches!(key.code, KeyCode::F(1) | KeyCode::Char('1')) {
                     self.preferences.preset = Preset::Console;
                 }
@@ -778,7 +1030,7 @@ impl Dashboard {
                 self.changes = false;
             }
             KeyCode::Char('f') => self.send(Command::Refresh),
-            KeyCode::Char(c @ ('a' | 'r' | 'v' | 'c' | 'p' | 'x')) => self.decision(c),
+            KeyCode::Char(c @ ('a' | 'r' | 'v' | 'c' | 'p' | 'x' | 'A')) => self.decision(c),
             _ => {}
         }
     }
@@ -809,7 +1061,18 @@ impl Dashboard {
                 }
                 Update::Error(e) => self.message = e,
                 Update::Changed => {
+                    self.applying = false;
                     self.message = "Owner decision recorded.".into();
+                    if let Some(editor) = &mut self.editor
+                        && let Err(e) = editor.thaw()
+                    {
+                        self.message = e.to_string();
+                    }
+                    if let Some(editor) = &mut self.editor
+                        && let Err(e) = editor.reload_follow()
+                    {
+                        self.message = e.to_string();
+                    }
                     self.send(Command::Refresh);
                 }
             }
@@ -971,6 +1234,19 @@ impl Dashboard {
                     ));
                 }
             }
+            for application in &view.applications {
+                text.push_str(&format!(
+                    "\nApplication {} · {:?}\nDigest: {}\nPaths: {}\nReceipt: {}\n",
+                    application.id,
+                    application.state,
+                    application.digest,
+                    application.paths.join(", "),
+                    application
+                        .receipt
+                        .as_deref()
+                        .unwrap_or("pending; no completion receipt")
+                ));
+            }
         }
         if let Some(command) = &self.confirmation {
             let value = match command {
@@ -985,7 +1261,7 @@ impl Dashboard {
         }
         text
     }
-    fn render(&self, area: Rect, buffer: &mut Buffer) {
+    fn render(&mut self, area: Rect, buffer: &mut Buffer) -> Option<(u16, u16)> {
         Clear.render(area, buffer);
         let regions = Layout::default()
             .direction(Direction::Vertical)
@@ -1042,15 +1318,38 @@ impl Dashboard {
                 )
             })
             .collect();
-        Paragraph::new(lines)
-            .block(Block::default().borders(Borders::ALL).title(format!(
-                "{} · {} · /{}",
-                self.preferences.preset.title(),
-                self.rows.len(),
-                clean(&self.search)
-            )))
-            .render(areas[0], buffer);
-        if pane.inspector {
+        let workspace = self.preferences.preset == Preset::Workspace
+            && self.editor.is_some()
+            && self.confirmation.is_none();
+        if !workspace || pane.inspector {
+            Paragraph::new(lines)
+                .block(Block::default().borders(Borders::ALL).title(format!(
+                    "{} · {} · /{}",
+                    self.preferences.preset.title(),
+                    self.rows.len(),
+                    clean(&self.search)
+                )))
+                .render(areas[0], buffer);
+        }
+        let mut cursor = None;
+        if workspace && let Some(editor) = &self.editor {
+            let area = if pane.inspector { areas[1] } else { areas[0] };
+            let block = Block::default().borders(Borders::ALL).title(format!(
+                "Neovim · {} · {} · Ctrl-G host",
+                clean(&editor.mode),
+                if editor.focused {
+                    "editor focus"
+                } else {
+                    "host focus"
+                }
+            ));
+            self.editor_area = block.inner(area);
+            block.render(area, buffer);
+            cursor = editor.render(self.editor_area, buffer);
+            if let Some(error) = &editor.error {
+                Paragraph::new(clean(error)).render(self.editor_area, buffer);
+            }
+        } else if pane.inspector {
             Paragraph::new(if self.confirmation.is_some() {
                 self.confirmation_text.clone()
             } else {
@@ -1084,15 +1383,27 @@ impl Dashboard {
                 )
             })
             .unwrap_or_else(|| self.message.clone());
-        Paragraph::new(format!("{}\n↑↓ navigate · Tab focus · i pane · [ ] size · K keys · / search · f refresh\na approve · r reject · v accept · c changes · p pause/toggle · x cancel · q Console", clean(&prompt))).render(regions[2], buffer);
+        Paragraph::new(format!("{}\n↑↓ select · Tab focus · i pane · [ ] size · / search · f refresh · e editor · o edit · t follow · d diff · n file\na approve · r reject · v accept · c changes · A apply accepted · p pause · x cancel · q Console", clean(&prompt))).render(regions[2], buffer);
+        cursor
     }
     pub(crate) fn handle_event(&mut self, tui: &mut Tui, event: TuiEvent) -> std::io::Result<()> {
         self.update();
+        if let Some(editor) = &mut self.editor {
+            editor.poll();
+        }
         let changed = matches!(&event, TuiEvent::Key(_) | TuiEvent::Paste(_));
         match event {
             TuiEvent::Key(key) => self.key(key),
             TuiEvent::Paste(value) => {
-                if let Some(input) = &mut self.input {
+                if self.preferences.preset == Preset::Workspace
+                    && self.editor.as_ref().is_some_and(|e| e.focused)
+                {
+                    if let Some(editor) = &mut self.editor
+                        && let Err(e) = editor.paste(&value)
+                    {
+                        self.message = e.to_string();
+                    }
+                } else if let Some(input) = &mut self.input {
                     for c in value.chars().filter(|c| !c.is_control()) {
                         if input.len() + c.len_utf8() > 4096 {
                             break;
@@ -1102,7 +1413,50 @@ impl Dashboard {
                 }
             }
             TuiEvent::Draw | TuiEvent::Resize(_) | TuiEvent::Resume | TuiEvent::FocusGained => {
-                tui.draw(u16::MAX, |frame| self.render(frame.area(), frame.buffer))?;
+                tui.draw(u16::MAX, |frame| {
+                    if let Some(cursor) = self.render(frame.area(), frame.buffer) {
+                        frame.set_cursor_position(cursor);
+                        frame.set_cursor_style(
+                            if self
+                                .editor
+                                .as_ref()
+                                .is_some_and(|e| e.mode.starts_with("insert"))
+                            {
+                                crossterm::cursor::SetCursorStyle::SteadyBar
+                            } else {
+                                crossterm::cursor::SetCursorStyle::SteadyBlock
+                            },
+                        );
+                    }
+                })?;
+                if self.preferences.preset == Preset::Workspace
+                    && let Some(editor) = &mut self.editor
+                {
+                    if let Err(e) = editor.resize(self.editor_area.width, self.editor_area.height) {
+                        self.message = e.to_string();
+                    }
+                    if self.following && !editor.focused {
+                        let refresh = (|| -> anyhow::Result<()> {
+                            if !editor.dirty()?
+                                && let Some(preview) = &mut self.preview
+                                && preview.refresh()?
+                            {
+                                editor.reload_follow()?;
+                            }
+                            Ok(())
+                        })();
+                        if let Err(e) = refresh {
+                            self.message = e.to_string();
+                        }
+                    }
+                }
+            }
+            TuiEvent::Mouse(mouse) if self.preferences.preset == Preset::Workspace => {
+                if let Some(editor) = &mut self.editor
+                    && let Err(e) = editor.mouse(mouse, self.editor_area)
+                {
+                    self.message = e.to_string();
+                }
             }
             _ => {}
         }
