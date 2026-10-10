@@ -1,7 +1,7 @@
 # B3 bounded coordination
 
-Status: state implementation passes local tests; runtime integration and physical
-CLI qualification are in progress. B3 is not yet qualified as complete.
+Status: B3 is locally qualified through state, native API and actual packaged
+CLI/detached-daemon checks. Live-provider qualification remains B6.
 
 The existing detached daemon owns coordination. Agents receive one `organization`
 tool inside their isolated Codex runtime. They cannot select worker identity,
@@ -93,6 +93,9 @@ two-agent case used durable context and messages, yielded its parent's slot,
 imported a real checked child file, ran the root check and required owner final
 acceptance. Both views show the shared budget: 13 mocked-model requests and 195
 reported tokens, with per-attempt usage retained separately. Final production
-Clippy/formatting passed. Physical packaged CLI qualification remains in progress.
+Clippy/formatting passed. Physical packaged CLI qualification passed 13 assertions, using 13 deterministic
+local provider requests and 195 reported tokens. It exercised a scheduled root,
+custom three-level hierarchy, delegation, yielded waiting, notes/inbox/ack,
+real checks, isolated imports and owner final acceptance. Fixture services stopped.
 Layouts and actual Neovim remain B4/B5;
 live-provider and broader release qualification remain B6.

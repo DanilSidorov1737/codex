@@ -442,3 +442,23 @@ exit code, test counts (passed/failed/skipped/unrun), interaction keys and obser
 behavior, artifact/log path plus hash, failure diagnosis, rerun result and limitation.
 Tie results to the current artifact revision. Mocked, manual, live and synthetic
 evidence must be distinguishable.
+
+## B3 packaged CLI qualification
+
+The complete current package was built with the existing package script. Commands
+were physically entered in a bash PTY against the actual detached daemon.
+`/workspace/.onboarding/qualification/mvp-b3-cli/qualification.json` records
+13 passing assertions: schedule, configured hierarchy, pinned role/policy, bounded
+delegation, context/inbox/ack, yielded parent, shared root usage (13 requests/195
+tokens), real child/root checks, hash-verified import, original isolation and
+owner final acceptance. `waiting.json` records an inactive waiting parent.
+The provider was deterministic localhost SSE; no external model was called.
+Both fixture services were stopped after qualification.
+
+The first attempt failed because gpt-5.4 is absent from this checkout’s catalog
+and its fallback advertises no apply_patch. The fixture now uses catalogued
+gpt-5.5; the exact three-tool assertion remains intact. A second run caught
+an expected-revision conflict when relinking the reused project; the final run
+created a fresh project and passed. Original failure evidence remains retained.
+Current CLI build, production Clippy, state/native/wire/contracts and formatting
+gates are documented above. B4/B5 and broader B6 gates remain outstanding.

@@ -1,8 +1,8 @@
 # Current status and resumption instructions
 
 Phase 0: **exploration and planning complete for available inputs**.
-Current work: **approved MVP implementation; B1/B2 locally qualified; B3 coordination underway**.
-Application feature implementation: **B1/B2 qualified; B3 state tests pass and runtime integration is being qualified; B4–B6 outstanding**.
+Current work: **approved MVP implementation; B1–B3 locally qualified; B4 layouts underway**.
+Application feature implementation: **B1–B3 locally qualified; B4–B6 outstanding**.
 
 ## B3 current slice
 
@@ -19,9 +19,9 @@ critical inbox/ack, yielded waiting, immutable owner checks, artifact import and
 owner final acceptance. The workflow recorded 13 deterministic provider requests
 and 195 reported tokens; both root and child views show the same root budget.
 Final production Clippy and affected formatting passed. Two wire tests, four
-schema comparisons and 25 Python contract checks passed. The packaged CLI
-qualification is next. See [coordination](coordination.md).
-Do not call B3 complete before actual CLI/delegated-work qualification.
+schema comparisons and 25 Python contract checks passed. The packaged CLI qualification passed 13 assertions; its detached daemon ran
+13 deterministic requests and both real owner checks, with exact owner acceptance. See [coordination](coordination.md).
+B3 is qualified locally. Continue B4 layouts, B5 official Neovim and B6 gates.
 
 ## Current authorization
 
