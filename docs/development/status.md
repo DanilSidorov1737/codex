@@ -1,7 +1,7 @@
 # Current status and resumption instructions
 
 Phase 0: **exploration and planning complete for available inputs**.
-Current work: **B1–B6 implementation and local qualification complete; live-provider release gate unrun**.
+Current work: **startup request-ID fix passes 17 tests and 185 physical offline layout commands; native workflow follow-up in progress; live-provider gate unrun**.
 Application features: **delivered for the documented single-owner Linux envelope**.
 The MVP is **not fully release-qualified** until A05's bounded live-provider pilot passes.
 
@@ -12,7 +12,7 @@ bounded daemon work/delegation/context, all five layouts, official embedded Neov
 exact human review/Apply, owner boot limits and trusted price estimates are delivered.
 Ponytail reuse-first implementation/review and logical local commits were used.
 
-Final application source: `f92e8c2292`, following the B6 runtime correction
+Previous B6 baseline application source: `f92e8c2292`, following the runtime correction
 `8da15f446f` and resource/price slice `56929b5b18`. Final combined checks passed
 **8 app-server + 31 state + 16 TUI/editor/pricing**; warnings-denied production
 Clippy, affected formatting and the full CLI/package passed. Four native API cases
@@ -35,11 +35,15 @@ hash-matched. Fixture daemon/provider are stopped; source package, state and all
 evidence remain outside Git. The container retains a stopped daemon zombie with
 zero execution; its managed PID record is removed.
 
-**Next action:** obtain the pending provider/model, secure credentials and numeric
-test-spend ceiling for A05. Use a live model supporting the qualified native tools;
-record owner quotes from actual rates if estimates are desired. Do not infer paid
-calls, push/publication or broader authority. All independent local MVP work is done;
-do not restart B1–B5, reinstall existing tools or request routine slice approvals.
+**Next action:** complete the authorized request-ID/rapid-switch and full native
+workflow qualification. The owner supplied OPENAI_API_KEY, requested minimal spend
+and approved a compatible GPT instead of CodeModeOnly GPT-6 Luna. Use a conservative
+$1 total ceiling and small scopes. The key is present; API proxy CONNECT returned
+403 because api.openai.com is absent from the running allowlist. Its addition is
+saved in the environment draft (review/save/publish required), preserving presets
+and bindings. Recheck supported HTTPS access after application, verify a native-tool
+GPT available to the key, and run the three bounded live pilots. Do not infer push,
+merge/publication or broader authority, restart B1–B5 or reinstall existing tools.
 
 See [release matrix](release-qualification.md), [Workspace](neovim-workspace.md),
 [resource settings](resource-limits.md) and [owner commands](organization-commands.md).
@@ -212,14 +216,16 @@ authorize push/publication, outbound communications or unbounded provider spendi
 
 ## Known limitations / remaining work
 
-- Screenshot follow-up: one rapid layout-switch capture during a cold start saw
-  `organization/execution/read` reject duplicate remote request ID `0`. Settled
-  refreshes with the localhost fixture available produced complete screenshots;
-  no application fix was made. Investigate the loader's request-ID reuse separately.
-  Evidence and five fresh captures: `/workspace/artifacts/cli-screenshots/`.
-- A05 live-provider/model quality and compatibility is unrun: provider/model,
-  secure credentials and spending ceiling are pending. Local Responses were
-  deterministic fixtures; no paid model was called.
+- Screenshot request-ID follow-up is in progress: the collision was reproduced
+  by a real-transport regression, fixed by unique background UUID IDs, and all
+  17 organization/editor tests, production checks, complete CLI build and 185
+  physical offline layout commands pass. Provider-online/full workflow are next. Evidence:
+  `/workspace/.onboarding/qualification/mvp-followup/`. Original screenshots:
+  `/workspace/artifacts/cli-screenshots/`.
+- A05 live-provider/model quality and compatibility is unrun: compatible GPT
+  pilots are authorized with minimal spending; key is present, but API proxy
+  egress is denied. Review/save/publish the saved api.openai.com network addition.
+  Local Responses were deterministic fixtures; no paid model was called.
 - Clean official Neovim 0.12.6 is qualified. User plugins/configs, unsaved crash
   restoration, shared-buffer merging and uncoordinated external writers are not.
   Saved files survive; clean mode disables swap. Use disjoint parallel artifacts.

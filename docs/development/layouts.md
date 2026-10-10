@@ -10,8 +10,10 @@ existing chat/composer. Other presets share the existing alternate-screen TUI,
 Ratatui widgets and typed owner app-server connection. Alternate-screen-disabled
 launches report the requirement rather than silently taking terminal ownership.
 
-- F1 returns to Console; F2–F5 select Workspace, Projects, Operations and Review.
-  Numeric 1–5 are alternatives while the dashboard has focus.
+- While the dashboard has focus, F1 returns to Console and F2–F5 select
+  Workspace, Projects, Operations and Review. Numeric 1–5 are alternatives.
+  From Console, reopen with `/layout operations` (or another preset); Console's
+  function keys retain their existing chat/search bindings.
 - Up/down select; optional j/k equivalents are toggled by K. Tab changes focus
   between navigation and inspector. PageUp/PageDown scroll the inspector.
 - Operations is a primary hierarchy tree. Left collapses, right expands, Enter

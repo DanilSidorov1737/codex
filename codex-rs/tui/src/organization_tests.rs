@@ -1,5 +1,171 @@
 use super::*;
 
+#[tokio::test]
+async fn background_requests_survive_startup_overlap_and_cancelled_dashboard() {
+    use futures::{SinkExt, StreamExt};
+    use serde_json::json;
+
+    tokio::time::timeout(Duration::from_secs(10), async {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let endpoint =
+            crate::resolve_remote_addr(&format!("ws://{}", listener.local_addr().unwrap()))
+                .unwrap();
+        let (account_seen, mut account_ready) = mpsc::channel(1);
+        let (list_seen, mut list_ready) = mpsc::channel(1);
+        let server = tokio::spawn(async move {
+            let (stream, _) = listener.accept().await.unwrap();
+            let mut socket = tokio_tungstenite::accept_async(stream).await.unwrap();
+            let mut held_account = None;
+            let mut held_list = None;
+            let mut first_list = true;
+            let mut seen_ids = BTreeSet::new();
+            while let Some(Ok(tokio_tungstenite::tungstenite::Message::Text(text))) =
+                socket.next().await
+            {
+                let JSONRPCMessage::Request(request) = serde_json::from_str(&text).unwrap() else {
+                    continue;
+                };
+                let result = match request.method.as_str() {
+                    "initialize" => json!({"userAgent": "organization-overlap-test"}),
+                    "account/read" => {
+                        assert_eq!(request.id, RequestId::Integer(0));
+                        held_account = Some(request.id);
+                        account_seen.send(()).await.unwrap();
+                        continue;
+                    }
+                    "configRequirements/read" => {
+                        // Release both old replies only after the replacement worker succeeded.
+                        for (id, result) in [
+                            (
+                                held_account.take().unwrap(),
+                                json!({"account": null, "requiresOpenaiAuth": false}),
+                            ),
+                            (
+                                held_list.take().unwrap(),
+                                json!({"data": [], "nextCursor": null}),
+                            ),
+                        ] {
+                            socket
+                                .send(tokio_tungstenite::tungstenite::Message::Text(
+                                    json!({"id": id, "result": result}).to_string().into(),
+                                ))
+                                .await
+                                .unwrap();
+                        }
+                        json!({"requirements": null})
+                    }
+                    method => {
+                        assert!(
+                            seen_ids.insert(serde_json::to_string(&request.id).unwrap()),
+                            "cancelled and replacement dashboard requests must not share IDs"
+                        );
+                        match method {
+                            "organization/list" => {
+                                if first_list {
+                                    first_list = false;
+                                    held_list = Some(request.id);
+                                    list_seen.send(()).await.unwrap();
+                                    continue;
+                                }
+                                let params = request.params.as_ref().unwrap();
+                                let next = (params["kind"] == "nodes"
+                                    && params["cursor"].is_null())
+                                .then_some("second-page");
+                                json!({"data": [], "nextCursor": next})
+                            }
+                            "organization/execution/read" | "organization/execution/mutate" => {
+                                json!({"view": view("one")})
+                            }
+                            "organization/mutate" => json!({"record": null}),
+                            _ => panic!("unexpected request: {method}"),
+                        }
+                    }
+                };
+                socket
+                    .send(tokio_tungstenite::tungstenite::Message::Text(
+                        json!({"id": request.id, "result": result})
+                            .to_string()
+                            .into(),
+                    ))
+                    .await
+                    .unwrap();
+            }
+        });
+        let client = crate::connect_remote_app_server(endpoint).await.unwrap();
+        let handle = client.request_handle();
+        let account_handle = handle.clone();
+        let startup = tokio::spawn(async move {
+            account_handle
+                .request_typed::<GetAccountResponse>(ClientRequest::GetAccount {
+                    request_id: RequestId::Integer(0),
+                    params: GetAccountParams {
+                        refresh_token: false,
+                    },
+                })
+                .await
+        });
+        account_ready.recv().await.unwrap();
+        let old_handle = handle.clone();
+        let mut old_dashboard = tokio::spawn(async move { load(&old_handle).await });
+        tokio::select! {
+            seen = list_ready.recv() => { seen.unwrap(); }
+            result = &mut old_dashboard => panic!("dashboard collided with startup: {:?}",
+                result.map(|r| r.map(|s| s.records.len()))),
+        }
+        old_dashboard.abort();
+        assert!(matches!(old_dashboard.await, Err(e) if e.is_cancelled()));
+        let (commands, command_rx) = mpsc::channel(4);
+        let (updates, mut update_rx) = mpsc::channel(4);
+        let background = tokio::spawn(worker(
+            handle.clone(),
+            FrameRequester::test_dummy(),
+            command_rx,
+            updates,
+        ));
+        assert!(matches!(update_rx.recv().await, Some(Update::Snapshot(_))));
+        commands.send(Command::Inspect("one".into())).await.unwrap();
+        assert!(matches!(update_rx.recv().await, Some(Update::Detail(v)) if v.task.id == "one"));
+        commands
+            .send(Command::Definition(OrganizationMutation::SetMembership {
+                node_id: "owner".into(),
+                group_id: "group".into(),
+                present: true,
+            }))
+            .await
+            .unwrap();
+        assert!(matches!(update_rx.recv().await, Some(Update::Changed)));
+        commands
+            .send(Command::Execution(OrganizationExecutionMutation::Stop {
+                task_id: "one".into(),
+                expected_revision: 4,
+                cancel: false,
+            }))
+            .await
+            .unwrap();
+        assert!(matches!(update_rx.recv().await, Some(Update::Detail(v)) if v.task.id == "one"));
+        assert!(matches!(update_rx.recv().await, Some(Update::Changed)));
+        commands.send(Command::Refresh).await.unwrap();
+        assert!(matches!(update_rx.recv().await, Some(Update::Snapshot(_))));
+        assert!(matches!(update_rx.recv().await, Some(Update::Detail(v)) if v.task.id == "one"));
+        background.abort();
+        assert!(background.await.unwrap_err().is_cancelled());
+        let _: ConfigRequirementsReadResponse = handle
+            .request_typed(ClientRequest::ConfigRequirementsRead {
+                request_id: RequestId::String("release-startup".into()),
+                params: None,
+            })
+            .await
+            .unwrap();
+        let account = startup.await.unwrap().unwrap();
+        assert!(account.account.is_none());
+        assert!(!account.requires_openai_auth);
+        client.shutdown().await.unwrap();
+        server.await.unwrap();
+    })
+    .await
+    .expect("overlapping requests must complete without waiting for old replies");
+}
+
 fn node(id: &str, parent: Option<&str>) -> OrganizationNode {
     OrganizationNode {
         id: id.into(),

@@ -159,6 +159,11 @@ enum Update {
     Changed,
 }
 
+fn request_id() -> RequestId {
+    // Background requests share the startup transport and can outlive a closed dashboard.
+    RequestId::String(format!("organization-{}", uuid::Uuid::new_v4()))
+}
+
 async fn load(handle: &AppServerRequestHandle) -> anyhow::Result<Snapshot> {
     let mut records = Vec::new();
     for kind in [
@@ -172,7 +177,7 @@ async fn load(handle: &AppServerRequestHandle) -> anyhow::Result<Snapshot> {
         for page in 0..10 {
             let response: OrganizationListResponse = handle
                 .request_typed(ClientRequest::OrganizationList {
-                    request_id: RequestId::Integer(0),
+                    request_id: request_id(),
                     params: OrganizationListParams {
                         kind,
                         cursor: cursor.clone(),
@@ -212,7 +217,7 @@ async fn worker(
                     if let Some(task_id) = &selected {
                         let response: OrganizationExecutionReadResponse = handle
                             .request_typed(ClientRequest::OrganizationExecutionRead {
-                                request_id: RequestId::Integer(0),
+                                request_id: request_id(),
                                 params: OrganizationExecutionReadParams {
                                     task_id: task_id.clone(),
                                 },
@@ -227,7 +232,7 @@ async fn worker(
                     selected = Some(task_id.clone());
                     let response: OrganizationExecutionReadResponse = handle
                         .request_typed(ClientRequest::OrganizationExecutionRead {
-                            request_id: RequestId::Integer(0),
+                            request_id: request_id(),
                             params: OrganizationExecutionReadParams { task_id },
                         })
                         .await?;
@@ -238,7 +243,7 @@ async fn worker(
                 Command::Definition(mutation) => {
                     let _: OrganizationMutateResponse = handle
                         .request_typed(ClientRequest::OrganizationMutate {
-                            request_id: RequestId::Integer(0),
+                            request_id: request_id(),
                             params: OrganizationMutateParams { mutation },
                         })
                         .await?;
@@ -247,7 +252,7 @@ async fn worker(
                 Command::Execution(mutation) => {
                     let response: OrganizationExecutionMutateResponse = handle
                         .request_typed(ClientRequest::OrganizationExecutionMutate {
-                            request_id: RequestId::Integer(0),
+                            request_id: request_id(),
                             params: OrganizationExecutionMutateParams { mutation },
                         })
                         .await?;

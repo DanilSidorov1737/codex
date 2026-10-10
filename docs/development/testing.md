@@ -794,3 +794,86 @@ Provider request count remained exactly 50 before/after capture: zero model requ
 Original pane preferences were restored; temporary daemon/provider were stopped.
 The screenshots include preserved historical failure cases and intentional denials
 in the test task list. These are real qualification fixtures, not live-model work.
+
+## Request-ID and live-pilot follow-up — 2026-10-10 UTC
+
+The owner approved fixing the screenshot startup collision, rapid switching,
+real-model single/delegated coding and document pilots, and the complete background/
+approval/Neovim/accept/Apply workflow, with Ponytail, testing and periodic commits.
+They supplied `OPENAI_API_KEY`, requested minimal spending, and explicitly approved
+using a compatible GPT after the catalog identified GPT-6 Luna as CodeModeOnly.
+The conservative working ceiling is $1 total; it is a test budget, not a provider
+billing guarantee. Do not add/bypass Code Mode or broaden the MVP for these pilots.
+
+Five organization worker calls reused integer ID `0` on the startup transport.
+An aborted dashboard can leave an outstanding request until its reply arrives.
+The correction reuses existing UUID string IDs from other background TUI calls;
+no dependency, transport change or weakening of duplicate detection.
+
+In `codex-rs`, with the pinned environment activated:
+
+```bash
+CARGO_INCREMENTAL=0 RUST_MIN_STACK=8388608 cargo test --locked --offline --profile dev-small -j4 -p codex-tui --lib background_requests_survive_startup_overlap_and_cancelled_dashboard -- --nocapture
+CARGO_INCREMENTAL=0 RUST_MIN_STACK=8388608 cargo test --locked --offline --profile dev-small -j4 -p codex-tui --lib organization -- --nocapture
+cargo fmt -p codex-tui -- --check
+CARGO_INCREMENTAL=0 RUST_MIN_STACK=8388608 cargo clippy --locked --offline --profile dev-small -j4 -p codex-tui --lib -- -D warnings
+```
+
+The new test uses the real remote WebSocket client with a simulated peer holding
+startup ID `0` and a canceled dashboard reply. It exercises pagination, replacement
+worker loading, inspection, both mutation types and selected-task refresh before
+releasing those old replies. Before correction: **1 failed**, exact duplicate ID
+`0` (exit 101). After correction: **17 passed**, including actual official Neovim
+editor tests (exit 0). Formatting and warnings-denied production Clippy passed.
+The initial test fixture failed compilation because `unwrap_err` required Snapshot
+Debug; the cancellation assertion was corrected without changing production types.
+Original compile/failure logs remain; no test assertion was relaxed.
+
+Evidence root: `/workspace/.onboarding/qualification/mvp-followup/`.
+`request-id-before.log`, `request-id-before-compiled.log`, `request-id-after.log`,
+`fmt.log`, `clippy.log`. Complete CLI build, physical qualification and live pilots
+are in progress; do not claim they passed until the subsequent evidence is recorded.
+
+The API key became present without printing its value. A normal HTTPS connectivity
+check to `https://api.openai.com/v1/models` failed at the proxy CONNECT with HTTP
+403 / curl exit 56, before any authenticated or paid request. The running network
+policy lacked that host. Using the cloud onboarding setup workflow, `api.openai.com`
+was saved as the sole additional custom allowed domain, preserving package-manager
+presets and existing credential bindings. Draft save returned `status: saved` and
+`requires_publish: true`; saving is not runtime application/publication. Review,
+save and publish in environment settings, then recheck normal proxy/TLS access.
+Do not bypass the proxy, copy credentials into files/logs, or call a CodeModeOnly
+model. Live pilot evidence remains unrun until the supported route succeeds.
+
+Complete CLI build and native package assembly passed (exit 0), using
+`cargo build --locked --offline --profile dev-small -j4 -p codex-cli --bin codex`
+and the repository packager with pinned existing helpers and `--strip none`.
+The private qualification daemon was updated with `app-server daemon update
+--from-cli --yes`, then started. All five package files match the running installed
+package; `package-proof.json`. CLI SHA256:
+`3551b402d216ea5f33e218431efbb0b07449a10c3410bb436012d853de3d597a`.
+Outer-sandbox `/proc` inspection was denied; the authorized native inspection
+succeeded, matching the actual executable to the verified package.
+
+`python rapid.py provider-offline` physically passed **185 layout commands**:
+160 dashboard switches at 20 ms input intervals across 120×36 / 50×20, ten
+Console-close/`/layout operations` reopen cycles, and individual preset checks.
+No duplicate-ID or owner timeout frame was observed. Cold startup to loaded tree
+was 1.452s; this is one functional observation, not a new latency benchmark.
+Official Neovim's native terminal/external UI rendered actual CLI cells to PNGs.
+Original preferences were restored. Evidence: `rapid-provider-offline.json`, log
+and both corresponding PNG/text captures. This ran with the provider stopped and
+made no inference request; owner metadata remained available through the daemon.
+
+The first physical harness attempts misused Console's existing function-key
+bindings and combined pasted slash text/Enter before native composer submission.
+They reached chat search or retained a draft. The harness now waits for the correct
+input context and sends a separate Enter for Console slash commands; dashboard
+switches still run at 20 ms. These failures remain in the three
+`rapid-provider-offline-initial-*.log` files. No application control/error/assertion
+was disabled; layouts.md now makes shortcut context explicit.
+
+Ponytail review: lean already; the five-line ID helper reuses installed UUIDs and
+no transport framework/dependency is added. Correctness review checked all five
+production request sites and late/canceled replies. Native provider-online and
+full approval/editor/workflow checks are next, followed by the live access gate.
