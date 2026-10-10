@@ -1,5 +1,10 @@
 # Decisions, risks, and approval gate
 
+Current approval: the owner approved M0/M1 CLI/daemon/official Neovim qualification
+with “Okay, let's do this”. Required local tool installation is authorized for
+that scope. See [qualification](qualification.md). Broader decisions below remain
+proposals until accepted or validated in the relevant implementation scope.
+
 ## Proposed decisions
 
 | ID  | Decision / rationale                                                                     | Alternatives considered                                                                | Status                                    |
@@ -71,8 +76,7 @@ The user explicitly required: “Once the exploration, documentation, and MVP pl
 are complete, present the findings and stop for my approval before beginning
 implementation.”
 
-This gate comes from the user's Phase 0 instruction. No application feature,
-dependency declaration, editor installation or MVP work may start without that
-approval. Installation and external-action authorization must cover the actual
-action, not be inferred from silence. The current documents are concrete material
-for review; no additional setup approval flow is introduced here.
+This gate comes from the user's Phase 0 instruction. The owner has now approved
+the foundation qualification described above. Record subsequent scope decisions;
+do not infer external spending or operational authority from this local approval.
+No additional setup approval flow is introduced here.

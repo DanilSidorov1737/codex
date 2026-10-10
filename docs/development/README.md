@@ -1,7 +1,7 @@
 # Codex CLI fork development
 
-Phase: **0 — exploration and planning**. Implementation is **not authorized**.
-Repository baseline: `8026444c98cd9c6db9e7c953b44a20ea4f93c7b6`, from `origin/main`.
+Phase: **1 — scoped M0/M1 foundation qualification complete**.
+Phase 0 repository baseline: `8026444c98cd9c6db9e7c953b44a20ea4f93c7b6`, from `origin/main`.
 Research recorded on 2026-10-09 (America/New_York).
 
 The objective is a general-purpose autonomous system that extends Codex CLI.
@@ -22,6 +22,7 @@ organization is a template, not the product's fixed structure.
 
 Other focused plans: [security and recovery](security-and-recovery.md),
 [TUI and Neovim](tui-and-neovim.md), [Ponytail setup](ponytail.md).
+Current foundation evidence: [CLI, daemon and real Neovim qualification](qualification.md).
 
 ## Recommended direction
 

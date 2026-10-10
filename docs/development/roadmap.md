@@ -1,5 +1,8 @@
 # Phased roadmap
 
+Current execution: scoped Phase 1 / M0–M1 foundation checks are approved and complete. See
+[qualification evidence](qualification.md) and [status](status.md).
+
 Sequence is based on technical dependencies and risk, not date estimates.
 Each implementation phase requires an approved scope and evidence at its gate.
 Parallel independent work is useful once interfaces and ownership are clear;

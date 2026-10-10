@@ -3,10 +3,11 @@
 ## Current phase and approval
 
 This project extends Codex CLI into a general-purpose autonomous multi-agent
-system. Phase 0 is research, architecture and documentation only.
-**Do not implement application features, start the MVP, change application code/
-tests/manifests/lockfiles, or install tools until the owner explicitly approves
-the next phase and required actions.** Documentation-only commits are permitted.
+system. Phase 0 research and planning are complete. The owner approved the next
+step with “Okay, let's do this”: M0/M1 qualification of the real CLI, detached
+daemon and official Neovim embedding, including the tools needed for those checks.
+Complete these foundations before expanding into organization/task features.
+Record new approvals and scope in status.md; a plan alone does not authorize work.
 
 Read [docs/development/README.md](docs/development/README.md) and
 [status.md](docs/development/status.md) at the start of every session.

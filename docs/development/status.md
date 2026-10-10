@@ -1,10 +1,18 @@
 # Current status and resumption instructions
 
 Phase 0: **exploration and planning complete for available inputs**.
-Next phase: **awaiting explicit owner approval**.
+Current work: **scoped M0/M1 foundation qualification complete; owner approved**.
 Application feature implementation: **not started**.
 
-## Completed
+## Current authorization
+
+The owner's “Okay, let's do this” approved the described next step: build and
+physically exercise the real CLI, check detached daemon/reconnect behavior, obtain
+verified official Neovim and test its embedding API. Required local prerequisites
+are included. No push, publication, external spending or broader operational
+authority is inferred. Finish this qualification before organization/task work.
+
+## Phase 0 completed
 
 - Read the initial request, full 714-line capability/layout/Neovim write-up and
   visually inspected all seven concept/hierarchy images.
@@ -22,18 +30,44 @@ Application feature implementation: **not started**.
 - Checked documentation formatting, links, allowed change scope and whitespace
   before the final report.
 
+## Foundation qualification results
+
+- Built real CLI `0.0.0` with Rust 1.95.0 and the existing `dev-small` profile.
+  Built the real Code Mode host and vendored Bubblewrap, then assembled the
+  existing complete package. No application source/manifests/lockfiles changed.
+- Installed checksum-verified official Neovim v0.12.6. Twelve real embedding
+  assertions passed on two corrected reruns; physically edited/saved/undid/diffed
+  real files in a terminal.
+- Twelve real daemon assertions passed on two runs: idempotent start, private IPC,
+  detached turn completion, pending approval replay on reconnect, blocked tool
+  before approval, actual artifact after approval, restart and completed history.
+- Physically used both the embedded TUI and daemon-attached TUI. `/status` reported
+  `Local background server`; its thread ID matched the daemon's loaded-thread API.
+  Quit and resumed the same thread with response and token usage restored.
+- Full SDK retest passed **49/49 tests, 5/5 suites**, including both MCP conformance
+  gates. Earlier missing binary/helper failures are retained as historical results.
+- See [qualification](qualification.md) for commands, provenance, failures and
+  machine-local evidence. Eleven existing socket transport tests passed unchanged
+  outside the outer sandbox; the sandboxed attempt had seven passes/four failures
+  caused by its masked socket root. No assertions were skipped or disabled.
+- Repeated the checksum-preserving setup successfully and saved complete install/
+  startup instructions to the environment draft. Review/save and publication in
+  environment settings remain owner actions; fresh-task restoration is unverified.
+- Verified the fixture daemon survived TUI quit, then stopped only that daemon
+  and the local provider fixture. No qualification service remains intentionally running.
+
 ## Known limitations / remaining work
 
 - Separate PDF is absent; compare it if provided.
-- Full Codex CLI binary/TUI remains unbuilt/unrun; this baseline does not establish
-  main application readiness.
-- Actual Neovim is absent and no editor behavior was tested.
+- Actual Neovim is qualified independently; the Rust Workspace pane is not built.
 - Upstream standalone Ponytail plugin installation/hooks are unverified;
   current session skill availability is separate.
-- No live provider request, daemon recovery, protected IPC, full integration suite
-  or scale test occurred.
-- Earlier full SDK integration run failed due to missing CLI binary, as documented
-  in [testing](testing.md).
+- No live provider request, comprehensive crash/approval recovery, agent-scoped IPC
+  denial, all-Rust/Bazel suite or scale test occurred. Fixture Responses are
+  deterministic local responses, not a live model.
+- The outer cloud sandbox hides daemon sockets. The isolated daemon and attached
+  TUI checks ran with authorized unsandboxed execution; the restriction was not
+  weakened. Future daemon checks need that execution mode.
 - All architecture decisions except Phase 0 documentation/process rules remain
   proposed. No schemas/features/dependency changes are implemented.
 
@@ -43,9 +77,10 @@ Application feature implementation: **not started**.
 2. Check Git status/log and preserve existing changes; use the existing isolated checkout.
 3. Verify the owner's latest explicit approval and constraints. Without approval,
    answer planning questions or revise documentation only.
-4. If implementation and required installations are approved, start M0/M1:
-   qualify the full CLI and daemon, actual official Neovim, policy/IPC and storage.
-   Do not jump straight to a large organization/agent framework.
+4. Review qualification evidence and remaining gates rather than repeating the
+   baseline. The next proposed product slice is M2's protected organization store
+   and recovery checks. Full Neovim pane integration remains M8. Keep broader
+   feature scope and live-provider budget explicit.
 5. Recheck runtime/environment readiness and existing credential bindings without
    printing values. Use established proxy/TLS/auth routes.
 6. Follow small implementation/test/review/doc/commit steps and update status with

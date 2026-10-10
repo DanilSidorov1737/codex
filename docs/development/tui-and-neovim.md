@@ -1,5 +1,9 @@
 # TUI layouts and actual Neovim integration
 
+Foundation update: official Neovim v0.12.6 and its external UI API passed real
+editing/redraw/conflict-check qualification. See [evidence](qualification.md).
+The pane design below remains proposed; no integrated Workspace pane exists yet.
+
 ## Shared pane model
 
 Retain Codex's terminal frontend and app-server client. Introduce a small split/tab

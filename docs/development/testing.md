@@ -1,5 +1,19 @@
 # Testing procedures and evidence
 
+## Current M0/M1 evidence
+
+Owner-authorized foundation work is recorded in [qualification](qualification.md).
+Official Neovim v0.12.6 passed twelve real embedding assertions on the corrected
+helper's two reruns and was physically edited/saved in a PTY. These checks verify
+editor APIs; no Workspace pane or live model behavior is claimed.
+Real CLI/package build and two twelve-assertion daemon runs passed. Full SDK retest:
+49 passed, zero failed, five suites including MCP conformance. The actual attached
+TUI accepted input and resumed its saved thread. The daemon requires authorized
+unsandboxed execution in this cloud machine because the outer sandbox hides its
+socket directory; see qualification for the diagnosis and limits.
+Existing Unix socket transport tests passed 11/11 unchanged outside that sandbox;
+the masked-root attempt had seven passes/four environment-related failures.
+
 ## Phase 0 results
 
 Baseline `8026444c98cd9c6db9e7c953b44a20ea4f93c7b6`; Linux x86_64 cloud host.
@@ -40,7 +54,9 @@ export RUSTUP_HOME=/workspace/.onboarding/rustup
 export npm_config_cache=/workspace/.onboarding/npm-cache
 export XDG_DATA_HOME=/workspace/.onboarding/data
 export XDG_CACHE_HOME=/workspace/.onboarding/cache
+export XDG_STATE_HOME=/workspace/.onboarding/state
 export PATH="/workspace/.onboarding/cargo/bin:/workspace/.onboarding/pnpm/node_modules/.bin:$PATH"
+export PATH="/workspace/.onboarding/neovim/v0.12.6/nvim-linux-x86_64/bin:$PATH"
 ```
 
 Use existing checkouts. No worktree creation is needed for environment setup.
