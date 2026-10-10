@@ -1,6 +1,6 @@
 # Phased roadmap
 
-Current execution: Phase 2 MVP implementation is approved; B1 final checks are in progress. See
+Current execution: Phase 2 MVP implementation is approved; B1 is qualified; B2 ledger development is in progress. See
 [qualification evidence](qualification.md) and [status](status.md).
 
 Sequence is based on technical dependencies and risk, not date estimates.
@@ -26,8 +26,7 @@ The proposed MVP build order is B1 durable definitions -> B2 one safe background
 task -> B3 bounded delegation/context -> B4 five useful layouts -> B5 actual
 Neovim Workspace -> B6 complete release qualification. Detailed steps and checks
 are maintained in [the MVP plan](mvp.md#build-order-and-usable-checkpoints).
-The first implementation slice is B1/M2–M3. M2 storage and M3 definitions/commands are implemented and tested; B1 final
-checks and B2–B6 remain outstanding.
+The first implementation slice is B1/M2–M3. M2 storage and M3 definitions/commands are implemented and tested; B1 is qualified. B2–B6 remain outstanding; the initial B2 ledger tests pass.
 
 Deliver a complete small workflow rather than a screen full of invented metrics.
 Keep features behind normal supported flags/settings until qualification.

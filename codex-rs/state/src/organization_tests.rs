@@ -1,5 +1,6 @@
 use super::*;
 use codex_protocol::organization::*;
+use codex_protocol::organization_execution::*;
 
 struct Fixture(PathBuf);
 
@@ -197,6 +198,330 @@ fn node_from(record: Option<OrganizationRecord>) -> OrganizationNode {
         panic!("expected node");
     };
     node
+}
+
+fn execution_scope() -> OrganizationExecutionScope {
+    OrganizationExecutionScope {
+        input_files: vec!["input.txt".into(), "oracle.py".into()],
+        immutable_files: vec!["oracle.py".into()],
+        artifacts: vec!["report.txt".into()],
+        checks: vec![vec!["python3".into(), "oracle.py".into()]],
+        model: "fixture".into(),
+        max_tokens: 100,
+        max_seconds: 120,
+        max_model_requests: 2,
+        max_attempts: 1,
+        require_tool_approval: true,
+        delegates: Vec::new(),
+        max_children: 0,
+    }
+}
+
+async fn execution_task(
+    store: &OrganizationStore,
+    owner: &str,
+    project_id: &str,
+) -> Result<OrganizationTask> {
+    let record = store
+        .mutate_owner(
+            OrganizationMutation::PutTask {
+                id: None,
+                expected_revision: None,
+                project_id: project_id.into(),
+                goal_id: None,
+                owner_id: owner.into(),
+                instructions: "Prepare a checked report".into(),
+                criteria: vec!["Owner accepts the report".into()],
+                prerequisites: Vec::new(),
+            },
+            None,
+        )
+        .await?;
+    let Some(OrganizationRecord::Task(task)) = record else {
+        panic!("expected task");
+    };
+    Ok(task)
+}
+
+async fn execution_project(store: &OrganizationStore, owner: &str) -> Result<String> {
+    let id = Uuid::now_v7().to_string();
+    store
+        .mutate_owner(
+            OrganizationMutation::LinkProject {
+                project_id: id.clone(),
+                expected_revision: None,
+                goal_id: None,
+                owner_id: Some(owner.into()),
+                criteria: vec!["Owner accepts the result".into()],
+            },
+            Some(("Fixture".into(), vec!["/tmp/fixture-project".into()])),
+        )
+        .await?;
+    Ok(id)
+}
+
+#[tokio::test]
+async fn execution_claim_race_reserves_capacity_once() -> Result<()> {
+    let home = Fixture::new();
+    let store = OrganizationStore::open(&home.0).await?;
+    let node = node_from(
+        store
+            .mutate_owner(
+                node_mutation("One", None, OrganizationNodeKind::Agent),
+                None,
+            )
+            .await?,
+    );
+    let project = execution_project(&store, &node.id).await?;
+    for _ in 0..3 {
+        let task = execution_task(&store, &node.id, &project).await?;
+        store
+            .authorize_task(&task.id, task.revision, execution_scope(), 1000)
+            .await?;
+    }
+    let worker = Uuid::now_v7().to_string();
+    let a = Uuid::now_v7().to_string();
+    let b = Uuid::now_v7().to_string();
+    let (a, b) = tokio::join!(
+        store.claim_task(&worker, &a, 1000, 1),
+        store.claim_task(&worker, &b, 1000, 1)
+    );
+    assert_ne!(a?.is_some(), b?.is_some());
+    let counts: (i64, i64, i64) = sqlx::query_as("SELECT (SELECT count(*) FROM organization_attempts),(SELECT count(*) FROM organization_outbox WHERE kind='attempt/claimed'),(SELECT count(*) FROM organization_audit WHERE operation='attempt/claimed')").fetch_one(&store.pool).await?;
+    assert_eq!(
+        counts,
+        (1, 1, 1),
+        "claim, reservation, audit and outbox commit together"
+    );
+    store.close().await;
+    Ok(())
+}
+
+#[tokio::test]
+async fn execution_budget_accounts_usage_once_and_blocks_unreported_work() -> Result<()> {
+    let home = Fixture::new();
+    let store = OrganizationStore::open(&home.0).await?;
+    let node = node_from(
+        store
+            .mutate_owner(
+                node_mutation("One", None, OrganizationNodeKind::Agent),
+                None,
+            )
+            .await?,
+    );
+    let project = execution_project(&store, &node.id).await?;
+    let task = execution_task(&store, &node.id, &project).await?;
+    let authorization = store
+        .authorize_task(&task.id, task.revision, execution_scope(), 1000)
+        .await?;
+    let worker = Uuid::now_v7().to_string();
+    let attempt = store
+        .claim_task(&worker, &Uuid::now_v7().to_string(), 1000, 2)
+        .await?
+        .unwrap();
+    assert_eq!(
+        store
+            .admit_model_request(&attempt.id, &worker, 1001)
+            .await?,
+        1
+    );
+    assert!(
+        store
+            .admit_model_request(&attempt.id, &worker, 1001)
+            .await
+            .is_err()
+    );
+    store.checkpoint_usage(&attempt.id, &worker, 1, 60).await?;
+    store.checkpoint_usage(&attempt.id, &worker, 1, 60).await?;
+    assert_eq!(
+        store
+            .admit_model_request(&attempt.id, &worker, 1002)
+            .await?,
+        2
+    );
+    store.checkpoint_usage(&attempt.id, &worker, 2, 101).await?;
+    assert!(
+        store
+            .admit_model_request(&attempt.id, &worker, 1003)
+            .await
+            .is_err()
+    );
+    assert!(
+        store
+            .checkpoint_usage(&attempt.id, &worker, 2, 99)
+            .await
+            .is_err()
+    );
+    let used: i64 =
+        sqlx::query_scalar("SELECT used_tokens FROM organization_authorizations WHERE id=?")
+            .bind(authorization.id)
+            .fetch_one(&store.pool)
+            .await?;
+    assert_eq!(
+        used, 101,
+        "record the in-flight overage rather than hiding it"
+    );
+    let checkpoints: i64 = sqlx::query_scalar(
+        "SELECT count(*) FROM organization_outbox WHERE kind='usage/checkpoint'",
+    )
+    .fetch_one(&store.pool)
+    .await?;
+    assert_eq!(
+        checkpoints, 2,
+        "duplicate usage reports must not double charge or emit twice"
+    );
+    store.close().await;
+    Ok(())
+}
+
+#[tokio::test]
+async fn execution_pause_restart_and_restore_fence_old_workers() -> Result<()> {
+    let home = Fixture::new();
+    let store = OrganizationStore::open(&home.0).await?;
+    let group = node_from(
+        store
+            .mutate_owner(
+                node_mutation("Custom group", None, OrganizationNodeKind::Group),
+                None,
+            )
+            .await?,
+    );
+    let node = node_from(
+        store
+            .mutate_owner(
+                node_mutation("One", Some(group.id.clone()), OrganizationNodeKind::Agent),
+                None,
+            )
+            .await?,
+    );
+    let project = execution_project(&store, &node.id).await?;
+    let task = execution_task(&store, &node.id, &project).await?;
+    store
+        .authorize_task(&task.id, task.revision, execution_scope(), 1000)
+        .await?;
+    let worker = Uuid::now_v7().to_string();
+    let attempt = store
+        .claim_task(&worker, &Uuid::now_v7().to_string(), 1000, 2)
+        .await?
+        .unwrap();
+    store
+        .admit_model_request(&attempt.id, &worker, 1001)
+        .await?;
+    store
+        .mutate_owner(
+            OrganizationMutation::PutNode {
+                id: Some(group.id),
+                expected_revision: Some(group.revision),
+                parent_id: None,
+                kind: OrganizationNodeKind::Group,
+                label: group.label,
+                role_version_id: None,
+                model: None,
+                enabled: false,
+            },
+            None,
+        )
+        .await?;
+    assert!(
+        store
+            .admit_model_request(&attempt.id, &worker, 1002)
+            .await
+            .is_err()
+    );
+    assert_eq!(store.reconcile_interrupted_attempts().await?, 1);
+    assert_eq!(store.reconcile_interrupted_attempts().await?, 0);
+    assert!(
+        store
+            .admit_model_request(&attempt.id, &worker, 1002)
+            .await
+            .is_err()
+    );
+    store.checkpoint_usage(&attempt.id, &worker, 1, 80).await?;
+    assert!(
+        store
+            .checkpoint_usage(&attempt.id, &Uuid::now_v7().to_string(), 1, 80)
+            .await
+            .is_err()
+    );
+    let backup = store.backup().await?;
+    let recovery = Fixture::new();
+    let restored = OrganizationStore::restore_into(&backup, &recovery.0).await?;
+    let task_state: String = sqlx::query_scalar("SELECT state FROM organization_tasks WHERE id=?")
+        .bind(task.id)
+        .fetch_one(&restored.pool)
+        .await?;
+    assert_eq!(task_state, "needsReconciliation");
+    assert!(
+        restored
+            .claim_task(
+                &Uuid::now_v7().to_string(),
+                &Uuid::now_v7().to_string(),
+                1002,
+                2
+            )
+            .await?
+            .is_none()
+    );
+    assert!(
+        restored
+            .admit_model_request(&attempt.id, &worker, 1002)
+            .await
+            .is_err()
+    );
+    restored.close().await;
+    store.close().await;
+    Ok(())
+}
+
+#[tokio::test]
+async fn execution_invalid_scope_and_stale_authorization_are_atomic() -> Result<()> {
+    let home = Fixture::new();
+    let store = OrganizationStore::open(&home.0).await?;
+    let node = node_from(
+        store
+            .mutate_owner(
+                node_mutation("One", None, OrganizationNodeKind::Agent),
+                None,
+            )
+            .await?,
+    );
+    let project = execution_project(&store, &node.id).await?;
+    let task = execution_task(&store, &node.id, &project).await?;
+    let mut scope = execution_scope();
+    scope
+        .input_files
+        .push("../organization/organization.sqlite".into());
+    assert!(
+        store
+            .authorize_task(&task.id, task.revision, scope, 1000)
+            .await
+            .is_err()
+    );
+    assert!(
+        store
+            .authorize_task(&task.id, task.revision + 1, execution_scope(), 1000)
+            .await
+            .is_err()
+    );
+    let counts: (i64, i64) = sqlx::query_as("SELECT (SELECT count(*) FROM organization_authorizations),(SELECT count(*) FROM organization_outbox)").fetch_one(&store.pool).await?;
+    assert_eq!(counts, (0, 0));
+    store
+        .authorize_task(&task.id, task.revision, execution_scope(), 1000)
+        .await?;
+    let worker = Uuid::now_v7().to_string();
+    let attempt = store
+        .claim_task(&worker, &Uuid::now_v7().to_string(), 1000, 2)
+        .await?
+        .unwrap();
+    assert!(
+        store
+            .admit_model_request(&attempt.id, &worker, 1030)
+            .await
+            .is_err(),
+        "expired leases cannot execute"
+    );
+    store.close().await;
+    Ok(())
 }
 
 #[tokio::test]

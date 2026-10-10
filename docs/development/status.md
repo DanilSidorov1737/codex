@@ -1,8 +1,8 @@
 # Current status and resumption instructions
 
 Phase 0: **exploration and planning complete for available inputs**.
-Current work: **approved MVP implementation; B1 definitions/commands tested, final checks in progress**.
-Application feature implementation: **protected store and B1 definitions/commands implemented; complete MVP outstanding**.
+Current work: **approved MVP implementation; B1 qualified, B2 ledger in progress**.
+Application feature implementation: **B1 complete; B2 state library being developed; complete MVP outstanding**.
 
 ## Current authorization
 
@@ -41,11 +41,25 @@ authorize push/publication, outbound communications or unbounded provider spendi
   renamed records, rejected stale edits/cycles, backed up and restored a fresh
   database; all seven definition/audit tables matched exactly.
 - Socket regression (11), owner guard (1), mutation/schema parity (1) and Python
-  contract/signature (25) tests passed. Format, final Clippy and all four schema comparisons passed. Final CLI rebuild
-  and current-binary command requalification are in progress. No background organization task starts yet.
-- Next: B2 durable authorization, attempts/reservations, approvals/action intents,
+  contract/signature (25) tests passed. Format, final Clippy and all four schema comparisons passed. The final CLI build and current-binary command requalification passed. No background organization task starts yet.
+- Current B2 work: durable authorization, attempts/reservations, approvals/action intents,
   bounded runtime execution and fail-closed restart reconciliation. Agent sandbox
   exclusion must be proved before unattended execution.
+
+## B2 ledger progress
+
+- Added a candidate migration and typed scope/attempt records. Owner authorization,
+  atomic active-capacity claims, lease/role/project/subtree fencing, idempotent
+  token accounting, model-request ceilings and startup reconciliation are in the
+  storage library. All 241 state tests passed (13 organization tests), including four new cases.
+  State Clippy with warnings denied and state/protocol formatting passed.
+- Missing prior usage blocks further inference admission. Late provider usage may
+  update accounting after pause; it cannot restore execution authority.
+- Interrupted attempts become `needsReconciliation`; no work is automatically
+  replayed. This is a ledger library, not a working background task feature.
+- Durable tool approvals/action receipts and runtime coupling are not wired yet.
+  Complete their tests, protected task sandboxes, bounded model preflight and
+  physical daemon interaction before qualifying B2.
 
 ## MVP planning completed before implementation
 
@@ -126,7 +140,7 @@ authorize push/publication, outbound communications or unbounded provider spendi
 3. Verify the owner's latest explicit approval and constraints. Without approval,
    answer planning questions or revise documentation only.
 4. Review qualification evidence and remaining gates rather than repeating the
-   baseline. Continue B1 final verification/commit, then B2 task execution and recovery.
+   baseline. Continue B2 approvals/action receipts and bounded runtime execution/recovery.
    Do not restart the completed storage/definition work.
    Full Neovim pane integration remains B5/M8. Keep broader
    feature scope and live-provider budget explicit.

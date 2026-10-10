@@ -1,4 +1,29 @@
+## B2 ledger verification
+
+From `codex-rs`, with the documented activation:
+
+- `cargo test --locked --offline --profile dev-small -p codex-state --lib -j4`: exit 0, **241 passed**, no failed/ignored. Thirteen organization tests include actual SQLite claim races, token/request accounting, subtree fencing, late usage, restart reconciliation and backup/restore.
+- `cargo clippy --locked --offline --profile dev-small -p codex-state --lib -j4 -- -Dwarnings`: exit 0.
+- `cargo fmt -p codex-state -p codex-protocol -- --check`: exit 0.
+
+Evidence: `mvp-b2-ledger-tests.log`, `mvp-b2-state-tests.log`,
+`mvp-b2-state-clippy.log`, `mvp-b2-format.log` under the established local qualification directory.
+These checks qualify storage behavior; runtime task execution and tool approvals are still unimplemented.
+
 # Testing procedures and evidence
+
+## B2 ledger candidate
+
+`cargo test --locked --offline --profile dev-small -p codex-state --lib organization::tests -j 4`:
+**13 passed, zero failed/ignored**, including four new B2 tests: concurrent claims
+reserve one slot and commit audit/outbox together; unresolved/double/backwards
+usage and exhausted budgets; paused subtree and stale-worker denial across
+reconciliation/backup restore; invalid scope, stale authorization and expired lease.
+Log: `/workspace/.onboarding/qualification/mvp-b2-ledger-tests.log`.
+
+These are actual SQLite tests. Runtime/model/tool integration and B2 approvals
+are not implemented or qualified by this candidate; full-state lint/verification
+follows before committing the ledger.
 
 ## B1/M3 definitions and real commands
 
@@ -51,8 +76,14 @@ On 2026-10-10 UTC, using the same Linux/Rust activation and `dev-small` profile:
   redundant binding in the touched app-server constructor; simplified it and
   reran. Final Clippy passed with warnings denied; all four schema bundle comparison
   checks passed (the schema-writer helper is intentionally ignored during normal
-  tests and was run separately above). Final CLI rebuild/requalification remains
-  in progress. Logs: `mvp-b1-clippy-final.log`, `mvp-b1-schema-tests.log`.
+  tests and was run separately above). Final CLI rebuild/requalification passed. Logs: `mvp-b1-clippy-final.log`, `mvp-b1-schema-tests.log`.
+
+- Rebuilt CLI from B1 commit `0ce412ec16`: exit 0. Physically entered
+  reparenting, immutable role-version creation, one-row pagination, invalid page
+  rejection, backup, fresh restore and restore-collision commands. Both invalid
+  operations exited 1. Final read-only comparison matched all seven tables:
+  nodes 3, role versions 2, goals 1, projects 1, tasks 1, memberships 1, audit 11.
+  Evidence: `mvp-b1/` JSON/error files and `mvp-b1-cli-final-build.log`.
 
 B1 defines proposed work;
 no background task, integrated layout/editor, same-user sandbox denial or live
