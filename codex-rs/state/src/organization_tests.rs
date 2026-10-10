@@ -570,19 +570,55 @@ async fn host_evidence_and_owner_digest_gate_result_acceptance() -> Result<()> {
     assert_eq!(view.task.state, "accepted");
     assert!(
         store
-            .begin_application(&attempt.task_id, view.task.revision - 1, &result.digest)
+            .begin_application(
+                &attempt.task_id,
+                view.task.revision - 1,
+                &result.digest,
+                None
+            )
             .await
             .is_err()
     );
     assert!(
         store
-            .begin_application(&attempt.task_id, view.task.revision, "changed-digest")
+            .begin_application(&attempt.task_id, view.task.revision, "changed-digest", None)
             .await
             .is_err()
     );
+    let selected = vec![result.artifacts[0].path.clone()];
+    for invalid in [
+        vec![],
+        vec!["unknown-file".into()],
+        vec![selected[0].clone(); 2],
+    ] {
+        assert!(
+            store
+                .begin_application(
+                    &attempt.task_id,
+                    view.task.revision,
+                    &result.digest,
+                    Some(&invalid)
+                )
+                .await
+                .is_err()
+        );
+    }
+    assert!(
+        store
+            .execution_view(&attempt.task_id)
+            .await?
+            .applications
+            .is_empty()
+    );
     let application = store
-        .begin_application(&attempt.task_id, view.task.revision, &result.digest)
+        .begin_application(
+            &attempt.task_id,
+            view.task.revision,
+            &result.digest,
+            Some(&selected),
+        )
         .await?;
+    assert_eq!(application.paths, selected);
     assert_eq!(
         store.execution_view(&attempt.task_id).await?.applications[0].state,
         OrganizationApplicationState::Pending
@@ -592,9 +628,13 @@ async fn host_evidence_and_owner_digest_gate_result_acceptance() -> Result<()> {
         store.execution_view(&attempt.task_id).await?.applications[0].state,
         OrganizationApplicationState::Uncertain
     );
+    assert_eq!(
+        store.execution_view(&attempt.task_id).await?.applications[0].paths,
+        selected
+    );
     assert!(
         store
-            .begin_application(&attempt.task_id, view.task.revision, &result.digest)
+            .begin_application(&attempt.task_id, view.task.revision, &result.digest, None)
             .await
             .is_err()
     );

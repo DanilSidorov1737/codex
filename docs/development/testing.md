@@ -1,5 +1,35 @@
 # Testing procedures and evidence
 
+## Selective Apply backend checkpoint — 2026-10-10 UTC
+
+Whole-file selection is implemented using the existing owner RPC/receipt/writer;
+native UI/package qualification is in progress. See [selective Apply](selective-apply.md).
+From `/workspace/codex/codex-rs`, after `. /workspace/.onboarding/activate.sh`, with
+`CARGO_INCREMENTAL=0 RUST_MIN_STACK=8388608`, `--locked --offline --profile dev-small -j4`:
+
+- `cargo test -p codex-state --lib`: **259 passed, 0 failed/ignored**. Invalid selections
+  create no receipt; exact chosen paths survive pending → uncertain reconciliation;
+  stale revision/digest and repeated Apply remain rejected.
+- `cargo clippy -p codex-protocol -p codex-state -p codex-app-server --lib -- -D warnings`: exit 0.
+- Schema writer explicitly ran with `CODEX_APP_SERVER_SCHEMA_ROOT=/workspace/codex/codex-rs/app-server-protocol/schema`
+  and `CODEX_APP_SERVER_SCHEMA_EXPERIMENTAL=0`, then `=1`, using
+  `cargo test -p codex-app-server-protocol --lib schema_fixtures_tests::write_schema_fixtures_from_env -- --exact --ignored`.
+  Both exited 0; `schema_fixtures_tests -- --skip write_schema_fixtures_from_env`:
+  **4 passed, 0 failed**, including stable and experimental compressed exports.
+- From `/workspace/codex/sdk/python`, `. .venv/bin/activate`,
+  `python scripts/update_sdk_artifacts.py generate-types --schema-dir ../../codex-rs/app-server-protocol/schema/json`: exit 0.
+  `python -m pytest tests/test_contract_generation.py tests/test_public_api_signatures.py -q`:
+  **25 passed**, exit 0. Generated Python Apply contracts include optional paths.
+
+Evidence: `/workspace/.onboarding/qualification/selective-apply-20261010/`.
+The first production state build rejected the validator's accidentally dev-only
+`anyhow` dependency; corrected to a std Result rather than adding a dependency.
+Final state/Clippy passed. An initial formatter invocation used the repository root
+instead of `codex-rs`; corrected and reran. Python generation initially used the
+system interpreter, then the venv interpreter without its installed `ruff` on PATH;
+activate `sdk/python/.venv/bin/activate` for generation/tests. Original failure logs
+remain. Pending final protocol/native/TUI/package/physical checks are not claimed here.
+
 ## Completed TUI creation and concept-art qualification — 2026-10-10 UTC
 
 Application source `46d999bf5bf868d4ac7b8eaf2f96c66ac8b51cac`, following owner

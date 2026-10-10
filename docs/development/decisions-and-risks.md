@@ -24,6 +24,7 @@ token cost is $0.345433 including failed attempts. Provider invoice is unverifie
 | D09 | Deterministic control/budgets/approval separate from optional AI governance roles        | Prompt-only rules cannot protect tools/DB/secrets                                      | Accepted; implemented and locally qualified |
 | D10 | Ponytail throughout implementation/review; current session skill reused                  | Upstream standalone plugin/hooks installation remains separate                         | Active process rule; installation pending |
 | D11 | Local owner/Linux pilot, real tests and bounded provider requests                        | Immediate cross-platform/distributed/financial autonomy too broad                      | Qualified Linux/local native GPT-5.5 scope |
+| D12 | Explicit whole-file Apply subset; keep complete-result acceptance/checks and one durable application per result | Hunks, repeated staged Apply and new storage state deferred; omission preserves existing apply-all API | Owner approved 2026-10-10; implementation/qualification in progress |
 
 ## Major risks and mitigations
 

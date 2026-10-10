@@ -1,9 +1,24 @@
 # Current status and resumption instructions
 
 Phase 0: **exploration and planning complete for available inputs**.
-Current work: **TUI creation/authorization and concept-art dashboard slice delivered and qualified**.
+Current work: **owner-approved whole-file selective Apply implementation/qualification**.
 Application features: **delivered for the documented single-owner Linux envelope**.
 The MVP's release criteria are **qualified for the documented single-owner Linux/GPT-5.5 envelope**.
+
+## Approved selective Apply slice — 2026-10-10 UTC
+
+The owner requested “continue and begin”, Ponytail, periodic commits and the supplied
+text plan after the selective Apply recommendation. Scope: select whole accepted
+artifact files in Review, freeze the selected paths/task revision/digest in exact
+confirmation and persist exactly those paths in the existing application receipt.
+Omitted API paths preserve apply-all compatibility; explicit empty/duplicate/unknown
+paths must be rejected before an intent or write. Only selected originals/artifacts
+are checked/written, while all loaded Neovim dirty buffers still block host Apply.
+Retain one application per accepted result, including uncertain-operation no-replay.
+Partial Apply does not claim the full isolated-result checks passed in the installed
+subset. File hunks, staged repeated Apply, memory retrieval and scheduling remain later
+scope. Backend, schema and UI checks plus actual CLI/Neovim qualification are required
+before marking this slice complete. Preserve prior successful evidence below.
 
 ## Completed usability slice — 2026-10-10 UTC
 

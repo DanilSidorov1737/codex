@@ -804,6 +804,7 @@ impl Dashboard {
                         task_id,
                         expected_revision,
                         digest: r.digest.clone(),
+                        paths: None,
                     })
                 }),
                 'p' | 'x' => Some(Command::Execution(OrganizationExecutionMutation::Stop {

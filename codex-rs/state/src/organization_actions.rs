@@ -574,6 +574,7 @@ impl OrganizationStore {
         task_id: &str,
         revision: i64,
         digest: &str,
+        paths: Option<&[String]>,
     ) -> Result<OrganizationApplication> {
         let mut tx = self.pool.begin_with("BEGIN IMMEDIATE").await?;
         let task = read_task(&mut tx, task_id).await?;
@@ -601,7 +602,9 @@ impl OrganizationStore {
         let application = OrganizationApplication {
             id: Uuid::now_v7().to_string(),
             digest: digest.into(),
-            paths: result.artifacts.iter().map(|a| a.path.clone()).collect(),
+            paths: result
+                .application_paths(paths)
+                .map_err(anyhow::Error::msg)?,
             state: OrganizationApplicationState::Pending,
             receipt: None,
         };

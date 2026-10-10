@@ -239,7 +239,7 @@ impl OrganizationRequestProcessor {
                         .request_changes(&task_id, expected_revision, &instructions)
                         .await?
                 }
-                OrganizationExecutionMutation::Apply {task_id,expected_revision,digest} => {
+                OrganizationExecutionMutation::Apply {task_id,expected_revision,digest,paths} => {
                     let _application = self.application_lock.clone().acquire_owned().await?;
                     let view = store.execution_view(&task_id).await?;
                     anyhow::ensure!(view.task.state=="accepted"&&view.task.revision==expected_revision,"application requires exact accepted task revision");
@@ -250,8 +250,8 @@ impl OrganizationRequestProcessor {
                     let codex_protocol::organization::OrganizationRecord::Project(project)=store.read_definition(codex_protocol::organization::OrganizationRecordKind::Projects,&view.task.project_id).await? else {anyhow::bail!("invalid project record")};
                     anyhow::ensure!(linked.roots.iter().map(|r|&r.path).eq(project.roots.iter()),"project roots changed");
                     let source=view.attempts.iter().find(|a|a.id==result.attempt_id).and_then(|a|a.workspace.as_deref()).context("accepted workspace missing")?;
-                    let prepared=crate::organization_workspace::PreparedApplication::prepare(&self.config,std::path::Path::new(project.roots.first().context("project root missing")?),std::path::Path::new(source),&result)?;
-                    let intent=store.begin_application(&task_id,expected_revision,&digest).await?;
+                    let prepared=crate::organization_workspace::PreparedApplication::prepare(&self.config,std::path::Path::new(project.roots.first().context("project root missing")?),std::path::Path::new(source),&result,paths.as_deref())?;
+                    let intent=store.begin_application(&task_id,expected_revision,&digest,paths.as_deref()).await?;
                     let applied=tokio::task::spawn_blocking(move||{
                         // A disconnected/cancelled owner RPC must not release
                         // serialization while its native file writes still run.
@@ -259,7 +259,7 @@ impl OrganizationRequestProcessor {
                         prepared.apply()
                     }).await;
                     match applied {
-                        Ok(Ok(()))=>store.settle_application(&intent.id,true,"all accepted artifacts replaced and directory entries synchronized").await?,
+                        Ok(Ok(()))=>store.settle_application(&intent.id,true,"selected accepted artifacts replaced and directory entries synchronized").await?,
                         outcome=>{
                             let receipt=format!("application failed or interrupted; files may be partially applied; inspect originals before manual reconciliation: {outcome:?}");
                             store.settle_application(&intent.id,false,&receipt.chars().take(4000).collect::<String>()).await?;

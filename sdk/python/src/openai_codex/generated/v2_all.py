@@ -3128,6 +3128,12 @@ class ApplyOrganizationExecutionMutation(BaseModel):
     )
     digest: str
     expected_revision: Annotated[int, Field(alias="expectedRevision")]
+    paths: Annotated[
+        list[str] | None,
+        Field(
+            description="Omit to apply all accepted artifacts. Explicit selection must be nonempty and unique; the receipt records exactly these whole files."
+        ),
+    ] = None
     task_id: Annotated[str, Field(alias="taskId")]
     type: Annotated[Literal["apply"], Field(title="ApplyOrganizationExecutionMutationType")]
 

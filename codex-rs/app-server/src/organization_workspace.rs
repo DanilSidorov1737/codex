@@ -46,12 +46,16 @@ impl PreparedApplication {
         project: &Path,
         source: &Path,
         result: &codex_protocol::organization_execution::OrganizationTaskResult,
+        paths: Option<&[String]>,
     ) -> Result<Self> {
         ensure!(
             cfg!(target_os = "linux"),
             "artifact application is qualified only on Linux"
         );
         ensure!(result.accepted, "unaccepted result cannot be applied");
+        let paths = result
+            .application_paths(paths)
+            .map_err(anyhow::Error::msg)?;
         ensure!(
             std::fs::canonicalize(project)? == project && std::fs::canonicalize(source)? == source,
             "aliased application root rejected"
@@ -73,6 +77,9 @@ impl PreparedApplication {
             "artifact base evidence mismatch"
         );
         for (artifact, base) in result.artifacts.iter().zip(&result.artifact_bases) {
+            if !paths.contains(&artifact.path) {
+                continue;
+            }
             ensure!(
                 Path::new(&artifact.path)
                     .components()

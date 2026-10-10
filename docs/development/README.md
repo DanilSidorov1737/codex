@@ -28,6 +28,7 @@ B3 contracts and bounds: [coordination](coordination.md).
 B4 layout usage and qualification: [layouts](layouts.md).
 Current native screenshots: `/workspace/artifacts/cli-ui-update/cli-ui-update-screenshots.zip`.
 B5 actual editor and application: [Neovim Workspace](neovim-workspace.md).
+Approved follow-up: [whole-file selective Apply](selective-apply.md).
 Execution settings/prices: [resource limits](resource-limits.md).
 Release evidence/gates: [qualification](release-qualification.md).
 

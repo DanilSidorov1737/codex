@@ -12553,6 +12553,16 @@
               "format": "int64",
               "type": "integer"
             },
+            "paths": {
+              "description": "Omit to apply all accepted artifacts. Explicit selection must be nonempty and unique; the receipt records exactly these whole files.",
+              "items": {
+                "type": "string"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            },
             "taskId": {
               "type": "string"
             },

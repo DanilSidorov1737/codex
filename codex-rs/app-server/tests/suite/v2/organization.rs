@@ -109,11 +109,13 @@ async fn wait_task(
 }
 
 #[cfg(target_os = "linux")]
-#[test_case(false; "exact_approval_and_real_artifact")]
-#[test_case(true; "pending_approval_survives_crash_without_replay")]
+#[test_case(false, false; "exact_approval_and_real_artifact")]
+#[test_case(true, false; "pending_approval_survives_crash_without_replay")]
+#[test_case(false, true; "selective_apply_preserves_unselected_file")]
 #[tokio::test]
 async fn background_task_requires_exact_approval_and_collects_real_host_evidence(
     crash: bool,
+    selective: bool,
 ) -> Result<()> {
     let mut sequence = vec![responses::sse(vec![
         responses::ev_response_created("r1"),
@@ -440,6 +442,41 @@ Path('report.txt').write_text('checked background artifact')
     assert_eq!(accepted.task.state, "accepted");
     let result = accepted.result.unwrap();
     assert!(result.accepted);
+    for invalid in [
+        vec![],
+        vec!["report.txt".into(); 2],
+        vec!["../report.txt".into()],
+        vec!["oracle.py".into()],
+    ] {
+        assert!(
+            denied_execution(
+                &mut server,
+                OrganizationExecutionMutation::Apply {
+                    task_id: task.id.clone(),
+                    expected_revision: accepted.task.revision,
+                    digest: result.digest.clone(),
+                    paths: Some(invalid),
+                }
+            )
+            .await?
+            .contains("execution mutation rejected")
+        );
+    }
+    let pending: OrganizationExecutionReadResponse = server
+        .request(|request_id| ClientRequest::OrganizationExecutionRead {
+            request_id,
+            params: OrganizationExecutionReadParams {
+                task_id: task.id.clone(),
+            },
+        })
+        .await?;
+    assert!(pending.view.applications.is_empty());
+    if selective {
+        std::fs::write(
+            project.path().join("security.json"),
+            "human file left unchanged",
+        )?;
+    }
     // Changed originals and changed accepted artifacts are rejected before any
     // application intent/write. The exact reviewed bytes are then applied once.
     std::fs::write(project.path().join("report.txt"), "human change")?;
@@ -449,7 +486,8 @@ Path('report.txt').write_text('checked background artifact')
             OrganizationExecutionMutation::Apply {
                 task_id: task.id.clone(),
                 expected_revision: accepted.task.revision,
-                digest: result.digest.clone()
+                digest: result.digest.clone(),
+                paths: selective.then(|| vec!["report.txt".into()]),
             }
         )
         .await?
@@ -468,7 +506,8 @@ Path('report.txt').write_text('checked background artifact')
             OrganizationExecutionMutation::Apply {
                 task_id: task.id.clone(),
                 expected_revision: accepted.task.revision,
-                digest: result.digest.clone()
+                digest: result.digest.clone(),
+                paths: selective.then(|| vec!["report.txt".into()]),
             }
         )
         .await?
@@ -482,6 +521,7 @@ Path('report.txt').write_text('checked background artifact')
             task_id: task.id.clone(),
             expected_revision: accepted.task.revision,
             digest: result.digest.clone(),
+            paths: selective.then(|| vec!["report.txt".into()]),
         },
     )
     .await?;
@@ -490,13 +530,33 @@ Path('report.txt').write_text('checked background artifact')
         OrganizationApplicationState::Completed
     );
     assert_eq!(std::fs::read(project.path().join("report.txt"))?, original);
+    assert_eq!(
+        applied.applications[0].paths,
+        if selective {
+            vec!["report.txt"]
+        } else {
+            vec!["report.txt", "security.json"]
+        }
+    );
+    if selective {
+        assert_eq!(
+            std::fs::read_to_string(project.path().join("security.json"))?,
+            "human file left unchanged"
+        );
+    } else {
+        assert_eq!(
+            std::fs::read(project.path().join("security.json"))?,
+            std::fs::read(workspace.join("security.json"))?
+        );
+    }
     assert!(
         denied_execution(
             &mut server,
             OrganizationExecutionMutation::Apply {
                 task_id: task.id.clone(),
                 expected_revision: accepted.task.revision,
-                digest: result.digest
+                digest: result.digest,
+                paths: None,
             }
         )
         .await?
