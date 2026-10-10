@@ -1,5 +1,59 @@
 # Testing procedures and evidence
 
+## B2 complete local workflow qualification
+
+`a360de3115` contains the runtime/API. The corrected current CLI build passed
+(`CARGO_INCREMENTAL=0 cargo build --locked --offline --profile dev-small -p codex-cli --bin codex -j4`, exit 0, 5m06s). Built its complete package using
+`scripts/build_codex_package.py` with the current CLI and previously qualified
+native host/Bubblewrap/ripgrep inputs; no new dependency was installed.
+
+Physically entered commands in a real Bash PTY using that package, with
+`CODEX_HOME` and `CODEX_SQLITE_HOME` pointing to the same private fixture home.
+Created/linked an agent/project/task, authorized it, observed waiting approval
+with no artifact, approved the exact hash, waited for real artifact/check evidence
+and accepted its digest. Each CLI process exited while daemon work continued.
+All nine actual isolation probes passed, including the daemon's **actual owner
+transport**, protected state read/write, fixture credentials, original project
+read/write, immutable oracle write, provider network and inherited marker.
+The actual owner socket's UID, 0600 mode and private parent were also checked.
+
+Paused an actually running native command and observed joined capacity release.
+Killed only the known fixture daemon after a persisted `dispatched` action and
+an actual on-disk start marker. Restart immediately yielded `needsReconciliation`,
+`uncertain` action, no result and no replay. Six-second idle observation showed
+no additional provider requests or artifact/heartbeat writes.
+
+Strengthened cleanup qualification with a native command that deliberately
+ignores SIGTERM. Pause proof checks its heartbeat for two seconds **immediately**
+after capacity release, beginning within five seconds of native start. Crash
+proof checks two seconds after daemon SIGKILL and finishes within eight seconds
+of native start. Both checks precede the ordinary command timeout, preventing a
+late timeout from falsely qualifying cleanup. Both passed, then restart again
+preserved the uncertain action without replay.
+
+Thirteen physical/native/IPC assertions passed; seven deterministic Responses
+requests were recorded across the local qualification cases. These are real
+application/tool/sandbox tests with **mocked model responses**, not live inference.
+`--no-daemon` execution and embedded fallback both refused execution. Fixtures
+were stopped afterward. Current affected-package formatting and production
+Clippy passed; schema comparisons (4), Python contract/signature tests (25),
+wire mutation test (1), application units (3) and API tests (3) passed.
+
+The first package cleanup left a retired fixture daemon log after removing its
+stopped installation. Existing startup correctly refused an incomplete prior
+installation. Archived that retired metadata (retaining evidence), then recreated
+the complete fixture installation; canonical state was never reset. Preserve a
+selected live installation or use the existing updater on subsequent rebuilds.
+
+Evidence under `/workspace/.onboarding/qualification/mvp-b2-cli/`:
+`qualification.json`, `positive-evidence.json`, `pause-evidence.json`,
+`dispatched-before-crash.json`, `recovered.json`,
+`immediate-stubborn-pause-evidence.json`, `stubborn-recovered.json`,
+`provider-requests.jsonl` and archived daemon metadata. Build logs:
+`mvp-b2-private-helpers-cli-build.log`, `mvp-b2-package-current-build.log`.
+B3 delegation/notes, five layouts, integrated Neovim and broader B6 fault/scale/
+live-provider qualification remain outstanding.
+
 ## B2 application qualification (CLI checks in progress)
 
 - `CARGO_INCREMENTAL=0 RUST_MIN_STACK=8388608 cargo test --locked --offline --profile dev-small -p codex-protocol --test organization_execution_contract -j4`: exit 0, **one passed**, zero failed/ignored. All five execution mutation wire variants match their schema fields; unknown authority and misspelled revision fields are rejected.

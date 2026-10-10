@@ -1,8 +1,8 @@
 # Current status and resumption instructions
 
 Phase 0: **exploration and planning complete for available inputs**.
-Current work: **approved MVP implementation; B1 qualified, B2 ledger qualified; runtime integration in progress**.
-Application feature implementation: **B1 complete; B2 ledger implemented; runtime integration being qualified; complete MVP outstanding**.
+Current work: **approved MVP implementation; B1 and B2 local workflow qualified; B3 beginning**.
+Application feature implementation: **B1/B2 implemented and locally qualified; B3–B6 outstanding**.
 
 ## Current authorization
 
@@ -56,14 +56,17 @@ authorize push/publication, outbound communications or unbounded provider spendi
 - Interrupted work becomes `needsReconciliation`; pending approvals remain recorded and cannot be accepted against an interrupted attempt. No uncertain native action is automatically replayed.
 - Core/ledger admission is committed. The runtime adapter now passes actual local-thread/native-tool artifact, exact approval, nine isolation probes and pending-approval SIGKILL/restart checks. This uses a deterministic provider; the current CLI and actual daemon transport still require qualification before B2 completion.
 - The broader core test build initially raced cache cleanup; rerun uses `CARGO_INCREMENTAL=0`. Core integration also aborted without the repository CI's `RUST_MIN_STACK=8388608`; the CI-configured model gate rerun passed three unit and eight integration tests. Preserve failure logs.
-- Tool qualification caught an incorrect adapter assumption: this checkout registers `exec_command` in one-shot mode when UnifiedExec is disabled, not `shell_command`. The working tree now uses that existing handler and rejects embedded CLI execution mutations so task execution requires the detached daemon. These corrections and the integrated worker still need verification.
-- The runtime candidate also rejects native privilege expansion arguments, isolates one local environment, disables transparent provider retries, rejects hard-linked snapshots and reconciles before execution reads/decisions. These guards and the actual artifact/crash paths require application-level testing; type checks alone do not qualify them.
+- Tool qualification caught an incorrect adapter assumption: this checkout registers `exec_command` in one-shot mode when UnifiedExec is disabled, not `shell_command`. The working tree now uses that existing handler and rejects embedded CLI execution mutations so task execution requires the detached daemon. The corrected adapter and owner-origin/privilege guards now pass the application tests described below.
+- The runtime candidate also rejects native privilege expansion arguments, isolates one local environment, disables transparent provider retries, rejects hard-linked snapshots and reconciles before execution reads/decisions. The actual artifact/crash paths subsequently passed application-level tests; CLI/mid-action checks remain outstanding.
 - Core/ledger admission is qualified: final production Clippy with warnings denied and affected-package formatting passed. The only new lint failure was an unnecessary workspace-root clone, corrected without suppression.
 - `058385cffc` committed the core/ledger admission slice. One wire-contract test, three application unit checks and three API tests passed. Explicit protected-root denies then passed production Clippy and repeated all six application checks. See testing.md for genuine native isolation evidence and corrected fixture failures. No B2 runtime completion is claimed before CLI/mid-action checks.
 - Regenerated stable/experimental API bundles: four comparison checks passed; regenerated Python contracts/signatures: 25 passed. The current CLI initially built successfully. Its raw binary correctly refused daemon startup without a complete package; embedded execution was refused as intended.
 - The first packaged manual task caught a real default-installation bug: native helpers live inside the private owner home and the preliminary blanket deny blocked them. Corrected the profile to grant only exact helper-file reads there, retaining a private allowlist and rejecting overlap with system read roots or the original project. Reused the native backend's unchanged system-root list through a shared constant.
 - Corrective Clippy passed. All three API tests then passed with actual helpers staged inside the owner home; the successful case also places canonical state in that same home. All nine actual denial assertions remain intact. New fixture compile mistakes (borrow/path handling and a wrong rerun working directory) were corrected; no assertion or production security check was disabled. See testing.md.
-- Next: finish the corrected CLI rebuild and physically exercise the complete package, actual daemon socket, pause cleanup and interrupted native action. Commit each qualified slice, then continue B3–B6. No additional implementation approval is required.
+- `a360de3115` committed the tested runtime/API, contract fixtures and command clients.
+- Corrected CLI build and complete package qualification passed. Thirteen real CLI/native/IPC assertions cover exact approval/artifact/oracle/acceptance, detach, actual owner socket denial, private-home state, pause, post-dispatch SIGKILL/restart, uncertain action and no idle inference/replay. Cleanup also passes for a SIGTERM-ignoring native command, checked before ordinary timeout. Seven local fixture Responses were recorded; no live model was called. Fixture services were stopped.
+- B2 is qualified for the local deterministic operating envelope; final provider/fault/scale qualification remains B6. See testing.md for commands, timing, failures and evidence.
+- Next: implement B3 bounded delegation with shared root budgets, prerequisite wait/yield, planner validation and scoped durable notes/inbox. Then B4 five layouts, B5 actual Neovim and B6 pilots/fault/scale/live testing. Continue ordinary work without another implementation approval.
 
 ## MVP planning completed before implementation
 
@@ -128,9 +131,10 @@ authorize push/publication, outbound communications or unbounded provider spendi
 - Actual Neovim is qualified independently; the Rust Workspace pane is not built.
 - Upstream standalone Ponytail plugin installation/hooks are unverified;
   current session skill availability is separate.
-- No live provider request, comprehensive crash/approval recovery, agent-scoped IPC
-  denial, all-Rust/Bazel suite or scale test occurred. Fixture Responses are
-  deterministic local responses, not a live model.
+- Targeted pending-approval and dispatched-native-action crash/restart checks,
+  agent denial of actual owner IPC and native pause/cleanup now pass. Broader B6
+  faults, scale, live-provider and all-Rust/Bazel coverage remain outstanding.
+  Fixture Responses are deterministic local responses, not a live model.
 - The outer cloud sandbox hides daemon sockets. The isolated daemon and attached
   TUI checks ran with authorized unsandboxed execution; the restriction was not
   weakened. Future daemon checks need that execution mode.
@@ -144,7 +148,7 @@ authorize push/publication, outbound communications or unbounded provider spendi
 3. Verify the owner's latest explicit approval and constraints. Without approval,
    answer planning questions or revise documentation only.
 4. Review qualification evidence and remaining gates rather than repeating the
-   baseline. Continue B2 approvals/action receipts and bounded runtime execution/recovery.
+   baseline. Continue B3 delegation/context after the qualified B1/B2 slices.
    Do not restart the completed storage/definition work.
    Full Neovim pane integration remains B5/M8. Keep broader
    feature scope and live-provider budget explicit.

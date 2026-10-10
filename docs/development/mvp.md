@@ -1,9 +1,9 @@
 # Detailed first MVP plan
 
-Status: **owner-approved MVP implementation; B1 qualified; B2 ledger in progress**.
+Status: **owner-approved MVP implementation; B1/B2 locally qualified; B3 beginning**.
 Updated after [M0/M1 foundation qualification](qualification.md). The actual CLI,
-daemon and official Neovim are available; durable organization definitions and commands are implemented; background
-execution and the integrated editor pane are outstanding.
+daemon and official Neovim are available; durable organization definitions and commands are implemented; bounded background execution is locally qualified; delegation, layouts,
+the integrated editor and full release qualification remain outstanding.
 
 ## User outcome
 

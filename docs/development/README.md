@@ -1,6 +1,6 @@
 # Codex CLI fork development
 
-Phase: **approved MVP implementation; B1 qualified; B2 in progress**.
+Phase: **approved MVP implementation; B1/B2 locally qualified; B3 beginning**.
 Phase 0 repository baseline: `8026444c98cd9c6db9e7c953b44a20ea4f93c7b6`, from `origin/main`.
 Research recorded on 2026-10-09 (America/New_York).
 
