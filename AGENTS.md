@@ -77,6 +77,8 @@ No earlier root AGENTS.md existed when these instructions were added.
 
 ## Completion
 
-Use the approved [acceptance criteria](docs/development/mvp.md) and test evidence.
+Use the approved [acceptance criteria](docs/development/mvp.md),
+[current release matrix](docs/development/release-qualification.md),
+[operating limits](docs/development/resource-limits.md) and test evidence.
 Do not claim a feature works if it was not exercised or its checks failed.
 Document blockers concretely and stop at the user's approval gates.

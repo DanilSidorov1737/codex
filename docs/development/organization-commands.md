@@ -66,7 +66,9 @@ using the existing project API, then link its exact returned ID:
 
 The server reads the existing project record and captures its name/roots.
 This is a link, not a second project identity. Project relinking requires its
-current `expectedRevision`. Cross-store execution reconciliation remains B2.
+current `expectedRevision`. Execution validates the captured roots against the
+existing project record; changed or missing references stop execution. Full-host recovery still requires
+both business and runtime/project stores.
 
 ```json
 {
@@ -83,7 +85,7 @@ Tasks are proposed definitions in B1 and do not start a model. Prerequisites
 must exist in the same project and be acyclic. Only proposed tasks can be
 edited; they cannot be moved between projects. Each successful mutation and
 its audit reference commit together. Execution, grants, budgets, approval and
-artifact acceptance follow in B2/B3.
+artifact acceptance are implemented as described below.
 
 Snapshots are consistent, verified and stored under the protected organization
 directory. Restore copies a verified snapshot into a fresh destination; it
@@ -92,8 +94,9 @@ separate runtime/thread/project database. Preserve both stores when recovering
 a complete host, and reconcile their references before execution.
 
 Linux directory/file ownership and modes are checked, including symlinks and
-hard links. Same-user agent sandbox exclusion is a separate B2 requirement;
-file modes alone are not a boundary against an unsandboxed same-user process.
+hard links. B2 native tests qualified same-user agent sandbox exclusion of canonical
+state, owner home/socket and unrelated projects. File modes alone are not a boundary
+against an unsandboxed same-user process.
 
 ## B2 execution commands
 
@@ -138,8 +141,11 @@ The example model is used by deterministic local tests; live-provider compatibil
 must be qualified separately. `maxTokens` covers reported usage and admits at most
 one unreported request per attempt; a request already in flight can exceed it.
 Provider retries are disabled. These limits are not an exact money or OS-memory cap.
-Linux/local execution is the current operating envelope. Two active slots and at
-most sixteen live attempt workers bound the daemon queue.
+Linux/local execution is the current operating envelope. The owner boot setting
+defaults to two active attempts and allows 1–4. Four resident roots, each with at
+most 32 descendants, bound resident attempt workers
+to 132. Waiting parents yield active capacity after reported usage is recorded;
+see resource-limits.md and coordination.md.
 
 The owner selects explicit project-relative inputs, artifacts and check argv.
 Inputs are snapshotted into a private attempt workspace; the original project and
@@ -182,7 +188,8 @@ reads/decisions, so an unexpired old approval cannot revive a crashed attempt.
 Successful artifact/check collection produces `needsReview`, not acceptance.
 Final acceptance references the exact returned evidence digest and current task
 revision; failed checks cannot be accepted. Acceptance does not apply files to
-the original project. Explicit safe file application follows in B5.
+the original project. Explicit safe file application is a separate owner operation,
+documented below.
 
 ```json
 {
@@ -195,4 +202,28 @@ the original project. Explicit safe file application follows in B5.
 
 For revision work, use `requestChanges` with `taskId`, `expectedRevision` and bounded
 `instructions`, then issue a new explicit authorization. Delegation and scoped
-notes are B3 work; nonempty delegation fields are not yet an implemented workflow.
+notes are implemented; see [coordination](coordination.md). Authorization names
+the exact `delegates` roster and `maxChildren` bound. Optional `autoAcceptChildren`
+authorizes only machine-checked internal child acceptance; final root acceptance
+remains owner-only. All descendants share the root budget.
+
+## Apply an accepted result
+
+Read the accepted task's current revision/digest, then use another owner mutation:
+
+```json
+{
+  "type": "apply",
+  "taskId": "TASK_ID",
+  "expectedRevision": 5,
+  "digest": "EXACT_ACCEPTED_RESULT_DIGEST"
+}
+```
+
+`codex organization execute apply.json` verifies the accepted bytes and original
+base hashes before a protected durable intent and per-file atomic replacement.
+An application receipt is separate from acceptance; completed/uncertain receipts
+block replay. Close or explicitly coordinate other editors/writers first: a CLI
+client cannot inspect the TUI's dirty buffers. The embedded Workspace also fences
+its native Neovim buffers before dispatch. See neovim-workspace.md for conflicts,
+partial-batch/unknown-outcome recovery and the actual editor keyboard controls.

@@ -1,11 +1,11 @@
 # Detailed first MVP plan
 
-Status: **owner-approved MVP implementation; B1–B5 locally qualified; B6 release qualification underway**.
+Status: **owner-approved MVP implemented and locally qualified; bounded live-provider release gate unrun**.
 Updated after [M0/M1 foundation qualification](qualification.md). The actual CLI,
 daemon and official Neovim are available. B1–B5 delivered durable organization
 records, bounded execution/delegation, all five layouts and the real integrated
-editor with exact reviewed application. B6 qualification is in progress; the
-bounded live-provider release gate remains outstanding.
+editor with exact reviewed application. B6 local qualification passed. A05
+bounded live-provider qualification remains the release gate.
 
 ## User outcome
 
@@ -72,7 +72,8 @@ One Linux host, one human owner, one validated Responses-compatible provider and
 local coding/document projects. Default to two active executions; qualify four.
 Qualify one and 1,000 stored agents without allocating a model session per stored
 agent. Organization shape is user-configurable and independent of these execution
-limits. Stored-agent capacity is a test target, not a demonstrated feature.
+limits. Local qualification demonstrated 1,000 additional stored agents and
+four active executions; see [measured results](release-qualification.md).
 
 Use existing provider/model configuration for explicit selections. Broader provider
 compatibility and automatic routing follow later. Enforce token, elapsed-time,

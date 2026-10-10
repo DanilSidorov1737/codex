@@ -1,6 +1,6 @@
 # Codex CLI fork development
 
-Phase: **approved MVP implementation; B1–B5 locally qualified; B6 release qualification underway**.
+Phase: **B1–B6 locally implemented/qualified; bounded live-provider release gate unrun**.
 Phase 0 repository baseline: `8026444c98cd9c6db9e7c953b44a20ea4f93c7b6`, from `origin/main`.
 Research recorded on 2026-10-09 (America/New_York).
 
@@ -15,7 +15,8 @@ organization is a template, not the product's fixed structure.
 2. Read [status and resumption](status.md) and [requirements and visual review](requirements.md).
 3. Read [repository analysis](repository-analysis.md), [architecture](architecture.md),
    and [data model](data-model.md).
-4. Before implementation, resolve the approval gate in [decisions and risks](decisions-and-risks.md).
+4. Check [decisions and risks](decisions-and-risks.md) against current approvals
+   and remaining release gates in status.md.
 5. Use [roadmap](roadmap.md) and [detailed MVP plan](mvp.md) for approved work.
 6. Follow [process](process.md) and [testing](testing.md); update this documentation
    with every meaningful implementation or scope change.
@@ -45,24 +46,27 @@ MessagePack external UI API. Do not implement an editor engine.
 First MVP: a single-host, owner-controlled system with a small bounded number
 of active executions, arbitrary persistent organization structure, one useful
 project workflow, all five minimal layouts, safe review, and real Neovim.
-Thousands of registered agents and thousands of concurrent agents are separate
-capacity goals. Neither is a demonstrated capability today.
+Local measurements cover 1,000 additional stored agents and two/four active
+native executions. Larger registries and greater simultaneous execution remain
+later capacity targets; see release-qualification.md for measured results.
 
 ## Evidence and limitations
 
-Current Phase 0 checks: 17 file-search Rust tests, 80 repository script tests,
+Historical Phase 0 checks: 17 file-search Rust tests, 80 repository script tests,
 and 14 SDK execution unit tests passed; a real file-search CLI invocation found
 `Cargo.toml`. These checks establish a narrow development baseline.
 
 No new application features, editor integration, installations, full CLI build,
 TUI interaction, live model calls, or scale/recovery validation occurred in
-Phase 0. Architecture and acceptance criteria below are proposals, not implemented
-behavior. The separate requirements PDF mentioned in the prompt is absent; the
+Phase 0. Architecture and acceptance criteria were proposals at that checkpoint;
+current implementation and qualification are recorded in status.md and the release
+matrix. The separate requirements PDF mentioned in the prompt is absent; the
 714-line text file and all seven supplied images were reviewed.
 
 Subsequent owner-approved M0/M1 checks built the full CLI/package, exercised the
 actual TUI/daemon and installed/tested official Neovim. See qualification for
-evidence and limits; these are foundations, not the MVP's integrated features.
+evidence and limits. Subsequent B1–B6 work delivered and locally qualified the
+integrated MVP; the live-provider gate remains open.
 
 The owner approved the [MVP build plan](mvp.md#build-order-and-usable-checkpoints),
 Ponytail implementation and periodic local commits. Follow the recorded scope and

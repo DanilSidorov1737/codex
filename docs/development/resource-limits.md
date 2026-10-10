@@ -6,7 +6,9 @@ once in the daemon and its attempt guards; agent shells do not inherit it. Inval
 values disable consequential organization execution instead of increasing the
 limit or silently falling back. Four resident root workflows and at most 32
 bounded descendants per root remain separate limits; waiting parents yield active
-capacity to children. Four-active native qualification is still pending.
+capacity to children. Corrected four-active/fifth-queued and default-two/third-queued
+native qualification passed after fixing the initial heartbeat/database contention;
+see testing.md.
 
 A model catalog entry declaring `code_mode_only` is rejected before creating its
 managed thread or admitting inference. Code Mode is disabled in bounded MVP
@@ -44,3 +46,18 @@ This estimate excludes unreported usage, non-token tool/media charges and taxes.
 It is not a monetary cap. The daemon enforces the actual token/request/time/attempt
 and delegation ceilings; strict provider-billing guarantees require provider-side
 controls and remain outside the first MVP. Do not invent real rates during tests.
+
+## Admission evidence
+
+Actual owner restart with limit 5 denied authorization before any canonical grant
+or attempt and before inference/native effects; definition inspection remained
+available. A real cached catalog declaring CodeModeOnly denied the task with zero
+charged requests/tokens and no workspace. The same model name on a custom provider
+without that metadata may use its explicit-provider fallback; no hardcoded model
+name list or automatic model routing is imposed.
+
+The real TUI displayed the local zero-billing quote's provider/model/source and
+reported/token-ceiling values, plus the explicit billing limitations. Evidence:
+`mvp-b6-cli/admission-model.json`, `admission-invalid-limit.json`,
+`price-physical.json` and `tui-price.log`. Corrected package qualification passed;
+live-provider rates, credentials, model and spending remain unresolved.

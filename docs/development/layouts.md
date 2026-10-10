@@ -1,7 +1,9 @@
 # Organization layouts
 
 Status: B4 locally qualified with real CLI/daemon/TUI interaction.
-Actual Neovim and reviewed file application are B5, not delivered by this slice.
+Actual Neovim and reviewed file application subsequently passed B5 qualification;
+see [Workspace controls](neovim-workspace.md). Trusted owner quote estimates are
+described in [resource settings](resource-limits.md).
 
 Use `/layout [console|workspace|projects|operations|review]`. Console retains the
 existing chat/composer. Other presets share the existing alternate-screen TUI,

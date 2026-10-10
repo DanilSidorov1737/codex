@@ -1,6 +1,6 @@
 # Phased roadmap
 
-Current execution: Phase 2 MVP implementation is approved; B1–B5 are locally qualified; B6 release qualification is underway. See
+Current execution: Phase 2 MVP implementation is approved; B1–B6 local implementation/qualification is complete; the live-provider release gate is unrun. See
 [qualification evidence](qualification.md) and [status](status.md).
 
 Sequence is based on technical dependencies and risk, not date estimates.
@@ -13,7 +13,7 @@ the owner has approved MVP implementation with Ponytail and periodic local commi
 | Phase                           | Scope                                                                                                                              | Exit evidence                                                                                                       |
 | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
 | 0: research/planning            | Review inputs and source, architecture, risks, roadmap, MVP, AGENTS.md                                                             | Documentation reviewed; owner approves implementation boundary                                                      |
-| 1: baseline and spikes          | Completed scoped CLI build, daemon lifecycle/approval reconnect and official Neovim external-UI qualification                      | Evidence recorded; production RPC choice, canonical state, crash approval recovery and agent denial remain MVP work |
+| 1: baseline and spikes          | Completed scoped CLI build, daemon lifecycle/approval reconnect and official Neovim external-UI qualification                      | Foundation evidence recorded; production RPC, canonical state, crash recovery and agent denial subsequently qualified in Phase 2 |
 | 2: durable vertical slice (MVP) | Stable definitions, tasks/claims/budgets/approvals, bounded execution, recovery, five minimal layouts and real editor              | All [MVP criteria](mvp.md) plus interactive/restart/restore evidence pass                                           |
 | 3: collaboration and knowledge  | Safe selective patch review, version-checked buffer proposals, scoped knowledge retrieval/promotion, handoffs, recurring schedules | Dirty-buffer conflict/undo tests, isolation and memory ACL tests, schedule/timezone/restart tests                   |
 | 4: workflow/integration breadth | Reusable DAG templates, events/meetings, more providers/tools, capability registry, authorized human/external workflows            | Provider matrix, idempotency/reconciliation, explicit integration grants and measured usefulness                    |
@@ -30,7 +30,8 @@ B1–B5 have delivered and locally qualified durable definitions, bounded backgr
 execution/delegation, five layouts, actual embedded Neovim and exact reviewed Apply.
 B6 native coding/document pilots, default-two execution, registry/navigation,
 idle and snapshot restore passed. Four-active qualification caught a heartbeat
-contention bug; corrected current-binary qualification is in progress. A05's
+contention bug; the corrected current-binary native checks passed. Final editor
+quiet-Follow, navigation and idle checks also passed. A05's
 bounded live-provider pilot is still blocked on provider/model/credentials/spend.
 
 
@@ -44,7 +45,7 @@ default and up to 4 in tests, one validated Responses-compatible provider,
 one local project with a short dependency graph. Stored-agent and local deterministic measurements are recorded in
 [release qualification](release-qualification.md); live-provider qualification is separate. Single-agent use must remain convenient.
 
-Future production scope includes Windows/macOS behavior, LSP/plugins, non-code
+Future production scope includes Windows/macOS behavior, LSP/plugins, broader non-code
 projects, greater active concurrency and remote workers. Do not infer those from
 Linux baseline checks. Host sleep/cloud shutdown prevents unattended execution
 regardless of how many agents are configured.

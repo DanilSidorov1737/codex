@@ -725,3 +725,50 @@ the corrected four-test/2–4-active qualification.
 
 The complete CLI rebuild passed in 1m32s (`mvp-b6-editor-redraw-cli-build.log`).
 Package assembly and the unchanged physical idle Follow assertion are next.
+
+## Final B6 local qualification — 2026-10-10 UTC
+
+Source `f92e8c2292` was packaged and installed. Every executable/helper/manifest
+matched its completed package; final CLI SHA256:
+`81d31243e6c3d2cd261d4a538008cb2c029f51c51eb6a25b79b54185310095dc`.
+Evidence: `final-package-proof.json`, `mvp-b6-editor-redraw-package.log`.
+
+The first final physical harness matched a cosmetic status phrase as contiguous
+bytes; Ratatui emitted it as cursor-positioned fragments. The real task/budget/file
+already rendered. Preserve `mvp-b6-quiet-follow-corrected.log` and
+`tui-quiet-follow-initial-status-fragment.log`. Readiness now requires that exact
+stable task ID, Shared budget and declared report; the native readonly marker is
+required. The original <=8-frame assertion is unchanged. The final physical
+regression passed: **1 frame / 3.253s**, zero model requests,
+real readonly Neovim and regained editor focus. Prior binary: 326 frames / 3.25s.
+Evidence: `quiet-follow.json`, `mvp-b6-quiet-follow-final.log`,
+`tui-quiet-follow.log`. No application guard/assertion was weakened.
+
+Final-package 1,000-agent Operations PTY navigation passed all 30 keys and deep-node
+search: p95 **27.5 ms**, full loaded-tree startup
+**1.76s**, RSS TUI **274,776 KiB** / daemon
+**290,924 KiB**. Latency includes the conservative 20 ms quiescence interval.
+`mvp-b6-current-tui-performance.log`, `tui-performance.json`; original baseline
+files retained with baseline- prefix. Exact stable tree/inspector IDs establish
+readiness without relying on contiguous cosmetic status bytes.
+
+The final daemon's 30-second idle interval generated no model requests and kept
+the same process; `mvp-b6-current-idle.log`, `idle.json`. The owner daemon stop and
+provider Ctrl-C completed; the container retains the exited daemon as a zombie
+with no execution. Its PID record is removed and no provider process remains.
+`final-daemon-stopped.json`, `final-cleanup.json`. All source/state/logs remain;
+only redundant, verified stopped fixture executable copies were retired with
+hash receipts to preserve build space. Final package is retained.
+
+Production source was frozen during compilation; all final affected units (55),
+Clippy, formatting, CLI/package and physical regressions passed. Native API (4),
+state-wide (259), layout/slash/overlay (152), contracts/schemas and other recorded
+checks remain applicable to unchanged source. Full repository/platform suites and
+A05 live-provider pilots were not run. See release-qualification.md for each
+criterion and limits; no paid model call was made.
+
+Final documentation verification passed: all 111 local links across 22 development
+Markdown files/root instructions resolve (including URL-decoded filenames), and
+`git diff --check` is clean. Final evidence JSON and package retention were checked;
+the final commit contains only documentation/instructions. Application source is
+unchanged from the qualified `f92e8c2292` build.

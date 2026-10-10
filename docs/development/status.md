@@ -1,37 +1,53 @@
 # Current status and resumption instructions
 
 Phase 0: **exploration and planning complete for available inputs**.
-Current work: **approved MVP implementation; B1–B5 locally qualified; B6 release qualification underway**.
-Application feature implementation: **B1–B5 locally qualified; B6 release gates outstanding**.
+Current work: **B1–B6 implementation and local qualification complete; live-provider release gate unrun**.
+Application features: **delivered for the documented single-owner Linux envelope**.
+The MVP is **not fully release-qualified** until A05's bounded live-provider pilot passes.
 
-## Current B5/B6 work
+## Current result and next action
 
-B1–B5 are locally qualified. B6 daemon fixes at `8da15f446f` passed combined units
-(eight app-server, 31 state, 15 TUI/editor), warnings-denied Clippy, formatting,
-all four native API cases and full CLI/package. Current-package capacity passed
-four active/fifth queued and default two/third queued; every immutable owner check
-passed and every task used two requests/30 tokens. Zero-inference CodeModeOnly
-and invalid-limit denials passed on the same package.
+Persistent configurable agents/roles/goals/projects/tasks, protected canonical state,
+bounded daemon work/delegation/context, all five layouts, official embedded Neovim,
+exact human review/Apply, owner boot limits and trusted price estimates are delivered.
+Ponytail reuse-first implementation/review and logical local commits were used.
 
-Actual TUI owner quote provenance and live native Follow passed. Staged exact
-owner-approved native writes changed a real task file from phase one to phase two.
-Focused official Neovim retained phase one; host focus reloaded phase two with
-cursor/view retained and original project unchanged. This also exposed excessive
-idle draws: every ordinary Neovim RPC response woke the frontend, so Follow's
-buffer query created another draw/query. The reader now wakes for notifications,
-requests/errors, not consumed RPC responses. The real Neovim quiet-query/redraw/EOF
-regression passed. The final combined batch passed 8 app-server, 31 state and 16
-TUI/editor tests, plus production Clippy/formatting. The full CLI rebuild passed; final package/quiet Follow qualification remains. No final local B6 completion before the corrected
-interactive redraw/idle checks.
+Final application source: `f92e8c2292`, following the B6 runtime correction
+`8da15f446f` and resource/price slice `56929b5b18`. Final combined checks passed
+**8 app-server + 31 state + 16 TUI/editor/pricing**; warnings-denied production
+Clippy, affected formatting and the full CLI/package passed. Four native API cases
+passed on the final unchanged backend source. Full state regression passed 259;
+layout/slash/overlay regression passed 152. See testing for earlier checks/failures.
 
-Next: complete editor regression/Clippy/full CLI rebuild, package, physically
-verify bounded idle Follow and redraws; retain native cursor/focus evidence.
-Then finish release matrix/docs/commits and stop only isolated fixture services.
-Live-provider/model/credentials/spending question remains pending; no live call
-may be inferred. A05 remains unrun even after all local checks pass.
+Real native coding, delegated coding and fact-based document pilots passed immutable
+owner checks, exact acceptance and Apply. Four active/fifth queued and default two/
+third queued passed, with exact reported usage. CodeModeOnly and invalid-limit
+admission generated no inference/native effects. Actual official Neovim passed
+editing/Unicode/paste/undo/diff/resize/conflict/Apply/daemon-independence checks.
+Staged native Follow preserved focused buffers and cursor/view, then reloaded on
+host focus. Its idle redraw regression improved from 326 to one frame over 3.25s.
 
-See [Neovim Workspace](neovim-workspace.md), [resource limits](resource-limits.md)
-and [release qualification](release-qualification.md) for contracts and evidence.
+Final 1,000-agent PTY navigation p95 was 27.5 ms (includes 20 ms quiet interval),
+startup to loaded tree 1.76 seconds; TUI RSS 274,776 KiB and daemon RSS 290,924 KiB.
+Verified fresh restore matched 21 canonical tables; the final 30-second idle
+interval made no model requests. The complete package and installed helpers were
+hash-matched. Fixture daemon/provider are stopped; source package, state and all
+evidence remain outside Git. The container retains a stopped daemon zombie with
+zero execution; its managed PID record is removed.
+
+**Next action:** obtain the pending provider/model, secure credentials and numeric
+test-spend ceiling for A05. Use a live model supporting the qualified native tools;
+record owner quotes from actual rates if estimates are desired. Do not infer paid
+calls, push/publication or broader authority. All independent local MVP work is done;
+do not restart B1–B5, reinstall existing tools or request routine slice approvals.
+
+See [release matrix](release-qualification.md), [Workspace](neovim-workspace.md),
+[resource settings](resource-limits.md) and [owner commands](organization-commands.md).
+
+## Historical milestone evidence
+
+The records below preserve what was checked at each earlier checkpoint. Current
+scope, completion and resumption instructions above supersede their dated next steps.
 
 ## B4 qualification
 
@@ -196,35 +212,37 @@ authorize push/publication, outbound communications or unbounded provider spendi
 
 ## Known limitations / remaining work
 
-- Separate PDF is absent; compare it if provided.
-- Actual Neovim is qualified independently; the Rust Workspace pane is not built.
-- Upstream standalone Ponytail plugin installation/hooks are unverified;
-  current session skill availability is separate.
-- Targeted pending-approval and dispatched-native-action crash/restart checks,
-  agent denial of actual owner IPC and native pause/cleanup now pass. Broader B6
-  faults, scale, live-provider and all-Rust/Bazel coverage remain outstanding.
-  Fixture Responses are deterministic local responses, not a live model.
-- The outer cloud sandbox hides daemon sockets. The isolated daemon and attached
-  TUI checks ran with authorized unsandboxed execution; the restriction was not
-  weakened. Future daemon checks need that execution mode.
-- B1 canonical state and definition/API decisions are implemented; later runtime,
-  security, layout and editor decisions still require implementation and evidence.
+- A05 live-provider/model quality and compatibility is unrun: provider/model,
+  secure credentials and spending ceiling are pending. Local Responses were
+  deterministic fixtures; no paid model was called.
+- Clean official Neovim 0.12.6 is qualified. User plugins/configs, unsaved crash
+  restoration, shared-buffer merging and uncoordinated external writers are not.
+  Saved files survive; clean mode disables swap. Use disjoint parallel artifacts.
+- Single-owner Linux and one verified provider binding are the current envelope.
+  More platforms/providers, remote workers, recurring workflows, larger active
+  concurrency and broader integrations remain later roadmap phases.
+- Canonical snapshots exclude separate runtime/project metadata and artifact
+  workspaces. Full host recovery requires preserving/reconciling those too.
+- Separate PDF is absent; supplied text and all seven concept images were reviewed.
+  Standalone upstream Ponytail hooks are optional/uninstalled; session skills and
+  the documented review process were used.
+- The full repository Rust/Bazel/platform suite was not run. Meaningful affected
+  source, native, state, contract and physical checks are recorded in testing.md.
+- The outer cloud sandbox masks the protected daemon socket. Actual daemon/TUI
+  qualification used authorized escalated local execution; security assertions
+  remained enabled. Future native checks need the same execution mode.
 
 ## Resume safely
 
-1. Read root AGENTS.md and this file, then decisions, MVP and testing.
-2. Check Git status/log and preserve existing changes; use the existing isolated checkout.
-3. Verify the owner's latest explicit approval and constraints. Without approval,
-   answer planning questions or revise documentation only.
-4. Review qualification evidence and remaining gates rather than repeating the
-   baseline. Implement B5 official Neovim, then complete B6 gates.
-   Do not restart the completed storage/definition work.
-   Full Neovim pane integration remains B5/M8. Keep broader
-   feature scope and live-provider budget explicit.
-5. Recheck runtime/environment readiness and existing credential bindings without
-   printing values. Use established proxy/TLS/auth routes.
-6. Follow small implementation/test/review/doc/commit steps and update status with
-   actual delivered behavior, evidence, failures and next action.
-
-A local documentation commit does not authorize pushing, merging, deploying or
-publishing. Never treat this status file as proof that future features work.
+1. Read AGENTS.md, this status, release matrix, MVP, decisions and testing.
+2. Check Git status/log and preserve changes in the existing checkout.
+3. Activate the pinned environment with `. /workspace/.onboarding/activate.sh`.
+   Final package: `/workspace/.onboarding/qualification/mvp-b6-cli/package/bin/codex`.
+   Evidence root: `/workspace/.onboarding/qualification/`; fixture services are stopped.
+4. Complete the pending bounded live-provider binding/credentials/spend step.
+   Configure credentials securely, inspect existing provider/tool-mode behavior,
+   then run meaningful single/delegated coding and document pilots with immutable
+   owner checks and real interactions. Preserve failures and cost/usage receipts.
+5. Update acceptance/status/testing and make logical local commits after results.
+   Do not start later roadmap phases without matching user scope, or infer push,
+   merge, deploy, external messaging or financial authority.

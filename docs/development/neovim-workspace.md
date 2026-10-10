@@ -78,8 +78,8 @@ protocol is claimed.
 
 ## Qualification
 
-Thirteen targeted TUI/editor/preview tests passed, including real Neovim and direct
-frozen-input guards. The final combined batch also passed two pricing tests. All
+The final combined batch passed sixteen TUI/editor/preview/pricing tests, including
+actual Neovim, direct frozen-input guards and query/redraw/EOF wake behavior. All
 four native organization API cases passed with the final source: exact evidence,
 original/artifact conflict denial, explicit Apply and duplicate receipt rejection,
 restart fencing and delegated work. State regression passed all 259 tests; current
@@ -97,7 +97,7 @@ Evidence: `/workspace/.onboarding/qualification/mvp-b5-cli/qualification.json`,
 log: `mvp-b6-native-api-tests.log` (four passed, no failures/ignored). Earlier test
 helper/error-ordering and fixture-wait failures remain documented in testing.
 
-The latest source's resource controls are being packaged for B6 qualification.
+The final complete package and resource controls passed B6 local qualification.
 User Neovim plugins/configurations, unsaved crash restoration, arbitrary concurrent
 external writers and shared-buffer collaborative merging remain unqualified or
 deferred as described above; none is claimed by this clean isolated MVP.
@@ -108,5 +108,6 @@ then host focus reloaded phase two. Native winsaveview/cursor/readonly/modified
 values were captured through commands physically entered in Neovim; line 1/column
 7 and the entire view stayed unchanged, and the original project stayed intact.
 Evidence: `mvp-b6-cli/follow-physical.json`, `follow-editor-*.json`,
-`follow-finished.json` and `tui-final-follow.log`. The last query-response redraw
-fix is undergoing packaged idle qualification; see release-qualification.md.
+`follow-finished.json` and `tui-final-follow.log`. Final packaged idle Follow passed
+the same <=8-frame assertion with one frame in 3.25 seconds, versus the old 326.
+See quiet-follow.json and release-qualification.md.
