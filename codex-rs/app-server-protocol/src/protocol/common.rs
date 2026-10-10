@@ -793,6 +793,12 @@ client_request_definitions! {
         serialization: global("organization"),
         response: v2::OrganizationBackupResponse,
     },
+    #[experimental("organization/memory/search")]
+    OrganizationMemorySearch => "organization/memory/search" {
+        params: v2::OrganizationMemorySearchParams,
+        serialization: global_shared_read("organization"),
+        response: v2::OrganizationMemorySearchResponse,
+    },
     #[experimental("organization/execution/read")]
     OrganizationExecutionRead => "organization/execution/read" {
         params: v2::OrganizationExecutionReadParams,

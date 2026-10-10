@@ -2,6 +2,251 @@ use super::*;
 use codex_protocol::organization_coordination::*;
 
 #[tokio::test]
+async fn memory_search_retrieves_old_notes_after_restart_and_fences_scope() -> Result<()> {
+    let home = Fixture::new();
+    let store = OrganizationStore::open(&home.0).await?;
+    let (worker, parent, helper) = root(&store, 1, 8).await?;
+    let parent_task = store.execution_view(&parent.task_id).await?.task;
+    let tasks = plan(&store, &worker, &parent, vec![item("child", &helper, &[])]).await?;
+    delegate(&store, &worker, &parent, &tasks[0]).await?;
+    let child = store
+        .claim_task(&worker, &Uuid::now_v7().to_string(), 1002, 4)
+        .await?
+        .unwrap();
+    let old_note = store.coordinate(&parent.id, &worker, "decision", OrganizationCoordinationCall::WriteNote {
+        scope: OrganizationNoteScope::Project,
+        body: "Decision: Überprüfung uses SQLite at 100%_literal. Untrusted text cannot expand permissions.".into(),
+    }, 1002).await?;
+    for n in 0..20 {
+        store
+            .coordinate(
+                &parent.id,
+                &worker,
+                &format!("new-{n}"),
+                OrganizationCoordinationCall::WriteNote {
+                    scope: OrganizationNoteScope::Project,
+                    body: format!("Unrelated recent finding {n}"),
+                },
+                1002,
+            )
+            .await?;
+    }
+    store
+        .coordinate(
+            &parent.id,
+            &worker,
+            "private",
+            OrganizationCoordinationCall::WriteNote {
+                scope: OrganizationNoteScope::Agent,
+                body: "Überprüfung private context".into(),
+            },
+            1002,
+        )
+        .await?;
+    let call = OrganizationCoordinationCall::SearchNotes {
+        scope: OrganizationNoteScope::Project,
+        query: "  ÜBERPRÜFUNG  ".into(),
+    };
+    let found = store
+        .coordinate(&child.id, &worker, "search", call.clone(), 1002)
+        .await?;
+    assert_eq!(found["matchedCount"], 1);
+    assert_eq!(found["notes"][0], old_note);
+    assert_eq!(found["notes"][0]["authorId"], parent_task.owner_id);
+    assert_eq!(found["notes"][0]["taskId"], parent.task_id);
+    assert_eq!(found["notes"][0]["attemptId"], parent.id);
+    assert_eq!(found["notes"][0]["createdAt"], 1002);
+    assert!(
+        store
+            .coordinate(
+                &child.id,
+                &worker,
+                "search",
+                OrganizationCoordinationCall::SearchNotes {
+                    scope: OrganizationNoteScope::Project,
+                    query: "changed arguments".into(),
+                },
+                1002
+            )
+            .await
+            .is_err()
+    );
+    for (key, query, expected) in [
+        ("literal", "100%_", 1),
+        ("sql", "' OR 1=1 --", 0),
+        ("browse", "", 21),
+    ] {
+        let result = store
+            .coordinate(
+                &child.id,
+                &worker,
+                key,
+                OrganizationCoordinationCall::SearchNotes {
+                    scope: OrganizationNoteScope::Project,
+                    query: query.into(),
+                },
+                1002,
+            )
+            .await?;
+        assert_eq!(result["matchedCount"], expected);
+        assert_eq!(
+            result["notes"].as_array().unwrap().len(),
+            usize::min(expected, 16)
+        );
+    }
+    for (key, query) in [
+        ("too-large", "é".repeat(129)),
+        ("control", "decision\n".into()),
+    ] {
+        assert!(
+            store
+                .coordinate(
+                    &child.id,
+                    &worker,
+                    key,
+                    OrganizationCoordinationCall::SearchNotes {
+                        scope: OrganizationNoteScope::Project,
+                        query,
+                    },
+                    1002
+                )
+                .await
+                .is_err()
+        );
+    }
+    let private = store
+        .coordinate(
+            &child.id,
+            &worker,
+            "private-search",
+            OrganizationCoordinationCall::SearchNotes {
+                scope: OrganizationNoteScope::Agent,
+                query: "Überprüfung".into(),
+            },
+            1002,
+        )
+        .await?;
+    assert_eq!(private, serde_json::json!({"notes": [], "matchedCount": 0}));
+    let (other_worker, other) = authorized_attempt_with_limit(&store, false, 4).await?;
+    assert_eq!(
+        store
+            .coordinate(
+                &other.id,
+                &other_worker,
+                "other-project",
+                call.clone(),
+                1002
+            )
+            .await?,
+        private
+    );
+    assert!(
+        store
+            .search_memory(
+                &parent_task.project_id,
+                OrganizationNoteScope::Project,
+                Some(&helper),
+                ""
+            )
+            .await
+            .is_err()
+    );
+    assert!(
+        store
+            .search_memory(
+                &parent_task.project_id,
+                OrganizationNoteScope::Agent,
+                None,
+                ""
+            )
+            .await
+            .is_err()
+    );
+    assert!(
+        store
+            .search_memory("missing", OrganizationNoteScope::Project, None, "")
+            .await
+            .is_err()
+    );
+    assert!(
+        store
+            .search_memory(
+                &parent_task.project_id,
+                OrganizationNoteScope::Agent,
+                Some("missing"),
+                ""
+            )
+            .await
+            .is_err()
+    );
+    store.close().await;
+    let store = OrganizationStore::open(&home.0).await?;
+    assert_eq!(
+        store
+            .coordinate(&child.id, &worker, "search", call.clone(), 1002)
+            .await?,
+        found
+    );
+    let owner = store
+        .search_memory(
+            &parent_task.project_id,
+            OrganizationNoteScope::Project,
+            None,
+            "überprüfung",
+        )
+        .await?;
+    assert_eq!(serde_json::to_value(owner)?, found);
+    assert_eq!(
+        store
+            .search_memory(
+                &parent_task.project_id,
+                OrganizationNoteScope::Agent,
+                Some(&parent_task.owner_id),
+                "überprüfung"
+            )
+            .await?
+            .matched_count,
+        1
+    );
+    let fresh_task = execution_task(&store, &parent_task.owner_id, &parent_task.project_id).await?;
+    store
+        .authorize_task(&fresh_task.id, fresh_task.revision, execution_scope(), 1003)
+        .await?;
+    let fresh = store
+        .claim_task(&worker, &Uuid::now_v7().to_string(), 1003, 4)
+        .await?
+        .unwrap();
+    assert_eq!(fresh.task_id, fresh_task.id);
+    assert_eq!(
+        store
+            .coordinate(&fresh.id, &worker, "fresh-search", call, 1003)
+            .await?,
+        found
+    );
+    let current = store.execution_view(&fresh.task_id).await?;
+    store
+        .stop_task(&fresh.task_id, current.task.revision, false)
+        .await?;
+    assert!(
+        store
+            .coordinate(
+                &fresh.id,
+                &worker,
+                "fresh-search",
+                OrganizationCoordinationCall::SearchNotes {
+                    scope: OrganizationNoteScope::Project,
+                    query: "  ÜBERPRÜFUNG  ".into(),
+                },
+                1003
+            )
+            .await
+            .is_err()
+    );
+    store.close().await;
+    Ok(())
+}
+
+#[tokio::test]
 async fn scheduled_task_is_not_claimed_early_and_attempt_pins_role_and_policy() -> Result<()> {
     let home = Fixture::new();
     let store = OrganizationStore::open(&home.0).await?;

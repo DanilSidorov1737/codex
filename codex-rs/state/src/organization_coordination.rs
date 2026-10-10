@@ -13,6 +13,36 @@ use std::collections::{BTreeMap, HashSet};
 use uuid::Uuid;
 
 impl OrganizationStore {
+    /// Owner-only inspection. Agent calls bind project and author from their
+    /// fenced task instead; they never accept caller-selected identities.
+    pub async fn search_memory(
+        &self,
+        project_id: &str,
+        scope: OrganizationNoteScope,
+        agent_id: Option<&str>,
+        query: &str,
+    ) -> Result<OrganizationNoteSearchResult> {
+        text(project_id, 256)?;
+        let mut tx = self.pool.begin().await?;
+        read_project(&mut tx, project_id).await?;
+        let author = match scope {
+            OrganizationNoteScope::Project => {
+                ensure!(agent_id.is_none(), "project search cannot select an agent");
+                ""
+            }
+            OrganizationNoteScope::Agent => {
+                let id = agent_id.context("agent search requires an agent ID")?;
+                text(id, 256)?;
+                ensure!(
+                    read_node(&mut tx, id).await?.kind == OrganizationNodeKind::Agent,
+                    "memory author must be an agent"
+                );
+                id
+            }
+        };
+        search_notes(&mut tx, project_id, scope, author, query).await
+    }
+
     /// Host-only snapshot used to copy already isolated child workspaces. This
     /// is never exposed as an agent-selected path or administrative RPC.
     pub async fn attempt_snapshot(&self, id: &str) -> Result<OrganizationTaskAttempt> {
@@ -174,6 +204,9 @@ impl OrganizationStore {
                     .collect::<std::result::Result<Vec<_>, _>>()?;
                 serde_json::to_value(notes)?
             }
+            OrganizationCoordinationCall::SearchNotes { scope, query } => serde_json::to_value(
+                search_notes(&mut tx, &task.project_id, scope, &task.owner_id, &query).await?,
+            )?,
             OrganizationCoordinationCall::Send { task_id, body } => {
                 text(&body, 4096)?;
                 let recipient = read_task(&mut tx, &task_id).await?;
@@ -343,6 +376,41 @@ impl OrganizationStore {
         tx.commit().await?;
         Ok(Some(results))
     }
+}
+
+async fn search_notes(
+    tx: &mut Transaction<'_, Sqlite>,
+    project_id: &str,
+    scope: OrganizationNoteScope,
+    author_id: &str,
+    query: &str,
+) -> Result<OrganizationNoteSearchResult> {
+    ensure!(
+        query.len() <= 256 && !query.chars().any(char::is_control),
+        "memory query must be at most 256 bytes without control characters"
+    );
+    let needle = query.trim().to_lowercase();
+    // Scope before decoding/matching. ponytail: at most 128 notes/project;
+    // use indexed full-text retrieval if that measured storage ceiling grows.
+    let data: Vec<String> = sqlx::query_scalar("SELECT data FROM organization_notes WHERE project_id=? AND scope=? AND (?='project' OR author_id=?) ORDER BY id DESC LIMIT 129")
+        .bind(project_id).bind(note_scope(scope)).bind(note_scope(scope)).bind(author_id)
+        .fetch_all(&mut **tx).await?;
+    ensure!(data.len() <= 128, "memory storage ceiling exceeded");
+    let mut notes = Vec::new();
+    let mut matched_count = 0;
+    for data in data {
+        let note: OrganizationNote = serde_json::from_str(&data)?;
+        if note.body.to_lowercase().contains(&needle) {
+            matched_count += 1;
+            if notes.len() < 16 {
+                notes.push(note);
+            }
+        }
+    }
+    Ok(OrganizationNoteSearchResult {
+        notes,
+        matched_count,
+    })
 }
 
 fn note_scope(scope: OrganizationNoteScope) -> &'static str {

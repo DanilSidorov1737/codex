@@ -16,6 +16,8 @@ use codex_app_server_protocol::OrganizationExecutionReadParams;
 use codex_app_server_protocol::OrganizationExecutionReadResponse;
 use codex_app_server_protocol::OrganizationListParams;
 use codex_app_server_protocol::OrganizationListResponse;
+use codex_app_server_protocol::OrganizationMemorySearchParams;
+use codex_app_server_protocol::OrganizationMemorySearchResponse;
 use codex_app_server_protocol::OrganizationMutateParams;
 use codex_app_server_protocol::OrganizationMutateResponse;
 use codex_core::ThreadManager;
@@ -136,6 +138,26 @@ impl OrganizationRequestProcessor {
             }
             .into(),
         ))
+    }
+
+    pub(crate) async fn memory_search(
+        &self,
+        params: OrganizationMemorySearchParams,
+        origin: ConnectionOrigin,
+    ) -> Result<Option<ClientResponsePayload>, JSONRPCErrorError> {
+        require_owner(origin)?;
+        let result = self
+            .store()
+            .await?
+            .search_memory(
+                &params.project_id,
+                params.scope,
+                params.agent_id.as_deref(),
+                &params.query,
+            )
+            .await
+            .map_err(|error| invalid_params(format!("memory search rejected: {error:#}")))?;
+        Ok(Some(OrganizationMemorySearchResponse { result }.into()))
     }
 
     pub(crate) async fn execution_read(

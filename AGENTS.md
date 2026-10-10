@@ -24,6 +24,11 @@ one-application-per-result recovery rule. Memory retrieval/schedules remain late
 This selective Apply slice is qualified on `9fadf32797`; see
 [selective Apply](docs/development/selective-apply.md) and [testing](docs/development/testing.md).
 Record new approvals and scope in status.md; a plan alone does not authorize work.
+The owner approved N1 scoped persistent memory search with “Ok do this”: reuse
+durable notes, enforce existing project/agent boundaries, expose agent retrieval
+and owner CLI/TUI search with provenance, and qualify restart/isolation through
+meaningful tests and actual interaction. Continue Ponytail and logical local
+commits. Recurring schedules and N2–N8 remain later scope.
 
 Read [docs/development/README.md](docs/development/README.md) and
 [status.md](docs/development/status.md) at the start of every session.

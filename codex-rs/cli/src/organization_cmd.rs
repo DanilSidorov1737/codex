@@ -4,7 +4,9 @@ use clap::Parser;
 use codex_app_server_protocol::OrganizationExecutionMutateParams;
 use codex_app_server_protocol::OrganizationExecutionReadParams;
 use codex_app_server_protocol::OrganizationListParams;
+use codex_app_server_protocol::OrganizationMemorySearchParams;
 use codex_app_server_protocol::OrganizationMutateParams;
+use codex_app_server_protocol::OrganizationNoteScope;
 use codex_app_server_protocol::ProjectCreateParams;
 use codex_app_server_protocol::ProjectRoot;
 use codex_arg0::Arg0DispatchPaths;
@@ -25,6 +27,15 @@ pub(crate) struct OrganizationCommand {
 
 #[derive(Debug, clap::Subcommand)]
 enum Action {
+    /// Search scoped durable notes with a literal Unicode-aware query (empty lists recent notes).
+    MemorySearch {
+        project_id: String,
+        #[arg(default_value = "")]
+        query: String,
+        /// Search this agent's private notes instead of project-shared notes.
+        #[arg(long)]
+        agent_id: Option<String>,
+    },
     /// List nodes, roles, goals, projects, tasks or memberships as JSON.
     List {
         kind: String,
@@ -79,6 +90,20 @@ pub(crate) async fn run(
         return Ok(output);
     }
     let action = match command.command {
+        Action::MemorySearch {
+            project_id,
+            query,
+            agent_id,
+        } => OrganizationCommandAction::MemorySearch(OrganizationMemorySearchParams {
+            project_id,
+            scope: if agent_id.is_some() {
+                OrganizationNoteScope::Agent
+            } else {
+                OrganizationNoteScope::Project
+            },
+            agent_id,
+            query,
+        }),
         Action::List {
             kind,
             cursor,

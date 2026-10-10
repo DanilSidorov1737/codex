@@ -1,4 +1,7 @@
 use super::*;
+use codex_app_server_protocol::OrganizationMemorySearchParams;
+use codex_app_server_protocol::OrganizationMemorySearchResponse;
+use codex_app_server_protocol::OrganizationNoteScope;
 use serde_json::{Value, json};
 use std::sync::{
     Arc,
@@ -127,9 +130,12 @@ async fn real_delegation_uses_durable_context_shared_budget_and_checked_artifact
         let (id,tool,args) = if child {
             match step {
                 0 => ("child-initial-inbox", "organization", json!({"type":"inbox"})),
-                1 => ("child-notes", "organization", json!({"type":"readNotes","scope":"project"})),
+                1 => ("child-notes", "organization", json!({"type":"searchNotes","scope":"project","query":"IMMUTABLE ORACLE"})),
                 2 => {
-                    assert!(tool_result(&body,"child-notes")[0]["body"].as_str().unwrap().contains("immutable oracle"));
+                    let notes = tool_result(&body,"child-notes");
+                    assert_eq!(notes["matchedCount"], 1);
+                    assert!(notes["notes"][0]["body"].as_str().unwrap().contains("immutable oracle"));
+                    assert!(notes["notes"][0]["attemptId"].is_string());
                     ("child-write", "exec_command", json!({"cmd":"python3 -c \"import time; from pathlib import Path; time.sleep(2); Path('report.txt').write_text('checked delegate')\"","login":false}))
                 },
                 3 => ("child-inbox", "organization", json!({"type":"inbox"})),
@@ -245,6 +251,48 @@ async fn real_delegation_uses_durable_context_shared_budget_and_checked_artifact
         "checked delegate + coordinated"
     );
     assert!(!project.path().join("report.txt").exists());
+    let memory: OrganizationMemorySearchResponse = server
+        .request(|request_id| ClientRequest::OrganizationMemorySearch {
+            request_id,
+            params: OrganizationMemorySearchParams {
+                project_id: done.task.project_id.clone(),
+                scope: OrganizationNoteScope::Project,
+                agent_id: None,
+                query: "IMMUTABLE ORACLE".into(),
+            },
+        })
+        .await?;
+    assert_eq!(memory.result.matched_count, 1);
+    assert_eq!(memory.result.notes[0].task_id, task.id);
+    assert_eq!(memory.result.notes[0].author_id, agents[0].id);
+    let private: OrganizationMemorySearchResponse = server
+        .request(|request_id| ClientRequest::OrganizationMemorySearch {
+            request_id,
+            params: OrganizationMemorySearchParams {
+                project_id: done.task.project_id.clone(),
+                scope: OrganizationNoteScope::Agent,
+                agent_id: Some(agents[1].id.clone()),
+                query: "immutable oracle".into(),
+            },
+        })
+        .await?;
+    assert_eq!(private.result.matched_count, 0);
+    assert!(
+        server
+            .request::<OrganizationMemorySearchResponse>(|request_id| {
+                ClientRequest::OrganizationMemorySearch {
+                    request_id,
+                    params: OrganizationMemorySearchParams {
+                        project_id: done.task.project_id.clone(),
+                        scope: OrganizationNoteScope::Agent,
+                        agent_id: None,
+                        query: "".into(),
+                    },
+                }
+            })
+            .await
+            .is_err()
+    );
     let accepted = execute(
         &mut server,
         OrganizationExecutionMutation::Accept {

@@ -2,6 +2,9 @@ use crate::JsonSchema;
 use crate::TS;
 use codex_experimental_api_macros::ExperimentalApi;
 pub use codex_protocol::organization::*;
+pub use codex_protocol::organization_coordination::{
+    OrganizationNote, OrganizationNoteScope, OrganizationNoteSearchResult,
+};
 pub use codex_protocol::organization_execution::*;
 use serde::Deserialize;
 use serde::Serialize;
@@ -47,6 +50,23 @@ pub struct OrganizationBackupParams {}
 #[ts(export_to = "v2/")]
 pub struct OrganizationBackupResponse {
     pub path: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS, ExperimentalApi)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[ts(export_to = "v2/")]
+pub struct OrganizationMemorySearchParams {
+    pub project_id: String,
+    pub scope: OrganizationNoteScope,
+    pub agent_id: Option<String>,
+    pub query: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export_to = "v2/")]
+pub struct OrganizationMemorySearchResponse {
+    pub result: OrganizationNoteSearchResult,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS, ExperimentalApi)]

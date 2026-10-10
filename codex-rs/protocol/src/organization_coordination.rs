@@ -38,6 +38,13 @@ pub struct OrganizationNote {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
 #[serde(rename_all = "camelCase")]
+pub struct OrganizationNoteSearchResult {
+    pub notes: Vec<OrganizationNote>,
+    pub matched_count: u32,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
+#[serde(rename_all = "camelCase")]
 pub struct OrganizationMessage {
     pub id: String,
     pub root_authorization_id: String,
@@ -73,6 +80,10 @@ pub enum OrganizationCoordinationCall {
     ReadNotes {
         scope: OrganizationNoteScope,
     },
+    SearchNotes {
+        scope: OrganizationNoteScope,
+        query: String,
+    },
     #[serde(rename_all = "camelCase")]
     Send {
         task_id: String,
@@ -83,4 +94,28 @@ pub enum OrganizationCoordinationCall {
     Acknowledge {
         message_id: String,
     },
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn memory_search_cannot_select_identity_and_legacy_read_is_unchanged() {
+        let search =
+            serde_json::json!({"type":"searchNotes","scope":"agent","query":"Überprüfung"});
+        assert!(serde_json::from_value::<OrganizationCoordinationCall>(search.clone()).is_ok());
+        for field in ["projectId", "agentId", "attemptId", "worker"] {
+            let mut spoofed = search.clone();
+            spoofed[field] = "other".into();
+            assert!(serde_json::from_value::<OrganizationCoordinationCall>(spoofed).is_err());
+        }
+        assert_eq!(
+            serde_json::to_value(OrganizationCoordinationCall::ReadNotes {
+                scope: OrganizationNoteScope::Project,
+            })
+            .unwrap(),
+            serde_json::json!({"type":"readNotes","scope":"project"})
+        );
+    }
 }

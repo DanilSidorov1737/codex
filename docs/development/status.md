@@ -1,9 +1,28 @@
 # Current status and resumption instructions
 
 Phase 0: **exploration and planning complete for available inputs**.
-Current work: **whole-file selective Apply completed and qualified**.
+Current work: **N1 scoped memory search implementation and qualification**.
 Application features: **delivered for the documented single-owner Linux envelope**.
 The MVP's release criteria are **qualified for the documented single-owner Linux/GPT-5.5 envelope**.
+
+## Approved memory slice — 2026-10-10 UTC
+
+The owner approved the scoped memory recommendation with “Ok do this”. Scope:
+search existing SQLite notes, agent retrieval within existing project/agent
+boundaries, owner CLI/TUI inspection with provenance, and restart/isolation
+qualification using actual application interaction. Use Ponytail and periodic
+local commits. Literal Unicode-aware search is sufficient for the bounded
+128-note/project store; no embeddings, new database, automatic promotion,
+recurring schedules or paid-provider repeats are needed for this slice.
+Implementation and tests are in progress; selective Apply evidence below remains
+the previous qualified application baseline. Do not claim memory qualification yet.
+Backend checkpoint: agent `searchNotes`, protected owner memory RPC/CLI and the
+shared scoped search are implemented without a migration/dependency. The full
+protocol/state suites passed 630 tests, schema comparisons passed 4, and Python
+contracts passed 25. Native API/TUI and physical restart qualification are pending.
+Initial TUI compile/lint failures (protocol `Result` alias collision and prohibited
+unwrap) were corrected; final warnings-denied verification is pending. SDK
+generation's initial schema-directory error was corrected and evidence retained.
 
 ## Expanded next-step proposal — 2026-10-10 UTC
 

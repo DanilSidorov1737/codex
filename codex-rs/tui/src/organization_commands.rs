@@ -7,6 +7,7 @@ use codex_app_server_protocol::OrganizationBackupParams;
 use codex_app_server_protocol::OrganizationExecutionMutateParams;
 use codex_app_server_protocol::OrganizationExecutionReadParams;
 use codex_app_server_protocol::OrganizationListParams;
+use codex_app_server_protocol::OrganizationMemorySearchParams;
 use codex_app_server_protocol::OrganizationMutateParams;
 use codex_app_server_protocol::ProjectCreateParams;
 use codex_utils_home_dir::find_codex_home;
@@ -15,6 +16,7 @@ use color_eyre::eyre::eyre;
 
 pub enum OrganizationCommandAction {
     List(OrganizationListParams),
+    MemorySearch(OrganizationMemorySearchParams),
     Mutate(OrganizationMutateParams),
     Backup,
     CreateProject(ProjectCreateParams),
@@ -55,6 +57,9 @@ pub async fn run_organization_command(
         },
         OrganizationCommandAction::CreateProject(params) => {
             ClientRequest::ProjectCreate { request_id, params }
+        }
+        OrganizationCommandAction::MemorySearch(params) => {
+            ClientRequest::OrganizationMemorySearch { request_id, params }
         }
         OrganizationCommandAction::ExecutionRead(params) => {
             ClientRequest::OrganizationExecutionRead { request_id, params }

@@ -1507,6 +1507,11 @@ impl MessageProcessor {
             ClientRequest::OrganizationBackup { .. } => {
                 self.organization_processor.backup(session.origin).await
             }
+            ClientRequest::OrganizationMemorySearch { params, .. } => {
+                self.organization_processor
+                    .memory_search(params, session.origin)
+                    .await
+            }
             ClientRequest::OrganizationExecutionRead { params, .. } => {
                 self.organization_processor
                     .execution_read(params, session.origin)

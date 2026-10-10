@@ -17158,6 +17158,73 @@
         ],
         "type": "string"
       },
+      "OrganizationNote": {
+        "properties": {
+          "attemptId": {
+            "type": "string"
+          },
+          "authorId": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "id": {
+            "type": "string"
+          },
+          "projectId": {
+            "type": "string"
+          },
+          "scope": {
+            "$ref": "#/definitions/v2/OrganizationNoteScope"
+          },
+          "taskId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "attemptId",
+          "authorId",
+          "body",
+          "createdAt",
+          "id",
+          "projectId",
+          "scope",
+          "taskId"
+        ],
+        "type": "object"
+      },
+      "OrganizationNoteScope": {
+        "enum": [
+          "project",
+          "agent"
+        ],
+        "type": "string"
+      },
+      "OrganizationNoteSearchResult": {
+        "properties": {
+          "matchedCount": {
+            "format": "uint32",
+            "minimum": 0.0,
+            "type": "integer"
+          },
+          "notes": {
+            "items": {
+              "$ref": "#/definitions/v2/OrganizationNote"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "matchedCount",
+          "notes"
+        ],
+        "type": "object"
+      },
       "OrganizationProjectPlan": {
         "properties": {
           "criteria": {

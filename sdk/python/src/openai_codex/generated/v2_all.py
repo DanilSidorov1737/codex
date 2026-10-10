@@ -3289,6 +3289,11 @@ class OrganizationNodeKind(Enum):
     group = "group"
 
 
+class OrganizationNoteScope(Enum):
+    project = "project"
+    agent = "agent"
+
+
 class OrganizationProjectPlan(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
@@ -9449,6 +9454,28 @@ class OrganizationNode(BaseModel):
     parent_id: Annotated[str | None, Field(alias="parentId")] = None
     revision: int
     role_version_id: Annotated[str | None, Field(alias="roleVersionId")] = None
+
+
+class OrganizationNote(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    attempt_id: Annotated[str, Field(alias="attemptId")]
+    author_id: Annotated[str, Field(alias="authorId")]
+    body: str
+    created_at: Annotated[int, Field(alias="createdAt")]
+    id: str
+    project_id: Annotated[str, Field(alias="projectId")]
+    scope: OrganizationNoteScope
+    task_id: Annotated[str, Field(alias="taskId")]
+
+
+class OrganizationNoteSearchResult(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    matched_count: Annotated[int, Field(alias="matchedCount", ge=0)]
+    notes: list[OrganizationNote]
 
 
 class NodeOrganizationRecord(BaseModel):
