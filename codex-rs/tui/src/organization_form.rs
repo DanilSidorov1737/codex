@@ -466,7 +466,12 @@ impl Form {
                 criteria: criteria(1)?,
             }),
             Kind::Project => {
-                let root = std::fs::canonicalize(required(1)?)?;
+                let root = required(1)?;
+                anyhow::ensure!(
+                    Path::new(&root).is_absolute(),
+                    "Project root must be absolute"
+                );
+                let root = std::fs::canonicalize(root)?;
                 anyhow::ensure!(root.is_dir(), "Project root must be an existing directory");
                 Command::Project {
                     params: ProjectCreateParams {
@@ -567,7 +572,7 @@ impl Form {
                 self.focus + 1,
                 self.fields.len()
             ))
-            .style(Style::default().fg(Color::Cyan));
+            .style(Style::default().fg(super::view::foreground(super::view::BLUE)));
         let inner = block.inner(area);
         block.render(area, buffer);
         let regions = Layout::vertical([
@@ -598,7 +603,7 @@ impl Form {
                     field.label
                 ))
                 .border_style(Style::default().fg(if focused {
-                    Color::Cyan
+                    super::view::foreground(super::view::BLUE)
                 } else {
                     Color::DarkGray
                 }));

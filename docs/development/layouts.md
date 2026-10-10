@@ -77,3 +77,27 @@ in-flight token allowance and a matching owner price estimate when available.
 The daemon remains authoritative for validation, permissions and stale revisions.
 
 These controls are under qualification, not a completed release claim yet.
+
+## Concept-art dashboard shell (in qualification)
+
+The supplied Console/Workspace/Projects/Operations/Review art is the visual
+reference. Dashboard surfaces now use its dark charcoal/navy palette, blue
+selection, rounded panels, workspace header, left navigation and right inspector.
+Operations keeps the interactive arbitrary hierarchy as an indented card tree;
+wide terminals add canonical agent/task/project counts and recorded activity.
+Projects shows accepted/total task progress. Workspace centers actual Neovim,
+with declared-file exploration and Follow/Diff/Independent controls. Its clean
+native grid has line numbers and matching background colors.
+
+Review adds a hash-verified first-artifact inline diff through existing Preview,
+regular-file checks and diffy. It is bounded to 64 KiB per side and cached by
+result identity/digest; the original is a snapshot at load. Apply still checks
+current base hashes independently. Other/large/binary files use native Neovim.
+This preview neither accepts evidence nor applies files.
+
+Terminal cells require adaptations: at narrow widths the sidebar disappears and
+panes stack; inspectors can be hidden and ratios retain user preferences. Existing
+Console conversation/composer is preserved. Wide connected organization diagrams,
+unsupported CPU/memory/24-hour cost charts, timelines and future actions from the
+art are not fabricated. The current interactive tree remains usable for deep,
+user-defined hierarchies.

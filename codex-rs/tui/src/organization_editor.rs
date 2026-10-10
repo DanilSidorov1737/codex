@@ -180,6 +180,11 @@ impl Editor {
             "nvim_set_option_value",
             vec!["mouse".into(), "a".into(), Value::Map(vec![])],
         )?;
+        // This editor already uses a clean configuration; style its actual native grid.
+        editor.rpc(
+            "nvim_command",
+            vec!["set number termguicolors | highlight Normal guibg=#0b141d guifg=#dbe6f2".into()],
+        )?;
         Ok(editor)
     }
     fn send(&self, value: Value) -> Result<()> {

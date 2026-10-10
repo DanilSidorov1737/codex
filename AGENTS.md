@@ -12,6 +12,11 @@ Use Ponytail to implement, and then commit periodically, follow the MVP plan”.
 Implement B1–B6 in order with meaningful tests, real interactions and logical
 local commits. No repeated approval is needed for ordinary MVP slices.
 External authority and live-provider spending remain separately bounded.
+The owner also approved the next usability slice: TUI project/task creation,
+explicit bounded authorization and matching the supplied concept art as closely
+as terminal behavior permits, using Ponytail and periodic local commits. Keep
+this scope/evidence current in status.md; later memory/scheduling/selective-Apply
+work requires its matching scope.
 Record new approvals and scope in status.md; a plan alone does not authorize work.
 
 Read [docs/development/README.md](docs/development/README.md) and
@@ -37,6 +42,10 @@ No earlier root AGENTS.md existed when these instructions were added.
   requirements, security, error handling, accessibility or meaningful tests.
   See [Ponytail plan](docs/development/ponytail.md). Use the available skill;
   report missing integration rather than installing without authorization.
+- For UI work, inspect the supplied concept images in docs and
+  codex-rs/tui/styles.md. Reuse terminal_palette/style contrast helpers rather
+  than bypassing palette checks. Show canonical state and real evidence; never
+  paint invented CPU/cost/test metrics or imitation editor functionality.
 - Use actual official Neovim from https://github.com/neovim/neovim.
   Never implement a custom editor, fake Neovim or Vim clone.
 - Preserve Console, Workspace, Projects, Operations and Review as customizable

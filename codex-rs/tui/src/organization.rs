@@ -24,6 +24,8 @@ use crate::tui::{FrameRequester, Tui, TuiEvent};
 
 #[path = "organization_form.rs"]
 mod form;
+#[path = "organization_view.rs"]
+mod view;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -66,7 +68,7 @@ impl Default for PaneSettings {
     fn default() -> Self {
         Self {
             inspector: true,
-            width: 45,
+            width: 65,
             inspector_focus: false,
             vim_keys: true,
         }
@@ -387,6 +389,7 @@ pub(crate) struct Dashboard {
     detail: Option<Box<OrganizationExecutionView>>,
     scroll: u16,
     detail_text: String,
+    review_diff: Option<(String, String, String)>,
     search: String,
     input: Option<String>,
     changes: bool,
@@ -469,6 +472,7 @@ impl Dashboard {
             detail: None,
             scroll: 0,
             detail_text: String::new(),
+            review_diff: None,
             search: String::new(),
             input: None,
             changes: false,
@@ -605,6 +609,7 @@ impl Dashboard {
     fn inspect(&mut self) {
         self.scroll = 0;
         self.detail = None;
+        self.review_diff = None;
         self.detail_text = clean(&self.details());
         if let Some(id) = &self.selected
             && self
@@ -1168,6 +1173,7 @@ impl Dashboard {
                 Update::Detail(view) => {
                     if Some(&view.task.id) == self.selected.as_ref() {
                         self.detail = Some(view);
+                        self.refresh_diff();
                         self.detail_text = clean(&self.details());
                     }
                 }
@@ -1423,137 +1429,6 @@ impl Dashboard {
             );
         }
         text
-    }
-    fn render(&mut self, area: Rect, buffer: &mut Buffer) -> Option<(u16, u16)> {
-        Clear.render(area, buffer);
-        let regions = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints([
-                Constraint::Length(2),
-                Constraint::Min(1),
-                Constraint::Length(3),
-            ])
-            .split(area);
-        Paragraph::new("F1 Console · F2 Workspace · F3 Projects · F4 Operations · F5 Review")
-            .style(Style::default().fg(Color::Cyan))
-            .render(regions[0], buffer);
-        let pane = &self.preferences.panes[self.preferences.preset.index()];
-        let areas = Layout::default()
-            .direction(if regions[1].width < 80 {
-                Direction::Vertical
-            } else {
-                Direction::Horizontal
-            })
-            .constraints(if pane.inspector {
-                vec![
-                    Constraint::Percentage(pane.width),
-                    Constraint::Percentage(100 - pane.width),
-                ]
-            } else {
-                vec![Constraint::Percentage(100)]
-            })
-            .split(regions[1]);
-        let selected = self
-            .rows
-            .iter()
-            .position(|r| Some(&r.id) == self.selected.as_ref())
-            .unwrap_or(0);
-        let height = areas[0].height.saturating_sub(2) as usize;
-        let start = selected.saturating_sub(height.saturating_sub(1));
-        let lines: Vec<_> = self
-            .rows
-            .iter()
-            .enumerate()
-            .skip(start)
-            .take(height)
-            .map(|(i, r)| {
-                Line::styled(
-                    clean(&format!(
-                        "{} {}",
-                        if i == selected { "›" } else { " " },
-                        r.label
-                    )),
-                    if i == selected {
-                        Style::default().fg(Color::Yellow)
-                    } else {
-                        Style::default()
-                    },
-                )
-            })
-            .collect();
-        let workspace = self.preferences.preset == Preset::Workspace
-            && self.editor.is_some()
-            && self.confirmation.is_none();
-        if !workspace || pane.inspector {
-            Paragraph::new(lines)
-                .block(Block::default().borders(Borders::ALL).title(format!(
-                    "{} · {} · /{}",
-                    self.preferences.preset.title(),
-                    self.rows.len(),
-                    clean(&self.search)
-                )))
-                .render(areas[0], buffer);
-        }
-        let mut cursor = None;
-        if workspace && let Some(editor) = &self.editor {
-            let area = if pane.inspector { areas[1] } else { areas[0] };
-            let block = Block::default().borders(Borders::ALL).title(format!(
-                "Neovim · {} · {} · Ctrl-G host",
-                clean(&editor.mode),
-                if editor.focused {
-                    "editor focus"
-                } else {
-                    "host focus"
-                }
-            ));
-            self.editor_area = block.inner(area);
-            block.render(area, buffer);
-            cursor = editor.render(self.editor_area, buffer);
-            if let Some(error) = &editor.error {
-                Paragraph::new(clean(error)).render(self.editor_area, buffer);
-            }
-        } else if pane.inspector {
-            Paragraph::new(if self.confirmation.is_some() {
-                self.confirmation_text.clone()
-            } else {
-                self.detail_text.clone()
-            })
-            .block(
-                Block::default()
-                    .borders(Borders::ALL)
-                    .title(if pane.inspector_focus {
-                        "Inspector [focused]"
-                    } else {
-                        "Inspector"
-                    }),
-            )
-            .wrap(Wrap { trim: false })
-            .scroll((self.scroll, 0))
-            .render(areas[1], buffer);
-        }
-        if self.confirmation.is_none()
-            && let Some(form) = &self.form
-        {
-            Clear.render(regions[1], buffer);
-            cursor = form.render(regions[1], buffer);
-        }
-        let prompt = self
-            .input
-            .as_ref()
-            .map(|s| {
-                format!(
-                    "{}{}",
-                    if self.changes {
-                        "Changes: "
-                    } else {
-                        "Search: "
-                    },
-                    s
-                )
-            })
-            .unwrap_or_else(|| self.message.clone());
-        Paragraph::new(format!("{}\nN project · T task · G goal · U agent · s authorize · ↑↓ select · Tab focus · / search · f refresh\na approve · r reject · v accept · c changes · A apply · e editor · o edit · t follow · d diff · q Console", clean(&prompt))).render(regions[2], buffer);
-        cursor
     }
     pub(crate) fn handle_event(&mut self, tui: &mut Tui, event: TuiEvent) -> std::io::Result<()> {
         self.update();

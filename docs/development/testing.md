@@ -1,5 +1,22 @@
 # Testing procedures and evidence
 
+## Concept-art shell — automated checkpoint, 2026-10-10 UTC
+
+Added responsive dashboard shell, canonical Operations counts/card tree, actual
+project task progress, declared-file explorer, native Neovim presentation and a
+bounded verified inline diff using existing diffy/Preview. The owner-RPC overlap
+regression also exercises real project/create → link with the returned identity.
+An inline-diff test verifies exact artifact bytes and rejects altered artifacts;
+render checks cover 1×1, 36×12, 50×20, 120×30 and 160×48.
+
+The affected organization/editor suite passed **23/23** on the first visual source.
+Production Clippy then rejected fixed RGB constructors under the existing terminal
+palette policy and two guarded unwraps. An indexed-color attempt was also rejected. Reused the existing
+terminal palette quantization/contrast helpers and pattern matching instead; no lint or assertion was suppressed. Final formatting, warnings-denied production Clippy and **23/23** affected
+tests passed after correction. Full package/physical qualification remain
+pending at this checkpoint. Logs: tui-creation-art-20261010/{clippy,tests}.log
+under the qualification root.
+
 ## TUI creation slice — automated checkpoint, 2026-10-10 UTC
 
 Added fixed owner forms using the existing TextArea and typed owner RPCs.

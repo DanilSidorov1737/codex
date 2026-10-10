@@ -76,7 +76,21 @@ async fn background_requests_survive_startup_overlap_and_cancelled_dashboard() {
                             "organization/execution/read" | "organization/execution/mutate" => {
                                 json!({"view": view("one")})
                             }
-                            "organization/mutate" => json!({"record": null}),
+                            "project/create" => {
+                                let params = request.params.as_ref().unwrap();
+                                assert_eq!(params["name"], "Native project");
+                                assert_eq!(params["idempotencyKey"], "stable-project-key");
+                                json!({"project": {"id":"server-project-id","name":"Native project","roots":[{"path":"/tmp"}],"metadata":{},"position":0,"createdAt":0,"updatedAt":0,"recencyAt":null}})
+                            }
+                            "organization/mutate" => {
+                                let mutation = &request.params.as_ref().unwrap()["mutation"];
+                                if mutation["type"] == "linkProject" {
+                                    assert_eq!(mutation["projectId"], "server-project-id");
+                                    assert_eq!(mutation["goalId"], "goal");
+                                    assert_eq!(mutation["ownerId"], "owner");
+                                    json!({"record":{"type":"project","data":{"id":"server-project-id","name":"Native project","roots":["/tmp"],"goalId":"goal","ownerId":"owner","criteria":["Checked"],"revision":1}}})
+                                } else { json!({"record": null}) }
+                            },
                             _ => panic!("unexpected request: {method}"),
                         }
                     }
@@ -133,6 +147,12 @@ async fn background_requests_survive_startup_overlap_and_cancelled_dashboard() {
             }))
             .await
             .unwrap();
+        assert!(matches!(update_rx.recv().await, Some(Update::Changed)));
+        commands.send(Command::Project {
+            params: serde_json::from_value(json!({"name":"Native project","roots":[{"path":"/tmp"}],"idempotencyKey":"stable-project-key"})).unwrap(),
+            goal_id: Some("goal".into()), owner_id: Some("owner".into()), criteria: vec!["Checked".into()],
+        }).await.unwrap();
+        assert!(matches!(update_rx.recv().await, Some(Update::Saved(OrganizationRecord::Project(p))) if p.id == "server-project-id"));
         assert!(matches!(update_rx.recv().await, Some(Update::Changed)));
         commands
             .send(Command::Execution(OrganizationExecutionMutation::Stop {
@@ -287,6 +307,7 @@ fn dashboard() -> Dashboard {
         detail: None,
         scroll: 0,
         detail_text: String::new(),
+        review_diff: None,
         search: String::new(),
         input: None,
         changes: false,
@@ -485,7 +506,7 @@ async fn all_dashboard_presets_render_narrow_empty_and_untrusted_content_safely(
     ] {
         d.preferences.preset = preset;
         d.rebuild();
-        for (width, height) in [(1, 1), (36, 12), (120, 30)] {
+        for (width, height) in [(1, 1), (36, 12), (50, 20), (120, 30), (160, 48)] {
             let area = Rect::new(0, 0, width, height);
             let mut buffer = Buffer::empty(area);
             d.render(area, &mut buffer);
@@ -497,6 +518,58 @@ async fn all_dashboard_presets_render_narrow_empty_and_untrusted_content_safely(
             );
         }
     }
+}
+
+#[tokio::test]
+async fn inline_review_diff_uses_verified_artifact_and_cannot_enable_acceptance() {
+    use sha2::{Digest, Sha256};
+    let home = tempfile::tempdir().unwrap();
+    let original = tempfile::tempdir().unwrap();
+    let attempt = tempfile::tempdir().unwrap();
+    std::fs::write(original.path().join("report.txt"), "Original\n").unwrap();
+    std::fs::write(attempt.path().join("report.txt"), "Verified output\n").unwrap();
+    let mut d = dashboard();
+    d.path = home.path().join("layouts.json");
+    d.snapshot
+        .records
+        .push(OrganizationRecord::Project(OrganizationProjectPlan {
+            id: "project".into(),
+            name: "Reviewed project".into(),
+            roots: vec![original.path().to_str().unwrap().into()],
+            goal_id: None,
+            owner_id: Some("owner".into()),
+            criteria: vec!["Check passes".into()],
+            revision: 1,
+        }));
+    d.preferences.preset = Preset::Review;
+    d.selected = Some("one".into());
+    let mut detail = view("one");
+    detail.attempts = vec![serde_json::from_value(serde_json::json!({"id":"attempt","taskId":"one","authorizationId":"grant","generation":1,"threadId":"thread","turnId":null,"workspace":attempt.path(),"state":"needsReview","startedAt":0,"leaseUntil":0,"reportedTokens":0,"modelRequests":0,"reportedModelRequests":0})).unwrap()];
+    detail.result = Some(OrganizationTaskResult {
+        attempt_id: "attempt".into(),
+        artifacts: vec![OrganizationArtifactEvidence {
+            path: "report.txt".into(),
+            bytes: 16,
+            sha256: format!("{:x}", Sha256::digest(b"Verified output\n")),
+        }],
+        artifact_bases: vec![],
+        checks: vec![],
+        digest: "evidence-digest".into(),
+        accepted: false,
+    });
+    d.detail = Some(Box::new(detail));
+    d.refresh_diff();
+    let diff = &d.review_diff.as_ref().unwrap().2;
+    assert!(diff.contains("-Original"));
+    assert!(diff.contains("+Verified output"));
+    assert!(d.confirmation.is_none());
+    assert!(!d.detail.as_ref().unwrap().result.as_ref().unwrap().accepted);
+    std::fs::write(attempt.path().join("report.txt"), "Unreviewed bytes\n").unwrap();
+    d.review_diff = None;
+    d.refresh_diff();
+    let diff = &d.review_diff.as_ref().unwrap().2;
+    assert!(diff.contains("artifact changed"));
+    assert!(!diff.contains("+Unreviewed"));
 }
 
 #[tokio::test]
