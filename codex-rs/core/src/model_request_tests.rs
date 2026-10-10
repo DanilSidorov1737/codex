@@ -77,8 +77,8 @@ impl ModelRequestContributor for MetadataContributor {
     }
 }
 
-#[test]
-fn contributor_metadata_preserves_core_fields_and_existing_values() {
+#[tokio::test]
+async fn contributor_metadata_preserves_core_fields_and_existing_values() {
     let mut metadata = Some(HashMap::from([
         ("thread_id".into(), "thread".into()),
         ("existing".into(), "original".into()),
@@ -92,6 +92,8 @@ fn contributor_metadata_preserves_core_fields_and_existing_values() {
             ModelRequestKind::Generation,
             &mut metadata
         )
+        .await
+        .unwrap()
         .is_empty()
     );
     assert_eq!(
@@ -101,5 +103,41 @@ fn contributor_metadata_preserves_core_fields_and_existing_values() {
             ("existing".into(), "original".into()),
             ("x-request-id".into(), "request".into()),
         ]))
+    );
+}
+
+#[derive(Debug)]
+struct Reject;
+impl ModelRequestContributor for Reject {
+    fn request_guarded<'a>(
+        &'a self,
+        _input: ModelRequestInput<'a>,
+    ) -> codex_extension_api::ExtensionFuture<
+        'a,
+        Result<Option<Box<dyn ModelResponseInterceptor>>, String>,
+    > {
+        Box::pin(async { Err("durable admission unavailable".into()) })
+    }
+}
+
+#[tokio::test]
+async fn failed_admission_stops_request_preparation() {
+    let contributors: Vec<Arc<dyn ModelRequestContributor>> =
+        vec![Arc::new(Reject), Arc::new(MetadataContributor)];
+    let mut metadata = None;
+    assert!(
+        prepare(
+            &contributors,
+            "thread",
+            "model",
+            ModelRequestKind::Generation,
+            &mut metadata
+        )
+        .await
+        .is_err()
+    );
+    assert!(
+        metadata.is_none(),
+        "later contributors must not run after denial"
     );
 }

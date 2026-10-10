@@ -1,3 +1,48 @@
+# Testing procedures and evidence
+
+## B2 core admission gates under qualification
+
+`CARGO_INCREMENTAL=0 RUST_MIN_STACK=8388608 cargo test --locked --offline --profile dev-small -p codex-core --lib --test all model_request -j4`:
+exit 0, **three unit and eight integration tests passed**. The negative admission
+test proves no HTTP Responses request reaches the local fixture provider. Its
+initial fixture incorrectly expected a request; that expectation was removed and
+replaced with an explicit zero-request assertion, retaining the denial assertion.
+Evidence: `mvp-b2-model-gate-ci-final-tests.log` in the qualification directory.
+
+The native tool denial test initially reached an unexpected follow-up/404 instead
+of its guard because `shell_command` is not registered in this checkout. Inspection
+found the existing `exec_command` one-shot handler. Its corrective run exposed
+fatal tool errors being panicked/logged instead of propagated during the turn's
+tool drain. That path now returns the error. The denial test then **passed**:
+the error is reported to the caller and the attempted artifact is absent.
+The current core integration binary also reran all eight model-request matches
+successfully. Logs: `mvp-b2-tool-gate-propagation-tests.log` and
+`mvp-b2-model-gate-post-propagation-tests.log`.
+
+An additional lifecycle-observer regression run passed five tests; the sixth
+could not locate the existing `codex-rmcp-client` `test_stdio_server` fixture.
+Built it with `CARGO_INCREMENTAL=0 cargo build --locked --offline --profile dev-small -p codex-rmcp-client --bin test_stdio_server -j4`, then reran the
+unchanged six assertions: **six passed**, zero failed/ignored. The current core
+integration binary was invoked with `RUST_MIN_STACK=8388608` and filters
+`model_request` and `tool_start_`; it is the same binary built by the preceding
+successful Cargo gate run. Final log: `mvp-b2-tool-observer-regression-final-tests.log`.
+No integrated background worker qualification is claimed yet.
+
+The corrected ledger policy and a new approval/budget race test passed the full
+state library suite: **251 passed**, zero failed/ignored
+(`mvp-b2-ledger-dispatch-tests.log`). Approval cannot revive an action after
+recorded token exhaustion. Current application/CLI type checking passed before
+the final runtime privilege-validation and startup-approval race corrections;
+those require the ensuing application tests.
+
+Final production Clippy passed with warnings denied for `codex-core`,
+`codex-extension-api`, `codex-state` and `codex-app-server` library targets.
+Affected-package formatting checks passed. The first combined Clippy run caught
+one unnecessary workspace-root clone; it was replaced by `std::slice::from_ref`
+without suppressing the lint. Logs: `mvp-b2-admission-worker-final-clippy.log` and
+`mvp-b2-admission-worker-format.log`. These qualify the core/ledger admission
+slice; application artifact/crash tests remain pending.
+
 ## B2 approval, evidence and reservation ledger
 
 From `codex-rs`, with the documented activation:
@@ -31,8 +76,6 @@ From `codex-rs`, with the documented activation:
 Evidence: `mvp-b2-ledger-tests.log`, `mvp-b2-state-tests.log`,
 `mvp-b2-state-clippy.log`, `mvp-b2-format.log` under the established local qualification directory.
 These checks qualify storage behavior; runtime task execution and tool approvals are still unimplemented.
-
-# Testing procedures and evidence
 
 ## B2 ledger candidate
 

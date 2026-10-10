@@ -7,33 +7,37 @@ use codex_extension_api::ModelResponseStream;
 use std::collections::HashMap;
 use std::sync::Arc;
 
-pub(crate) fn prepare(
+pub(crate) async fn prepare(
     contributors: &[Arc<dyn ModelRequestContributor>],
     thread_id: &str,
     model: &str,
     kind: ModelRequestKind,
     metadata: &mut Option<HashMap<String, String>>,
-) -> Vec<Box<dyn ModelResponseInterceptor>> {
-    contributors
-        .iter()
-        .filter_map(|contributor| {
-            let mut additions = None;
-            let interceptor = contributor.request(ModelRequestInput {
+) -> Result<Vec<Box<dyn ModelResponseInterceptor>>, codex_protocol::error::CodexErr> {
+    let mut interceptors = Vec::new();
+    for contributor in contributors {
+        let mut additions = None;
+        let interceptor = contributor
+            .request_guarded(ModelRequestInput {
                 kind,
                 thread_id,
                 client_metadata: &mut additions,
                 model,
-            });
-            if let Some(additions) = additions {
-                for (key, value) in crate::responses_metadata::filter_extra_metadata(additions) {
-                    if key != "parent_response_id" {
-                        metadata.get_or_insert_default().entry(key).or_insert(value);
-                    }
+            })
+            .await
+            .map_err(codex_protocol::error::CodexErr::Fatal)?;
+        if let Some(additions) = additions {
+            for (key, value) in crate::responses_metadata::filter_extra_metadata(additions) {
+                if key != "parent_response_id" {
+                    metadata.get_or_insert_default().entry(key).or_insert(value);
                 }
             }
-            interceptor
-        })
-        .collect()
+        }
+        if let Some(interceptor) = interceptor {
+            interceptors.push(interceptor);
+        }
+    }
+    Ok(interceptors)
 }
 
 pub(crate) fn intercept_stream(

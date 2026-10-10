@@ -28,10 +28,22 @@ pub struct ModelRequestInput<'a> {
     pub model: &'a str,
 }
 
-/// Creates request-scoped interceptors without delaying inference.
+/// Creates request-scoped interceptors and optional trusted-host admission gates.
 /// Return None for requests this host does not manage.
 pub trait ModelRequestContributor: Send + Sync + std::fmt::Debug {
-    fn request(&self, input: ModelRequestInput<'_>) -> Option<Box<dyn ModelResponseInterceptor>>;
+    fn request(&self, _input: ModelRequestInput<'_>) -> Option<Box<dyn ModelResponseInterceptor>> {
+        None
+    }
+
+    /// Runs before the provider request. A failed durable admission must prevent
+    /// inference; the returned interceptor owns this exact admission's accounting.
+    /// Existing observers retain their synchronous behavior through the default.
+    fn request_guarded<'a>(
+        &'a self,
+        input: ModelRequestInput<'a>,
+    ) -> crate::ExtensionFuture<'a, Result<Option<Box<dyn ModelResponseInterceptor>>, String>> {
+        Box::pin(async move { Ok(self.request(input)) })
+    }
 }
 
 /// Owns request state until consumed by the response stream or dropped on failure.

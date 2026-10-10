@@ -21,14 +21,14 @@ use crate::tools::context::ToolInvocation;
 pub(crate) async fn notify_tool_start(
     invocation: &ToolInvocation,
     mcp_tool: Option<&McpToolContext>,
-) {
+) -> Result<(), codex_tools::FunctionCallError> {
     let contributors = invocation
         .session
         .services
         .extensions
         .tool_lifecycle_contributors();
     if contributors.is_empty() {
-        return;
+        return Ok(());
     }
     let thread_store = &invocation.session.services.thread_extension_data;
     let conversation_history = invocation.session.conversation_history_snapshot().await;
@@ -39,24 +39,28 @@ pub(crate) async fn notify_tool_start(
         .and_then(|origin| origin.item_id);
 
     for contributor in contributors {
+        let input = || ToolStartInput {
+            session_store: &invocation.session.services.session_extension_data,
+            thread_store,
+            turn_store: invocation.turn.extension_data.as_ref(),
+            turn_id: invocation.turn.sub_id.as_str(),
+            root_turn_id: root_turn_id.as_deref(),
+            call_id: invocation.call_id.as_str(),
+            originating_item_id: originating_item_id.as_ref(),
+            tool_name: &invocation.tool_name,
+            mcp_tool,
+            permissions: Box::pin(async { tool_permission_context(invocation).await.ok() }),
+            payload: &invocation.payload,
+            conversation_history: Arc::clone(&conversation_history),
+            source: extension_tool_call_source(invocation.source.clone()),
+        };
         contributor
-            .on_tool_start(ToolStartInput {
-                session_store: &invocation.session.services.session_extension_data,
-                thread_store,
-                turn_store: invocation.turn.extension_data.as_ref(),
-                turn_id: invocation.turn.sub_id.as_str(),
-                root_turn_id: root_turn_id.as_deref(),
-                call_id: invocation.call_id.as_str(),
-                originating_item_id: originating_item_id.as_ref(),
-                tool_name: &invocation.tool_name,
-                mcp_tool,
-                permissions: Box::pin(async { tool_permission_context(invocation).await.ok() }),
-                payload: &invocation.payload,
-                conversation_history: Arc::clone(&conversation_history),
-                source: extension_tool_call_source(invocation.source.clone()),
-            })
-            .await;
+            .admit_tool_start(input())
+            .await
+            .map_err(codex_tools::FunctionCallError::Fatal)?;
+        contributor.on_tool_start(input()).await;
     }
+    Ok(())
 }
 
 pub(crate) async fn notify_command_start(

@@ -1819,7 +1819,8 @@ impl ModelClientSession {
                 &model_info.slug,
                 codex_extension_api::ModelRequestKind::Generation,
                 &mut request.client_metadata,
-            );
+            )
+            .await?;
             let inference_trace_attempt = inference_trace.start_attempt();
             inference_trace_attempt.add_request_headers(&mut options.extra_headers);
             if let Some(input) = tool_metadata::bounded_input(&request, &request.input) {
@@ -2122,7 +2123,8 @@ impl ModelClientSession {
                     codex_extension_api::ModelRequestKind::Generation
                 },
                 &mut ws_payload.client_metadata,
-            );
+            )
+            .await?;
             let mut ws_request = ResponsesWsRequest::ResponseCreate(ws_payload);
             stamp_ws_stream_request_start_ms(&mut ws_request);
             let ResponsesWsRequest::ResponseCreate(payload) = &ws_request;

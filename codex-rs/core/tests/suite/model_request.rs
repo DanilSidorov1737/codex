@@ -26,6 +26,62 @@ use tokio::time::Duration;
 use tokio::time::timeout;
 
 #[derive(Debug)]
+struct DenyGeneration;
+impl ModelRequestContributor for DenyGeneration {
+    fn request_guarded<'a>(
+        &'a self,
+        input: ModelRequestInput<'a>,
+    ) -> codex_extension_api::ExtensionFuture<
+        'a,
+        Result<Option<Box<dyn ModelResponseInterceptor>>, String>,
+    > {
+        Box::pin(async move {
+            if input.kind == ModelRequestKind::Generation {
+                Err("organization admission denied".into())
+            } else {
+                Ok(None)
+            }
+        })
+    }
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn failed_durable_admission_never_reaches_http_provider() -> Result<()> {
+    let server = responses::start_mock_server().await;
+    let mut registry = ExtensionRegistryBuilder::new();
+    registry.model_request_contributor(Arc::new(DenyGeneration));
+    let test = test_codex()
+        .with_extensions(Arc::new(registry.build()))
+        .build_with_auto_env(&server)
+        .await?;
+    test.codex
+        .start_or_steer_turn(TurnInputRequest::user_input(vec![UserInput::Text {
+            text: "hello".into(),
+            text_elements: vec![],
+        }]))
+        .await?;
+    let event = timeout(
+        Duration::from_secs(10),
+        wait_for_event(&test.codex, |e| matches!(e, EventMsg::Error(_))),
+    )
+    .await?;
+    let EventMsg::Error(error) = event else {
+        unreachable!()
+    };
+    assert!(error.message.contains("organization admission denied"));
+    let requests = server.received_requests().await.unwrap();
+    assert_eq!(
+        requests
+            .iter()
+            .filter(|request| request.method == wiremock::http::Method::POST
+                && request.url.path().ends_with("/responses"))
+            .count(),
+        0
+    );
+    Ok(())
+}
+
+#[derive(Debug)]
 struct Gates {
     delivered: Semaphore,
     output_waiting: Semaphore,

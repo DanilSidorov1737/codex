@@ -64,6 +64,68 @@ struct RecordedHistory {
     mcp_tool: Option<(String, Option<String>, McpToolSource)>,
 }
 
+struct DenyNativeHandler;
+impl ToolLifecycleContributor for DenyNativeHandler {
+    fn admit_tool_start<'a>(
+        &'a self,
+        _input: ToolStartInput<'a>,
+    ) -> ExtensionFuture<'a, Result<(), String>> {
+        Box::pin(async { Err("organization tool dispatch denied".into()) })
+    }
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn failed_durable_tool_admission_prevents_native_side_effect() -> Result<()> {
+    let server = responses::start_mock_server().await;
+    responses::mount_sse_sequence(
+        &server,
+        vec![responses::sse(vec![
+            responses::ev_function_call(
+                "blocked-shell",
+                "exec_command",
+                &json!({"cmd":"echo should-not-exist > blocked-artifact.txt"}).to_string(),
+            ),
+            responses::ev_completed("r"),
+        ])],
+    )
+    .await;
+    let mut registry = ExtensionRegistryBuilder::<Config>::new();
+    registry.tool_lifecycle_contributor(Arc::new(DenyNativeHandler));
+    let test = test_codex()
+        .with_extensions(Arc::new(registry.build()))
+        .with_config(|config| {
+            config
+                .features
+                .disable(Feature::UnifiedExec)
+                .expect("test permits one-shot execution");
+        })
+        .build_with_auto_env(&server)
+        .await?;
+    test.codex
+        .start_or_steer_turn(codex_core::TurnInputRequest::user_input(vec![
+            UserInput::Text {
+                text: "make an artifact".into(),
+                text_elements: vec![],
+            },
+        ]))
+        .await?;
+    let event = timeout(
+        Duration::from_secs(10),
+        wait_for_event(&test.codex, |e| matches!(e, EventMsg::Error(_))),
+    )
+    .await?;
+    let EventMsg::Error(error) = event else {
+        unreachable!()
+    };
+    assert!(
+        error.message.contains("organization tool dispatch denied"),
+        "unexpected error: {}",
+        error.message
+    );
+    assert!(!test.cwd.path().join("blocked-artifact.txt").exists());
+    Ok(())
+}
+
 #[derive(Default)]
 struct ConversationHistoryRecorder {
     histories: Mutex<Vec<RecordedHistory>>,

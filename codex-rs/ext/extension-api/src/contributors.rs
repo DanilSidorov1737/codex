@@ -374,6 +374,16 @@ pub trait ToolLifecycleContributor: Send + Sync {
     /// Excludes nested code-mode calls. Observers must return promptly.
     fn on_tool_dispatch(&self, _input: ToolDispatchInput<'_>) {}
 
+    /// Trusted host gate after hook rewriting and before the native handler.
+    /// A denied or failed durable admission prevents execution. The host must
+    /// fence authority again immediately before committing a delayed dispatch.
+    fn admit_tool_start<'a>(
+        &'a self,
+        _input: ToolStartInput<'a>,
+    ) -> ExtensionFuture<'a, Result<(), String>> {
+        Box::pin(std::future::ready(Ok(())))
+    }
+
     /// Called after pre-tool hooks finalize an invocation and before execution.
     ///
     /// Calls blocked by hooks, or whose hook-provided input cannot be applied,

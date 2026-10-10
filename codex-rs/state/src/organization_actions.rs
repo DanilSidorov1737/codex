@@ -35,7 +35,7 @@ impl OrganizationStore {
             "invalid tool call identity"
         );
         ensure!(
-            matches!(tool, "shell_command" | "apply_patch"),
+            matches!(tool, "exec_command" | "apply_patch"),
             "tool outside managed execution policy"
         );
         ensure!(
@@ -193,7 +193,17 @@ impl OrganizationStore {
         );
         let mut tx = self.pool.begin_with("BEGIN IMMEDIATE").await?;
         let mut action = read_action(&mut tx, action_id).await?;
-        let (mut attempt, _) = check_live_fence(&mut tx, &action.attempt_id, worker, now).await?;
+        let (mut attempt, authorization) =
+            check_live_fence(&mut tx, &action.attempt_id, worker, now).await?;
+        let used_tokens: i64 =
+            sqlx::query_scalar("SELECT used_tokens FROM organization_authorizations WHERE id=?")
+                .bind(&authorization.id)
+                .fetch_one(&mut *tx)
+                .await?;
+        ensure!(
+            used_tokens < authorization.scope.max_tokens,
+            "reported token ceiling exhausted before dispatch"
+        );
         ensure!(
             action.state == OrganizationActionState::Pending,
             "action already dispatched or resolved; never replay"

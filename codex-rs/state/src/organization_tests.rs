@@ -30,6 +30,54 @@ async fn authorized_attempt(
 }
 
 #[tokio::test]
+async fn pending_approval_cannot_dispatch_after_reported_budget_exhaustion() -> Result<()> {
+    let home = Fixture::new();
+    let store = OrganizationStore::open(&home.0).await?;
+    let (worker, attempt) = authorized_attempt(&store, true).await?;
+    assert!(
+        store
+            .prepare_action(
+                &attempt.id,
+                &worker,
+                "obsolete",
+                "shell_command",
+                "{}",
+                1001
+            )
+            .await
+            .is_err()
+    );
+    let (sequence, _) = store
+        .admit_model_request(&attempt.id, &worker, 1001)
+        .await?;
+    let action = store
+        .prepare_action(&attempt.id, &worker, "current", "exec_command", "{}", 1001)
+        .await?;
+    store
+        .checkpoint_usage(&attempt.id, &worker, sequence, execution_scope().max_tokens)
+        .await?;
+    store
+        .decide_approval(
+            action.approval_id.as_ref().unwrap(),
+            &action.action_hash,
+            true,
+            1002,
+        )
+        .await?;
+    assert!(
+        store
+            .dispatch_action(&action.id, &worker, 1002, 2)
+            .await
+            .is_err()
+    );
+    let view = store.execution_view(&attempt.task_id).await?;
+    assert_eq!(view.actions[0].state, OrganizationActionState::Pending);
+    assert_eq!(view.task.state, "waitingApproval");
+    store.close().await;
+    Ok(())
+}
+
+#[tokio::test]
 async fn exact_approval_single_dispatch_and_capacity_reacquisition() -> Result<()> {
     let home = Fixture::new();
     let store = OrganizationStore::open(&home.0).await?;
@@ -39,7 +87,7 @@ async fn exact_approval_single_dispatch_and_capacity_reacquisition() -> Result<(
             &attempt.id,
             &worker,
             "call-1",
-            "shell_command",
+            "exec_command",
             "{\"command\":\"echo hello > report.txt\"}",
             1001,
         )
@@ -71,7 +119,7 @@ async fn exact_approval_single_dispatch_and_capacity_reacquisition() -> Result<(
                 &attempt.id,
                 &worker,
                 "call-1",
-                "shell_command",
+                "exec_command",
                 "{\"command\":\"different\"}",
                 1001
             )
@@ -83,7 +131,7 @@ async fn exact_approval_single_dispatch_and_capacity_reacquisition() -> Result<(
             &attempt.id,
             &worker,
             "call-1",
-            "shell_command",
+            "exec_command",
             &action.arguments,
             1001,
         )
@@ -138,7 +186,7 @@ async fn exact_approval_single_dispatch_and_capacity_reacquisition() -> Result<(
                 &attempt.id,
                 &worker,
                 "call-1",
-                "shell_command",
+                "exec_command",
                 &action.arguments,
                 1003
             )
@@ -207,7 +255,7 @@ async fn pause_restart_and_expiry_never_accept_or_replay_old_actions() -> Result
             &attempt.id,
             &worker,
             "dispatched",
-            "shell_command",
+            "exec_command",
             "{}",
             1002,
         )
@@ -258,7 +306,7 @@ async fn pending_approval_survives_restart_but_requires_reconciliation() -> Resu
     let store = OrganizationStore::open(&home.0).await?;
     let (worker, attempt) = authorized_attempt(&store, true).await?;
     let action = store
-        .prepare_action(&attempt.id, &worker, "pending", "shell_command", "{}", 1001)
+        .prepare_action(&attempt.id, &worker, "pending", "exec_command", "{}", 1001)
         .await?;
     store.close().await;
     let store = OrganizationStore::open(&home.0).await?;
@@ -296,7 +344,7 @@ async fn action_limit_bounds_private_review_payloads() -> Result<()> {
     for index in 0..100 {
         let call = format!("bounded-{index}");
         let action = store
-            .prepare_action(&attempt.id, &worker, &call, "shell_command", "{}", 1001)
+            .prepare_action(&attempt.id, &worker, &call, "exec_command", "{}", 1001)
             .await?;
         assert!(store.dispatch_action(&action.id, &worker, 1001, 2).await?);
         store
@@ -309,7 +357,7 @@ async fn action_limit_bounds_private_review_payloads() -> Result<()> {
                 &attempt.id,
                 &worker,
                 "over-limit",
-                "shell_command",
+                "exec_command",
                 "{}",
                 1001
             )
@@ -341,7 +389,7 @@ async fn waiting_approval_keeps_capacity_until_inference_completion() -> Result<
             &attempt.id,
             &worker,
             "streamed-tool",
-            "shell_command",
+            "exec_command",
             "{}",
             1001,
         )
@@ -939,7 +987,7 @@ async fn execution_budget_accounts_usage_once_and_blocks_unreported_work() -> Re
                 &attempt.id,
                 &worker,
                 "after-overage",
-                "shell_command",
+                "exec_command",
                 "{}",
                 1003
             )
