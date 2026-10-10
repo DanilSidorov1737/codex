@@ -39,6 +39,7 @@ use crate::request_processors::MarketplaceRequestProcessor;
 use crate::request_processors::McpEventStreamReady;
 use crate::request_processors::McpEventStreams;
 use crate::request_processors::McpRequestProcessor;
+use crate::request_processors::OrganizationRequestProcessor;
 use crate::request_processors::PluginRequestProcessor;
 use crate::request_processors::ProcessExecRequestProcessor;
 use crate::request_processors::ProjectRequestProcessor;
@@ -163,6 +164,7 @@ pub(crate) struct MessageProcessor {
     mcp_processor: McpRequestProcessor,
     plugin_processor: PluginRequestProcessor,
     project_processor: ProjectRequestProcessor,
+    organization_processor: OrganizationRequestProcessor,
     pub(super) remote_control_processor: RemoteControlRequestProcessor,
     search_processor: SearchRequestProcessor,
     thread_goal_processor: ThreadGoalRequestProcessor,
@@ -367,11 +369,10 @@ impl MessageProcessor {
                     outgoing.clone(),
                     thread_state_manager.clone(),
                 )),
-                Some({
-                    let time_provider =
-                        app_server_time_provider(outgoing.clone(), thread_state_manager.clone());
-                    time_provider
-                }),
+                Some(app_server_time_provider(
+                    outgoing.clone(),
+                    thread_state_manager.clone(),
+                )),
             );
             match code_mode_session_provider {
                 Some(provider) => manager.with_code_mode_session_provider(provider),
@@ -507,6 +508,10 @@ impl MessageProcessor {
             outgoing.clone(),
             Arc::clone(&thread_list_state_permit),
         );
+        let organization_processor = OrganizationRequestProcessor::new(
+            config.sqlite_config().home().to_path_buf(),
+            Arc::clone(&thread_store),
+        );
         let thread_processor = ThreadRequestProcessor::new(
             auth_manager.clone(),
             Arc::clone(&thread_manager),
@@ -606,6 +611,7 @@ impl MessageProcessor {
             mcp_processor,
             plugin_processor,
             project_processor,
+            organization_processor,
             remote_control_processor,
             search_processor,
             thread_goal_processor,
@@ -1485,6 +1491,19 @@ impl MessageProcessor {
             }
             ClientRequest::ProjectList { params, .. } => {
                 self.project_processor.project_list(params).await
+            }
+            ClientRequest::OrganizationList { params, .. } => {
+                self.organization_processor
+                    .list(params, session.origin)
+                    .await
+            }
+            ClientRequest::OrganizationMutate { params, .. } => {
+                self.organization_processor
+                    .mutate(params, session.origin)
+                    .await
+            }
+            ClientRequest::OrganizationBackup { .. } => {
+                self.organization_processor.backup(session.origin).await
             }
             ClientRequest::ProjectRead { params, .. } => {
                 self.project_processor.project_read(params).await

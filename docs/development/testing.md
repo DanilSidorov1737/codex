@@ -1,5 +1,63 @@
 # Testing procedures and evidence
 
+## B1/M3 definitions and real commands
+
+On 2026-10-10 UTC, using the same Linux/Rust activation and `dev-small` profile:
+
+- `cargo test --locked --offline --profile dev-small -p codex-state --lib -j 4`:
+  **237 passed, zero failed/ignored** on the final run. New tests add arbitrary forest,
+  membership, Unicode, concurrent revision race, immutable role versions,
+  goal/project links, task dependency cycles, rollback, pagination, restored
+  IDs and exclusive concurrent restoration. Final log:
+  `/workspace/.onboarding/qualification/mvp-b1-state-final-tests.log`.
+- `cargo test --locked --profile dev-small -p codex-app-server --test all suite::v2::organization -j 4`:
+  **1 passed, zero failed/ignored**. Real app-server create/link/list, graceful
+  shutdown/restart and stable IDs. Local deterministic provider fixture; no
+  inference is needed. Log: `mvp-b1-api-tests.log` in the qualification directory.
+- `cargo build --locked --offline --profile dev-small -p codex-cli --bin codex -j 4`:
+  exit 0. Built actual CLI with the new organization subcommand.
+- Physically entered commands in an interactive Bash PTY using isolated
+  `CODEX_HOME` and `CODEX_SQLITE_HOME` under
+  `/workspace/.onboarding/qualification/mvp-b1/`: create agent/group/role/goal,
+  create an existing project, add child/membership, rename agent, link project,
+  propose task, backup, restore into fresh state, list restored records.
+  Stale revision and self-cycle edits both exited 1 with expected errors.
+  Read-only SQLite comparison confirmed identical nodes (3), role versions (1),
+  goals (1), project links (1), tasks (1), memberships (1), audit entries (9).
+  JSON outputs and error evidence remain in that fixture directory.
+- The offline API build initially lacked pinned `assert_cmd` artifacts. Retried
+  the same locked dependency graph through the configured network proxy; passed.
+  Completed incremental compilation caches were removed to avoid the 32 GiB disk
+  limit; active compiler cache, binaries, source and logs were retained.
+
+- `cargo test --locked --offline --profile dev-small -p codex-app-server-transport --lib unix_socket_tests -j 4`:
+  **11 passed**, including an actual owner-socket origin assertion. Ran outside
+  the outer cloud sandbox because its masked socket root prevents real socket
+  checks; existing socket security was preserved. Log: `mvp-b1-socket-tests.log`.
+- `cargo test --locked --offline --profile dev-small -p codex-app-server --lib request_processors::organization -j 4`:
+  **1 passed**; local owner origins allowed, WebSocket/Remote Control denied.
+- `cargo test --locked --offline --profile dev-small -p codex-protocol --lib organization::tests -j 4`:
+  **1 passed**; every mutation's actual JSON fields match its schema. Inspection
+  caught unsupported enum-wide field renaming in Schemars; variant annotations
+  fixed the generated contract before acceptance.
+- Regenerated stable and experimental schema bundles with the repository's
+  ignored schema-writer test and regenerated the Python SDK with its documented
+  artifact updater. Used `dev-small` rather than creating another default-profile
+  build. `uv` used the existing frozen Python test dependency group.
+- Python SDK contract generation/public signature tests: **25 passed**, exit 0.
+  Log: `mvp-b1-python-contract-tests.log`. Mutation types changed; no stable
+  organization RPC method was introduced.
+- Affected-package formatting check: exit 0. Initial Clippy reported a preexisting
+  redundant binding in the touched app-server constructor; simplified it and
+  reran. Final Clippy passed with warnings denied; all four schema bundle comparison
+  checks passed (the schema-writer helper is intentionally ignored during normal
+  tests and was run separately above). Final CLI rebuild/requalification remains
+  in progress. Logs: `mvp-b1-clippy-final.log`, `mvp-b1-schema-tests.log`.
+
+B1 defines proposed work;
+no background task, integrated layout/editor, same-user sandbox denial or live
+provider behavior is claimed from these checks.
+
 ## B1/M2 store verification
 
 On 2026-10-10 UTC, Linux x86_64, Rust 1.95.0, from `codex-rs` after documented
@@ -19,9 +77,9 @@ activation:
   `AssertSqlSafe`, then checks were rerun. Full-repository formatting initially
   reported the new unformatted files; package formatting was fixed and rechecked.
 
-This qualifies the storage slice, not the complete B1, agent sandbox exclusion,
-or MVP. No new commands exist yet to physically exercise; M3 must add and test
-them. No live provider request or broad Bazel/platform suite was run.
+This qualified the initial storage slice. Subsequent M3 commands and checks are
+recorded above. Agent sandbox exclusion and the complete MVP are outstanding;
+no live provider request or broad Bazel/platform suite was run.
 
 ## MVP planning verification
 

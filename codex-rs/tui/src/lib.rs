@@ -79,6 +79,8 @@ use color_eyre::eyre::WrapErr;
 use crossterm::SynchronizedUpdate;
 use cwd_prompt::CwdPromptAction;
 pub use daemon_startup::uses_wsl_drvfs;
+pub use organization_commands::OrganizationCommandAction;
+pub use organization_commands::run_organization_command;
 pub use session_archive_commands::DeleteConfirmation;
 pub use session_archive_commands::SessionArchiveAction;
 pub use session_archive_commands::SessionArchiveCommandOptions;
@@ -191,6 +193,7 @@ mod notifications;
 #[cfg(any(not(debug_assertions), test))]
 mod npm_registry;
 pub(crate) mod onboarding;
+mod organization_commands;
 mod oss_selection;
 mod pager_overlay;
 mod projectless;

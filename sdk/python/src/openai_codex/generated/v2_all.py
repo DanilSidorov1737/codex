@@ -3018,6 +3018,170 @@ class NullableGetAccountTokenUsageParams(RootModel[GetAccountTokenUsageParams | 
     ]
 
 
+class OrganizationGoal(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    criteria: list[str]
+    id: str
+    objective: str
+    parent_id: Annotated[str | None, Field(alias="parentId")] = None
+    revision: int
+
+
+class OrganizationMembership(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    group_id: Annotated[str, Field(alias="groupId")]
+    id: str
+    node_id: Annotated[str, Field(alias="nodeId")]
+
+
+class CreateRoleVersionOrganizationMutation(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    expected_version: Annotated[int | None, Field(alias="expectedVersion")] = None
+    instructions: str
+    name: str
+    role_id: Annotated[str | None, Field(alias="roleId")] = None
+    type: Annotated[
+        Literal["createRoleVersion"], Field(title="CreateRoleVersionOrganizationMutationType")
+    ]
+
+
+class PutGoalOrganizationMutation(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    criteria: list[str]
+    expected_revision: Annotated[int | None, Field(alias="expectedRevision")] = None
+    id: str | None = None
+    objective: str
+    parent_id: Annotated[str | None, Field(alias="parentId")] = None
+    type: Annotated[Literal["putGoal"], Field(title="PutGoalOrganizationMutationType")]
+
+
+class LinkProjectOrganizationMutation(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    criteria: list[str]
+    expected_revision: Annotated[int | None, Field(alias="expectedRevision")] = None
+    goal_id: Annotated[str | None, Field(alias="goalId")] = None
+    owner_id: Annotated[str | None, Field(alias="ownerId")] = None
+    project_id: Annotated[str, Field(alias="projectId")]
+    type: Annotated[Literal["linkProject"], Field(title="LinkProjectOrganizationMutationType")]
+
+
+class PutTaskOrganizationMutation(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    criteria: list[str]
+    expected_revision: Annotated[int | None, Field(alias="expectedRevision")] = None
+    goal_id: Annotated[str | None, Field(alias="goalId")] = None
+    id: str | None = None
+    instructions: str
+    owner_id: Annotated[str, Field(alias="ownerId")]
+    prerequisites: list[str]
+    project_id: Annotated[str, Field(alias="projectId")]
+    type: Annotated[Literal["putTask"], Field(title="PutTaskOrganizationMutationType")]
+
+
+class SetMembershipOrganizationMutation(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    group_id: Annotated[str, Field(alias="groupId")]
+    node_id: Annotated[str, Field(alias="nodeId")]
+    present: bool
+    type: Annotated[Literal["setMembership"], Field(title="SetMembershipOrganizationMutationType")]
+
+
+class OrganizationNodeKind(Enum):
+    agent = "agent"
+    group = "group"
+
+
+class OrganizationProjectPlan(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    criteria: list[str]
+    goal_id: Annotated[str | None, Field(alias="goalId")] = None
+    id: str
+    name: str
+    owner_id: Annotated[str | None, Field(alias="ownerId")] = None
+    revision: int
+    roots: list[str]
+
+
+class GoalOrganizationRecord(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    data: OrganizationGoal
+    type: Annotated[Literal["goal"], Field(title="GoalOrganizationRecordType")]
+
+
+class ProjectOrganizationRecord(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    data: OrganizationProjectPlan
+    type: Annotated[Literal["project"], Field(title="ProjectOrganizationRecordType")]
+
+
+class MembershipOrganizationRecord(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    data: OrganizationMembership
+    type: Annotated[Literal["membership"], Field(title="MembershipOrganizationRecordType")]
+
+
+class OrganizationRecordKind(Enum):
+    nodes = "nodes"
+    roles = "roles"
+    goals = "goals"
+    projects = "projects"
+    tasks = "tasks"
+    memberships = "memberships"
+
+
+class OrganizationRoleVersion(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    id: str
+    instructions: str
+    name: str
+    role_id: Annotated[str, Field(alias="roleId")]
+    version: int
+
+
+class OrganizationTask(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    criteria: list[str]
+    goal_id: Annotated[str | None, Field(alias="goalId")] = None
+    id: str
+    instructions: str
+    owner_id: Annotated[str, Field(alias="ownerId")]
+    prerequisites: list[str]
+    project_id: Annotated[str, Field(alias="projectId")]
+    revision: int
+    state: str
+
+
 class PatchApplyStatus(Enum):
     in_progress = "inProgress"
     completed = "completed"
@@ -8934,6 +9098,106 @@ class NewThreadModelDefaults(BaseModel):
         ReasoningEffort | None, Field(alias="modelReasoningEffort")
     ] = None
     service_tier: Annotated[str | None, Field(alias="serviceTier")] = None
+
+
+class PutNodeOrganizationMutation(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    enabled: bool
+    expected_revision: Annotated[int | None, Field(alias="expectedRevision")] = None
+    id: str | None = None
+    kind: OrganizationNodeKind
+    label: str
+    model: str | None = None
+    parent_id: Annotated[str | None, Field(alias="parentId")] = None
+    role_version_id: Annotated[str | None, Field(alias="roleVersionId")] = None
+    type: Annotated[Literal["putNode"], Field(title="PutNodeOrganizationMutationType")]
+
+
+class OrganizationMutation(
+    RootModel[
+        PutNodeOrganizationMutation
+        | CreateRoleVersionOrganizationMutation
+        | PutGoalOrganizationMutation
+        | LinkProjectOrganizationMutation
+        | PutTaskOrganizationMutation
+        | SetMembershipOrganizationMutation
+    ]
+):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    root: (
+        PutNodeOrganizationMutation
+        | CreateRoleVersionOrganizationMutation
+        | PutGoalOrganizationMutation
+        | LinkProjectOrganizationMutation
+        | PutTaskOrganizationMutation
+        | SetMembershipOrganizationMutation
+    )
+
+
+class OrganizationNode(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    enabled: bool
+    id: str
+    kind: OrganizationNodeKind
+    label: str
+    model: str | None = None
+    parent_id: Annotated[str | None, Field(alias="parentId")] = None
+    revision: int
+    role_version_id: Annotated[str | None, Field(alias="roleVersionId")] = None
+
+
+class NodeOrganizationRecord(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    data: OrganizationNode
+    type: Annotated[Literal["node"], Field(title="NodeOrganizationRecordType")]
+
+
+class RoleOrganizationRecord(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    data: OrganizationRoleVersion
+    type: Annotated[Literal["role"], Field(title="RoleOrganizationRecordType")]
+
+
+class TaskOrganizationRecord(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    data: OrganizationTask
+    type: Annotated[Literal["task"], Field(title="TaskOrganizationRecordType")]
+
+
+class OrganizationRecord(
+    RootModel[
+        NodeOrganizationRecord
+        | RoleOrganizationRecord
+        | GoalOrganizationRecord
+        | ProjectOrganizationRecord
+        | TaskOrganizationRecord
+        | MembershipOrganizationRecord
+    ]
+):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    root: (
+        NodeOrganizationRecord
+        | RoleOrganizationRecord
+        | GoalOrganizationRecord
+        | ProjectOrganizationRecord
+        | TaskOrganizationRecord
+        | MembershipOrganizationRecord
+    )
 
 
 class OverriddenMetadata(BaseModel):

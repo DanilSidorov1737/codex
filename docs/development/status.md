@@ -1,8 +1,8 @@
 # Current status and resumption instructions
 
 Phase 0: **exploration and planning complete for available inputs**.
-Current work: **approved MVP implementation; B1/M2 store tested, M3 definitions next**.
-Application feature implementation: **protected store implemented; B1 not yet complete**.
+Current work: **approved MVP implementation; B1 definitions/commands tested, final checks in progress**.
+Application feature implementation: **protected store and B1 definitions/commands implemented; complete MVP outstanding**.
 
 ## Current authorization
 
@@ -29,10 +29,23 @@ authorize push/publication, outbound communications or unbounded provider spendi
   Missing/truncated initialized state is rejected rather than reset automatically.
 - All 233 codex-state library tests passed, including five new meaningful store
   tests. Clippy with warnings denied and package formatting checks passed.
-- This is a storage library slice; no new CLI/RPC command or background organization
-  task is delivered yet. Real command/TUI interaction follows when M3 exposes it.
-- Next: durable arbitrary nodes/role versions, goals, existing-project links and
-  proposed tasks, with revision/cycle checks, typed RPC and actual command checks.
+- Added typed, experimental owner RPC and real `codex organization` commands for
+  arbitrary agent/group forests, immutable role versions, goals, existing-project
+  links, proposed tasks, memberships and snapshots. See [command guide](organization-commands.md).
+- Revision checks, hierarchy/dependency cycle rejection, same-project prerequisites,
+  immutable node kinds and transactional audit references are enforced in SQLite.
+- Owner administration accepts protected local origins and rejects network/Remote
+  Control origins. Agents do not receive this administrative API.
+- All 237 codex-state library tests passed, including concurrent restore protection. The app-server API restart test passed
+  with stable agent and existing-project IDs. Actual CLI commands created and
+  renamed records, rejected stale edits/cycles, backed up and restored a fresh
+  database; all seven definition/audit tables matched exactly.
+- Socket regression (11), owner guard (1), mutation/schema parity (1) and Python
+  contract/signature (25) tests passed. Format, final Clippy and all four schema comparisons passed. Final CLI rebuild
+  and current-binary command requalification are in progress. No background organization task starts yet.
+- Next: B2 durable authorization, attempts/reservations, approvals/action intents,
+  bounded runtime execution and fail-closed restart reconciliation. Agent sandbox
+  exclusion must be proved before unattended execution.
 
 ## MVP planning completed before implementation
 
@@ -103,8 +116,8 @@ authorize push/publication, outbound communications or unbounded provider spendi
 - The outer cloud sandbox hides daemon sockets. The isolated daemon and attached
   TUI checks ran with authorized unsandboxed execution; the restriction was not
   weakened. Future daemon checks need that execution mode.
-- All architecture decisions except Phase 0 documentation/process rules remain
-  proposed. No schemas/features/dependency changes are implemented.
+- B1 canonical state and definition/API decisions are implemented; later runtime,
+  security, layout and editor decisions still require implementation and evidence.
 
 ## Resume safely
 
@@ -113,8 +126,8 @@ authorize push/publication, outbound communications or unbounded provider spendi
 3. Verify the owner's latest explicit approval and constraints. Without approval,
    answer planning questions or revise documentation only.
 4. Review qualification evidence and remaining gates rather than repeating the
-   baseline. The next proposed product slice is M2's protected organization store
-   and recovery checks, followed by B1's definitions/goal/project operations.
+   baseline. Continue B1 final verification/commit, then B2 task execution and recovery.
+   Do not restart the completed storage/definition work.
    Full Neovim pane integration remains B5/M8. Keep broader
    feature scope and live-provider budget explicit.
 5. Recheck runtime/environment readiness and existing credential bindings without

@@ -775,6 +775,24 @@ client_request_definitions! {
         serialization: None,
         response: v2::ThreadListResponse,
     },
+    #[experimental("organization/list")]
+    OrganizationList => "organization/list" {
+        params: v2::OrganizationListParams,
+        serialization: global_shared_read("organization"),
+        response: v2::OrganizationListResponse,
+    },
+    #[experimental("organization/mutate")]
+    OrganizationMutate => "organization/mutate" {
+        params: v2::OrganizationMutateParams,
+        serialization: global("organization"),
+        response: v2::OrganizationMutateResponse,
+    },
+    #[experimental("organization/backup")]
+    OrganizationBackup => "organization/backup" {
+        params: v2::OrganizationBackupParams,
+        serialization: global("organization"),
+        response: v2::OrganizationBackupResponse,
+    },
     #[experimental("project/list")]
     ProjectList => "project/list" {
         params: v2::ProjectListParams,

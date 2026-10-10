@@ -2369,6 +2369,311 @@
       ],
       "type": "string"
     },
+    "OrganizationMutation": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "expectedRevision": {
+              "format": "int64",
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "kind": {
+              "$ref": "#/definitions/OrganizationNodeKind"
+            },
+            "label": {
+              "type": "string"
+            },
+            "model": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "parentId": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "roleVersionId": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "type": {
+              "enum": [
+                "putNode"
+              ],
+              "title": "PutNodeOrganizationMutationType",
+              "type": "string"
+            }
+          },
+          "required": [
+            "enabled",
+            "kind",
+            "label",
+            "type"
+          ],
+          "title": "PutNodeOrganizationMutation",
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "expectedVersion": {
+              "format": "int64",
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "instructions": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "roleId": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "type": {
+              "enum": [
+                "createRoleVersion"
+              ],
+              "title": "CreateRoleVersionOrganizationMutationType",
+              "type": "string"
+            }
+          },
+          "required": [
+            "instructions",
+            "name",
+            "type"
+          ],
+          "title": "CreateRoleVersionOrganizationMutation",
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "criteria": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "expectedRevision": {
+              "format": "int64",
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "objective": {
+              "type": "string"
+            },
+            "parentId": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "type": {
+              "enum": [
+                "putGoal"
+              ],
+              "title": "PutGoalOrganizationMutationType",
+              "type": "string"
+            }
+          },
+          "required": [
+            "criteria",
+            "objective",
+            "type"
+          ],
+          "title": "PutGoalOrganizationMutation",
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "criteria": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "expectedRevision": {
+              "format": "int64",
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "goalId": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "ownerId": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "projectId": {
+              "type": "string"
+            },
+            "type": {
+              "enum": [
+                "linkProject"
+              ],
+              "title": "LinkProjectOrganizationMutationType",
+              "type": "string"
+            }
+          },
+          "required": [
+            "criteria",
+            "projectId",
+            "type"
+          ],
+          "title": "LinkProjectOrganizationMutation",
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "criteria": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "expectedRevision": {
+              "format": "int64",
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "goalId": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "instructions": {
+              "type": "string"
+            },
+            "ownerId": {
+              "type": "string"
+            },
+            "prerequisites": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "projectId": {
+              "type": "string"
+            },
+            "type": {
+              "enum": [
+                "putTask"
+              ],
+              "title": "PutTaskOrganizationMutationType",
+              "type": "string"
+            }
+          },
+          "required": [
+            "criteria",
+            "instructions",
+            "ownerId",
+            "prerequisites",
+            "projectId",
+            "type"
+          ],
+          "title": "PutTaskOrganizationMutation",
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "groupId": {
+              "type": "string"
+            },
+            "nodeId": {
+              "type": "string"
+            },
+            "present": {
+              "type": "boolean"
+            },
+            "type": {
+              "enum": [
+                "setMembership"
+              ],
+              "title": "SetMembershipOrganizationMutationType",
+              "type": "string"
+            }
+          },
+          "required": [
+            "groupId",
+            "nodeId",
+            "present",
+            "type"
+          ],
+          "title": "SetMembershipOrganizationMutation",
+          "type": "object"
+        }
+      ]
+    },
+    "OrganizationNodeKind": {
+      "enum": [
+        "agent",
+        "group"
+      ],
+      "type": "string"
+    },
+    "OrganizationRecordKind": {
+      "enum": [
+        "nodes",
+        "roles",
+        "goals",
+        "projects",
+        "tasks",
+        "memberships"
+      ],
+      "type": "string"
+    },
     "PermissionProfileListParams": {
       "properties": {
         "cursor": {

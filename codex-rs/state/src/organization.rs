@@ -2,7 +2,7 @@
 //!
 //! Opening fails on corruption, incompatible migrations or unsafe paths. Backups
 //! are consistent SQLite snapshots; restoration creates a new store, never replaces
-//! a live database. Agent sandbox exclusion is enforced by the execution host.
+//! a live database. The execution host must exclude this state from agent sandboxes.
 
 #![expect(
     clippy::disallowed_methods,
@@ -29,6 +29,9 @@ static MIGRATOR: Migrator = sqlx_macros::migrate!("./organization_migrations");
 const DIRECTORY: &str = "organization";
 const DATABASE: &str = "organization.sqlite";
 const MARKER: &str = "initialized";
+
+#[path = "organization_definitions.rs"]
+mod definitions;
 
 #[derive(Clone, Debug)]
 pub struct OrganizationStore {
@@ -152,17 +155,26 @@ impl OrganizationStore {
         validate_snapshot(backup).await?;
         tokio::fs::create_dir_all(sqlite_home).await?;
         let directory = sqlite_home.join(DIRECTORY);
-        ensure!(
-            std::fs::symlink_metadata(&directory).is_err(),
-            "restore destination already exists"
-        );
+        let mut builder = std::fs::DirBuilder::new();
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::DirBuilderExt;
+            builder.mode(0o700);
+        }
+        builder
+            .create(&directory)
+            .context("restore destination must be a fresh organization directory")?;
         private_directory(&directory).await?;
         let staging = directory.join("restore.partial");
         let mut source = private_file(backup, false)?;
         let mut target = private_file(&staging, true)?;
         std::io::copy(&mut source, &mut target)?;
         target.sync_all()?;
-        tokio::fs::rename(&staging, directory.join(DATABASE)).await?;
+        validate_snapshot(&staging).await?;
+        // A concurrent service opening this fresh home must not be overwritten.
+        // Publish without replacement, then remove the staging name so nlink is 1.
+        tokio::fs::hard_link(&staging, directory.join(DATABASE)).await?;
+        tokio::fs::remove_file(&staging).await?;
         sync_directory(&directory)?;
         Self::open(sqlite_home).await
     }

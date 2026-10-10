@@ -20,6 +20,8 @@ organization is a template, not the product's fixed structure.
 6. Follow [process](process.md) and [testing](testing.md); update this documentation
    with every meaningful implementation or scope change.
 
+B1 usage: [organization command guide](organization-commands.md).
+
 Other focused plans: [security and recovery](security-and-recovery.md),
 [TUI and Neovim](tui-and-neovim.md), [Ponytail setup](ponytail.md).
 Current foundation evidence: [CLI, daemon and real Neovim qualification](qualification.md).

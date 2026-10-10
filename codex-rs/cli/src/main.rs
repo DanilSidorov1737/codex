@@ -71,6 +71,7 @@ mod marketplace_cmd;
 mod mcp_cmd;
 mod mcp_login;
 mod migrate_rollouts;
+mod organization_cmd;
 mod plugin_cmd;
 mod queue_cmd;
 mod remote_control_cmd;
@@ -147,6 +148,8 @@ struct MultitoolCli {
 enum Subcommand {
     /// Browse all agent sessions on the shared local app-server daemon.
     Agents(AgentsCommand),
+    /// Manage durable user-defined agents, goals, projects and proposed tasks.
+    Organization(organization_cmd::OrganizationCommand),
 
     /// Internal: forward a local TCP socket through an HTTP/3 CONNECT proxy.
     #[clap(hide = true)]
@@ -1507,6 +1510,21 @@ async fn cli_main(
             .await?;
             println!("{output}");
         }
+        Some(Subcommand::Organization(cmd)) => {
+            reject_remote_mode_for_subcommand(
+                root_remote.as_deref(),
+                root_remote_auth_token_env.as_deref(),
+                "organization",
+            )?;
+            let output = organization_cmd::run(
+                cmd,
+                interactive,
+                root_config_overrides.clone(),
+                arg0_paths.clone(),
+            )
+            .await?;
+            println!("{output}");
+        }
         Some(Subcommand::Delete(DeleteCommand { session, force })) => {
             let action = delete_action(&session.target, force)?;
             let output = run_session_archive_cli_command(
@@ -1897,6 +1915,7 @@ fn profile_v2_for_subcommand<'a>(
         | Subcommand::Review(_)
         | Subcommand::Resume(_)
         | Subcommand::Queue(_)
+        | Subcommand::Organization(_)
         | Subcommand::Archive(_)
         | Subcommand::Delete(_)
         | Subcommand::Unarchive(_)
@@ -2191,6 +2210,7 @@ fn reject_unsupported_worktree_for_subcommand(
         }
         Some(Subcommand::Delete(command)) => command.session.config_overrides.shared.worktree,
         Some(Subcommand::Queue(command)) => command.config_overrides.shared.worktree,
+        Some(Subcommand::Organization(command)) => command.config_overrides.shared.worktree,
         _ => false,
     };
 
@@ -2260,6 +2280,7 @@ fn unsupported_subcommand_name_for_strict_config(
         | Some(Subcommand::ExecServer(_))
         | Some(Subcommand::Resume(_))
         | Some(Subcommand::Queue(_))
+        | Some(Subcommand::Organization(_))
         | Some(Subcommand::Archive(_))
         | Some(Subcommand::Delete(_))
         | Some(Subcommand::Unarchive(_))

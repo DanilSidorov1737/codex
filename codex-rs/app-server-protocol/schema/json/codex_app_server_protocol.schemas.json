@@ -16179,6 +16179,659 @@
         ],
         "title": "Nullable_GetAccountTokenUsageParams"
       },
+      "OrganizationGoal": {
+        "properties": {
+          "criteria": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "id": {
+            "type": "string"
+          },
+          "objective": {
+            "type": "string"
+          },
+          "parentId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "revision": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "criteria",
+          "id",
+          "objective",
+          "revision"
+        ],
+        "type": "object"
+      },
+      "OrganizationMembership": {
+        "properties": {
+          "groupId": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "nodeId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "groupId",
+          "id",
+          "nodeId"
+        ],
+        "type": "object"
+      },
+      "OrganizationMutation": {
+        "oneOf": [
+          {
+            "additionalProperties": false,
+            "properties": {
+              "enabled": {
+                "type": "boolean"
+              },
+              "expectedRevision": {
+                "format": "int64",
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "id": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "kind": {
+                "$ref": "#/definitions/v2/OrganizationNodeKind"
+              },
+              "label": {
+                "type": "string"
+              },
+              "model": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "parentId": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "roleVersionId": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "type": {
+                "enum": [
+                  "putNode"
+                ],
+                "title": "PutNodeOrganizationMutationType",
+                "type": "string"
+              }
+            },
+            "required": [
+              "enabled",
+              "kind",
+              "label",
+              "type"
+            ],
+            "title": "PutNodeOrganizationMutation",
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "expectedVersion": {
+                "format": "int64",
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "instructions": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "roleId": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "type": {
+                "enum": [
+                  "createRoleVersion"
+                ],
+                "title": "CreateRoleVersionOrganizationMutationType",
+                "type": "string"
+              }
+            },
+            "required": [
+              "instructions",
+              "name",
+              "type"
+            ],
+            "title": "CreateRoleVersionOrganizationMutation",
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "criteria": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "expectedRevision": {
+                "format": "int64",
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "id": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "objective": {
+                "type": "string"
+              },
+              "parentId": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "type": {
+                "enum": [
+                  "putGoal"
+                ],
+                "title": "PutGoalOrganizationMutationType",
+                "type": "string"
+              }
+            },
+            "required": [
+              "criteria",
+              "objective",
+              "type"
+            ],
+            "title": "PutGoalOrganizationMutation",
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "criteria": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "expectedRevision": {
+                "format": "int64",
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "goalId": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "ownerId": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "projectId": {
+                "type": "string"
+              },
+              "type": {
+                "enum": [
+                  "linkProject"
+                ],
+                "title": "LinkProjectOrganizationMutationType",
+                "type": "string"
+              }
+            },
+            "required": [
+              "criteria",
+              "projectId",
+              "type"
+            ],
+            "title": "LinkProjectOrganizationMutation",
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "criteria": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "expectedRevision": {
+                "format": "int64",
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "goalId": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "id": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "instructions": {
+                "type": "string"
+              },
+              "ownerId": {
+                "type": "string"
+              },
+              "prerequisites": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "projectId": {
+                "type": "string"
+              },
+              "type": {
+                "enum": [
+                  "putTask"
+                ],
+                "title": "PutTaskOrganizationMutationType",
+                "type": "string"
+              }
+            },
+            "required": [
+              "criteria",
+              "instructions",
+              "ownerId",
+              "prerequisites",
+              "projectId",
+              "type"
+            ],
+            "title": "PutTaskOrganizationMutation",
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "groupId": {
+                "type": "string"
+              },
+              "nodeId": {
+                "type": "string"
+              },
+              "present": {
+                "type": "boolean"
+              },
+              "type": {
+                "enum": [
+                  "setMembership"
+                ],
+                "title": "SetMembershipOrganizationMutationType",
+                "type": "string"
+              }
+            },
+            "required": [
+              "groupId",
+              "nodeId",
+              "present",
+              "type"
+            ],
+            "title": "SetMembershipOrganizationMutation",
+            "type": "object"
+          }
+        ]
+      },
+      "OrganizationNode": {
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/definitions/v2/OrganizationNodeKind"
+          },
+          "label": {
+            "type": "string"
+          },
+          "model": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "parentId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "revision": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "roleVersionId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "enabled",
+          "id",
+          "kind",
+          "label",
+          "revision"
+        ],
+        "type": "object"
+      },
+      "OrganizationNodeKind": {
+        "enum": [
+          "agent",
+          "group"
+        ],
+        "type": "string"
+      },
+      "OrganizationProjectPlan": {
+        "properties": {
+          "criteria": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "goalId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "ownerId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "revision": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "roots": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "criteria",
+          "id",
+          "name",
+          "revision",
+          "roots"
+        ],
+        "type": "object"
+      },
+      "OrganizationRecord": {
+        "oneOf": [
+          {
+            "properties": {
+              "data": {
+                "$ref": "#/definitions/v2/OrganizationNode"
+              },
+              "type": {
+                "enum": [
+                  "node"
+                ],
+                "title": "NodeOrganizationRecordType",
+                "type": "string"
+              }
+            },
+            "required": [
+              "data",
+              "type"
+            ],
+            "title": "NodeOrganizationRecord",
+            "type": "object"
+          },
+          {
+            "properties": {
+              "data": {
+                "$ref": "#/definitions/v2/OrganizationRoleVersion"
+              },
+              "type": {
+                "enum": [
+                  "role"
+                ],
+                "title": "RoleOrganizationRecordType",
+                "type": "string"
+              }
+            },
+            "required": [
+              "data",
+              "type"
+            ],
+            "title": "RoleOrganizationRecord",
+            "type": "object"
+          },
+          {
+            "properties": {
+              "data": {
+                "$ref": "#/definitions/v2/OrganizationGoal"
+              },
+              "type": {
+                "enum": [
+                  "goal"
+                ],
+                "title": "GoalOrganizationRecordType",
+                "type": "string"
+              }
+            },
+            "required": [
+              "data",
+              "type"
+            ],
+            "title": "GoalOrganizationRecord",
+            "type": "object"
+          },
+          {
+            "properties": {
+              "data": {
+                "$ref": "#/definitions/v2/OrganizationProjectPlan"
+              },
+              "type": {
+                "enum": [
+                  "project"
+                ],
+                "title": "ProjectOrganizationRecordType",
+                "type": "string"
+              }
+            },
+            "required": [
+              "data",
+              "type"
+            ],
+            "title": "ProjectOrganizationRecord",
+            "type": "object"
+          },
+          {
+            "properties": {
+              "data": {
+                "$ref": "#/definitions/v2/OrganizationTask"
+              },
+              "type": {
+                "enum": [
+                  "task"
+                ],
+                "title": "TaskOrganizationRecordType",
+                "type": "string"
+              }
+            },
+            "required": [
+              "data",
+              "type"
+            ],
+            "title": "TaskOrganizationRecord",
+            "type": "object"
+          },
+          {
+            "properties": {
+              "data": {
+                "$ref": "#/definitions/v2/OrganizationMembership"
+              },
+              "type": {
+                "enum": [
+                  "membership"
+                ],
+                "title": "MembershipOrganizationRecordType",
+                "type": "string"
+              }
+            },
+            "required": [
+              "data",
+              "type"
+            ],
+            "title": "MembershipOrganizationRecord",
+            "type": "object"
+          }
+        ]
+      },
+      "OrganizationRecordKind": {
+        "enum": [
+          "nodes",
+          "roles",
+          "goals",
+          "projects",
+          "tasks",
+          "memberships"
+        ],
+        "type": "string"
+      },
+      "OrganizationRoleVersion": {
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "instructions": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "roleId": {
+            "type": "string"
+          },
+          "version": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "instructions",
+          "name",
+          "roleId",
+          "version"
+        ],
+        "type": "object"
+      },
+      "OrganizationTask": {
+        "properties": {
+          "criteria": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "goalId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "instructions": {
+            "type": "string"
+          },
+          "ownerId": {
+            "type": "string"
+          },
+          "prerequisites": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "projectId": {
+            "type": "string"
+          },
+          "revision": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "state": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "criteria",
+          "id",
+          "instructions",
+          "ownerId",
+          "prerequisites",
+          "projectId",
+          "revision",
+          "state"
+        ],
+        "type": "object"
+      },
       "OverriddenMetadata": {
         "properties": {
           "effectiveValue": true,
