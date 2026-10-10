@@ -1,8 +1,22 @@
 # Current status and resumption instructions
 
 Phase 0: **exploration and planning complete for available inputs**.
-Current work: **approved MVP implementation; B1 and B2 local workflow qualified; B3 beginning**.
-Application feature implementation: **B1/B2 implemented and locally qualified; B3–B6 outstanding**.
+Current work: **approved MVP implementation; B1/B2 locally qualified; B3 coordination underway**.
+Application feature implementation: **B1/B2 qualified; B3 state tests pass and runtime integration is being qualified; B4–B6 outstanding**.
+
+## B3 current slice
+
+Added shared-root budgets, bounded plan/DAG validation and delegation, durable
+scoped notes, deduplicated inbox/acknowledgement and child waits that yield
+capacity after the current provider usage receipt. Attempts capture role versions.
+State library: **259 passed**, including eight coordination tests; production
+state Clippy passed with warnings denied. Legacy policy grants fail closed;
+one-shot starts and inbox/context recovery across fresh authorization are tested.
+The runtime adapter exposes a narrow coordination tool and copies accepted,
+hash-verified child artifacts into isolated workspaces. Runtime library check
+passed for the preliminary candidate; current native/application tests are in
+progress. Two wire tests and 25 Python contract checks passed. See [coordination](coordination.md).
+Do not call B3 complete before actual CLI/delegated-work qualification.
 
 ## Current authorization
 

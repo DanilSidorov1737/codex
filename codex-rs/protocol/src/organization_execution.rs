@@ -6,6 +6,14 @@ use serde::Deserialize;
 use serde::Serialize;
 use ts_rs::TS;
 
+/// Explicitly version the host's admitted tools and coordination behavior.
+/// Pre-coordination grants deserialize as version 1 and require reauthorization.
+pub const ORGANIZATION_POLICY_VERSION: u32 = 2;
+
+fn legacy_policy_version() -> u32 {
+    1
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct OrganizationExecutionScope {
@@ -27,6 +35,14 @@ pub struct OrganizationExecutionScope {
     pub require_tool_approval: bool,
     pub delegates: Vec<String>,
     pub max_children: u32,
+    /// Explicit owner permission to accept internal children after all declared
+    /// host checks pass. Final root acceptance always remains an owner decision.
+    #[serde(default)]
+    pub auto_accept_children: bool,
+    /// Optional one-shot start time, UTC seconds since the Unix epoch.
+    #[serde(default)]
+    #[ts(type = "number | null")]
+    pub not_before: Option<i64>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
@@ -76,6 +92,12 @@ pub struct OrganizationTaskAuthorization {
     #[ts(type = "number")]
     pub expires_at: i64,
     pub revoked: bool,
+    #[serde(default = "legacy_policy_version")]
+    pub policy_version: u32,
+    #[serde(default)]
+    pub parent_attempt_id: Option<String>,
+    #[serde(default)]
+    pub root_authorization_id: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
@@ -84,6 +106,8 @@ pub struct OrganizationTaskAttempt {
     pub id: String,
     pub task_id: String,
     pub authorization_id: String,
+    #[serde(default)]
+    pub role_version_id: Option<String>,
     #[ts(type = "number")]
     pub generation: i64,
     pub thread_id: String,

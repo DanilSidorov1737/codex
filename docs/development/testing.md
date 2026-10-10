@@ -1,5 +1,18 @@
 # Testing procedures and evidence
 
+## B3 state and contract slice
+
+- `CARGO_INCREMENTAL=0 RUST_MIN_STACK=8388608 cargo test --locked --offline --profile dev-small -j4 -p codex-state --lib`, from `codex-rs`: **259 passed**, zero failures/ignored. Eight new coordination tests cover atomic DAG proposals, prerequisite admission, shared-root request races and token accounting, wait/capacity cleanup, real-check acceptance rules, scoped notes/inbox/deduplication/recovery, parent pause, one-shot schedules, role/policy snapshots and the four-resident-root bound. Log: `mvp-b3-state-recovery-final.log`.
+- Production state Clippy with `-- -D warnings`: exit 0 (`mvp-b3-state-final-clippy.log`). Both execution/coordination wire tests passed; unknown agent authority fields are rejected (`mvp-b3-wire-tests.log`). Python contract generation/signatures: **25 passed** (`mvp-b3-python-contract-tests.log`).
+- Regenerated stable/experimental contracts in the repository's existing format; **all four schema comparisons passed** (`mvp-b3-schema-final-comparisons.log`). Affected protocol/state/app-server package formatting passed (`mvp-b3-format.log`); the generator's ignored entry point was explicitly run for both bundles.
+- Preliminary runtime library/API compilation passed (`mvp-b3-runtime-first-check.log`, `mvp-b3-api-test-check.log`). These checks do not qualify delegated native execution, physical CLI interaction or the new layouts/editor.
+- Initial compile fixes: the plan ID map needed an explicit value type and check exit status is `Option<i32>`. A test fixture initially tried to admit three active tasks under limit two; corrected its explicit limit and reran all tests. A formatting invocation used paths relative to the wrong directory; corrected without changing checks.
+- Schema regeneration with Prettier caused unrelated TypeScript changes and two comparison failures. Regenerated using the repository's unformatted mode; no unrelated edits are intended. Python generation initially lacked the installed virtual environment's `ruff` executable on PATH; activated it and reran successfully. Failure logs are retained alongside corrected runs.
+
+Evidence lives under `/workspace/.onboarding/qualification/`. State tests use
+constructed artifact evidence; they do not prove native file/check behavior.
+Actual runtime/CLI qualification is the next gate; B3 remains in progress.
+
 ## B2 complete local workflow qualification
 
 `a360de3115` contains the runtime/API. The corrected current CLI build passed

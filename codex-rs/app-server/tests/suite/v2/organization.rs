@@ -278,6 +278,8 @@ Path('report.txt').write_text('checked background artifact')
                 require_tool_approval: true,
                 delegates: vec![],
                 max_children: 0,
+                auto_accept_children: false,
+                not_before: None,
             },
         },
     )

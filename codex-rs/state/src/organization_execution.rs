@@ -22,6 +22,12 @@ impl OrganizationStore {
     ) -> Result<OrganizationTaskAuthorization> {
         validate_scope(&scope)?;
         ensure!(now >= 0, "invalid authorization time");
+        ensure!(
+            scope
+                .not_before
+                .is_none_or(|time| time >= 0 && time <= now.saturating_add(31 * 86400)),
+            "one-shot schedule must be within 31 days"
+        );
         let mut tx = self.pool.begin_with("BEGIN IMMEDIATE").await?;
         let mut task = read_task(&mut tx, task_id).await?;
         ensure!(task.revision == expected_revision, "task revision conflict");
@@ -93,11 +99,17 @@ impl OrganizationStore {
             task_id: task.id.clone(),
             node_revision: node.revision,
             project_revision: project.revision,
-            expires_at: now
+            expires_at: scope
+                .not_before
+                .unwrap_or(now)
+                .max(now)
                 .checked_add(i64::from(scope.max_seconds) * i64::from(scope.max_attempts) + 3600)
                 .context("authorization expiry overflow")?,
             scope,
             revoked: false,
+            policy_version: ORGANIZATION_POLICY_VERSION,
+            parent_attempt_id: None,
+            root_authorization_id: None,
         };
         sqlx::query(
             "INSERT INTO organization_authorizations(id,task_id,expires_at,data) VALUES (?,?,?,?)",
@@ -108,6 +120,10 @@ impl OrganizationStore {
         .bind(serde_json::to_string(&authorization)?)
         .execute(&mut *tx)
         .await?;
+        sqlx::query("UPDATE organization_authorizations SET root_id=id WHERE id=?")
+            .bind(&authorization.id)
+            .execute(&mut *tx)
+            .await?;
         sqlx::query("UPDATE organization_tasks SET authorization_id = ? WHERE id = ?")
             .bind(&authorization.id)
             .bind(task_id)
@@ -142,17 +158,26 @@ impl OrganizationStore {
         if active >= i64::from(max_active) {
             return Ok(None);
         }
-        let candidates: Vec<(String, String)> = sqlx::query_as("SELECT t.id,a.data FROM organization_tasks t JOIN organization_authorizations a ON a.id=t.authorization_id WHERE t.state='queued' AND a.revoked=0 AND a.expires_at>? AND NOT EXISTS(SELECT 1 FROM organization_task_dependencies d JOIN organization_tasks p ON p.id=d.prerequisite_id WHERE d.task_id=t.id AND p.state<>'accepted') ORDER BY t.id LIMIT 32")
-            .bind(now).fetch_all(&mut *tx).await?;
+        // Bound resident root runtimes separately from active inference. Every
+        // admitted root reserves room for its at-most-32 descendants; waiting
+        // ancestors therefore cannot fill the runtime tracker and starve a child.
+        let roots: i64 = sqlx::query_scalar("SELECT count(*) FROM organization_attempts p JOIN organization_authorizations a ON a.id=p.authorization_id WHERE a.parent_attempt_id IS NULL AND (p.occupied=1 OR p.state IN ('running','waitingApproval','waitingDependency'))")
+            .fetch_one(&mut *tx).await?;
+        let candidates: Vec<(String, String)> = sqlx::query_as("SELECT t.id,a.data FROM organization_tasks t JOIN organization_authorizations a ON a.id=t.authorization_id WHERE t.state='queued' AND a.revoked=0 AND a.expires_at>? AND COALESCE(json_extract(a.data,'$.scope.notBefore'),0)<=? AND (a.parent_attempt_id IS NOT NULL OR ?<4) AND NOT EXISTS(SELECT 1 FROM organization_task_dependencies d JOIN organization_tasks p ON p.id=d.prerequisite_id WHERE d.task_id=t.id AND p.state<>'accepted') ORDER BY a.parent_attempt_id IS NULL,t.id LIMIT 32")
+            .bind(now).bind(now).bind(roots).fetch_all(&mut *tx).await?;
         for (task_id, authorization_data) in candidates {
             let authorization: OrganizationTaskAuthorization =
                 serde_json::from_str(&authorization_data)?;
             let mut task = read_task(&mut tx, &task_id).await?;
             let node = read_node(&mut tx, &task.owner_id).await?;
             let project = read_project(&mut tx, &task.project_id).await?;
-            if node.revision != authorization.node_revision
+            if authorization.policy_version != ORGANIZATION_POLICY_VERSION
+                || node.revision != authorization.node_revision
                 || project.revision != authorization.project_revision
                 || !ancestors_enabled(&mut tx, &node.id).await?
+                || super::coordination::check_parent_grants(&mut tx, &authorization, now)
+                    .await
+                    .is_err()
             {
                 set_task_state(&mut tx, &mut task, OrganizationTaskState::Paused).await?;
                 event(&mut tx, "task/scopeChanged", &task_id).await?;
@@ -164,10 +189,11 @@ impl OrganizationStore {
             .bind(&authorization.id)
             .fetch_one(&mut *tx)
             .await?;
-            ensure!(
-                attempts < i64::from(authorization.scope.max_attempts),
-                "task retry ceiling exhausted"
-            );
+            if attempts >= i64::from(authorization.scope.max_attempts) {
+                set_task_state(&mut tx, &mut task, OrganizationTaskState::Failed).await?;
+                event(&mut tx, "task/retryExhausted", &task_id).await?;
+                continue;
+            }
             let previous: i64 = sqlx::query_scalar(
                 "SELECT COALESCE(max(generation),0) FROM organization_attempts WHERE task_id = ?",
             )
@@ -178,6 +204,7 @@ impl OrganizationStore {
                 id: Uuid::now_v7().to_string(),
                 task_id: task_id.clone(),
                 authorization_id: authorization.id.clone(),
+                role_version_id: node.role_version_id.clone(),
                 generation: previous
                     .checked_add(1)
                     .context("attempt generation exhausted")?,
@@ -223,7 +250,12 @@ impl OrganizationStore {
         let (used, requests): (i64, i64) = sqlx::query_as(
             "SELECT used_tokens,model_requests FROM organization_authorizations WHERE id = ?",
         )
-        .bind(&authorization.id)
+        .bind(
+            authorization
+                .root_authorization_id
+                .as_ref()
+                .unwrap_or(&authorization.id),
+        )
         .fetch_one(&mut *tx)
         .await?;
         ensure!(
@@ -241,6 +273,14 @@ impl OrganizationStore {
         .bind(&authorization.id)
         .execute(&mut *tx)
         .await?;
+        if let Some(root) = &authorization.root_authorization_id {
+            sqlx::query(
+                "UPDATE organization_authorizations SET model_requests=model_requests+1 WHERE id=?",
+            )
+            .bind(root)
+            .execute(&mut *tx)
+            .await?;
+        }
         write_attempt(&mut tx, &attempt).await?;
         event(&mut tx, "model/admitted", attempt_id).await?;
         tx.commit().await?;
@@ -278,7 +318,8 @@ impl OrganizationStore {
             "token checkpoint cannot move backwards"
         );
         let delta = reported_tokens - attempt.reported_tokens;
-        if delta == 0 && request_sequence == attempt.reported_model_requests {
+        if request_sequence == attempt.reported_model_requests {
+            ensure!(delta == 0, "completed usage receipt cannot change");
             return Ok(());
         }
         let used: i64 =
@@ -292,9 +333,26 @@ impl OrganizationStore {
             .bind(&attempt.authorization_id)
             .execute(&mut *tx)
             .await?;
+        let root: String =
+            sqlx::query_scalar("SELECT root_id FROM organization_authorizations WHERE id=?")
+                .bind(&attempt.authorization_id)
+                .fetch_one(&mut *tx)
+                .await?;
+        if root != attempt.authorization_id {
+            sqlx::query(
+                "UPDATE organization_authorizations SET used_tokens=used_tokens+? WHERE id=?",
+            )
+            .bind(delta)
+            .bind(root)
+            .execute(&mut *tx)
+            .await?;
+        }
         attempt.reported_tokens = reported_tokens;
         attempt.reported_model_requests = request_sequence;
-        if attempt.state == OrganizationTaskState::WaitingApproval {
+        if matches!(
+            attempt.state,
+            OrganizationTaskState::WaitingApproval | OrganizationTaskState::WaitingDependency
+        ) {
             attempt.runtime_active = false;
         }
         write_attempt(&mut tx, &attempt).await?;
@@ -351,6 +409,10 @@ impl OrganizationStore {
 }
 
 fn validate_scope(scope: &OrganizationExecutionScope) -> Result<()> {
+    ensure!(
+        !scope.auto_accept_children || !scope.checks.is_empty(),
+        "automatic internal acceptance requires owner-declared checks"
+    );
     ensure!(
         (1..=10_000_000).contains(&scope.max_tokens)
             && (1..=3600).contains(&scope.max_seconds)
@@ -424,7 +486,10 @@ pub(super) async fn read_task(
     Ok(task)
 }
 
-async fn read_node(tx: &mut Transaction<'_, Sqlite>, id: &str) -> Result<OrganizationNode> {
+pub(super) async fn read_node(
+    tx: &mut Transaction<'_, Sqlite>,
+    id: &str,
+) -> Result<OrganizationNode> {
     let data: String = sqlx::query_scalar("SELECT data FROM organization_nodes WHERE id = ?")
         .bind(id)
         .fetch_one(&mut **tx)
@@ -435,7 +500,7 @@ async fn read_node(tx: &mut Transaction<'_, Sqlite>, id: &str) -> Result<Organiz
     Ok(node)
 }
 
-async fn read_project(
+pub(super) async fn read_project(
     tx: &mut Transaction<'_, Sqlite>,
     id: &str,
 ) -> Result<OrganizationProjectPlan> {
@@ -449,7 +514,7 @@ async fn read_project(
     Ok(project)
 }
 
-async fn ancestors_enabled(tx: &mut Transaction<'_, Sqlite>, id: &str) -> Result<bool> {
+pub(super) async fn ancestors_enabled(tx: &mut Transaction<'_, Sqlite>, id: &str) -> Result<bool> {
     Ok(sqlx::query_scalar::<_, i64>("WITH RECURSIVE ancestors(id,parent_id,data) AS (SELECT id,parent_id,data FROM organization_nodes WHERE id=? UNION SELECT n.id,n.parent_id,n.data FROM organization_nodes n JOIN ancestors a ON n.id=a.parent_id) SELECT count(*)=0 FROM ancestors WHERE json_extract(data,'$.data.enabled')<>1").bind(id).fetch_one(&mut **tx).await? != 0)
 }
 
@@ -512,9 +577,14 @@ pub(super) async fn check_live_fence(
     worker: &str,
     now: i64,
 ) -> Result<(OrganizationTaskAttempt, OrganizationTaskAuthorization)> {
-    let (data, authorization_data): (String, String) = sqlx::query_as("SELECT p.data,a.data FROM organization_attempts p JOIN organization_authorizations a ON a.id=p.authorization_id JOIN organization_tasks t ON t.id=p.task_id WHERE p.id=? AND p.worker_id=? AND p.lease_until>? AND p.state IN ('running','waitingApproval') AND a.revoked=0 AND a.expires_at>? AND t.authorization_id=a.id AND t.state=p.state").bind(id).bind(worker).bind(now).bind(now).fetch_one(&mut **tx).await.context("stale, paused, revoked or expired attempt")?;
+    let (data, authorization_data): (String, String) = sqlx::query_as("SELECT p.data,a.data FROM organization_attempts p JOIN organization_authorizations a ON a.id=p.authorization_id JOIN organization_tasks t ON t.id=p.task_id WHERE p.id=? AND p.worker_id=? AND p.lease_until>? AND p.state IN ('running','waitingApproval','waitingDependency') AND a.revoked=0 AND a.expires_at>? AND t.authorization_id=a.id AND t.state=p.state").bind(id).bind(worker).bind(now).bind(now).fetch_one(&mut **tx).await.context("stale, paused, revoked or expired attempt")?;
     let attempt: OrganizationTaskAttempt = serde_json::from_str(&data)?;
     let authorization: OrganizationTaskAuthorization = serde_json::from_str(&authorization_data)?;
+    ensure!(
+        authorization.policy_version == ORGANIZATION_POLICY_VERSION,
+        "host policy changed; owner reauthorization required"
+    );
+    super::coordination::check_parent_grants(tx, &authorization, now).await?;
     ensure!(
         now >= attempt.started_at
             && now

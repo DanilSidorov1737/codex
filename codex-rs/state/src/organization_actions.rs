@@ -45,9 +45,18 @@ impl OrganizationStore {
         let mut tx = self.pool.begin_with("BEGIN IMMEDIATE").await?;
         let (mut attempt, authorization) =
             check_live_fence(&mut tx, attempt_id, worker, now).await?;
+        ensure!(
+            attempt.state != OrganizationTaskState::WaitingDependency,
+            "native tool cannot start while waiting for children"
+        );
         let used_tokens: i64 =
             sqlx::query_scalar("SELECT used_tokens FROM organization_authorizations WHERE id=?")
-                .bind(&authorization.id)
+                .bind(
+                    authorization
+                        .root_authorization_id
+                        .as_ref()
+                        .unwrap_or(&authorization.id),
+                )
                 .fetch_one(&mut *tx)
                 .await?;
         ensure!(
@@ -197,7 +206,12 @@ impl OrganizationStore {
             check_live_fence(&mut tx, &action.attempt_id, worker, now).await?;
         let used_tokens: i64 =
             sqlx::query_scalar("SELECT used_tokens FROM organization_authorizations WHERE id=?")
-                .bind(&authorization.id)
+                .bind(
+                    authorization
+                        .root_authorization_id
+                        .as_ref()
+                        .unwrap_or(&authorization.id),
+                )
                 .fetch_one(&mut *tx)
                 .await?;
         ensure!(
@@ -335,7 +349,9 @@ impl OrganizationStore {
         ensure!(
             matches!(
                 attempt.state,
-                OrganizationTaskState::Running | OrganizationTaskState::WaitingApproval
+                OrganizationTaskState::Running
+                    | OrganizationTaskState::WaitingApproval
+                    | OrganizationTaskState::WaitingDependency
             ),
             "attempt already stopped or reconciled"
         );
@@ -582,6 +598,13 @@ impl OrganizationStore {
         );
         let unresolved: i64 = sqlx::query_scalar("SELECT count(*) FROM organization_actions WHERE attempt_id=? AND state IN ('pending','dispatched','uncertain')").bind(attempt_id).fetch_one(&mut *tx).await?;
         ensure!(unresolved == 0, "result has unresolved actions");
+        let children: i64 = sqlx::query_scalar("SELECT count(*) FROM organization_authorizations a JOIN organization_tasks t ON t.authorization_id=a.id WHERE a.parent_attempt_id=? AND t.state<>'accepted'")
+            .bind(attempt_id).fetch_one(&mut *tx).await?;
+        ensure!(children == 0, "result has unfinished delegated children");
+        let accepted = authorization.parent_attempt_id.is_some()
+            && authorization.scope.auto_accept_children
+            && !checks.is_empty()
+            && checks.iter().all(|check| check.exit_code == Some(0));
         let result = OrganizationTaskResult {
             attempt_id: attempt_id.to_owned(),
             digest: digest(&serde_json::to_vec(&(
@@ -592,7 +615,7 @@ impl OrganizationStore {
             artifacts,
             artifact_bases: attempt.artifact_bases.clone(),
             checks,
-            accepted: false,
+            accepted,
         };
         sqlx::query("INSERT INTO organization_results(attempt_id,digest,data) VALUES (?,?,?)")
             .bind(attempt_id)
@@ -600,12 +623,25 @@ impl OrganizationStore {
             .bind(serde_json::to_string(&result)?)
             .execute(&mut *tx)
             .await?;
-        attempt.state = OrganizationTaskState::NeedsReview;
+        attempt.state = if accepted {
+            OrganizationTaskState::Accepted
+        } else {
+            OrganizationTaskState::NeedsReview
+        };
         attempt.lease_until = 0;
         write_attempt(&mut tx, &attempt).await?;
         let mut task = read_task(&mut tx, &attempt.task_id).await?;
-        set_task_state(&mut tx, &mut task, OrganizationTaskState::NeedsReview).await?;
-        event(&mut tx, "result/ready", attempt_id).await?;
+        set_task_state(&mut tx, &mut task, attempt.state).await?;
+        event(
+            &mut tx,
+            if accepted {
+                "result/checkedChildAccepted"
+            } else {
+                "result/ready"
+            },
+            attempt_id,
+        )
+        .await?;
         tx.commit().await?;
         Ok(result)
     }

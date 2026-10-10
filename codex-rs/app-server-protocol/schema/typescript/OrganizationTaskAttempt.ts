@@ -4,4 +4,4 @@
 import type { OrganizationArtifactBase } from "./OrganizationArtifactBase";
 import type { OrganizationTaskState } from "./OrganizationTaskState";
 
-export type OrganizationTaskAttempt = { id: string, taskId: string, authorizationId: string, generation: number, threadId: string, turnId: string | null, workspace: string | null, artifactBases: Array<OrganizationArtifactBase>, runtimeActive: boolean, state: OrganizationTaskState, startedAt: number, leaseUntil: number, reportedTokens: number, modelRequests: number, reportedModelRequests: number, };
+export type OrganizationTaskAttempt = { id: string, taskId: string, authorizationId: string, roleVersionId: string | null, generation: number, threadId: string, turnId: string | null, workspace: string | null, artifactBases: Array<OrganizationArtifactBase>, runtimeActive: boolean, state: OrganizationTaskState, startedAt: number, leaseUntil: number, reportedTokens: number, modelRequests: number, reportedModelRequests: number, };

@@ -22,4 +22,13 @@ checks: Array<Array<string>>, model: string,
 /**
  * Reported aggregate token ceiling; one provider request may be in flight.
  */
-maxTokens: number, maxSeconds: number, maxModelRequests: number, maxAttempts: number, requireToolApproval: boolean, delegates: Array<string>, maxChildren: number, };
+maxTokens: number, maxSeconds: number, maxModelRequests: number, maxAttempts: number, requireToolApproval: boolean, delegates: Array<string>, maxChildren: number,
+/**
+ * Explicit owner permission to accept internal children after all declared
+ * host checks pass. Final root acceptance always remains an owner decision.
+ */
+autoAcceptChildren: boolean,
+/**
+ * Optional one-shot start time, UTC seconds since the Unix epoch.
+ */
+notBefore: number | null, };

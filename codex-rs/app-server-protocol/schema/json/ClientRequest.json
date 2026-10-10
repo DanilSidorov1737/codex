@@ -2536,6 +2536,11 @@
           },
           "type": "array"
         },
+        "autoAcceptChildren": {
+          "default": false,
+          "description": "Explicit owner permission to accept internal children after all declared host checks pass. Final root acceptance always remains an owner decision.",
+          "type": "boolean"
+        },
         "checks": {
           "description": "Owner-supplied argv, executed by the host in the same restricted workspace.",
           "items": {
@@ -2593,6 +2598,15 @@
         },
         "model": {
           "type": "string"
+        },
+        "notBefore": {
+          "default": null,
+          "description": "Optional one-shot start time, UTC seconds since the Unix epoch.",
+          "format": "int64",
+          "type": [
+            "integer",
+            "null"
+          ]
         },
         "requireToolApproval": {
           "type": "boolean"

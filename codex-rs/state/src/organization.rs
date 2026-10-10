@@ -39,6 +39,9 @@ mod execution;
 #[path = "organization_actions.rs"]
 mod actions;
 
+#[path = "organization_coordination.rs"]
+mod coordination;
+
 #[derive(Clone, Debug)]
 pub struct OrganizationStore {
     pool: SqlitePool,

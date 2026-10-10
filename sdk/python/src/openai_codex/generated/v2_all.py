@@ -3124,6 +3124,13 @@ class OrganizationExecutionScope(BaseModel):
         list[str],
         Field(description="Files whose hashes must accompany the result presented for review."),
     ]
+    auto_accept_children: Annotated[
+        bool | None,
+        Field(
+            alias="autoAcceptChildren",
+            description="Explicit owner permission to accept internal children after all declared host checks pass. Final root acceptance always remains an owner decision.",
+        ),
+    ] = False
     checks: Annotated[
         list[list[str]],
         Field(
@@ -3157,6 +3164,13 @@ class OrganizationExecutionScope(BaseModel):
         ),
     ]
     model: str
+    not_before: Annotated[
+        int | None,
+        Field(
+            alias="notBefore",
+            description="Optional one-shot start time, UTC seconds since the Unix epoch.",
+        ),
+    ] = None
     require_tool_approval: Annotated[bool, Field(alias="requireToolApproval")]
 
 
@@ -3331,8 +3345,11 @@ class OrganizationTaskAuthorization(BaseModel):
     expires_at: Annotated[int, Field(alias="expiresAt")]
     id: str
     node_revision: Annotated[int, Field(alias="nodeRevision")]
+    parent_attempt_id: Annotated[str | None, Field(alias="parentAttemptId")] = None
+    policy_version: Annotated[int | None, Field(alias="policyVersion", ge=0)] = 1
     project_revision: Annotated[int, Field(alias="projectRevision")]
     revoked: bool
+    root_authorization_id: Annotated[str | None, Field(alias="rootAuthorizationId")] = None
     scope: OrganizationExecutionScope
     task_id: Annotated[str, Field(alias="taskId")]
 
@@ -9459,6 +9476,7 @@ class OrganizationTaskAttempt(BaseModel):
     model_requests: Annotated[int, Field(alias="modelRequests", ge=0)]
     reported_model_requests: Annotated[int, Field(alias="reportedModelRequests", ge=0)]
     reported_tokens: Annotated[int, Field(alias="reportedTokens")]
+    role_version_id: Annotated[str | None, Field(alias="roleVersionId")] = None
     runtime_active: Annotated[bool | None, Field(alias="runtimeActive")] = False
     started_at: Annotated[int, Field(alias="startedAt")]
     state: OrganizationTaskState

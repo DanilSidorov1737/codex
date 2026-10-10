@@ -2,9 +2,20 @@ use super::*;
 use codex_protocol::organization::*;
 use codex_protocol::organization_execution::*;
 
+#[path = "organization_coordination_tests.rs"]
+mod coordination;
+
 async fn authorized_attempt(
     store: &OrganizationStore,
     approval: bool,
+) -> Result<(String, OrganizationTaskAttempt)> {
+    authorized_attempt_with_limit(store, approval, 2).await
+}
+
+async fn authorized_attempt_with_limit(
+    store: &OrganizationStore,
+    approval: bool,
+    max_active: u32,
 ) -> Result<(String, OrganizationTaskAttempt)> {
     let node = node_from(
         store
@@ -23,7 +34,7 @@ async fn authorized_attempt(
         .await?;
     let worker = Uuid::now_v7().to_string();
     let attempt = store
-        .claim_task(&worker, &Uuid::now_v7().to_string(), 1000, 2)
+        .claim_task(&worker, &Uuid::now_v7().to_string(), 1000, max_active)
         .await?
         .unwrap();
     Ok((worker, attempt))
@@ -852,6 +863,8 @@ fn execution_scope() -> OrganizationExecutionScope {
         require_tool_approval: true,
         delegates: Vec::new(),
         max_children: 0,
+        auto_accept_children: false,
+        not_before: None,
     }
 }
 

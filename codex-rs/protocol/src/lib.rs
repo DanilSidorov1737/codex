@@ -42,6 +42,7 @@ pub mod network_policy;
 pub mod num_format;
 pub mod openai_models;
 pub mod organization;
+pub mod organization_coordination;
 pub mod organization_execution;
 pub mod parse_command;
 mod permission_profile_intersection;

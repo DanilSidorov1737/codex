@@ -1,6 +1,6 @@
 # Codex CLI fork development
 
-Phase: **approved MVP implementation; B1/B2 locally qualified; B3 beginning**.
+Phase: **approved MVP implementation; B1/B2 qualified; B3 state slice tested, runtime qualification underway**.
 Phase 0 repository baseline: `8026444c98cd9c6db9e7c953b44a20ea4f93c7b6`, from `origin/main`.
 Research recorded on 2026-10-09 (America/New_York).
 
@@ -21,6 +21,7 @@ organization is a template, not the product's fixed structure.
    with every meaningful implementation or scope change.
 
 B1 usage: [organization command guide](organization-commands.md).
+B3 contracts and bounds: [coordination](coordination.md).
 
 Other focused plans: [security and recovery](security-and-recovery.md),
 [TUI and Neovim](tui-and-neovim.md), [Ponytail setup](ponytail.md).

@@ -12514,6 +12514,11 @@
           },
           "type": "array"
         },
+        "autoAcceptChildren": {
+          "default": false,
+          "description": "Explicit owner permission to accept internal children after all declared host checks pass. Final root acceptance always remains an owner decision.",
+          "type": "boolean"
+        },
         "checks": {
           "description": "Owner-supplied argv, executed by the host in the same restricted workspace.",
           "items": {
@@ -12571,6 +12576,15 @@
         },
         "model": {
           "type": "string"
+        },
+        "notBefore": {
+          "default": null,
+          "description": "Optional one-shot start time, UTC seconds since the Unix epoch.",
+          "format": "int64",
+          "type": [
+            "integer",
+            "null"
+          ]
         },
         "requireToolApproval": {
           "type": "boolean"
@@ -13346,6 +13360,13 @@
           "format": "int64",
           "type": "integer"
         },
+        "roleVersionId": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "runtimeActive": {
           "default": false,
           "type": "boolean"
@@ -13404,12 +13425,32 @@
           "format": "int64",
           "type": "integer"
         },
+        "parentAttemptId": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "policyVersion": {
+          "default": 1,
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
         "projectRevision": {
           "format": "int64",
           "type": "integer"
         },
         "revoked": {
           "type": "boolean"
+        },
+        "rootAuthorizationId": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "scope": {
           "$ref": "#/definitions/OrganizationExecutionScope"

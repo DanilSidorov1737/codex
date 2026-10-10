@@ -400,7 +400,7 @@ pub(super) fn record_id(record: &OrganizationRecord) -> &str {
     }
 }
 
-fn text(value: &str, maximum: usize) -> Result<()> {
+pub(super) fn text(value: &str, maximum: usize) -> Result<()> {
     ensure!(
         !value.trim().is_empty() && value.len() <= maximum && !value.contains('\0'),
         "text must be nonempty and at most {maximum} bytes without NUL"
@@ -408,7 +408,7 @@ fn text(value: &str, maximum: usize) -> Result<()> {
     Ok(())
 }
 
-fn validate_criteria(criteria: &[String]) -> Result<()> {
+pub(super) fn validate_criteria(criteria: &[String]) -> Result<()> {
     ensure!(
         !criteria.is_empty() && criteria.len() <= 64,
         "provide between 1 and 64 acceptance criteria"
