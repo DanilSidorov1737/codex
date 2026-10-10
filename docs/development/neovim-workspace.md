@@ -41,7 +41,10 @@ reader rejects ancestor/leaf symlinks, nonregular files and hard links; reads ar
 bounded to 8 MiB. The exact bytes are atomically staged in an owner-only preview
 directory under CODEX_HOME, which the agent sandbox excludes. Recorded artifact
 hashes/sizes are checked before showing reviewed output. Follow writes only when
-content changes, avoiding a redraw/reload feedback loop.
+content changes. The pipe reader wakes the UI for native notifications, requests
+and EOF/errors; synchronous RPC replies are consumed without requesting another
+frame. This prevents the Follow dirty-buffer query from creating an idle redraw
+loop. A real native regression checks query silence and redraw/EOF wakes.
 
 Follow reload is suppressed while editor focus or any dirty loaded buffer exists.
 Native checktime retains the current window view. Task selection does not
@@ -98,3 +101,12 @@ The latest source's resource controls are being packaged for B6 qualification.
 User Neovim plugins/configurations, unsaved crash restoration, arbitrary concurrent
 external writers and shared-buffer collaborative merging remain unqualified or
 deferred as described above; none is claimed by this clean isolated MVP.
+
+Actual staged native Follow also passed: two exact owner-approved file writes
+changed phase one to phase two; the focused native buffer retained phase one,
+then host focus reloaded phase two. Native winsaveview/cursor/readonly/modified
+values were captured through commands physically entered in Neovim; line 1/column
+7 and the entire view stayed unchanged, and the original project stayed intact.
+Evidence: `mvp-b6-cli/follow-physical.json`, `follow-editor-*.json`,
+`follow-finished.json` and `tui-final-follow.log`. The last query-response redraw
+fix is undergoing packaged idle qualification; see release-qualification.md.

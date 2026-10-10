@@ -657,3 +657,71 @@ a server configuration error. Read-only canonical counts verified zero grants an
 attempts. Evidence: `mvp-b6-model-admission-corrected.log`,
 `mvp-b6-invalid-limit.log`, `mvp-b6-cli/admission-model.json` and
 `admission-invalid-limit.json`. No provider calls occurred during either denial.
+
+## B6 corrected package and live native Follow
+
+At `8da15f446f`, corrected formatting/production Clippy, combined units (8/31/15),
+all four native API cases and full CLI/package passed. Native API log:
+`mvp-b6-heartbeat-native-api.log`; full CLI: `mvp-b6-heartbeat-cli-build.log`. Package
+assembly initially omitted the required CODEX_REPO_ROOT; the script rejected it
+before mutation, and the corrected assembly passed. The installed daemon matched
+package SHA256 `e7b1897f6aca288807b3d66e02a90edbd455337edf0cc8d97ae1c02409ea1ad3`.
+
+Four active/five tasks and restored-default two/three tasks passed: peak remained
+within the configured limit, extra work queued, every task reached NeedsReview,
+all immutable native checks exited zero and each charged exactly two requests/30
+reported tokens. Evidence: `concurrency-4.json`, `concurrency-2.json`,
+`mvp-b6-concurrency-four-corrected.log`, `mvp-b6-current-concurrency-two.log`. Current
+model/invalid-limit denials also passed (`mvp-b6-current-*-admission.log`,
+`mvp-b6-current-invalid-limit.log`). Actual current TUI quote provenance/billing
+limitations were displayed; `price-physical.json`, `tui-price.log`,
+`tui-final-follow.log`.
+
+The first timed two-phase native file update completed and its owner oracle passed,
+but interaction reached the second phase too late to prove live reload. Preserve
+`initial-follow-*.json` and the initial result log. A new independently owner-
+approved two-stage fixture made observation deterministic. Native writes passed
+three requests/45 tokens and the immutable owner regression; original project
+remained unchanged. Physical commands inside official Neovim wrote its actual
+line, readonly/modified flags, getpid/has('nvim') and winsaveview to evidence files.
+Focused editor retained phase one while the task file changed to phase two; host
+focus reloaded phase two with line 1/column 7 and the entire native view retained.
+Evidence: `follow-physical.json`, `follow-editor-{before,focused,after}.json`,
+`follow-finished.json`, `tui-final-follow.log`. No custom editor model was used.
+
+Live Follow also exposed a redraw loop: synchronous dirty-buffer-query replies
+always scheduled another host frame. Suppress response-only wakeups; retain native
+notifications, requests and EOF/error wakes. A real native test now requires 12
+queries to schedule no draws, then explicit native redraw and editor exit to wake
+the UI. Its rerun/current-binary idle measurement remain underway.
+
+The first redraw regression passed the no-query-wakeup assertion but used `redraw!`
+as a structured nvim_cmd command name; official Neovim correctly rejected that
+syntax (15 passed/1 failed). The test now calls actual nvim_command("redraw!").
+No production assertion was loosened; the failure remains in
+`mvp-b6-editor-redraw-tests.log`. Corrected full editor regression is rerunning.
+
+The same actual packaged CLI/official-editor idle Follow regression was run against
+the prior installed executable: **326 frames in 3.2508 seconds**, failing the
+unchanged <=8-frame limit as expected. No model requests or native project writes
+were required to reproduce it. Log: `mvp-b6-quiet-follow-before-fix.log`; actual
+terminal: `mvp-b6-cli/tui-quiet-follow-before-fix.log`. The corrected package must
+pass the identical interaction/count assertion.
+
+The corrected regression passed quiet queries and native redraw, then its EOF
+assertion saw the scheduler channel close: the fixture had moved the host's last
+FrameRequester into the editor. The real app retains its requester. Preserve that
+parent handle in the fixture and pass its clone, exactly as the app does. The
+second failure remains in `mvp-b6-editor-redraw-corrected-tests.log`; no EOF or
+quiet assertion was removed. Final regression/Clippy/build is rerunning.
+
+Final redraw regression passed, including actual query silence, native redraw and
+EOF wake: combined batch **8 app-server + 31 state + 16 TUI/editor/pricing**, zero
+failed/ignored. Warnings-denied production Clippy and formatting passed. Logs:
+`mvp-b6-editor-redraw-final-tests.log`, `mvp-b6-editor-redraw-clippy.log`,
+`mvp-b6-editor-redraw-format.log`. Final full CLI build/packaged quiet-Follow
+regression remains in progress. App-server/native API source is unchanged from
+the corrected four-test/2–4-active qualification.
+
+The complete CLI rebuild passed in 1m32s (`mvp-b6-editor-redraw-cli-build.log`).
+Package assembly and the unchanged physical idle Follow assertion are next.

@@ -108,10 +108,18 @@ impl Editor {
                 let value = rmpv::decode::read_value_with_max_depth(&mut stream, 64)
                     .map_err(|e| format!("Neovim RPC closed or invalid: {e}"));
                 let failed = value.is_err();
+                // Synchronous RPC consumes its own response. Waking the UI for
+                // that response would make Follow's dirty-buffer query trigger
+                // another draw/query forever. Notifications, requests and EOF
+                // still wake the host to render or service them.
+                let wakes_ui = !matches!(&value, Ok(Value::Array(message))
+                    if message.first().and_then(Value::as_u64) == Some(1));
                 if incoming.send(value).is_err() {
                     break;
                 }
-                frame.schedule_frame();
+                if wakes_ui {
+                    frame.schedule_frame();
+                }
                 if failed {
                     break;
                 }

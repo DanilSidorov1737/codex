@@ -1,5 +1,41 @@
 use super::*;
 
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn real_neovim_queries_do_not_schedule_redraws_but_native_redraw_and_exit_do() {
+    let (draws, mut receiver) = tokio::sync::broadcast::channel(32);
+    let frame = FrameRequester::new(draws);
+    let mut editor = Editor::start(frame.clone()).unwrap();
+    editor.rpc("nvim_eval", vec!["1".into()]).unwrap();
+    tokio::time::sleep(Duration::from_millis(100)).await;
+    while receiver.try_recv().is_ok() {}
+
+    for _ in 0..12 {
+        assert!(!editor.dirty().unwrap());
+    }
+    tokio::time::sleep(Duration::from_millis(100)).await;
+    assert!(
+        receiver.try_recv().is_err(),
+        "ordinary RPC replies must not perpetuate idle Follow draws"
+    );
+
+    editor.rpc("nvim_command", vec!["redraw!".into()]).unwrap();
+    tokio::time::timeout(Duration::from_secs(1), receiver.recv())
+        .await
+        .unwrap()
+        .unwrap();
+    tokio::time::sleep(Duration::from_millis(100)).await;
+    while receiver.try_recv().is_ok() {}
+    editor.child.kill().unwrap();
+    editor.child.wait().unwrap();
+    tokio::time::timeout(Duration::from_secs(1), receiver.recv())
+        .await
+        .unwrap()
+        .unwrap();
+    editor.poll();
+    assert!(editor.error.is_some());
+    drop(frame);
+}
+
 #[test]
 fn native_key_encoding_preserves_unicode_and_literal_angle_brackets() {
     assert_eq!(

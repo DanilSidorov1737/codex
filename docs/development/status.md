@@ -6,27 +6,29 @@ Application feature implementation: **B1–B5 locally qualified; B6 release gate
 
 ## Current B5/B6 work
 
-B1–B5 are locally qualified. Final native API (four cases), production Clippy,
-affected formatting and the complete CLI/package passed at `56929b5b18`.
-B6 native coding/document/delegation, two-active execution, 1,000 stored agent
-navigation, idle and verified 21-table restore have passed.
+B1–B5 are locally qualified. B6 daemon fixes at `8da15f446f` passed combined units
+(eight app-server, 31 state, 15 TUI/editor), warnings-denied Clippy, formatting,
+all four native API cases and full CLI/package. Current-package capacity passed
+four active/fifth queued and default two/third queued; every immutable owner check
+passed and every task used two requests/30 tokens. Zero-inference CodeModeOnly
+and invalid-limit denials passed on the same package.
 
-Final four-active testing exposed a real heartbeat/database contention failure:
-renewal awaited the single SQLite connection inside a selected branch, suspending
-the work that held it. Four tasks finished, but the fifth failed with a pool timeout;
-owner RPCs also timed out. The failure logs/state remain preserved. The fix polls
-work and renewal concurrently, retaining cancellation and deadlines. The deterministic
-contention/deadline regression and combined units passed: eight app-server, 31
-state and 15 TUI/editor tests. Production Clippy passed; native API/CLI rebuilding
-is underway. Do not claim final four-active or B6 complete until the rerun passes.
-Catalog-declared Code Mode rejection subsequently passed with zero inference and
-no workspace. Invalid-limit and current TUI price evidence remain outstanding.
+Actual TUI owner quote provenance and live native Follow passed. Staged exact
+owner-approved native writes changed a real task file from phase one to phase two.
+Focused official Neovim retained phase one; host focus reloaded phase two with
+cursor/view retained and original project unchanged. This also exposed excessive
+idle draws: every ordinary Neovim RPC response woke the frontend, so Follow's
+buffer query created another draw/query. The reader now wakes for notifications,
+requests/errors, not consumed RPC responses. The real Neovim quiet-query/redraw/EOF
+regression passed. The final combined batch passed 8 app-server, 31 state and 16
+TUI/editor tests, plus production Clippy/formatting. The full CLI rebuild passed; final package/quiet Follow qualification remains. No final local B6 completion before the corrected
+interactive redraw/idle checks.
 
-Next: finish the heartbeat regression/Clippy/native API/CLI rebuild, package and
-upgrade the isolated daemon; rerun four-active/fifth-queued native execution,
-invalid-limit refusal and physically displayed quote provenance. Finish release
-matrix, docs and logical local commits. Live-provider/model/credentials/spending
-question remains pending; no live call may be inferred.
+Next: complete editor regression/Clippy/full CLI rebuild, package, physically
+verify bounded idle Follow and redraws; retain native cursor/focus evidence.
+Then finish release matrix/docs/commits and stop only isolated fixture services.
+Live-provider/model/credentials/spending question remains pending; no live call
+may be inferred. A05 remains unrun even after all local checks pass.
 
 See [Neovim Workspace](neovim-workspace.md), [resource limits](resource-limits.md)
 and [release qualification](release-qualification.md) for contracts and evidence.
