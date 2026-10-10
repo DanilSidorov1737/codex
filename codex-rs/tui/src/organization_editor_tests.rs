@@ -24,6 +24,12 @@ fn native_key_encoding_preserves_unicode_and_literal_angle_brackets() {
 async fn native_changedtick_fence_retains_a_modified_buffer_instead_of_reloading_it() {
     let mut editor = Editor::start(FrameRequester::test_dummy()).unwrap();
     editor.freeze().unwrap();
+    assert!(
+        editor
+            .key(KeyEvent::new(KeyCode::Char('i'), KeyModifiers::NONE))
+            .is_err()
+    );
+    assert!(editor.paste("blocked human input").is_err());
     // Simulate an additional human-authorized editor actor; ordinary host input
     // is blocked while applying. Changedtick still detects that native edit.
     editor

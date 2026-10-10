@@ -67,6 +67,25 @@ async fn execute(
     Ok(response.view)
 }
 
+async fn denied_execution(
+    server: &mut TestAppServer,
+    mutation: OrganizationExecutionMutation,
+) -> Result<String> {
+    let id = server
+        .send_request(
+            "organization/execution/mutate",
+            Some(serde_json::to_value(OrganizationExecutionMutateParams {
+                mutation,
+            })?),
+        )
+        .await?;
+    let rejected = server
+        .read_stream_until_error_message(RequestId::Integer(id))
+        .await?;
+    assert_eq!(rejected.error.code, -32602);
+    Ok(rejected.error.message)
+}
+
 async fn wait_task(
     server: &mut TestAppServer,
     task_id: &str,
@@ -425,7 +444,7 @@ Path('report.txt').write_text('checked background artifact')
     // application intent/write. The exact reviewed bytes are then applied once.
     std::fs::write(project.path().join("report.txt"), "human change")?;
     assert!(
-        execute(
+        denied_execution(
             &mut server,
             OrganizationExecutionMutation::Apply {
                 task_id: task.id.clone(),
@@ -433,8 +452,8 @@ Path('report.txt').write_text('checked background artifact')
                 digest: result.digest.clone()
             }
         )
-        .await
-        .is_err()
+        .await?
+        .contains("original file changed")
     );
     assert_eq!(
         std::fs::read_to_string(project.path().join("report.txt"))?,
@@ -444,7 +463,7 @@ Path('report.txt').write_text('checked background artifact')
     let original = std::fs::read(workspace.join("report.txt"))?;
     std::fs::write(workspace.join("report.txt"), "unreviewed artifact")?;
     assert!(
-        execute(
+        denied_execution(
             &mut server,
             OrganizationExecutionMutation::Apply {
                 task_id: task.id.clone(),
@@ -452,8 +471,8 @@ Path('report.txt').write_text('checked background artifact')
                 digest: result.digest.clone()
             }
         )
-        .await
-        .is_err()
+        .await?
+        .contains("artifact changed after acceptance")
     );
     assert!(!project.path().join("report.txt").exists());
     std::fs::write(workspace.join("report.txt"), &original)?;
@@ -472,7 +491,7 @@ Path('report.txt').write_text('checked background artifact')
     );
     assert_eq!(std::fs::read(project.path().join("report.txt"))?, original);
     assert!(
-        execute(
+        denied_execution(
             &mut server,
             OrganizationExecutionMutation::Apply {
                 task_id: task.id.clone(),
@@ -480,8 +499,8 @@ Path('report.txt').write_text('checked background artifact')
                 digest: result.digest
             }
         )
-        .await
-        .is_err()
+        .await?
+        .contains("already recorded")
     );
     assert!(server.shutdown_gracefully().await?.success());
     Ok(())

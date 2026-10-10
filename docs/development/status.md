@@ -4,33 +4,34 @@ Phase 0: **exploration and planning complete for available inputs**.
 Current work: **approved MVP implementation; B1–B4 locally qualified; B5 Neovim underway**.
 Application feature implementation: **B1–B4 locally qualified; B5–B6 outstanding**.
 
-## B5 current slice
+## Current B5/B6 work
 
-The actual official Neovim external line-grid pane and bounded pipe RPC are written.
-The initial two editor/key-encoding tests passed with real Neovim: Unicode edit,
-save/undo, native diff, resize, dirty mode-change protection, follow reload/cursor
-retention and child exit. The augmented application/editor fence tests remain
-pending. MIT rmpv 1.3.1/rmp 0.8.15 are the only new dependencies; unrelated Cargo
-Windows dependency changes were removed. No LGPL client or custom editor was added.
+B5 implementation is committed as `fcf594bc00`. Official Neovim and exact
+owner Apply passed 12 physical assertions; safe preview, signed receipt intent,
+changed original/dirty buffer protection and editor/daemon independence worked.
+Final direct frozen key/paste/mouse guards and early duplicate-application lookup
+are written. Five app-server, 31 state and 13 TUI/editor tests passed with these
+corrections. Native API reruns caught test-helper/error-precedence mistakes; the
+current final source retains and explicitly asserts rejection. See testing.
 
-Owner-only Apply now has exact accepted revision/digest checks, protected path
-and artifact/base validation, private FD-based staging, permission preservation
-and separate durable intent/completion/uncertainty records (migration 6). Pending
-application intents reconcile as uncertain and cannot replay. The frontend freezes
-loaded buffer options and captures/checks native changedticks around application.
-Production checks caught forbidden await-held MutexGuard; replaced it with a
-bounded semaphore permit retained by native writes even if the owner RPC cancels.
-Production Clippy passed before the last small safety corrections. The augmented
-checks passed: 31 organization state tests, five runtime/application units and
-ten layout/editor tests, all without failures or ignored tests. The shared
-protected-preview read handoff is now being checked, with new alias/hash/size
-and real dirty-editor dispatch tests. Its first check required adding the existing
-path-utils crate directly to app-server; no new third-party library was needed.
-Corrected schemas passed all four comparisons; the protected reader and final five app-server, 31 state and 13 TUI/editor/preview tests passed. Full state regression passed 259 tests and regenerated Python contracts passed 25. The complete CLI build is underway; native API/physical editor qualification and B6 remain outstanding. Do not claim B5 qualified yet.
+B6 local coding, delegated coding and document pilots passed actual native checks,
+owner acceptance and Apply (deterministic model fixtures). Default two-active
+concurrency, 1,000 stored agents/deep actual TUI navigation, 30-second no-inference
+idle and application-inclusive 21-table snapshot restore passed. Four-active
+owner boot configuration, cached catalog CodeModeOnly denial and protected owner
+price estimates are now written. Final production Clippy and affected formatting passed. Combined units passed
+seven app-server, 31 state and 15 TUI/editor/pricing checks. Native API and the
+complete CLI build remain underway. Do not claim final source or B6 complete.
 
-See [Neovim Workspace](neovim-workspace.md) for keys, limits and current editing
-semantics. Continue through B6; the live-provider credentials/spending question
-remains pending and does not block independent local work.
+Next: inspect current logs, correct any failures, build/package the complete CLI,
+upgrade only the isolated fixture daemon, verify four-active/fifth-queued behavior,
+zero-request Code Mode denial, invalid limit refusal and physically displayed
+quote provenance. Finish current-binary qualification, docs and logical local
+commits. Live-provider binding/model/credentials/spending question remains pending;
+no live call may be inferred. Continue independent work without a routine approval.
+
+See [Neovim Workspace](neovim-workspace.md), [resource limits](resource-limits.md)
+and [release qualification](release-qualification.md) for contracts and evidence.
 
 ## B4 qualification
 

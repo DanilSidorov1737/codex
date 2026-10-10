@@ -361,6 +361,8 @@ pub(crate) struct Dashboard {
     editor_file: usize,
     following: bool,
     applying: bool,
+    provider: String,
+    prices: Option<crate::organization_pricing::Prices>,
     frame: FrameRequester,
     pub(crate) is_done: bool,
 }
@@ -397,6 +399,7 @@ impl Dashboard {
         frame: FrameRequester,
         home: &Path,
         preset: Option<Preset>,
+        provider: &str,
     ) -> Self {
         let path = home.join("organization-layouts.json");
         let (mut preferences, message) = match Preferences::load(&path) {
@@ -437,6 +440,8 @@ impl Dashboard {
             editor_file: 0,
             following: false,
             applying: false,
+            provider: provider.into(),
+            prices: crate::organization_pricing::Prices::load(home).ok(),
             frame,
             is_done: false,
         }
@@ -1190,6 +1195,24 @@ impl Dashboard {
         {
             if let Some(grant) = &view.authorization {
                 text.push_str(&format!("\nShared budget: {} / {} tokens · {} / {} requests\nModel: {} · max {} seconds · children {}\nInputs: {}\nRead-only: {}\nArtifacts: {}\n",view.authorization_used_tokens,grant.scope.max_tokens,view.authorization_model_requests,grant.scope.max_model_requests,grant.scope.model,grant.scope.max_seconds,grant.scope.max_children,grant.scope.input_files.join(", "),grant.scope.immutable_files.join(", "),grant.scope.artifacts.join(", ")));
+            }
+            if let Some(grant) = &view.authorization {
+                text.push_str(
+                    &self
+                        .prices
+                        .as_ref()
+                        .and_then(|prices| {
+                            prices.estimate(
+                                &self.provider,
+                                &grant.scope.model,
+                                view.authorization_used_tokens,
+                                grant.scope.max_tokens,
+                            )
+                        })
+                        .unwrap_or_else(|| {
+                            "Model price unavailable: no matching trusted owner quote.\n".into()
+                        }),
+                );
             }
             for attempt in &view.attempts {
                 text.push_str(&format!(

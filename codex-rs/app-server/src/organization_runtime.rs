@@ -37,9 +37,8 @@ use tokio_util::sync::CancellationToken;
 use tokio_util::task::TaskTracker;
 use uuid::Uuid;
 
-const MAX_ACTIVE: u32 = 2;
 // At most four resident roots, each with at most 32 descendants. Waiting
-// ancestors have reserved runtime room; only MAX_ACTIVE consume execution slots.
+// ancestors have reserved runtime room; only the owner-configured active limit consumes execution slots.
 const MAX_LIVE_ATTEMPTS: usize = 4 * 33;
 
 pub(crate) struct OrganizationRuntime {
@@ -49,6 +48,7 @@ pub(crate) struct OrganizationRuntime {
     store: OnceCell<OrganizationStore>,
     execution_owner: OnceCell<Arc<File>>,
     worker_id: String,
+    max_active: u32,
     shutdown: CancellationToken,
     wake: Arc<Notify>,
     workers: TaskTracker,
@@ -67,6 +67,11 @@ impl OrganizationRuntime {
             store: OnceCell::new(),
             execution_owner: OnceCell::new(),
             worker_id: Uuid::now_v7().to_string(),
+            max_active: match std::env::var("CODEX_ORGANIZATION_MAX_ACTIVE") {
+                Ok(value) => parse_active_limit(Some(&value)).unwrap_or(0),
+                Err(std::env::VarError::NotPresent) => 2,
+                Err(std::env::VarError::NotUnicode(_)) => 0,
+            },
             shutdown: CancellationToken::new(),
             wake: Arc::new(Notify::new()),
             workers: TaskTracker::new(),
@@ -104,6 +109,10 @@ impl OrganizationRuntime {
     }
 
     pub(crate) async fn ensure_execution_owner(&self) -> Result<Arc<File>> {
+        ensure!(
+            (1..=4).contains(&self.max_active),
+            "CODEX_ORGANIZATION_MAX_ACTIVE must be an integer from 1 to 4; organization execution is disabled until the owner corrects the setting and restarts"
+        );
         ensure!(
             cfg!(target_os = "linux"),
             "organization execution is currently qualified only on Linux"
@@ -145,7 +154,12 @@ impl OrganizationRuntime {
             let Some(attempt) = self
                 .store()
                 .await?
-                .claim_task(&self.worker_id, &thread_id.to_string(), now(), MAX_ACTIVE)
+                .claim_task(
+                    &self.worker_id,
+                    &thread_id.to_string(),
+                    now(),
+                    self.max_active,
+                )
                 .await?
             else {
                 break;
@@ -180,6 +194,15 @@ impl OrganizationRuntime {
         let store = self.store().await?.clone();
         let view = store.execution_view(&attempt.task_id).await?;
         let authorization = view.authorization.context("task authorization missing")?;
+        let manager = self.manager.upgrade().context("thread manager stopped")?;
+        let model_info = manager
+            .get_models_manager()
+            .get_model_info(
+                &authorization.scope.model,
+                &self.config.to_models_manager_config(),
+            )
+            .await;
+        ensure_native_tool_mode(model_info.tool_mode)?;
         let linked = self
             .thread_store
             .read_project(view.task.project_id.clone())
@@ -276,6 +299,7 @@ impl OrganizationRuntime {
             workspace: workspace.root.to_string_lossy().into_owned(),
             artifact_bases: workspace.artifact_bases.clone(),
             model: authorization.scope.model.clone(),
+            max_active: self.max_active,
             completed: CancellationToken::new(),
             failed: CancellationToken::new(),
             stop: stop.clone(),
@@ -284,7 +308,6 @@ impl OrganizationRuntime {
             _execution_owner: owner,
         });
         let _stop_on_exit = stop.clone().drop_guard();
-        let manager = self.manager.upgrade().context("thread manager stopped")?;
         let mut config = (*self.config).clone();
         configure_task(&mut config, &workspace, &authorization.scope)?;
         // Instructions are content, not grants; core isolation removes inherited
@@ -476,7 +499,7 @@ impl<'call> ToolExecutor<ToolCall<'call>> for OrganizationTools {
                             &self.guard.attempt_id,
                             &self.guard.worker_id,
                             now(),
-                            MAX_ACTIVE,
+                            self.guard.max_active,
                         )
                         .await
                     {
@@ -627,6 +650,7 @@ struct AttemptGuard {
     workspace: String,
     artifact_bases: Vec<OrganizationArtifactBase>,
     model: String,
+    max_active: u32,
     completed: CancellationToken,
     failed: CancellationToken,
     stop: CancellationToken,
@@ -761,7 +785,7 @@ impl ToolLifecycleContributor for AttemptGuard {
                 }
                 if self
                     .store
-                    .dispatch_action(&action.id, &self.worker_id, now(), MAX_ACTIVE)
+                    .dispatch_action(&action.id, &self.worker_id, now(), self.max_active)
                     .await
                     .map_err(|error| format!("managed tool dispatch denied: {error:#}"))?
                 {
@@ -846,10 +870,47 @@ fn validate_native_arguments(tool: &str, arguments: &str) -> Result<()> {
     Ok(())
 }
 
+fn parse_active_limit(setting: Option<&str>) -> Result<u32> {
+    let active = setting.map(str::parse::<u32>).transpose()?.unwrap_or(2);
+    ensure!(
+        (1..=4).contains(&active),
+        "active execution limit must be 1–4"
+    );
+    Ok(active)
+}
+
+fn ensure_native_tool_mode(mode: Option<codex_protocol::openai_models::ToolMode>) -> Result<()> {
+    ensure!(
+        mode != Some(codex_protocol::openai_models::ToolMode::CodeModeOnly),
+        "selected model requires Code Mode, which is disabled for bounded organization execution; select a model supporting direct native tools"
+    );
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn invalid_owner_active_limit_never_expands_or_defaults_execution() {
+        assert_eq!(parse_active_limit(None).unwrap(), 2);
+        for value in ["1", "2", "4"] {
+            assert_eq!(parse_active_limit(Some(value)).unwrap().to_string(), value);
+        }
+        for value in ["", "0", "5", "-1", "NaN", "4294967296", "４"] {
+            assert!(parse_active_limit(Some(value)).is_err(), "{value}");
+        }
+    }
+
+    #[test]
+    fn code_mode_only_model_is_denied_before_native_execution() {
+        use codex_protocol::openai_models::ToolMode;
+        assert!(ensure_native_tool_mode(Some(ToolMode::CodeModeOnly)).is_err());
+        for mode in [None, Some(ToolMode::Direct), Some(ToolMode::CodeMode)] {
+            assert!(ensure_native_tool_mode(mode).is_ok());
+        }
+    }
 
     #[test]
     fn exact_action_approval_does_not_expand_execution_authority() {

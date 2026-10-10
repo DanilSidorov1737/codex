@@ -566,3 +566,55 @@ current tests/dependencies/source/evidence were retained. No schema assertion
 was changed or disabled.
 
 Final intermediate logs: `mvp-b5-schema-final-comparisons.log`, `mvp-b5-shared-reader-tests.log`, `mvp-b5-preview-final-unit-tests.log`, `mvp-b5-state-full-tests.log`, `mvp-b5-sdk-generation.log` and `mvp-b5-sdk-contracts.log`. Four schema comparisons passed; the generator helper remains intentionally ignored in the comparison command and was run explicitly for both bundles. The complete CLI build and physical/native API gates remain pending.
+
+
+## B5 physical qualification and final corrections
+
+Actual packaged CLI/daemon with checksum-verified official Neovim v0.12.6 passed
+12 physical assertions recorded in `mvp-b5-cli/qualification.json`. Logs:
+`tui-editor.log`, `tui-apply.log`; owner views: `dirty-blocked.json`,
+`base-blocked.json`, `applied.json`, `independence-current.json`. Real Unicode
+editing/save, bracketed paste/undo, protected Follow, native diff, focus/resize,
+dirty exit/Apply refusal, changed original preservation, exact owner Apply/hash
+and post-Apply immutable oracle passed. The saved human text was preserved in
+`human-saved.txt`. Killing only editor PID349467 during native execution left
+daemon PID347317 running and the new task reached NeedsReview (2 requests/30
+reported tokens). This provider is deterministic localhost; no paid call occurred.
+
+The first API batch passed two/failed two: the new negative assertion used the
+success-only response helper, and a parallel delegated case timed out. Correct
+error-response handling and serial execution passed three/failed one: duplicate
+Apply was correctly denied by changed-base validation before the expected receipt
+message. Owner processing now detects an already recorded digest before preparing
+files; the protected transaction uniqueness check remains. Final native rerun is
+pending. Logs retain both failures (`mvp-b5-native-api-tests.log`,
+`mvp-b5-native-api-corrected-tests.log`). No rejection guard was disabled.
+
+The slow editor-crash fixture initially finalized before its native command
+finished; `timeout_ms` was replaced with the supported `yield_time_ms` and a fresh
+bounded authorization passed. First failed evidence remains. Direct editor
+key/paste now reject frozen state; mouse is ignored while frozen or unfocused.
+Final fence production Clippy passed. A redundant TUI-only test feature build was
+explicitly cancelled (130) to avoid duplicate runtime compilation/disk exhaustion;
+the combined package command then passed five app-server, 31 state and 13
+TUI/editor/preview checks, zero failures or ignored. Logs:
+`mvp-b5-final-fence-clippy.log`, `mvp-b5-final-fence-editor-tests.log` (cancelled),
+`mvp-b6-combined-unit-tests.log` (successful B5 corrections; B6 runtime patch had
+not yet been applied). Only verified stopped duplicate fixture executables and
+obsolete pre-preview test executables were retired for disk; all state, source
+and logs remain, and the current complete installed daemon package is retained.
+
+B6 actual pilot, scale, concurrency, idle and restore evidence is recorded in
+[release qualification](release-qualification.md). Current final source checks
+remain pending; do not claim the full live-provider release gate passed.
+
+
+Current B6 source passed production Clippy with warnings denied, affected-package
+formatting and the combined library command: **7 app-server, 31 state and 15
+TUI/editor/preview/pricing** tests, no failures/ignored. Logs:
+`mvp-b6-corrected-production-clippy.log`, `mvp-b6-format-check.log`,
+`mvp-b6-final-combined-tests.log`. New cases reject invalid owner limits and
+CodeModeOnly before native execution, validate exact quote provenance and reject
+negative usage, mismatched provider/model, unsafe price files/aliases/rates.
+These are not yet proof of actual four-active/zero-request admission in the updated
+packaged daemon. The final native API and full CLI stages remain underway.

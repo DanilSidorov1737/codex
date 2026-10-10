@@ -137,6 +137,8 @@ fn dashboard() -> Dashboard {
         editor_file: 0,
         following: false,
         applying: false,
+        provider: "test".into(),
+        prices: None,
         frame: FrameRequester::test_dummy(),
         is_done: false,
     }

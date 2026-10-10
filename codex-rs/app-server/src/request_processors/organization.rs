@@ -245,6 +245,7 @@ impl OrganizationRequestProcessor {
                     anyhow::ensure!(view.task.state=="accepted"&&view.task.revision==expected_revision,"application requires exact accepted task revision");
                     let result=view.result.context("accepted result missing")?;
                     anyhow::ensure!(result.accepted&&result.digest==digest,"accepted result digest changed");
+                    anyhow::ensure!(!view.applications.iter().any(|application| application.digest==digest),"result application already recorded; inspect its receipt, never replay an uncertain operation");
                     let linked=self.thread_store.read_project(view.task.project_id.clone()).await?.context("project missing")?;
                     let codex_protocol::organization::OrganizationRecord::Project(project)=store.read_definition(codex_protocol::organization::OrganizationRecordKind::Projects,&view.task.project_id).await? else {anyhow::bail!("invalid project record")};
                     anyhow::ensure!(linked.roots.iter().map(|r|&r.path).eq(project.roots.iter()),"project roots changed");

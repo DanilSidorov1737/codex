@@ -430,6 +430,10 @@ impl Editor {
         Ok(())
     }
     pub(crate) fn key(&mut self, key: KeyEvent) -> Result<()> {
+        ensure!(
+            self.frozen.is_none(),
+            "editor input frozen during application"
+        );
         let input = key_text(key);
         if input.is_empty() {
             return Ok(());
@@ -455,6 +459,10 @@ impl Editor {
         bail!("Neovim input remained backpressured")
     }
     pub(crate) fn paste(&mut self, text: &str) -> Result<()> {
+        ensure!(
+            self.frozen.is_none(),
+            "editor input frozen during application"
+        );
         ensure!(text.len() <= 1024 * 1024, "paste exceeds 1 MiB");
         ensure!(
             self.rpc("nvim_paste", vec![text.into(), false.into(), (-1).into()])?
@@ -465,7 +473,10 @@ impl Editor {
         Ok(())
     }
     pub(crate) fn mouse(&mut self, event: MouseEvent, area: Rect) -> Result<()> {
-        if !area.contains((event.column, event.row).into()) {
+        if self.frozen.is_some()
+            || !self.focused
+            || !area.contains((event.column, event.row).into())
+        {
             return Ok(());
         }
         let (button, action) = match event.kind {

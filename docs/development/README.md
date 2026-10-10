@@ -24,6 +24,8 @@ B1 usage: [organization command guide](organization-commands.md).
 B3 contracts and bounds: [coordination](coordination.md).
 B4 layout usage and qualification: [layouts](layouts.md).
 B5 actual editor and application: [Neovim Workspace](neovim-workspace.md).
+Execution settings/prices: [resource limits](resource-limits.md).
+Release evidence/gates: [qualification](release-qualification.md).
 
 Other focused plans: [security and recovery](security-and-recovery.md),
 [TUI and Neovim](tui-and-neovim.md), [Ponytail setup](ponytail.md).
