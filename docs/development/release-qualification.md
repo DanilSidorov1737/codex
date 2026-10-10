@@ -1,9 +1,14 @@
 # MVP release qualification
 
 B1–B6 implementation and local qualification are complete on 2026-10-10 UTC.
-Heartbeat/database contention and idle editor redraw bugs were fixed and verified. **The MVP
+Heartbeat/database contention, idle editor redraw, overlapping dashboard IDs and
+refresh-triggered task inspection bugs were fixed and verified. **The MVP
 is not fully release-qualified: A05's bounded live-provider pilot is unrun.**
-No provider/model/secure credentials or numeric spending ceiling has been supplied.
+The owner supplied OPENAI_API_KEY and approved compatible-GPT pilots with minimal
+spending; the conservative working ceiling is $1 total. API proxy CONNECT is denied
+(HTTP 403). The needed api.openai.com allowlist addition is saved in the environment
+draft but not applied/published; credential validity and model availability remain
+unverified. No paid model call was made.
 Deterministic Responses fixtures exercise the real packaged CLI, detached daemon,
 native sandbox, actual filesystem and independent immutable owner checks. They
 cannot establish live model quality, provider compatibility or real billing.
@@ -16,14 +21,14 @@ cannot establish live model quality, provider compatibility or real billing.
 | A02 versioned hierarchy/membership | Real stale edit/cycle denials; transactional reparent/membership/state tests passed | Moving nodes never grants execution authority |
 | A03 goals/tasks/plans | Persistent goal/project/task contracts and bounded plan/DAG/child acceptance tests; real native delegated plan ran | Owner grants constrain every child; no autonomous authority expansion |
 | A04 claim/generation fences | Concurrent claims, stale completion/settlement and reservation tests passed | Single owner host |
-| A05 useful live model workflow | Native fixture single/delegated coding and fact-based document pilots passed checks, owner acceptance and Apply | **Blocked: bounded live-provider pilot required** |
+| A05 useful live model workflow | Native fixture single/delegated coding and fact-based document pilots passed checks, owner acceptance and Apply | **Blocked: API egress denied; compatible GPT pilots authorized** |
 | A06 detach/restart | Real CLI detach/reconnect and post-dispatch/pending-approval SIGKILL/restart tests passed | Interrupted work reconciles; arbitrary reboot/service supervision unqualified |
 | A07 pause/revocation | Physical pause/resume plus inherited authorization/delegation/context state gates passed | Existing native cleanup retains reservations until joined |
 | A08 exact human approvals | Actual protected owner approval/rejection; stale approval, pending crash and self-administration denial passed | Silence never approves |
 | A09 budgets/limits | Real reported usage, exhausted request/tool gates, child shared-budget/capacity races; invalid boot limit creates no grant/attempt | Corrected four-active/default-two native checks passed; provider billing is not capped |
 | A10 uncertain effects | Native post-dispatch crash and application intent restart become reconciliation/uncertain, with no automatic replay | External financial/messaging effects excluded |
 | A11 protected authority | Nine real sandbox denial assertions cover canonical state, owner IPC/home, other roots and privileged arguments | Notes/instructions remain untrusted input |
-| A12 five layouts | All five physically used at 120×30/50×20; saved pane size/visibility/focus reloaded; 152 layout/slash/overlay checks passed | Linux clean-terminal envelope |
+| A12 five layouts | Final source: 370 physical commands at 120×36/50×20, 20 ms switches and 20 Console reopen cycles; 17 organization/editor tests and prior 152 layout/slash/overlay checks passed | Linux clean-terminal envelope |
 | A13 Operations tree | Actual selection/search/collapse/expand and pause/resume; 1,000-agent deep-node PTY benchmark passed | Frontend bounds record loading; owner CLI/API pagination extends inspection |
 | A14 official Neovim | Actual v0.12.6 modal Unicode save/paste/undo, splits/diff, focus and resize passed | Clean configuration; user plugins/configs unqualified |
 | A15 isolated editing/review | Protected read-only preview, native diff, dirty buffers/changed originals, exact hash Apply and owner oracle passed | Actual two-stage native Follow retained focus/cursor; external writers must be coordinated |
@@ -133,3 +138,34 @@ committed docs retain reproducible commands, results and limits. Qualification o
 additional platforms, user editor configurations, broader providers, simultaneous
 shared-buffer merging, overlapping parallel child outputs and arbitrary external
 writers remains unqualified/deferred. Prefer disjoint child artifacts.
+
+
+## Startup/workflow follow-up — 2026-10-10 UTC
+
+Current application source is `6a4a9f6329`, following `4a19208b2c`.
+The final complete source/managed package has CLI SHA256
+`6152cbbd0e4b47877862685dc5d54f94f29ba3e6fd23f05de24b760089255ae7`;
+all helpers/manifests and running process identity were matched. Package:
+`/workspace/.onboarding/qualification/mvp-followup/package-v2/`.
+
+Two small TUI fixes reuse existing UUID and Inspect paths. A real remote-client
+regression failed with the original duplicate ID 0, then passed overlapping startup,
+canceled dashboard, pagination and every worker operation. Physical qualification
+found the missing execution inspection when refresh selected a newly visible task;
+the extended regression covers deletion, stable selection and new search matches.
+All 17 organization/editor tests, production Clippy/format, full CLI/package passed.
+
+On this final source, all three native fixture pilots again passed isolated immutable
+checks, exact acceptance, explicit Apply and independent original-project oracles.
+The full physical workflow passed two exact approvals, actual Neovim Follow/native
+diff, delayed native command completing after TUI quit, original unchanged through
+acceptance, explicit Completed Apply, owner oracle and reopening the applied file.
+370 actual layout commands passed online/offline across two sizes; no duplicate ID
+or owner timeout frame and zero inference requests during layout checks.
+
+Detailed failure/correction/commands/evidence are in testing.md and `mvp-followup/`.
+Actual captures/archive: `/workspace/artifacts/cli-followup/`. Owned temporary
+services are stopped; final package and state are retained. Earlier B6 performance/
+recovery evidence still applies to unchanged backend code and is not a new benchmark.
+A05 remains blocked; local fixture responses cannot establish live model quality,
+real provider compatibility or billing. No CodeModeOnly bypass or new editor was built.

@@ -1,7 +1,7 @@
 # Current status and resumption instructions
 
 Phase 0: **exploration and planning complete for available inputs**.
-Current work: **both UI fixes and the full native workflow pass; final-package layout/pilot repetition in progress; live GPT pilots blocked by API egress**.
+Current work: **both UI fixes and final local qualification complete; live GPT pilots blocked by API egress**.
 Application features: **delivered for the documented single-owner Linux envelope**.
 The MVP is **not fully release-qualified** until A05's bounded live-provider pilot passes.
 
@@ -11,6 +11,19 @@ Persistent configurable agents/roles/goals/projects/tasks, protected canonical s
 bounded daemon work/delegation/context, all five layouts, official embedded Neovim,
 exact human review/Apply, owner boot limits and trusted price estimates are delivered.
 Ponytail reuse-first implementation/review and logical local commits were used.
+
+Current application source: **`6a4a9f6329`**, following request-ID fix `4a19208b2c`.
+Both bugs are fixed: unique IDs survive overlapping/canceled dashboard requests;
+refresh-triggered selection fetches execution details for newly visible tasks.
+Final checks passed **17 organization/editor tests**, production formatting/Clippy,
+complete CLI/package, **370 physical layout commands** online/offline at two sizes,
+and fresh native single/delegated coding/document pilots. The full physical workflow
+passed two exact approvals, actual official Neovim Follow/diff, work after TUI quit,
+exact acceptance, explicit Apply, independent original checks and file reopening.
+These use deterministic local Responses: **zero paid model calls**.
+Current package: `/workspace/.onboarding/qualification/mvp-followup/package-v2/`.
+Evidence: `mvp-followup/` under the qualification root; screenshots/archive:
+`/workspace/artifacts/cli-followup/`. Temporary services are stopped.
 
 Previous B6 baseline application source: `f92e8c2292`, following the runtime correction
 `8da15f446f` and resource/price slice `56929b5b18`. Final combined checks passed
@@ -35,15 +48,18 @@ hash-matched. Fixture daemon/provider are stopped; source package, state and all
 evidence remain outside Git. The container retains a stopped daemon zombie with
 zero execution; its managed PID record is removed.
 
-**Next action:** complete the authorized request-ID/rapid-switch and full native
-workflow qualification. The owner supplied OPENAI_API_KEY, requested minimal spend
-and approved a compatible GPT instead of CodeModeOnly GPT-6 Luna. Use a conservative
-$1 total ceiling and small scopes. The key is present; API proxy CONNECT returned
-403 because api.openai.com is absent from the running allowlist. Its addition is
-saved in the environment draft (review/save/publish required), preserving presets
-and bindings. Recheck supported HTTPS access after application, verify a native-tool
-GPT available to the key, and run the three bounded live pilots. Do not infer push,
-merge/publication or broader authority, restart B1–B5 or reinstall existing tools.
+**Next action:** complete A05 after API egress is enabled. The owner supplied
+OPENAI_API_KEY, requested minimal spend and approved a compatible GPT instead of
+CodeModeOnly GPT-6 Luna. Use a conservative $1 total working ceiling, verified
+current prices and small scopes. Key presence is confirmed; validity is untested
+because proxy CONNECT to api.openai.com returned 403. Its allowlist addition is
+confirmed saved in the environment draft, preserving presets/bindings; the owner
+must review/save/publish in settings to apply it. Recheck supported HTTPS access,
+verify an available native-tool GPT (the current catalog lists gpt-5.5), then run
+single-agent coding, one-child delegation and fact-based document pilots with real
+owner checks, acceptance and Apply. No new routine approval or duplicate key is
+needed. Do not infer push/merge/deploy authority, redo qualified local slices,
+reinstall tools, use fixture zero-dollar quotes for real billing, or bypass Code Mode.
 
 See [release matrix](release-qualification.md), [Workspace](neovim-workspace.md),
 [resource settings](resource-limits.md) and [owner commands](organization-commands.md).
@@ -216,14 +232,6 @@ authorize push/publication, outbound communications or unbounded provider spendi
 
 ## Known limitations / remaining work
 
-- Screenshot request-ID follow-up is in progress: the collision was reproduced
-  by a real-transport regression, fixed by unique background UUID IDs, and all
-  17 organization/editor tests, production checks, complete CLI build and 185
-  physical offline layout commands pass. Provider-online adds 185 more passing commands and fresh native fixture
-  pilots pass. The missing Inspect after automatic selection changes is fixed; its extended
-  regression and full physical approvals/Neovim/detach/accept/Apply workflow pass. Evidence:
-  `/workspace/.onboarding/qualification/mvp-followup/`. Original screenshots:
-  `/workspace/artifacts/cli-screenshots/`.
 - A05 live-provider/model quality and compatibility is unrun: compatible GPT
   pilots are authorized with minimal spending; key is present, but API proxy
   egress is denied. Review/save/publish the saved api.openai.com network addition.
@@ -250,12 +258,12 @@ authorize push/publication, outbound communications or unbounded provider spendi
 1. Read AGENTS.md, this status, release matrix, MVP, decisions and testing.
 2. Check Git status/log and preserve changes in the existing checkout.
 3. Activate the pinned environment with `. /workspace/.onboarding/activate.sh`.
-   Final package: `/workspace/.onboarding/qualification/mvp-b6-cli/package/bin/codex`.
+   Final package: `/workspace/.onboarding/qualification/mvp-followup/package-v2/bin/codex`.
    Evidence root: `/workspace/.onboarding/qualification/`; fixture services are stopped.
-4. Complete the pending bounded live-provider binding/credentials/spend step.
-   Configure credentials securely, inspect existing provider/tool-mode behavior,
-   then run meaningful single/delegated coding and document pilots with immutable
-   owner checks and real interactions. Preserve failures and cost/usage receipts.
+4. The key and compatible-model/minimal-spend authorization are present. Apply
+   the saved api.openai.com domain addition through environment settings, verify
+   normal HTTPS/model availability/prices and run the three bounded live pilots.
+   Preserve failures/usage/cost receipts; never print or persist the key value.
 5. Update acceptance/status/testing and make logical local commits after results.
    Do not start later roadmap phases without matching user scope, or infer push,
    merge, deploy, external messaging or financial authority.
