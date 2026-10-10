@@ -1,6 +1,6 @@
 # Codex CLI fork development
 
-Phase: **MVP planning after completed M0/M1 foundation qualification**.
+Phase: **approved MVP implementation; B1 in progress**.
 Phase 0 repository baseline: `8026444c98cd9c6db9e7c953b44a20ea4f93c7b6`, from `origin/main`.
 Research recorded on 2026-10-09 (America/New_York).
 
@@ -57,6 +57,6 @@ Subsequent owner-approved M0/M1 checks built the full CLI/package, exercised the
 actual TUI/daemon and installed/tested official Neovim. See qualification for
 evidence and limits; these are foundations, not the MVP's integrated features.
 
-The updated [MVP build plan](mvp.md#build-order-and-usable-checkpoints) is proposed.
-The latest request authorizes planning; stop before product implementation until
-the owner approves its scope. No additional installation is needed for planning.
+The owner approved the [MVP build plan](mvp.md#build-order-and-usable-checkpoints),
+Ponytail implementation and periodic local commits. Follow the recorded scope and
+evidence gates; do not infer external operational or spending authority.

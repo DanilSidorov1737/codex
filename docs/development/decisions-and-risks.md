@@ -1,17 +1,18 @@
 # Decisions, risks, and approval gate
 
-Current approval: the owner approved M0/M1 CLI/daemon/official Neovim qualification
-with “Okay, let's do this”. Required local tool installation is authorized for
-that scope. See [qualification](qualification.md). Broader decisions below remain
-proposals until accepted or validated in the relevant implementation scope.
+Current approval: after M0/M1 qualification, the owner approved implementing the
+MVP with Ponytail and periodic local commits. The B1–B6 scope, single-host reuse
+architecture and isolated-editing approach are accepted for implementation.
+Production dependency choices must satisfy repository policy. Live-provider
+binding/model and numeric spending bound remain prerequisites for that pilot.
 
-## Proposed decisions
+## Decisions
 
 | ID  | Decision / rationale                                                                     | Alternatives considered                                                                | Status                                    |
 | --- | ---------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- | ----------------------------------------- |
 | D01 | Extend existing app-server daemon and runtime; one host first                            | New daemon/framework/microservices add duplicated lifecycle/tool handling              | Proposed                                  |
 | D02 | Stable configurable agent/group definitions independent of threads; no fixed role levels | Fixed CEO/manager hierarchy contradicts requirements                                   | Proposed                                  |
-| D03 | Separate authoritative SQLite DB using SQLx patterns and protected recovery              | Existing runtime DB may rebuild; remote DB adds operations too early                   | Proposed                                  |
+| D03 | Separate authoritative SQLite DB using SQLx patterns and protected recovery              | Existing runtime DB may rebuild; remote DB adds operations too early                   | Accepted; storage slice tested            |
 | D04 | Transactional task state/leases/reservations/audit/outbox, bounded execution             | Full event sourcing/broker/workflow engine deferred pending scale evidence             | Proposed                                  |
 | D05 | Reuse existing project IDs and thread goals; add planning records                        | Replacing either duplicates working functionality; cross-store reconciliation required | Proposed                                  |
 | D06 | One TUI pane model with five presets; Operations tree primary                            | Five independent frontends or graphical replica unnecessary                            | Proposed                                  |
@@ -82,6 +83,6 @@ are complete, present the findings and stop for my approval before beginning
 implementation.”
 
 This gate comes from the user's Phase 0 instruction. The owner has now approved
-the foundation qualification described above. Record subsequent scope decisions;
+the MVP implementation described above. Record subsequent scope decisions;
 do not infer external spending or operational authority from this local approval.
 No additional setup approval flow is introduced here.

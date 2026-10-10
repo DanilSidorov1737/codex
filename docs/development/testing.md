@@ -1,5 +1,28 @@
 # Testing procedures and evidence
 
+## B1/M2 store verification
+
+On 2026-10-10 UTC, Linux x86_64, Rust 1.95.0, from `codex-rs` after documented
+activation:
+
+- `cargo test --locked --offline --profile dev-small -p codex-state --lib -j 4`:
+  **233 passed, zero failed/ignored**. Log:
+  `/workspace/.onboarding/qualification/mvp-state-tests.log`.
+- Five new store tests exercise actual SQLite WAL/FULL durability settings,
+  stable identity after reopen, consistent backup/fresh restore, corruption,
+  truncated/missing initialized data, migration checksum mismatch, real SQLITE_FULL
+  rollback and unsafe directory/database symlink permissions. No storage mocks.
+- `cargo clippy --locked --offline --profile dev-small -p codex-state --lib -j 4 -- -D warnings`:
+  exit 0. `cargo fmt -p codex-state -- --check`: exit 0.
+- Initial compilation caught SQLx 0.9's dynamic-SQL guard in the disk-full test;
+  the integer-only PRAGMA assignment is explicitly audited using existing
+  `AssertSqlSafe`, then checks were rerun. Full-repository formatting initially
+  reported the new unformatted files; package formatting was fixed and rechecked.
+
+This qualifies the storage slice, not the complete B1, agent sandbox exclusion,
+or MVP. No new commands exist yet to physically exercise; M3 must add and test
+them. No live provider request or broad Bazel/platform suite was run.
+
 ## MVP planning verification
 
 Planning-only update on 2026-10-10 UTC: no application source, dependency or

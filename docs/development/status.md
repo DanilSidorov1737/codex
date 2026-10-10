@@ -1,8 +1,8 @@
 # Current status and resumption instructions
 
 Phase 0: **exploration and planning complete for available inputs**.
-Current work: **MVP build plan updated after completed M0/M1 qualification**.
-Application feature implementation: **not started**.
+Current work: **approved MVP implementation; B1/M2 store tested, M3 definitions next**.
+Application feature implementation: **protected store implemented; B1 not yet complete**.
 
 ## Current authorization
 
@@ -10,11 +10,31 @@ The owner's “Okay, let's do this” approved the described next step: build an
 physically exercise the real CLI, check detached daemon/reconnect behavior, obtain
 verified official Neovim and test its embedding API. Required local prerequisites
 are included. No push, publication, external spending or broader operational
-authority is inferred. This qualification is complete. The latest request,
-“ok lets plan out the mvp that we are going to create”, authorizes planning and
-documentation; organization/task/editor product implementation has not started.
+authority is inferred. This qualification is complete. The owner now requests
+“Okay, let's implement this. Use Ponytail to implement, and then commit
+periodically, follow the MVP plan”. This approves B1–B6's ordinary implementation,
+tests, required local dependencies, documentation and local commits. It does not
+authorize push/publication, outbound communications or unbounded provider spending.
 
-## Current MVP planning
+## B1 implementation progress
+
+- Added `OrganizationStore` to existing codex-state, reusing SQLx and the existing
+  cross-platform private-directory helper. No new external dependency was added.
+- Canonical database lives at `<sqlite_home>/organization/organization.sqlite`,
+  inside an owner-only directory. Linux files are mode 0600; symlinks/hard links,
+  unsafe ownership/permissions, incompatible migrations and corruption are rejected.
+- Uses WAL, FULL synchronization, foreign keys and one connection for short
+  transactions. No runtime backup-and-rebuild fallback applies to this store.
+- Added verified consistent snapshots and restoration into a fresh directory.
+  Missing/truncated initialized state is rejected rather than reset automatically.
+- All 233 codex-state library tests passed, including five new meaningful store
+  tests. Clippy with warnings denied and package formatting checks passed.
+- This is a storage library slice; no new CLI/RPC command or background organization
+  task is delivered yet. Real command/TUI interaction follows when M3 exposes it.
+- Next: durable arbitrary nodes/role versions, goals, existing-project links and
+  proposed tasks, with revision/cycle checks, typed RPC and actual command checks.
+
+## MVP planning completed before implementation
 
 - Replaced stale build/editor prerequisites with the actual qualification results.
 - Defined one complete goal -> authorized plan -> background work -> reviewed result
@@ -24,7 +44,7 @@ documentation; organization/task/editor product implementation has not started.
   B6 live/interactive/recovery qualification. See [MVP](mvp.md).
 - Clarified in-scope autonomy, checked internal task acceptance, owner final
   acceptance, separate safe patch application and initial operating limits.
-- Product code is unchanged. Documentation verification is recorded in
+- Product code was unchanged in that planning commit. Documentation verification is recorded in
   [testing](testing.md); foundation checks were not rerun for a planning-only change.
 
 ## Phase 0 completed

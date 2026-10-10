@@ -1,7 +1,8 @@
 # Recommended architecture
 
-Product choices are **proposed**, pending MVP scope approval. CLI/daemon/editor
-foundations have been qualified; see [qualification](qualification.md).
+The owner approved this MVP architecture for implementation. CLI/daemon/editor
+foundations have been qualified; see [qualification](qualification.md). A choice
+is not delivered behavior until its implementation and tests are recorded.
 
 ## One daemon, several responsibilities
 
@@ -38,7 +39,9 @@ prompt. Preserve ThreadId as execution identity and use stable separate AgentId.
 ## Storage ownership
 
 Use a dedicated authoritative SQLite database, provisionally
-`<sqlite_home>/organization.sqlite`, through existing SQLx/migration infrastructure.
+`<sqlite_home>/organization/organization.sqlite`, through existing SQLx/migration
+infrastructure and an owner-only directory. The store library is implemented;
+organization records and runtime admission are the next slices.
 It contains definitions, tasks, claims, approvals, budget reservations, action
 intents, evidence references, durable inbox entries and client events.
 Use foreign keys, short transactions, bounded busy timeouts and WAL where the

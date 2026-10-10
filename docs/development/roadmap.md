@@ -8,7 +8,7 @@ Implementation proceeds within the approved scope and records evidence at each g
 Approval of the complete MVP covers ordinary slices/commits; do not request it
 again for each checkpoint. Broader authority or a material scope change is separate.
 Parallel independent work is useful once interfaces and ownership are clear;
-the latest request is to plan the MVP, not begin feature implementation.
+the owner has approved MVP implementation with Ponytail and periodic local commits.
 
 | Phase                           | Scope                                                                                                                              | Exit evidence                                                                                                       |
 | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
@@ -26,7 +26,8 @@ The proposed MVP build order is B1 durable definitions -> B2 one safe background
 task -> B3 bounded delegation/context -> B4 five useful layouts -> B5 actual
 Neovim Workspace -> B6 complete release qualification. Detailed steps and checks
 are maintained in [the MVP plan](mvp.md#build-order-and-usable-checkpoints).
-The first implementation slice is B1/M2–M3; none of these product slices has started.
+The first implementation slice is B1/M2–M3. M2's storage library is implemented
+and tested; M3 definitions/commands and all later checkpoints remain outstanding.
 
 Deliver a complete small workflow rather than a screen full of invented metrics.
 Keep features behind normal supported flags/settings until qualification.

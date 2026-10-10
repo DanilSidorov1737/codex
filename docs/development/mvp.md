@@ -1,6 +1,6 @@
 # Detailed first MVP plan
 
-Status: **proposed MVP scope; planning requested, product implementation not yet approved**.
+Status: **owner-approved MVP implementation; B1 in progress**.
 Updated after [M0/M1 foundation qualification](qualification.md). The actual CLI,
 daemon and official Neovim are available; the organization service and integrated
 editor pane are not implemented.

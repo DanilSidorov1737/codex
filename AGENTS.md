@@ -7,9 +7,11 @@ system. Phase 0 research and planning are complete. The owner approved the next
 step with “Okay, let's do this”: M0/M1 qualification of the real CLI, detached
 daemon and official Neovim embedding, including the tools needed for those checks.
 These foundations are qualified; see [qualification](docs/development/qualification.md).
-The latest request is to plan the MVP. Keep product changes at the recorded
-approval boundary; organization/task features and the integrated editor are not
-implemented or authorized by that planning request.
+The owner subsequently approved implementation: “Okay, let's implement this.
+Use Ponytail to implement, and then commit periodically, follow the MVP plan”.
+Implement B1–B6 in order with meaningful tests, real interactions and logical
+local commits. No repeated approval is needed for ordinary MVP slices.
+External authority and live-provider spending remain separately bounded.
 Record new approvals and scope in status.md; a plan alone does not authorize work.
 
 Read [docs/development/README.md](docs/development/README.md) and
