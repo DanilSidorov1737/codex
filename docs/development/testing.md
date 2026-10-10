@@ -772,3 +772,25 @@ Markdown files/root instructions resolve (including URL-decoded filenames), and
 `git diff --check` is clean. Final evidence JSON and package retention were checked;
 the final commit contains only documentation/instructions. Application source is
 unchanged from the qualified `f92e8c2292` build.
+
+## Requested CLI screenshots — 2026-10-10 UTC
+
+Captured all five layouts from the actual final packaged CLI, including actual
+embedded official Neovim in read-only Follow mode. The CLI ran in official Neovim's
+native terminal at 120×36; its external-UI cells/highlights were rendered to five
+1440×900 PNGs with installed Pillow. No generated concept art or application changes.
+Images, source/hash metadata and the downloadable archive are retained at
+`/workspace/artifacts/cli-screenshots/`.
+
+An initial readiness predicate named a different fixture; it was corrected to the
+actual loaded Bench agent. A later rapid layout-switch attempt saw
+`organization/execution/read transport error: duplicate remote app-server request id 0`.
+Waiting for settled refreshes with the existing localhost fixture available loaded
+complete task details and actual Neovim. This request-ID issue was recorded, not
+fixed or silently treated as passing. Investigate separately; no source regression
+or additional release qualification is claimed by these screenshots.
+
+Provider request count remained exactly 50 before/after capture: zero model requests.
+Original pane preferences were restored; temporary daemon/provider were stopped.
+The screenshots include preserved historical failure cases and intentional denials
+in the test task list. These are real qualification fixtures, not live-model work.

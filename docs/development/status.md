@@ -212,6 +212,11 @@ authorize push/publication, outbound communications or unbounded provider spendi
 
 ## Known limitations / remaining work
 
+- Screenshot follow-up: one rapid layout-switch capture during a cold start saw
+  `organization/execution/read` reject duplicate remote request ID `0`. Settled
+  refreshes with the localhost fixture available produced complete screenshots;
+  no application fix was made. Investigate the loader's request-ID reuse separately.
+  Evidence and five fresh captures: `/workspace/artifacts/cli-screenshots/`.
 - A05 live-provider/model quality and compatibility is unrun: provider/model,
   secure credentials and spending ceiling are pending. Local Responses were
   deterministic fixtures; no paid model was called.
