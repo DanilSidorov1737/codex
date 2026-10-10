@@ -398,21 +398,40 @@ impl OrganizationRuntime {
                 .await?;
             Ok::<_, anyhow::Error>(())
         };
-        tokio::pin!(work);
-        let deadline = tokio::time::sleep(Duration::from_secs(u64::from(
-            authorization.scope.max_seconds,
-        )));
-        tokio::pin!(deadline);
-        let mut heartbeat = tokio::time::interval(Duration::from_secs(1));
-        loop {
-            tokio::select! {
-                biased;
-                result=&mut work=>return result,
-                _=stop.cancelled()=>anyhow::bail!("organization execution stopped"),
-                _=&mut deadline=>anyhow::bail!("elapsed task budget exhausted"),
-                _=heartbeat.tick()=>store.heartbeat_attempt(&attempt.id, &self.worker_id, now()).await?,
+        let renew_lease = async {
+            let mut heartbeat = tokio::time::interval(Duration::from_secs(1));
+            loop {
+                heartbeat.tick().await;
+                store
+                    .heartbeat_attempt(&attempt.id, &self.worker_id, now())
+                    .await?;
             }
-        }
+        };
+        drive_attempt(
+            work,
+            renew_lease,
+            stop.clone(),
+            Duration::from_secs(u64::from(authorization.scope.max_seconds)),
+        )
+        .await
+    }
+}
+
+async fn drive_attempt(
+    work: impl std::future::Future<Output = Result<()>>,
+    renew_lease: impl std::future::Future<Output = Result<()>>,
+    stop: CancellationToken,
+    budget: Duration,
+) -> Result<()> {
+    // Poll both futures together: renewal may need the single connection held
+    // by work. Awaiting renewal inside a selected branch would suspend work
+    // and its connection release, as well as cancellation and the deadline.
+    tokio::select! {
+        biased;
+        result=work=>result,
+        _=stop.cancelled()=>anyhow::bail!("organization execution stopped"),
+        _=tokio::time::sleep(budget)=>anyhow::bail!("elapsed task budget exhausted"),
+        result=renew_lease=>result,
     }
 }
 
@@ -891,6 +910,46 @@ fn ensure_native_tool_mode(mode: Option<codex_protocol::openai_models::ToolMode>
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[tokio::test]
+    async fn heartbeat_contention_cannot_suspend_work_or_its_deadline() -> Result<()> {
+        let connection = tokio::sync::Semaphore::new(1);
+        let (waiting, heartbeat_waiting) = tokio::sync::oneshot::channel();
+        let work = async {
+            let permit = connection.acquire().await?;
+            heartbeat_waiting.await?;
+            drop(permit);
+            Ok(())
+        };
+        let renew_lease = async {
+            waiting.send(()).expect("work remains alive");
+            let _permit = connection.acquire().await?;
+            std::future::pending::<Result<()>>().await
+        };
+        drive_attempt(
+            work,
+            renew_lease,
+            CancellationToken::new(),
+            Duration::from_secs(1),
+        )
+        .await?;
+
+        let _occupied = connection.acquire().await?;
+        let renewal = async {
+            let _permit = connection.acquire().await?;
+            Ok(())
+        };
+        let error = drive_attempt(
+            std::future::pending(),
+            renewal,
+            CancellationToken::new(),
+            Duration::from_millis(10),
+        )
+        .await
+        .unwrap_err();
+        assert!(error.to_string().contains("elapsed task budget exhausted"));
+        Ok(())
+    }
 
     #[test]
     fn invalid_owner_active_limit_never_expands_or_defaults_execution() {

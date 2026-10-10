@@ -1,6 +1,6 @@
 # Phased roadmap
 
-Current execution: Phase 2 MVP implementation is approved; B1–B4 are locally qualified; B5 Neovim is beginning. See
+Current execution: Phase 2 MVP implementation is approved; B1–B5 are locally qualified; B6 release qualification is underway. See
 [qualification evidence](qualification.md) and [status](status.md).
 
 Sequence is based on technical dependencies and risk, not date estimates.
@@ -26,7 +26,13 @@ The proposed MVP build order is B1 durable definitions -> B2 one safe background
 task -> B3 bounded delegation/context -> B4 five useful layouts -> B5 actual
 Neovim Workspace -> B6 complete release qualification. Detailed steps and checks
 are maintained in [the MVP plan](mvp.md#build-order-and-usable-checkpoints).
-The first implementation slice is B1/M2–M3. M2 storage and M3 definitions/commands are implemented and tested; B1 is qualified. B2 runtime/API/CLI passes its local deterministic workflow and isolation/crash checks. B5–B6 remain outstanding, including bounded live-provider qualification.
+B1–B5 have delivered and locally qualified durable definitions, bounded background
+execution/delegation, five layouts, actual embedded Neovim and exact reviewed Apply.
+B6 native coding/document pilots, default-two execution, registry/navigation,
+idle and snapshot restore passed. Four-active qualification caught a heartbeat
+contention bug; corrected current-binary qualification is in progress. A05's
+bounded live-provider pilot is still blocked on provider/model/credentials/spend.
+
 
 Deliver a complete small workflow rather than a screen full of invented metrics.
 Keep features behind normal supported flags/settings until qualification.
@@ -35,8 +41,8 @@ Every phase records what is implemented, observed, deferred, failed and unknown.
 Suggested qualification envelope for initial MVP: one Linux host, one human owner,
 1–1,000 persisted agents/groups with configurable depth, 2 active executions by
 default and up to 4 in tests, one validated Responses-compatible provider,
-one local project with a short dependency graph. These are proposed test targets,
-not current limits or promises. Single-agent use must remain convenient.
+one local project with a short dependency graph. Stored-agent and local deterministic measurements are recorded in
+[release qualification](release-qualification.md); live-provider qualification is separate. Single-agent use must remain convenient.
 
 Future production scope includes Windows/macOS behavior, LSP/plugins, non-code
 projects, greater active concurrency and remote workers. Do not infer those from

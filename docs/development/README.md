@@ -1,6 +1,6 @@
 # Codex CLI fork development
 
-Phase: **approved MVP implementation; B1–B4 locally qualified; B5 Neovim underway**.
+Phase: **approved MVP implementation; B1–B5 locally qualified; B6 release qualification underway**.
 Phase 0 repository baseline: `8026444c98cd9c6db9e7c953b44a20ea4f93c7b6`, from `origin/main`.
 Research recorded on 2026-10-09 (America/New_York).
 

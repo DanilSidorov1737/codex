@@ -618,3 +618,42 @@ CodeModeOnly before native execution, validate exact quote provenance and reject
 negative usage, mismatched provider/model, unsafe price files/aliases/rates.
 These are not yet proof of actual four-active/zero-request admission in the updated
 packaged daemon. The final native API and full CLI stages remain underway.
+
+
+Final native organization API rerun passed **four tests**, zero failed/ignored,
+including exact Apply and both conflict/duplicate rejection paths plus native
+isolation, crash/restart fencing and delegated checked work. Command uses the
+existing `--test all suite::v2::organization -- --nocapture --test-threads=1`,
+locked/offline/dev-small, CARGO_INCREMENTAL=0/RUST_MIN_STACK=8388608. Evidence:
+`mvp-b6-native-api-tests.log`. B5 is locally qualified; full B6 release still needs
+current-package capacity/admission/quote checks and the pending bounded live pilot.
+
+## B6 four-active scheduling failure and correction
+
+The complete CLI/package at `56929b5b18` built and installed successfully. Its
+managed daemon executable matched the package SHA256 recorded in
+`mvp-b6-cli/daemon-binary-proof.json`. Four of five native tasks reached NeedsReview;
+the fifth and concurrent owner requests hit the single-connection pool timeout.
+Logs `mvp-b6-concurrency-four.log` and `mvp-b6-model-admission.log`, canonical failed
+task/action receipts and database logs are retained. No assertion was disabled.
+
+Renewing a lease inside a selected branch suspended the work holding its database
+connection. The corrected driver polls work/renewal together and keeps cancellation
+and the time budget responsive. Added a deterministic shared-resource regression
+that requires work to continue while renewal contends, then verifies deadline
+expiry with renewal still blocked. Initial compilation caught a borrowed stop-token
+move; use its clone, with the failure retained in `mvp-b6-heartbeat-unit-tests.log`.
+Corrected combined units passed eight app-server (including contention/deadline),
+31 state and 15 TUI/editor/pricing cases; none failed or were ignored. Production
+Clippy with warnings denied passed. Native API/CLI/current-native rerun remains
+underway. Logs: `mvp-b6-heartbeat-unit-corrected.log`,
+`mvp-b6-heartbeat-clippy.log`.
+
+Idle current-daemon admission rerun passed a catalog-declared CodeModeOnly rejection:
+zero provider requests/tokens, no prepared workspace. An actual restart with active
+limit 5 denied authorization before any grant/attempt or inference while owner
+definition APIs stayed readable; the invalid-limit diagnostic is JSON-RPC -32603,
+a server configuration error. Read-only canonical counts verified zero grants and
+attempts. Evidence: `mvp-b6-model-admission-corrected.log`,
+`mvp-b6-invalid-limit.log`, `mvp-b6-cli/admission-model.json` and
+`admission-invalid-limit.json`. No provider calls occurred during either denial.

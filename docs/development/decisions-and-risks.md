@@ -10,17 +10,17 @@ binding/model and numeric spending bound remain prerequisites for that pilot.
 
 | ID  | Decision / rationale                                                                     | Alternatives considered                                                                | Status                                    |
 | --- | ---------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- | ----------------------------------------- |
-| D01 | Extend existing app-server daemon and runtime; one host first                            | New daemon/framework/microservices add duplicated lifecycle/tool handling              | Proposed                                  |
-| D02 | Stable configurable agent/group definitions independent of threads; no fixed role levels | Fixed CEO/manager hierarchy contradicts requirements                                   | Proposed                                  |
-| D03 | Separate authoritative SQLite DB using SQLx patterns and protected recovery              | Existing runtime DB may rebuild; remote DB adds operations too early                   | Accepted; storage slice tested            |
-| D04 | Transactional task state/leases/reservations/audit/outbox, bounded execution             | Full event sourcing/broker/workflow engine deferred pending scale evidence             | Proposed                                  |
-| D05 | Reuse existing project IDs and thread goals; add planning records                        | Replacing either duplicates working functionality; cross-store reconciliation required | Proposed                                  |
-| D06 | One TUI pane model with five presets; Operations tree primary                            | Five independent frontends or graphical replica unnecessary                            | Proposed                                  |
-| D07 | Official Neovim subprocess, MessagePack external UI, safe isolated editing first         | PTY/external editor fallback; custom editor prohibited                                 | Proposed                                  |
-| D08 | Defer LGPL nvim-rs; approve permissive codec/client after spike                          | License-policy exception requires explicit review                                      | Proposed                                  |
-| D09 | Deterministic control/budgets/approval separate from optional AI governance roles        | Prompt-only rules cannot protect tools/DB/secrets                                      | Proposed                                  |
+| D01 | Extend existing app-server daemon and runtime; one host first                            | New daemon/framework/microservices add duplicated lifecycle/tool handling              | Accepted; implemented and locally qualified |
+| D02 | Stable configurable agent/group definitions independent of threads; no fixed role levels | Fixed CEO/manager hierarchy contradicts requirements                                   | Accepted; implemented and locally qualified |
+| D03 | Separate authoritative SQLite DB using SQLx patterns and protected recovery              | Existing runtime DB may rebuild; remote DB adds operations too early                   | Accepted; fail-closed state and restore qualified |
+| D04 | Transactional task state/leases/reservations/audit/outbox, bounded execution             | Full event sourcing/broker/workflow engine deferred pending scale evidence             | Accepted; implemented and locally qualified |
+| D05 | Reuse existing project IDs and thread goals; add planning records                        | Replacing either duplicates working functionality; cross-store reconciliation required | Accepted; implemented and locally qualified |
+| D06 | One TUI pane model with five presets; Operations tree primary                            | Five independent frontends or graphical replica unnecessary                            | Accepted; implemented and locally qualified |
+| D07 | Official Neovim subprocess, MessagePack external UI, safe isolated editing first         | PTY/external editor fallback; custom editor prohibited                                 | Accepted; implemented and locally qualified |
+| D08 | Use MIT rmpv/rmp for the narrow native Neovim transport                          | LGPL nvim-rs rejected; no policy exception needed                                      | Accepted; implemented and locally qualified |
+| D09 | Deterministic control/budgets/approval separate from optional AI governance roles        | Prompt-only rules cannot protect tools/DB/secrets                                      | Accepted; implemented and locally qualified |
 | D10 | Ponytail throughout implementation/review; current session skill reused                  | Upstream standalone plugin/hooks installation remains separate                         | Active process rule; installation pending |
-| D11 | Local owner/Linux pilot, real tests and bounded provider requests                        | Immediate cross-platform/distributed/financial autonomy too broad                      | Proposed scope                            |
+| D11 | Local owner/Linux pilot, real tests and bounded provider requests                        | Immediate cross-platform/distributed/financial autonomy too broad                      | Accepted Linux/local scope; live pilot pending |
 
 ## Major risks and mitigations
 
@@ -54,25 +54,25 @@ two active executions initially; optional stored organizations; no external
 financial/messaging/deploy authority; user Neovim configuration supported after
 clean-config qualification.
 
-Choices for implementation approval:
+Remaining decisions and qualification boundaries:
 
-1. Approve the MVP scope, reuse architecture and Linux-first qualification.
-2. Select the minimal production Rust MessagePack transport within approved editor
-   scope and existing license policy. Official Neovim v0.12.6 is already installed
-   and qualified; another installation approval is not needed for that same work.
-3. Use the existing session Ponytail skills initially. A pinned standalone upstream
-   plugin with reviewed hooks is optional and not an MVP prerequisite.
-4. Approve a small bounded live-provider test, including provider/auth route and
-   maximum budget, after inspecting available credentials.
-5. Accept initial editing semantics: isolated AI task changes with safe review,
-   then version-checked shared-buffer proposals later.
-6. Provide any separate PDF or clarify additional non-local deployment/platform
-   needs before freezing requirements. Its absence does not invalidate reviewed text/images.
+1. Supply a verified live provider/model, secure credentials and a numeric test
+   spending ceiling for A05. The pending question has not been answered; local
+   implementation and deterministic qualification are authorized independently.
+2. User Neovim configuration/plugins and additional operating systems require
+   their own compatibility matrix. Official Neovim 0.12.6 clean embedding is
+   already obtained and locally qualified; no repeated installation approval.
+3. The session's Ponytail instructions remain the implementation/review process.
+   Installing standalone upstream hooks is optional and separately authorized.
+4. Shared-buffer proposals, remote/distributed workers, provider routing, broader
+   integrations and external financial/messaging/deploy authority remain later scope.
+5. Supply any separate PDF if it exists. The supplied text and all seven concept
+   images were reviewed; no separate PDF has been found.
 
 There is no need to decide on Temporal, Redis, vector databases or distributed
 workers now. These remain conditional future choices.
 
-The proposed scope and editing semantics are part of one MVP decision. Provider
+The approved scope and isolated editing semantics are implemented. Provider
 binding/model and a numeric live-test budget are needed before the paid pilot,
 not before writing this plan. Planning does not require new installations.
 
@@ -86,3 +86,12 @@ This gate comes from the user's Phase 0 instruction. The owner has now approved
 the MVP implementation described above. Record subsequent scope decisions;
 do not infer external spending or operational authority from this local approval.
 No additional setup approval flow is introduced here.
+
+## B6 scheduling correction
+
+Four-active native qualification exposed a heartbeat waiting for the single SQLite
+connection while its task work was suspended inside the heartbeat select branch.
+Poll work and renewal as independent futures in the same select so work can release
+its transaction and stop/deadline remain responsive. Keep one database connection
+and short transactions; adding a pool or a scheduler service would hide the bug.
+The failure and rerun evidence belong in testing/release qualification.

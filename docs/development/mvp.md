@@ -1,9 +1,11 @@
 # Detailed first MVP plan
 
-Status: **owner-approved MVP implementation; B1–B4 locally qualified; B5 Neovim underway**.
+Status: **owner-approved MVP implementation; B1–B5 locally qualified; B6 release qualification underway**.
 Updated after [M0/M1 foundation qualification](qualification.md). The actual CLI,
-daemon and official Neovim are available; durable organization definitions and commands are implemented; bounded background execution is locally qualified; delegation, layouts,
-the integrated editor and full release qualification remain outstanding.
+daemon and official Neovim are available. B1–B5 delivered durable organization
+records, bounded execution/delegation, all five layouts and the real integrated
+editor with exact reviewed application. B6 qualification is in progress; the
+bounded live-provider release gate remains outstanding.
 
 ## User outcome
 
@@ -98,10 +100,10 @@ not optional polish.
 | Real full Codex CLI and runtime/native prerequisites       | Qualified: CLI, Code Mode host, real Bubblewrap and complete package; reuse recorded setup           |
 | Existing Tokio/SQLx/Serde/Ratatui/Crossterm/PTY/vt100      | Reuse pinned workspace versions                                                                      |
 | Official Neovim executable                                 | Checksum-verified official v0.12.6 installed; real embedding and physical editing checks passed      |
-| Neovim MessagePack transport                               | Production Rust choice remains open; prefer permissive codec/client and a narrow async adapter       |
+| Neovim MessagePack transport                               | Qualified narrow external UI adapter using MIT rmpv 1.3.1/rmp 0.8.15       |
 | Ponytail                                                   | Session skill available; standalone upstream plugin install/hooks require authorization              |
 | Provider authentication and model quota                    | No live provider test yet; select binding/model and bounded budget before the live pilot             |
-| Protected service/state directories and owner vs agent IPC | Owner socket protection checked; agent denial and protected organization-state tests remain required |
+| Protected service/state directories and owner vs agent IPC | Actual owner socket/state/project/native helper isolation denials passed |
 | Isolated fixture/task workspaces and Git                   | Preserve user changes; future task-workspace creation needs explicit product policy                  |
 | Process supervision                                        | Existing daemon first; reboot startup qualification is separate from TUI detach                      |
 

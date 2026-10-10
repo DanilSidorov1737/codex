@@ -2,8 +2,7 @@
 
 Foundation update: official Neovim v0.12.6 and its external UI API passed real
 editing/redraw/conflict-check qualification. See [evidence](qualification.md).
-B4 layouts are qualified; the actual Workspace pane and safe application are now
-being implemented/tested in B5. See [current contracts](neovim-workspace.md).
+B4 layouts and B5 actual Workspace/safe application are locally qualified. See [current contracts](neovim-workspace.md).
 The remaining design below is historical guidance where not superseded.
 
 ## Shared pane model
@@ -55,7 +54,8 @@ real separate executable from [neovim/neovim](https://github.com/neovim/neovim).
 
 ## Acquisition after authorization
 
-No Neovim executable was installed or run in Phase 0; `nvim` is absent.
+During Phase 0 no Neovim executable was installed or run. Subsequent authorized
+qualification obtained and tested official Neovim v0.12.6; see qualification.md.
 Official documentation/source files were downloaded for read-only research only.
 
 1. Select an official stable release and supported host/architecture.
@@ -78,7 +78,8 @@ Use the official
 [API](https://github.com/neovim/neovim/blob/7e1ae5115f1f7088abe329892948708fc809d45e/runtime/doc/api.txt),
 [UI events](https://github.com/neovim/neovim/blob/7e1ae5115f1f7088abe329892948708fc809d45e/runtime/doc/api-ui-events.txt),
 and [startup](https://github.com/neovim/neovim/blob/7e1ae5115f1f7088abe329892948708fc809d45e/runtime/doc/starting.txt)
-contracts. This is researched behavior, not a completed integration.
+contracts. The following was Phase 0 research; current implemented contracts and
+physical evidence are in neovim-workspace.md.
 
 - Spawn `nvim --embed` on private stdin/stdout pipes; stderr is separate.
   For a UI embedder, do **not** add `--headless`: normal embedded startup waits

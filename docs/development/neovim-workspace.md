@@ -1,7 +1,8 @@
 # Actual Neovim Workspace
 
-B5 is in progress. This document records delivered contracts separately from
-qualification; the editor/application gates are not passed until recorded below.
+B5 is locally qualified with official Neovim v0.12.6, the complete packaged CLI,
+actual detached daemon and native sandbox. The provider replies were deterministic
+localhost fixtures; live-model release qualification remains separate.
 
 ## Integration
 
@@ -48,7 +49,7 @@ implicitly replace an open editor file. Host-selected files reject traversal and
 symlink redirection; native commands entered by the human retain human authority.
 Mode changes reject dirty buffers instead of discarding changes.
 
-## Application contract being qualified
+## Application contract
 
 Owner-only Apply captures the exact accepted task revision/digest. It validates
 all artifact bytes, original SHA256/absence, relative paths, protected state and
@@ -72,12 +73,28 @@ is explicitly uncertain. Resolve manually against recorded accepted hashes;
 never blindly replay. No shared-buffer CRDT or arbitrary external-writer lock
 protocol is claimed.
 
-## Pending gates
+## Qualification
 
-The first two real-editor/encoding tests passed before adding application fences.
-Repeat the augmented real integrated save/undo/Unicode/diff/resize/focus/follow/dirty-buffer checks,
-then physical CLI interaction. Implement owner-only exact accepted-result
-application with durable intent/receipt, original-base and artifact hash checks,
-editor revision/dirty fence and fail-closed crash handling. Applying a result is
-separate from accepting it. Record disk/alias/conflict and daemon independence
-checks before calling B5 qualified.
+Thirteen targeted TUI/editor/preview tests passed, including real Neovim and direct
+frozen-input guards. The final combined batch also passed two pricing tests. All
+four native organization API cases passed with the final source: exact evidence,
+original/artifact conflict denial, explicit Apply and duplicate receipt rejection,
+restart fencing and delegated work. State regression passed all 259 tests; current
+organization state cases remain passing. Production Clippy and affected formatting
+passed.
+
+The complete packaged CLI passed twelve physical assertions: modal Unicode edit
+and save, actual bracketed paste and undo, dirty host exit and Apply refusal,
+changed original preservation, protected read-only Follow, native diff splits,
+real 50×20/120×30 resizing, exact accepted hash/Apply receipt and owner oracle.
+SIGKILL of only the editor during a native 15-second command left the daemon alive;
+the task reached NeedsReview and saved files reopened in a fresh editor.
+Evidence: `/workspace/.onboarding/qualification/mvp-b5-cli/qualification.json`,
+`tui-editor.log`, `tui-apply.log`, owner views and preserved human text. Final API
+log: `mvp-b6-native-api-tests.log` (four passed, no failures/ignored). Earlier test
+helper/error-ordering and fixture-wait failures remain documented in testing.
+
+The latest source's resource controls are being packaged for B6 qualification.
+User Neovim plugins/configurations, unsaved crash restoration, arbitrary concurrent
+external writers and shared-buffer collaborative merging remain unqualified or
+deferred as described above; none is claimed by this clean isolated MVP.

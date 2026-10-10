@@ -1,34 +1,32 @@
 # Current status and resumption instructions
 
 Phase 0: **exploration and planning complete for available inputs**.
-Current work: **approved MVP implementation; B1–B4 locally qualified; B5 Neovim underway**.
-Application feature implementation: **B1–B4 locally qualified; B5–B6 outstanding**.
+Current work: **approved MVP implementation; B1–B5 locally qualified; B6 release qualification underway**.
+Application feature implementation: **B1–B5 locally qualified; B6 release gates outstanding**.
 
 ## Current B5/B6 work
 
-B5 implementation is committed as `fcf594bc00`. Official Neovim and exact
-owner Apply passed 12 physical assertions; safe preview, signed receipt intent,
-changed original/dirty buffer protection and editor/daemon independence worked.
-Final direct frozen key/paste/mouse guards and early duplicate-application lookup
-are written. Five app-server, 31 state and 13 TUI/editor tests passed with these
-corrections. Native API reruns caught test-helper/error-precedence mistakes; the
-current final source retains and explicitly asserts rejection. See testing.
+B1–B5 are locally qualified. Final native API (four cases), production Clippy,
+affected formatting and the complete CLI/package passed at `56929b5b18`.
+B6 native coding/document/delegation, two-active execution, 1,000 stored agent
+navigation, idle and verified 21-table restore have passed.
 
-B6 local coding, delegated coding and document pilots passed actual native checks,
-owner acceptance and Apply (deterministic model fixtures). Default two-active
-concurrency, 1,000 stored agents/deep actual TUI navigation, 30-second no-inference
-idle and application-inclusive 21-table snapshot restore passed. Four-active
-owner boot configuration, cached catalog CodeModeOnly denial and protected owner
-price estimates are now written. Final production Clippy and affected formatting passed. Combined units passed
-seven app-server, 31 state and 15 TUI/editor/pricing checks. Native API and the
-complete CLI build remain underway. Do not claim final source or B6 complete.
+Final four-active testing exposed a real heartbeat/database contention failure:
+renewal awaited the single SQLite connection inside a selected branch, suspending
+the work that held it. Four tasks finished, but the fifth failed with a pool timeout;
+owner RPCs also timed out. The failure logs/state remain preserved. The fix polls
+work and renewal concurrently, retaining cancellation and deadlines. The deterministic
+contention/deadline regression and combined units passed: eight app-server, 31
+state and 15 TUI/editor tests. Production Clippy passed; native API/CLI rebuilding
+is underway. Do not claim final four-active or B6 complete until the rerun passes.
+Catalog-declared Code Mode rejection subsequently passed with zero inference and
+no workspace. Invalid-limit and current TUI price evidence remain outstanding.
 
-Next: inspect current logs, correct any failures, build/package the complete CLI,
-upgrade only the isolated fixture daemon, verify four-active/fifth-queued behavior,
-zero-request Code Mode denial, invalid limit refusal and physically displayed
-quote provenance. Finish current-binary qualification, docs and logical local
-commits. Live-provider binding/model/credentials/spending question remains pending;
-no live call may be inferred. Continue independent work without a routine approval.
+Next: finish the heartbeat regression/Clippy/native API/CLI rebuild, package and
+upgrade the isolated daemon; rerun four-active/fifth-queued native execution,
+invalid-limit refusal and physically displayed quote provenance. Finish release
+matrix, docs and logical local commits. Live-provider/model/credentials/spending
+question remains pending; no live call may be inferred.
 
 See [Neovim Workspace](neovim-workspace.md), [resource limits](resource-limits.md)
 and [release qualification](release-qualification.md) for contracts and evidence.
@@ -51,9 +49,8 @@ expired during rebuilding and its stale approval was rejected without execution;
 the fresh bounded grant and subsequent changed-result grant passed. Failure logs
 remain retained. See [layouts](layouts.md) and [testing](testing.md).
 
-B5 must now integrate actual official Neovim and safe separate artifact application;
-B6 remains outstanding. Continue the entire approved MVP without another routine
-implementation approval.
+B5 subsequently passed actual editor/application qualification. B6 release
+evidence is the current work; use the resumption instructions above.
 
 ## B3 qualification
 
@@ -72,7 +69,7 @@ and 195 reported tokens; both root and child views show the same root budget.
 Final production Clippy and affected formatting passed. Two wire tests, four
 schema comparisons and 25 Python contract checks passed. The packaged CLI qualification passed 13 assertions; its detached daemon ran
 13 deterministic requests and both real owner checks, with exact owner acceptance. See [coordination](coordination.md).
-B3 is qualified locally. Continue B4 layouts, B5 official Neovim and B6 gates.
+B3 is qualified locally; B4 and B5 subsequently passed. Current work is B6.
 
 ## Current authorization
 
