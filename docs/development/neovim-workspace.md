@@ -2,7 +2,9 @@
 
 B5 is locally qualified with official Neovim v0.12.6, the complete packaged CLI,
 actual detached daemon and native sandbox. The provider replies were deterministic
-localhost fixtures; live-model release qualification remains separate.
+localhost fixtures. Subsequent B6 real GPT-5.5 pilots also passed physical official
+Neovim diff/review, exact acceptance, Apply and applied-file reopening; see the
+release matrix. Clean editor configuration remains the qualified envelope.
 
 ## Integration
 

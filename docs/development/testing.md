@@ -1,5 +1,139 @@
 # Testing procedures and evidence
 
+## Completed live GPT qualification — 2026-10-10 UTC
+
+Owner published the network changes and requested “begin”. The restored environment
+retained the prepared private home, current package, state, pinned tools and official
+Neovim. OpenAI API/pricing/model HTTPS requests now work through the supported
+proxy and TLS route. Metadata lists all four allowed domains but still reports
+unknown readiness; actual request/application results are recorded independently.
+
+No application source, manifest, lockfile or dependency changed. Ponytail reused
+the complete source package, detached daemon, typed owner RPC, native sandbox,
+existing model_instructions_file override, actual Neovim and installed Python
+MessagePack/terminal capture utilities. No broker, editor clone or retry layer was
+added. Correctness/qualification and simplicity review retained all host safeguards.
+Earlier affected Rust/Clippy/package/layout tests remain the unchanged source
+baseline; the full repository/platform suite was not rerun for this live-only work.
+
+### Commands and real operating scope
+
+From `/workspace/codex`, activate `. /workspace/.onboarding/activate.sh`.
+Set CODEX_HOME and CODEX_SQLITE_HOME to
+`/workspace/.onboarding/qualification/mvp-followup/live-gpt/home` and use
+`/workspace/.onboarding/qualification/mvp-followup/package-v2/bin/codex`.
+`codex app-server daemon start` exited 0, owned PID 1606, unchanged hash-matched
+private installation. Real owner IPC/native TUI runs used authorized unsandboxed
+execution because the outer sandbox masks protected socket/process paths.
+
+Fetched official `https://openai.com/api/pricing/`,
+`https://developers.openai.com/api/docs/models/gpt-5.5` and
+`https://developers.openai.com/api/docs/pricing`: HTTP 200, curl exit 0.
+Model page explicitly lists input $5, cached input $0.50, output $30 per million;
+HTML/text copies, SHA256 and timestamp are retained in `pricing.json` and sibling
+`live-model-docs.*` / `live-rate-table.*`. Owner TUI quote is matching provider/model,
+regular mode-0600 data with $30/million conservative total-token rate.
+
+Provider: real official HTTPS Responses, env_key OPENAI_API_KEY, model gpt-5.5,
+low reasoning and zero request/stream retries. No key value was printed or written.
+Native agents retain isolated workspaces, immutable owner inputs, no network or
+inherited credentials, exact declared artifacts/check argv, one attempt/grant and
+240-second deadlines. Final scopes: single 10,000 tokens/5 requests with approvals;
+delegated 25,000/14 with exactly one allowed child and checked internal acceptance;
+document 12,000/6, immutable facts/oracle. Price-based admission checked all previous
+receipts plus the next conservative scope before starting another grant.
+
+Run `python /workspace/.onboarding/qualification/mvp-followup/live-gpt/run.py`
+with `single`, `delegated` or `document`. Each final run exited 0; their corresponding
+logs/JSON/captures retain physical input evidence. These accepted/applied tasks
+cannot be rerun as fresh qualification; preserve IDs and use new explicit scope
+only for authorized new work. `verify.py` exited 0, checking actual applied bytes,
+immutable inputs, independent owner regressions, child identity, exact digests,
+budget/usage parity and all five package hashes.
+
+### Final live results
+
+| Pilot | Requests/reported tokens in successful grant | Evidence |
+| --- | --- | --- |
+| Single coding | 4 / 8,015 | Positive/zero/negative/fractional addition and explanation oracle passed; two exact native tool approvals physically confirmed; approval survived actual /quit and reconnect |
+| One-child coding | 11 / 25,101 | Arbitrary configured delegate proposed/started through organization tool, child immutable checks passed and artifacts imported; root/child shared usage agrees; further model requests occurred after actual /quit |
+| Local-fact document | 4 / 8,019 | Exact supplied facts/bullets, heading and bounded length passed immutable provenance oracle |
+
+Every pilot physically switched to Workspace, opened actual official Neovim readonly
+native diff, accepted exact current evidence with v/y, proved original unchanged,
+confirmed Apply with A/y, obtained Completed receipt, ran the independent original
+oracle and reopened the saved original in real Neovim. All three native checks and
+all three applied-original checks passed. Verification independently reran the
+original checks: **3/3 exited 0**, and all artifact/immutable-input hashes matched.
+No duplicate request-ID or owner-timeout frame was observed. Eleven native-cell
+PNG/text captures are retained; all three native diff PNGs were visually inspected.
+Archive/report in
+`/workspace/artifacts/cli-live-gpt/`. These show actual GPT outputs, not concepts
+or deterministic model fixtures.
+
+### Failures, corrections and spending
+
+Retained every failure; none counts as a passing pilot:
+
+- Normal first-run CLI model migration dialog: harness waited for the dashboard;
+  corrected physical selection of “Use existing model”. No task authorized/call
+  made before that failure. `single-initial-model-dialog.log`.
+- Harness searched task IDs in the Operations agent tree; corrected F5 Review
+  selection. Two real requests/3,451 tokens had reached a pending native approval;
+  owner paused the grant without tool release. `single-initial-task-filter.log`
+  and matching result JSON.
+- /quit persisted Console, while harness expected Operations on reopen; restore
+  its own Operations preference before opening a new native terminal buffer.
+  Paused another grant with two requests/3,453 tokens, without tool release.
+  `single-initial-reopen-preset.log` and JSON. Successful retry proves approval
+  persistence and correct physical reconnect; no user editor/config was overwritten.
+- First delegated scope stopped at its real 16,000-token gate after eight
+  responses/16,262 tokens; next request was denied. A checked child result was
+  retained but root was not accepted. `delegated-token-ceiling.log` / JSON.
+- Next scope stopped at its ten-request gate after ten responses/22,622 tokens,
+  denying its final response. Real background progress with TUI closed was recorded.
+  `delegated-request-ceiling.log` / JSON. Fresh final scope retained one child,
+  14 requests and a 25,000 reported-token ceiling; completed at 11/25,101.
+  Its last already-admitted request explains the 101-token excess, consistent with
+  the existing documented in-flight allowance. No gate/approval was disabled.
+- A proposed 26,000-token rerun projected $1.01126 including prior receipts and
+  was refused before inference; corrected to 25,000 with $0.98126 conservative
+  admission estimate. `delegated-conservative-admission.log`.
+- Completed delegated output reached NeedsReview, then harness expected a
+  nonexistent organization/list `records` field; corrected to the existing `data`
+  field and resumed only physical review/Apply with **zero additional model calls**.
+  `delegated-review-list-shape.log` / JSON. Current-grant child filtering excludes
+  accepted children from earlier failed grants without deleting their evidence.
+
+Seven root grants, including four earlier paid failures, report exactly **41
+responses / 86,923 tokens**. Existing per-response token_usage_record entries were
+deduplicated by provider response ID and matched canonical root budgets exactly.
+Older interrupted token_count UI snapshots omit the latest receipt while a tool
+is pending; the per-response records correctly include it. Totals: 82,841 input,
+42,496 of those cached, 4,082 output; 319 reasoning tokens are already included
+in output. Cost calculation:
+`((82841 - 42496) * 5 + 42496 * 0.50 + 4082 * 30) / 1000000 = $0.345433`.
+This includes all failed attempts and stays below the $1 working ceiling.
+It is an official-rate token estimate; provider invoice/taxes/non-token charges
+were not verified, and local reported-token limits are not monetary hard caps.
+
+Full evidence under `mvp-followup/live-gpt/`: prepared/scoped IDs, original files,
+pricing receipt, all failure logs/JSON, result-single/delegated/document.json,
+verification.json and cleanup.json. Source and installed manifest/CLI/Code Mode
+helper/ripgrep/Bubblewrap hashes match the qualified package; CLI SHA256 remains
+`6152cbbd0e4b47877862685dc5d54f94f29ba3e6fd23f05de24b760089255ae7`.
+Only owned daemon PID 1606 was stopped with its same home/current package, exit 0.
+Retained zombie has zero execution; final receipt count remains 41. No qualification
+service is intentionally running. A05 is closed for this bounded envelope;
+broader providers/models, production billing guarantees and later roadmap phases
+remain separate scope.
+
+Saved updated complete, tested startup instructions in the environment draft
+(start_skill only), preserving install/network/credential fields. It points to the
+current qualified package, stopped services, completed paid-test status and real
+evidence. Save returned status saved/requires_publish; future publication/restoration
+is separate from the already successful current-instance qualification.
+
 ## Live GPT preparation checkpoint — 2026-10-10 UTC
 
 The owner's “ok begin” resumed the already authorized compatible-GPT pilots.

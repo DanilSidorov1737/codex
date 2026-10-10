@@ -6,7 +6,8 @@ architecture and isolated-editing approach are accepted for implementation.
 Production dependency choices must satisfy repository policy. The owner supplied
 OPENAI_API_KEY and approved compatible-GPT pilots with minimal spending; retain
 the conservative $1 total working ceiling. Model listing authenticated and exposed
-gpt-5.5. Current official pricing verification remains blocked before inference.
+gpt-5.5. Official prices and all three live pilots subsequently passed; rate-based
+token cost is $0.345433 including failed attempts. Provider invoice is unverified.
 
 ## Decisions
 
@@ -22,7 +23,7 @@ gpt-5.5. Current official pricing verification remains blocked before inference.
 | D08 | Use MIT rmpv/rmp for the narrow native Neovim transport                          | LGPL nvim-rs rejected; no policy exception needed                                      | Accepted; implemented and locally qualified |
 | D09 | Deterministic control/budgets/approval separate from optional AI governance roles        | Prompt-only rules cannot protect tools/DB/secrets                                      | Accepted; implemented and locally qualified |
 | D10 | Ponytail throughout implementation/review; current session skill reused                  | Upstream standalone plugin/hooks installation remains separate                         | Active process rule; installation pending |
-| D11 | Local owner/Linux pilot, real tests and bounded provider requests                        | Immediate cross-platform/distributed/financial autonomy too broad                      | Accepted Linux/local scope; live pilot pending |
+| D11 | Local owner/Linux pilot, real tests and bounded provider requests                        | Immediate cross-platform/distributed/financial autonomy too broad                      | Qualified Linux/local native GPT-5.5 scope |
 
 ## Major risks and mitigations
 
@@ -58,10 +59,10 @@ clean-config qualification.
 
 Remaining decisions and qualification boundaries:
 
-1. A05's provider/key/model-list prerequisites are verified; compatible GPT and
-   minimal spending are authorized. Enable official pricing domains, verify rates
-   and check the prepared scopes against the $1 working ceiling before inference.
-   Model listing does not qualify generation, native tool compatibility or billing.
+1. A05 passed real GPT-5.5 coding, one-child delegation and local-fact documents,
+   actual Neovim review and Apply. Broader provider/model quality and invoices
+   remain unqualified. Token ceilings permit already-admitted request usage;
+   the live delegated run reported 101 tokens above its 25,000 ceiling.
 2. User Neovim configuration/plugins and additional operating systems require
    their own compatibility matrix. Official Neovim 0.12.6 clean embedding is
    already obtained and locally qualified; no repeated installation approval.
@@ -75,9 +76,9 @@ Remaining decisions and qualification boundaries:
 There is no need to decide on Temporal, Redis, vector databases or distributed
 workers now. These remain conditional future choices.
 
-The approved scope and isolated editing semantics are implemented. Live inference
-still requires current-rate verification and bounded scopes. No repeated provider,
-credential or ordinary implementation approval is required.
+The approved MVP and isolated editing semantics are implemented and qualified in
+the stated envelope. Choose later roadmap scope explicitly; retain bounded grants,
+verified prices and existing security controls for any future paid work.
 
 ## Gate
 

@@ -1,9 +1,9 @@
 # Current status and resumption instructions
 
 Phase 0: **exploration and planning complete for available inputs**.
-Current work: **both UI fixes and final local qualification complete; live GPT pilots prepared, current-rate verification blocked**.
+Current work: **both UI fixes, local qualification and all three live GPT pilots complete**.
 Application features: **delivered for the documented single-owner Linux envelope**.
-The MVP is **not fully release-qualified** until A05's bounded live-provider pilot passes.
+The MVP's release criteria are **qualified for the documented single-owner Linux/GPT-5.5 envelope**.
 
 ## Current result and next action
 
@@ -20,7 +20,8 @@ complete CLI/package, **370 physical layout commands** online/offline at two siz
 and fresh native single/delegated coding/document pilots. The full physical workflow
 passed two exact approvals, actual official Neovim Follow/diff, work after TUI quit,
 exact acceptance, explicit Apply, independent original checks and file reopening.
-These use deterministic local Responses: **zero paid model calls**.
+These earlier local checks used deterministic Responses and made zero paid calls;
+the separate completed live checkpoint below records real GPT usage.
 Current package: `/workspace/.onboarding/qualification/mvp-followup/package-v2/`.
 Evidence: `mvp-followup/` under the qualification root; screenshots/archive:
 `/workspace/artifacts/cli-followup/`. Temporary services are stopped.
@@ -48,35 +49,40 @@ hash-matched. Fixture daemon/provider are stopped; source package, state and all
 evidence remain outside Git. The container retains a stopped daemon zombie with
 zero execution; its managed PID record is removed.
 
-**Next action:** enable access to official pricing documentation, verify current
-rates, then run the prepared A05 pilots. On 2026-10-10 UTC, supported HTTPS reached
-api.openai.com and authenticated GET /v1/models returned 200, listing gpt-5.5.
-The key works for model listing; inference/billing remain untested. Runtime policy
-metadata still omits that host and reports unknown readiness, so actual request
-results are recorded separately. The owner supplied OPENAI_API_KEY, requested
-minimal spend and approved a compatible GPT instead of CodeModeOnly GPT-6 Luna.
-Retain the conservative $1 total working ceiling; no duplicate key or model
-approval is needed.
+**Live result — 2026-10-10 UTC:** the owner published the saved network changes
+and requested “begin”. Official API/pricing/model pages are reachable. GPT-5.5
+completed single-agent addition repair, one-child delegated repair and a document
+from immutable supplied facts. Every root passed its native immutable check,
+physical official-Neovim diff, exact acceptance, explicit Completed Apply and an
+independent original-project check. Two physical exact approvals passed; the
+pending approval survived actual TUI exit. Delegated model requests advanced
+with the TUI closed, then the reviewed output reopened successfully.
 
-Fresh isolated live-provider home and three proposed tasks are prepared under
-`/workspace/.onboarding/qualification/mvp-followup/live-gpt/`; `prepared.json`
-holds their IDs/scopes. Low reasoning, no retries, concise owner instructions,
-immutable checks and exact review/Apply are configured. Definitions/zero usage
-and all five installed package hashes were verified. No task is authorized and
-zero paid inference requests have occurred; only the owned setup daemon was
-stopped. Preserve these IDs and projects rather than recreating them.
+Successful grants used **4/8,015**, **11/25,101** and **4/8,019**
+requests/reported tokens. All attempts, including four earlier stopped/failed
+grants, reconcile to **41 provider Responses / 86,923 reported tokens**.
+Official rates ($5 input, $0.50 cached input, $30 output per million) estimate
+**$0.345433 total**, within the conservative $1 working budget. This is a
+receipt/rate estimate, not a verified provider invoice or monetary hard cap.
+The delegated grant's already-admitted final request exceeded its 25,000 reported
+token ceiling by 101; no further request was admitted. Preserve the documented
+in-flight allowance rather than describing token ceilings as exact billing caps.
 
-Official pricing destinations openai.com, developers.openai.com and
-platform.openai.com returned proxy CONNECT 403. Those additions plus
-api.openai.com are saved in the environment draft, preserving package-manager
-presets and the existing credential binding. Review/save in environment settings
-and publish as required to apply configuration; saving a draft alone does not
-change runtime access. Recheck the supported route after that change, retain a
-current official pricing receipt, adjust token/request ceilings to the $1 working
-budget, then run single coding, one-child delegation and local-fact document pilots
-with real checks, physical approvals/Neovim review, acceptance and Apply.
-Do not infer push/merge/deploy authority, redo qualified local slices, reinstall
-tools, use fixture zero-dollar quotes for real billing, or bypass Code Mode.
+Evidence: `/workspace/.onboarding/qualification/mvp-followup/live-gpt/` contains
+pricing receipts, prepared IDs/scopes, all original failures, final result JSON,
+native terminal captures, `verification.json` and `cleanup.json`. All five private
+installed package hashes match the unchanged application source package. No
+application code or dependency changed for these live tests. Current actual
+screenshots/archive: `/workspace/artifacts/cli-live-gpt/`.
+Only the owned live daemon was stopped; no qualification service is intentionally
+running. Prepared tasks are now accepted/applied; do not rerun them automatically.
+
+**Next action:** present the completed MVP evidence and choose the next bounded
+roadmap slice with the owner. Preserve source/state/receipts, existing credentials
+and arbitrary role/hierarchy rules. Do not infer later-phase implementation,
+push/merge/deploy authority, repeated paid tests or Code Mode support from this
+qualification. Provider invoice validation, more platforms/providers, user editor
+plugins and later collaboration/knowledge features remain separate boundaries.
 
 See [release matrix](release-qualification.md), [Workspace](neovim-workspace.md),
 [resource settings](resource-limits.md) and [owner commands](organization-commands.md).
@@ -249,10 +255,9 @@ authorize push/publication, outbound communications or unbounded provider spendi
 
 ## Known limitations / remaining work
 
-- A05 live inference remains unrun: authenticated model listing succeeds and
-  gpt-5.5 is available. Current official pricing pages remain blocked; apply the
-  saved pricing-domain additions before the bounded paid pilots. Three fresh
-  proposed tasks and a matching private package are prepared with zero usage.
+- A05 passed real GPT-5.5 coding, delegation and document checks plus review/Apply.
+  This qualifies small supplied fixtures and the documented native-tool provider;
+  broader models/tasks and provider invoice validation remain unqualified.
 - Clean official Neovim 0.12.6 is qualified. User plugins/configs, unsaved crash
   restoration, shared-buffer merging and uncoordinated external writers are not.
   Saved files survive; clean mode disables swap. Use disjoint parallel artifacts.
@@ -277,12 +282,10 @@ authorize push/publication, outbound communications or unbounded provider spendi
 3. Activate the pinned environment with `. /workspace/.onboarding/activate.sh`.
    Final package: `/workspace/.onboarding/qualification/mvp-followup/package-v2/bin/codex`.
    Evidence root: `/workspace/.onboarding/qualification/`; fixture services are stopped.
-4. The key and compatible-model/minimal-spend authorization are present; model
-   listing succeeded. Apply saved official-pricing domain additions through
-   environment settings, verify current rates and adjust scopes to the $1 working
-   budget. Restart only the prepared live-gpt/home daemon with the current package;
-   use prepared.json's existing task IDs. Run the three bounded real pilots and
-   preserve failures/usage/cost receipts; never print or persist the key value.
+4. A05 is complete. Read live-gpt/verification.json and retained failure evidence;
+   its tasks are accepted/applied and its daemon is stopped. Do not redo paid
+   qualification or create automatic inference loops. Discuss the next bounded
+   roadmap slice; use fresh explicitly scoped projects/grants if new work is approved.
 5. Update acceptance/status/testing and make logical local commits after results.
    Do not start later roadmap phases without matching user scope, or infer push,
    merge, deploy, external messaging or financial authority.

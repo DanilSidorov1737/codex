@@ -1,11 +1,13 @@
 # Detailed first MVP plan
 
-Status: **owner-approved MVP implemented and locally qualified; bounded live-provider release gate unrun**.
+Status: **owner-approved MVP qualified for single-owner Linux/native GPT-5.5**.
 Updated after [M0/M1 foundation qualification](qualification.md). The actual CLI,
 daemon and official Neovim are available. B1–B5 delivered durable organization
 records, bounded execution/delegation, all five layouts and the real integrated
 editor with exact reviewed application. B6 local qualification passed. A05
-bounded live-provider qualification remains the release gate.
+bounded live-provider qualification subsequently passed all three real GPT-5.5
+pilots, native immutable checks, physical Neovim review and explicit Apply. Existing
+platform/provider/editor limits remain; see [release evidence](release-qualification.md).
 
 ## User outcome
 

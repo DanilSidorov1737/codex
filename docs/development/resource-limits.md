@@ -13,8 +13,8 @@ see testing.md.
 A model catalog entry declaring `code_mode_only` is rejected before creating its
 managed thread or admitting inference. Code Mode is disabled in bounded MVP
 execution. Use a model supporting direct native tools; gpt-5.5 is qualified against
-the deterministic Responses-compatible fixture. This does not establish live
-provider compatibility, and no automatic model routing is implemented.
+the deterministic fixture and the real OpenAI HTTPS Responses provider through
+three bounded pilots. No automatic model routing or Code Mode bypass is implemented.
 
 ## Optional owner price quote
 
@@ -60,4 +60,8 @@ The real TUI displayed the local zero-billing quote's provider/model/source and
 reported/token-ceiling values, plus the explicit billing limitations. Evidence:
 `mvp-b6-cli/admission-model.json`, `admission-invalid-limit.json`,
 `price-physical.json` and `tui-price.log`. Corrected package qualification passed;
-live-provider rates, credentials, model and spending remain unresolved.
+real GPT-5.5 pilots subsequently passed, with verified official rates and a
+$0.345433 token-cost estimate including all failures. The successful delegated
+grant reported 25,101 tokens against a 25,000 ceiling because its final request
+was already admitted. The request ceiling remained intact; estimates do not
+guarantee provider billing. See release-qualification.md for full receipts/limits.

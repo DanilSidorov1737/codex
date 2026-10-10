@@ -1,6 +1,8 @@
 # Phased roadmap
 
-Current execution: Phase 2 MVP implementation is approved; B1–B6 local implementation/qualification is complete; the live-provider release gate is unrun. See
+Current execution: Phase 2 MVP implementation and B1–B6 qualification are complete,
+including real GPT-5.5 coding/delegation/document pilots. Later phases require
+the next bounded scope to be chosen with the owner. See
 [qualification evidence](qualification.md) and [status](status.md).
 
 Sequence is based on technical dependencies and risk, not date estimates.
@@ -31,8 +33,10 @@ execution/delegation, five layouts, actual embedded Neovim and exact reviewed Ap
 B6 native coding/document pilots, default-two execution, registry/navigation,
 idle and snapshot restore passed. Four-active qualification caught a heartbeat
 contention bug; the corrected current-binary native checks passed. Final editor
-quiet-Follow, navigation and idle checks also passed. A05's
-bounded live-provider pilot is still blocked on provider/model/credentials/spend.
+quiet-Follow, navigation and idle checks also passed. A05's bounded real GPT-5.5
+pilots passed native checks, physical official-Neovim review and Apply, at a
+$0.345433 official-rate estimate including failed attempts. The MVP is qualified
+for its stated single-owner Linux/native-provider envelope.
 
 
 Deliver a complete small workflow rather than a screen full of invented metrics.
@@ -43,7 +47,8 @@ Suggested qualification envelope for initial MVP: one Linux host, one human owne
 1–1,000 persisted agents/groups with configurable depth, 2 active executions by
 default and up to 4 in tests, one validated Responses-compatible provider,
 one local project with a short dependency graph. Stored-agent and local deterministic measurements are recorded in
-[release qualification](release-qualification.md); live-provider qualification is separate. Single-agent use must remain convenient.
+[release qualification](release-qualification.md), with real-provider pilots recorded
+separately from deterministic scale/fault checks. Single-agent use must remain convenient.
 
 Future production scope includes Windows/macOS behavior, LSP/plugins, broader non-code
 projects, greater active concurrency and remote workers. Do not infer those from

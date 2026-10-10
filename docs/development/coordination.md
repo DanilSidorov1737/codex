@@ -1,7 +1,9 @@
 # B3 bounded coordination
 
 Status: B3 is locally qualified through state, native API and actual packaged
-CLI/detached-daemon checks. Live-provider qualification remains B6.
+CLI/detached-daemon checks. Subsequent B6 real GPT-5.5 one-child delegation passed
+checked artifact import, background inference with TUI closed, owner review and
+Apply. Earlier deterministic evidence remains distinct from the live checkpoint.
 
 The existing detached daemon owns coordination. Agents receive one `organization`
 tool inside their isolated Codex runtime. They cannot select worker identity,

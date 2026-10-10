@@ -2,15 +2,14 @@
 
 B1–B6 implementation and local qualification are complete on 2026-10-10 UTC.
 Heartbeat/database contention, idle editor redraw, overlapping dashboard IDs and
-refresh-triggered task inspection bugs were fixed and verified. **The MVP
-is not fully release-qualified: A05's bounded live-provider pilot is unrun.**
-The owner supplied OPENAI_API_KEY and approved compatible-GPT pilots with minimal
-spending; the conservative working ceiling is $1 total. Authenticated API model
-listing now returns 200 and lists the native-tool gpt-5.5. Three isolated proposed
-tasks and a hash-matched private daemon package are prepared with zero usage.
-Official pricing pages remain blocked by proxy CONNECT 403; their domain additions
-are saved in the draft for review/save/publication. Current rates must be verified
-and scopes checked against the working budget before inference. No paid call was made.
+refresh-triggered task inspection bugs were fixed and verified. **The MVP criteria
+are qualified in the documented single-owner Linux/GPT-5.5 operating envelope.**
+The owner supplied OPENAI_API_KEY, approved compatible-GPT/minimal-spend pilots and
+published the network changes. A05 passed all three real OpenAI Responses pilots,
+native immutable checks, physical official-Neovim review, exact acceptance and Apply.
+All 41 provider receipts including failed attempts reconcile to 86,923 tokens;
+verified official rates estimate $0.345433, below the $1 working budget. Provider
+invoice validation is unrun; token limits retain an in-flight allowance.
 Deterministic Responses fixtures exercise the real packaged CLI, detached daemon,
 native sandbox, actual filesystem and independent immutable owner checks. They
 cannot establish live model quality, provider compatibility or real billing.
@@ -23,7 +22,7 @@ cannot establish live model quality, provider compatibility or real billing.
 | A02 versioned hierarchy/membership | Real stale edit/cycle denials; transactional reparent/membership/state tests passed | Moving nodes never grants execution authority |
 | A03 goals/tasks/plans | Persistent goal/project/task contracts and bounded plan/DAG/child acceptance tests; real native delegated plan ran | Owner grants constrain every child; no autonomous authority expansion |
 | A04 claim/generation fences | Concurrent claims, stale completion/settlement and reservation tests passed | Single owner host |
-| A05 useful live model workflow | Native fixture pilots passed; live API authentication/model listing passed; three fresh real-provider tasks prepared at zero usage | **Blocked: official pricing access; paid inference/quality unrun** |
+| A05 useful live model workflow | Real GPT-5.5 single/delegated coding and fact-document pilots passed native checks, physical Neovim review, exact acceptance/Apply and independent original checks | Small supplied fixtures; one verified native-tool provider/model; invoice unverified |
 | A06 detach/restart | Real CLI detach/reconnect and post-dispatch/pending-approval SIGKILL/restart tests passed | Interrupted work reconciles; arbitrary reboot/service supervision unqualified |
 | A07 pause/revocation | Physical pause/resume plus inherited authorization/delegation/context state gates passed | Existing native cleanup retains reservations until joined |
 | A08 exact human approvals | Actual protected owner approval/rejection; stale approval, pending crash and self-administration denial passed | Silence never approves |
@@ -127,13 +126,10 @@ Follow measured **1 frame in 3.25s**, versus
 stopped, retaining package/state/logs; `final-cleanup.json`. The container retains
 a stopped zombie (no execution), and its managed PID record was removed.
 
-A05 stays unrun until current official pricing is reachable and the prepared scopes
-fit the $1 working ceiling. Credentials, compatible-GPT and minimal-spend authority
-are already present; authenticated model listing passed. This is a release blocker,
-not unfinished local feature implementation. Do not repeat those approvals or infer
-broader external authority. Resume with the bounded live pilot and
-record genuine model quality, native check results, usage and test spend. Broader
-roadmap phases remain separate scope.
+A05 subsequently passed on application source `6a4a9f6329`; see the live checkpoint
+below. The former API/pricing blockers are resolved. Keep existing safety and
+platform boundaries explicit; no repeat paid qualification or broader external
+authority follows automatically. Broader roadmap phases remain separate scope.
 
 Evidence roots are `/workspace/.onboarding/qualification/mvp-b2-cli/` through
 `mvp-b6-cli/`, with sibling `mvp-b*.log` files. Logs/state/binaries stay outside Git;
@@ -170,5 +166,36 @@ Detailed failure/correction/commands/evidence are in testing.md and `mvp-followu
 Actual captures/archive: `/workspace/artifacts/cli-followup/`. Owned temporary
 services are stopped; final package and state are retained. Earlier B6 performance/
 recovery evidence still applies to unchanged backend code and is not a new benchmark.
-A05 remains blocked; local fixture responses cannot establish live model quality,
-real provider compatibility or billing. No CodeModeOnly bypass or new editor was built.
+The live checkpoint below closes A05; these earlier fixture results remain distinct
+from real model evidence. No CodeModeOnly bypass or custom editor was built.
+
+## Live GPT release checkpoint — 2026-10-10 UTC
+
+Unchanged application source `6a4a9f6329`, same complete package/helper hashes.
+Official GPT-5.5 with low reasoning, HTTPS Responses, no provider retries, one
+private owner home and explicit immutable-input/native-check scopes.
+
+| Pilot | Successful grant requests/tokens | Native check and physical result |
+| --- | --- | --- |
+| Single coding | 4 / 8,015 | Addition including zero/negative/fractional values and explanation passed; two exact approvals; pending approval survived TUI exit; actual Neovim diff, acceptance, Apply and original check passed |
+| One-child coding | 11 / 25,101 | Configured delegate completed checked artifacts under the same root budget; model calls advanced with TUI exited; actual Neovim review, root acceptance, Apply and original check passed |
+| Local-fact document | 4 / 8,019 | Immutable fact/provenance check passed; real Neovim diff, acceptance, Apply and original check passed |
+
+Four earlier grants are retained: two harness interaction errors stopped before
+native tool release, one delegated token ceiling and one delegated request ceiling.
+No failure is erased or counted as a pass. Corrected scopes/physical harness
+completed the final workflows without changing application safeguards. A too-large
+cost admission estimate was also refused before any additional paid request.
+The last delegated request charged 101 tokens above its 25,000 reported ceiling;
+this is the documented already-admitted-request allowance, not a strict money cap.
+
+All seven root grants and 41 provider response receipts reconcile exactly:
+82,841 input tokens (42,496 cached), 4,082 output tokens (319 reasoning already
+included), total 86,923. Current official $5/$0.50/$30 input/cached/output rates
+estimate $0.345433 including every failed attempt; provider invoice/taxes are
+unverified. Three independently rerun applied-original checks exited 0 and all
+artifact/immutable-input hashes passed verification. Owned daemon PID 1606 was
+stopped; retained zombie has zero execution. No test service remains intentionally
+running. Evidence: `mvp-followup/live-gpt/verification.json`, result/failure JSON,
+pricing receipts, logs and cleanup. Eleven actual captures/archive are in
+`/workspace/artifacts/cli-live-gpt/`.

@@ -1,6 +1,6 @@
 # Codex CLI fork development
 
-Phase: **B1–B6 locally implemented/qualified; bounded live-provider release gate unrun**.
+Phase: **B1–B6 implemented/qualified, including bounded real GPT-5.5 pilots**.
 Phase 0 repository baseline: `8026444c98cd9c6db9e7c953b44a20ea4f93c7b6`, from `origin/main`.
 Research recorded on 2026-10-09 (America/New_York).
 
@@ -66,7 +66,9 @@ matrix. The separate requirements PDF mentioned in the prompt is absent; the
 Subsequent owner-approved M0/M1 checks built the full CLI/package, exercised the
 actual TUI/daemon and installed/tested official Neovim. See qualification for
 evidence and limits. Subsequent B1–B6 work delivered and locally qualified the
-integrated MVP; the live-provider gate remains open.
+integrated MVP. The bounded live-provider gate subsequently passed real single-agent
+coding, one-child delegation, local-fact documents and actual review/Apply. See
+the release matrix for evidence, the $0.345433 rate estimate and operating limits.
 
 The owner approved the [MVP build plan](mvp.md#build-order-and-usable-checkpoints),
 Ponytail implementation and periodic local commits. Follow the recorded scope and
