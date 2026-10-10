@@ -666,6 +666,18 @@ async fn actual_dirty_editor_blocks_host_exit_and_owner_apply_dispatch() {
     assert!(d.message.contains("Cannot freeze editor revision"));
     assert!(d.editor.as_mut().unwrap().dirty().unwrap());
     assert!(!home.path().join("human.txt").exists());
+    let (updates, incoming) = mpsc::channel(4);
+    d.updates = incoming;
+    updates
+        .send(Update::Snapshot(Snapshot {
+            records: d.snapshot.records.clone(),
+        }))
+        .await
+        .unwrap();
+    d.update();
+    assert!(d.message.contains("Cannot freeze editor revision"));
+    assert!(d.confirmation.is_some());
+    assert!(rx.try_recv().is_err());
 }
 
 #[tokio::test]

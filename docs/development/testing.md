@@ -59,6 +59,22 @@ That final TUI rerun passed **25 tests, 0 failed/ignored** (`tui-tests-final.log
 The backend and Review controls are ready as a source checkpoint; complete package
 and physical checks are still required before this slice is marked qualified.
 
+Initial physical attempt stopped after a harness used one Esc instead of two to
+close confirmation plus retained draft (`initial-modal-navigation-failure/`).
+Canonical result stayed accepted, applications empty and original files unchanged.
+Resume then exposed an existing Snapshot refresh overwriting the native freeze
+denial (`refresh-masked-denial-failure/`). The write protection still rejected
+dispatch. Fixed by preserving status while confirmation is captured, and extended
+the actual dirty-Neovim regression to deliver Snapshot and require the denial and
+confirmation to persist without dispatch. Affected tests/Clippy/CLI are rerunning;
+no new model requests or tasks are needed to resume this accepted result safely.
+
+Post-refresh-fix checks passed: **25 native TUI tests, 0 failed/ignored**
+(`tui-tests-refresh-fix.log`), production warnings-denied Clippy
+(`tui-clippy-refresh-fix.log`) and affected formatting. Final CLI rebuild and the
+same accepted-result physical resume are pending. No backend/schema/state contract
+changed in this correction; their already-passing checks remain applicable.
+
 ## Completed TUI creation and concept-art qualification — 2026-10-10 UTC
 
 Application source `46d999bf5bf868d4ac7b8eaf2f96c66ac8b51cac`, following owner

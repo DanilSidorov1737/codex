@@ -1198,12 +1198,9 @@ impl Dashboard {
                     self.snapshot = snapshot;
                     self.rebuild();
                     self.detail_text = clean(&self.details());
-                    self.message =
-                        "Owner state loaded; definitions do not imply running agents.".into();
-                    if self.confirmation.is_some() {
+                    if self.confirmation.is_none() {
                         self.message =
-                            "Confirm captured owner decision: y / Esc · PageUp/PageDown to inspect"
-                                .into();
+                            "Owner state loaded; definitions do not imply running agents.".into();
                     }
                     if first || self.selected != selected {
                         self.inspect();

@@ -33,7 +33,8 @@ The Review form reuses the existing owner UI: `n` cycles inline artifact diffs a
 next real-Neovim file; `A` opens whole-file choices with all files selected. Tab/Enter
 move between files, arrows/Space toggle Apply/Leave unchanged, F6 displays the frozen
 paths/revision/digest and subset warning, and `y` confirms. Esc retains a reviewed
-draft or closes a local form without a mutation. An empty selection cannot be sent.
+draft or closes a local form without a mutation. From confirmation, use a second
+Esc to close the retained draft before switching layouts. An empty selection cannot be sent.
 Selection/refresh changes do not change a captured decision.
 
 All loaded dirty Neovim buffers still block host Apply, including unselected buffers.
@@ -58,6 +59,15 @@ production compilation; it now uses a standard-library Result. Initial SDK gener
 used the wrong Python environment, then lacked the installed formatter on PATH;
 activate `sdk/python/.venv/bin/activate` for both generation and contract tests. Keep
 the original failure logs. No paid model request or new installation is needed.
+
+The first physical run mistakenly used one Esc for both modal layers, then stopped
+before any intent/write. Its accepted task was preserved. A resume exposed an existing
+refresh bug: Snapshot replaced the native dirty-buffer denial message while the
+confirmation remained open. The protection still rejected dispatch. Snapshot now
+preserves the captured decision's status; the actual dirty-editor regression also
+delivers a refresh and requires the denial/confirmation/no-dispatch to remain.
+Both failure captures/logs remain in the evidence root's named failure folders.
+The affected native UI checks and complete CLI are being rebuilt before resuming.
 
 Hunk selection, staged repeated Apply, selective acceptance of execution results,
 automatic checks of installed subsets, scoped-memory retrieval and recurring
