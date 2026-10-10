@@ -88,6 +88,11 @@ Imports never write to the original project; reviewed application remains B5.
 coordination tests. `mvp-b3-state-final-clippy.log`: production state Clippy passed
 with warnings denied. `mvp-b3-wire-tests.log`: both wire tests passed;
 `mvp-b3-python-contract-tests.log`: 25 Python contract checks passed.
-The preliminary runtime/API compilation passed; the full current native fixture
-and physical daemon workflow remain in progress. Layouts and actual Neovim remain B4/B5;
+Four runtime units and four actual app-server/native API tests passed. The
+two-agent case used durable context and messages, yielded its parent's slot,
+imported a real checked child file, ran the root check and required owner final
+acceptance. Both views show the shared budget: 13 mocked-model requests and 195
+reported tokens, with per-attempt usage retained separately. Final production
+Clippy/formatting passed. Physical packaged CLI qualification remains in progress.
+Layouts and actual Neovim remain B4/B5;
 live-provider and broader release qualification remain B6.

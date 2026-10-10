@@ -13,6 +13,17 @@ Evidence lives under `/workspace/.onboarding/qualification/`. State tests use
 constructed artifact evidence; they do not prove native file/check behavior.
 Actual runtime/CLI qualification is the next gate; B3 remains in progress.
 
+### B3 real runtime/API evidence
+
+- `cargo test --locked --offline --profile dev-small -j4 -p codex-app-server --lib organization`: **four passed**, no failed/ignored. Log: `mvp-b3-runtime-unit-tests.log`.
+- `cargo test --locked --offline --profile dev-small -j4 -p codex-app-server --test all suite::v2::organization -- --nocapture`, with `CARGO_INCREMENTAL=0 RUST_MIN_STACK=8388608`: **four passed**, no failed/ignored. Initial native workflow: `mvp-b3-runtime-native-api-tests.log`; current shared-budget rerun: `mvp-b3-runtime-shared-budget-final-tests.log`.
+- Actual native sandbox/application cases retained the B2 restart, exact approval, nine isolation probes and pending-approval SIGKILL behavior. The new case used two configured agents, proposed/delegated a task, read scoped project context and its inbox, acknowledged the message, yielded the parent, ran real Python checks, imported the hash-verified child artifact and accepted the root only through owner RPC. Original project had no output file. Provider responses were deterministic fixtures: **13 requests / 195 reported tokens**; root attempt 105, child 90. Both task views report the shared totals.
+- State view correction reran all **259 state tests** (`mvp-b3-state-budget-view-tests.log`). Final production app-server/state Clippy passed with warnings denied (`mvp-b3-runtime-corrected-clippy.log`); affected formatting passed (`mvp-b3-runtime-final-format.log`). Earlier final Clippy rejected two `expect` calls and a borrowed async mutex guard; replaced with fallible, once-per-attempt schema construction and the existing owned-guard pattern. No lint was suppressed.
+
+Tests ran outside the outer sandbox because it blocks real fixture sockets and
+native sandbox setup. No paid model requests occurred. Full packaged CLI
+interaction and B4–B6 remain outstanding.
+
 ## B2 complete local workflow qualification
 
 `a360de3115` contains the runtime/API. The corrected current CLI build passed

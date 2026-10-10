@@ -383,6 +383,10 @@ async fn children_race_against_one_root_request_and_token_budget() -> Result<()>
     let view = store.execution_view(&parent.task_id).await?;
     assert_eq!(view.authorization_model_requests, 2);
     assert_eq!(view.authorization_used_tokens, 140);
+    let child_view = store.execution_view(&admitted.task_id).await?;
+    assert_eq!(child_view.authorization_used_tokens, 140);
+    assert_eq!(child_view.authorization_model_requests, 2);
+    assert_eq!(child_view.attempts[0].reported_tokens, 120);
     assert!(
         store
             .admit_model_request(&parent.id, &worker, 1003)

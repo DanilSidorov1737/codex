@@ -502,7 +502,7 @@ impl OrganizationStore {
     pub async fn execution_view(&self, task_id: &str) -> Result<OrganizationExecutionView> {
         let mut tx = self.pool.begin().await?;
         let task = read_task(&mut tx, task_id).await?;
-        let row: Option<(String,i64,i64)> = sqlx::query_as("SELECT a.data,a.used_tokens,a.model_requests FROM organization_authorizations a JOIN organization_tasks t ON t.authorization_id=a.id WHERE t.id=?").bind(task_id).fetch_optional(&mut *tx).await?;
+        let row: Option<(String,i64,i64)> = sqlx::query_as("SELECT a.data,r.used_tokens,r.model_requests FROM organization_authorizations a JOIN organization_authorizations r ON r.id=a.root_id JOIN organization_tasks t ON t.authorization_id=a.id WHERE t.id=?").bind(task_id).fetch_optional(&mut *tx).await?;
         let (authorization, authorization_used_tokens, authorization_model_requests) =
             if let Some((data, tokens, requests)) = row {
                 (

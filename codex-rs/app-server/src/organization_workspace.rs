@@ -40,6 +40,46 @@ pub(crate) struct TaskWorkspace {
 }
 
 impl TaskWorkspace {
+    /// Copy only declared inputs from the parent's private snapshot. The child
+    /// keeps its own sandbox; no grant exposes another attempt's directory.
+    pub(crate) fn inherit_inputs(
+        &self,
+        parent: &Path,
+        scope: &OrganizationExecutionScope,
+    ) -> Result<()> {
+        let mut total = 0;
+        for relative in &scope.input_files {
+            let bytes = read_relative(parent, relative)?;
+            total += bytes.len() as u64;
+            ensure!(total <= MAX_INPUT_BYTES, "inherited inputs exceed 64 MiB");
+            write_relative(self.root.as_path(), relative, &bytes)?;
+        }
+        Ok(())
+    }
+
+    /// Accepted child evidence is rechecked on the real file before import.
+    /// Writes stay within the receiving attempt, never the original project.
+    pub(crate) fn import_result(
+        &self,
+        source: &Path,
+        result: &codex_protocol::organization_execution::OrganizationTaskResult,
+    ) -> Result<()> {
+        ensure!(result.accepted, "cannot import an unaccepted child result");
+        let mut total = 0;
+        for artifact in &result.artifacts {
+            let bytes = read_relative(source, &artifact.path)?;
+            total += bytes.len() as u64;
+            ensure!(total <= MAX_INPUT_BYTES, "child artifacts exceed 64 MiB");
+            ensure!(
+                bytes.len() as u64 == artifact.bytes
+                    && format!("{:x}", Sha256::digest(&bytes)) == artifact.sha256,
+                "child artifact changed after acceptance"
+            );
+            write_relative(self.root.as_path(), &artifact.path, &bytes)?;
+        }
+        Ok(())
+    }
+
     pub(crate) fn create(
         config: &Config,
         project: &Path,
@@ -69,7 +109,7 @@ impl TaskWorkspace {
                 !protected.iter().any(|root| path.starts_with(root)),
                 "input would expose protected Codex or organization state"
             );
-            let bytes = read_bounded(&path)?;
+            let bytes = read_relative(&project, relative)?;
             total = total
                 .checked_add(bytes.len() as u64)
                 .context("input size overflow")?;
@@ -99,7 +139,7 @@ impl TaskWorkspace {
                 let sha256 = match std::fs::symlink_metadata(&path) {
                     Ok(_) => Some(format!(
                         "{:x}",
-                        Sha256::digest(read_bounded(&regular_path(&project, relative)?)?)
+                        Sha256::digest(read_relative(&project, relative)?)
                     )),
                     Err(error) if error.kind() == std::io::ErrorKind::NotFound => None,
                     Err(error) => return Err(error.into()),
@@ -126,7 +166,7 @@ impl TaskWorkspace {
             .artifacts
             .iter()
             .map(|path| {
-                let bytes = read_bounded(&regular_path(self.root.as_path(), path)?)?;
+                let bytes = read_relative(self.root.as_path(), path)?;
                 Ok(OrganizationArtifactEvidence {
                     path: path.clone(),
                     sha256: format!("{:x}", Sha256::digest(&bytes)),
@@ -281,6 +321,7 @@ fn regular_path(root: &Path, relative: &str) -> Result<PathBuf> {
     Ok(path)
 }
 
+#[cfg(any(test, not(unix)))]
 fn read_bounded(path: &Path) -> Result<Vec<u8>> {
     let mut options = OpenOptions::new();
     options.read(true);
@@ -290,6 +331,10 @@ fn read_bounded(path: &Path) -> Result<Vec<u8>> {
         options.custom_flags(libc::O_NOFOLLOW | libc::O_CLOEXEC);
     }
     let file = options.open(path)?;
+    read_bounded_file(file)
+}
+
+fn read_bounded_file(file: File) -> Result<Vec<u8>> {
     #[cfg(unix)]
     {
         use std::os::unix::fs::MetadataExt;
@@ -309,6 +354,143 @@ fn read_bounded(path: &Path) -> Result<Vec<u8>> {
         "file grew beyond 8 MiB"
     );
     Ok(bytes)
+}
+
+// Directory descriptors prevent an agent swapping a parent for a symlink
+// between validation and host copying. Reuse libc; no filesystem framework.
+#[cfg(unix)]
+fn relative_parent(root: &Path, relative: &str, create: bool) -> Result<(File, std::ffi::CString)> {
+    use std::os::fd::{AsRawFd, FromRawFd};
+    use std::os::unix::ffi::OsStrExt;
+    use std::os::unix::fs::OpenOptionsExt;
+    let mut parts = Path::new(relative).components().peekable();
+    ensure!(
+        !relative.is_empty()
+            && parts
+                .clone()
+                .all(|part| matches!(part, std::path::Component::Normal(_))),
+        "invalid relative snapshot path"
+    );
+    let mut directory = OpenOptions::new()
+        .read(true)
+        .custom_flags(libc::O_DIRECTORY | libc::O_NOFOLLOW | libc::O_CLOEXEC)
+        .open(root)?;
+    while let Some(part) = parts.next() {
+        let name = std::ffi::CString::new(part.as_os_str().as_bytes())?;
+        if parts.peek().is_none() {
+            return Ok((directory, name));
+        }
+        if create {
+            // SAFETY: directory owns a live fd; name is a terminated, single component.
+            let result = unsafe { libc::mkdirat(directory.as_raw_fd(), name.as_ptr(), 0o700) };
+            if result < 0 {
+                let error = std::io::Error::last_os_error();
+                ensure!(
+                    error.kind() == std::io::ErrorKind::AlreadyExists,
+                    "cannot create snapshot parent: {error}"
+                );
+            }
+        }
+        // SAFETY: fd and name stay live through the call. NOFOLLOW rejects links.
+        let fd = unsafe {
+            libc::openat(
+                directory.as_raw_fd(),
+                name.as_ptr(),
+                libc::O_RDONLY | libc::O_DIRECTORY | libc::O_NOFOLLOW | libc::O_CLOEXEC,
+            )
+        };
+        if fd < 0 {
+            return Err(std::io::Error::last_os_error().into());
+        }
+        // SAFETY: openat returned a new owned descriptor.
+        directory = unsafe { File::from_raw_fd(fd) };
+    }
+    anyhow::bail!("missing snapshot file name")
+}
+
+#[cfg(unix)]
+fn read_relative(root: &Path, relative: &str) -> Result<Vec<u8>> {
+    use std::os::fd::{AsRawFd, FromRawFd};
+    let (parent, name) = relative_parent(root, relative, false)?;
+    // SAFETY: descriptors and CString are live; returned descriptor is owned.
+    let fd = unsafe {
+        libc::openat(
+            parent.as_raw_fd(),
+            name.as_ptr(),
+            libc::O_RDONLY | libc::O_NOFOLLOW | libc::O_CLOEXEC | libc::O_NONBLOCK,
+        )
+    };
+    if fd < 0 {
+        return Err(std::io::Error::last_os_error().into());
+    }
+    // SAFETY: openat returned a new owned descriptor.
+    read_bounded_file(unsafe { File::from_raw_fd(fd) })
+}
+
+#[cfg(unix)]
+fn write_relative(root: &Path, relative: &str, bytes: &[u8]) -> Result<()> {
+    use std::os::fd::{AsRawFd, FromRawFd};
+    let (parent, name) = relative_parent(root, relative, true)?;
+    // Reading an existing destination rejects links and hard links before replacing
+    // its name. renameat never follows a destination swapped after that check.
+    match read_relative(root, relative) {
+        Ok(_) => {}
+        Err(error)
+            if error
+                .downcast_ref::<std::io::Error>()
+                .is_some_and(|error| error.kind() == std::io::ErrorKind::NotFound) => {}
+        Err(error) => return Err(error),
+    }
+    let temporary = std::ffi::CString::new(format!(".snapshot-{}", Uuid::now_v7()))?;
+    // SAFETY: live directory and terminated names, exclusive owned file creation.
+    let fd = unsafe {
+        libc::openat(
+            parent.as_raw_fd(),
+            temporary.as_ptr(),
+            libc::O_WRONLY | libc::O_CREAT | libc::O_EXCL | libc::O_NOFOLLOW | libc::O_CLOEXEC,
+            0o600,
+        )
+    };
+    if fd < 0 {
+        return Err(std::io::Error::last_os_error().into());
+    }
+    // SAFETY: openat returned a new owned descriptor.
+    let mut file = unsafe { File::from_raw_fd(fd) };
+    let result = (|| -> Result<()> {
+        file.write_all(bytes)?;
+        file.sync_all()?;
+        // SAFETY: both names are relative to the same live pinned directory.
+        if unsafe {
+            libc::renameat(
+                parent.as_raw_fd(),
+                temporary.as_ptr(),
+                parent.as_raw_fd(),
+                name.as_ptr(),
+            )
+        } < 0
+        {
+            return Err(std::io::Error::last_os_error().into());
+        }
+        parent.sync_all()?;
+        Ok(())
+    })();
+    if result.is_err() {
+        // SAFETY: removes only this exclusive staging name within the pinned directory.
+        unsafe {
+            libc::unlinkat(parent.as_raw_fd(), temporary.as_ptr(), 0);
+        }
+    }
+    result
+}
+
+#[cfg(not(unix))]
+fn read_relative(root: &Path, relative: &str) -> Result<Vec<u8>> {
+    read_bounded(&regular_path(root, relative)?)
+}
+
+#[cfg(not(unix))]
+fn write_relative(_root: &Path, _relative: &str, _bytes: &[u8]) -> Result<()> {
+    anyhow::bail!("delegated snapshots require the qualified Linux host")
 }
 
 fn private_directory(path: &Path, exclusive: bool) -> Result<()> {
@@ -354,6 +536,37 @@ fn current_uid() -> u32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[cfg(unix)]
+    #[test]
+    fn host_snapshot_copy_rejects_links_and_does_not_write_outside_root() -> Result<()> {
+        let destination = tempfile::tempdir()?;
+        let outside = tempfile::tempdir()?;
+        let root = std::fs::canonicalize(destination.path())?;
+        std::fs::write(outside.path().join("secret"), "owner-only")?;
+        std::os::unix::fs::symlink(outside.path(), root.join("escape"))?;
+        assert!(read_relative(&root, "escape/secret").is_err());
+        assert!(write_relative(&root, "escape/secret", b"changed").is_err());
+        assert!(write_relative(&root, "../secret", b"changed").is_err());
+        assert_eq!(
+            std::fs::read_to_string(outside.path().join("secret"))?,
+            "owner-only"
+        );
+        write_relative(&root, "nested/report.txt", b"first")?;
+        write_relative(&root, "nested/report.txt", b"accepted child")?;
+        assert_eq!(
+            read_relative(&root, "nested/report.txt")?,
+            b"accepted child"
+        );
+        std::fs::hard_link(root.join("nested/report.txt"), root.join("linked.txt"))?;
+        assert!(write_relative(&root, "linked.txt", b"changed").is_err());
+        assert!(read_relative(&root, "linked.txt").is_err());
+        assert_eq!(
+            std::fs::read_to_string(root.join("nested/report.txt"))?,
+            "accepted child"
+        );
+        Ok(())
+    }
 
     #[test]
     fn artifact_collection_rejects_traversal_symlinks_and_oversized_files() -> Result<()> {

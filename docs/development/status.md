@@ -13,9 +13,14 @@ State library: **259 passed**, including eight coordination tests; production
 state Clippy passed with warnings denied. Legacy policy grants fail closed;
 one-shot starts and inbox/context recovery across fresh authorization are tested.
 The runtime adapter exposes a narrow coordination tool and copies accepted,
-hash-verified child artifacts into isolated workspaces. Runtime library check
-passed for the preliminary candidate; current native/application tests are in
-progress. Two wire tests and 25 Python contract checks passed. See [coordination](coordination.md).
+hash-verified child artifacts into isolated workspaces. Four runtime units and
+all four native API tests passed, including real two-agent delegation, notes,
+critical inbox/ack, yielded waiting, immutable owner checks, artifact import and
+owner final acceptance. The workflow recorded 13 deterministic provider requests
+and 195 reported tokens; both root and child views show the same root budget.
+Final production Clippy and affected formatting passed. Two wire tests, four
+schema comparisons and 25 Python contract checks passed. The packaged CLI
+qualification is next. See [coordination](coordination.md).
 Do not call B3 complete before actual CLI/delegated-work qualification.
 
 ## Current authorization

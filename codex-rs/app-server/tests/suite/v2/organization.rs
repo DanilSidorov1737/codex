@@ -24,6 +24,9 @@ use std::time::Duration;
 use tempfile::TempDir;
 use test_case::test_case;
 
+#[path = "organization_delegation.rs"]
+mod delegation;
+
 async fn definition(
     server: &mut TestAppServer,
     mutation: OrganizationMutation,
