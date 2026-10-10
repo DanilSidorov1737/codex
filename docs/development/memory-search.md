@@ -50,6 +50,11 @@ editing/retention and larger storage quotas are later scope.
 
 ## Owner CLI and TUI
 
+Use the complete package named in [status](status.md). An existing owned daemon
+must run that package to serve the new RPC: inspect active/queued work, then use
+its `codex app-server daemon update --from-cli --yes`. Fresh private-home start
+installs the complete package. Qualification preserved existing user homes.
+
 ```sh
 codex organization memory-search PROJECT_ID 'SQLite'
 codex organization memory-search PROJECT_ID
