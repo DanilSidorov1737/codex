@@ -1,31 +1,30 @@
 # Current status and resumption instructions
 
 Phase 0: **exploration and planning complete for available inputs**.
-Current work: **approved MVP implementation; B1–B3 locally qualified; B4 layouts underway**.
-Application feature implementation: **B1–B3 locally qualified; B4–B6 outstanding**.
+Current work: **approved MVP implementation; B1–B4 locally qualified; B5 Neovim underway**.
+Application feature implementation: **B1–B4 locally qualified; B5–B6 outstanding**.
 
-## B4 current slice
+## B4 qualification
 
-Added shared owner layouts around the existing overlay, typed app-server client,
-Ratatui and transcript sanitizer. Console remains the existing conversation;
-Workspace/Projects/Operations/Review share one bounded metadata loader. Operations
-uses iterative searchable/collapsible hierarchy traversal; owner controls retain
-revision/hash fences and explicit captured confirmation. Pane ratios, visibility,
-focus, optional j/k keys and preset persist privately outside project config.
-Readable inspection shows actual tasks, usage, checks, approval arguments and
-result hashes; no synthetic metrics or model session per stored node.
+All five presets are physically qualified with the complete current CLI and
+actual detached daemon at 120×30 and 50×20. Operations search/collapse/expand,
+revision-checked pause/resume, pane customization/reload, real exact approval,
+request changes and exact result acceptance passed. The localhost provider
+produced a real isolated report, native owner checks exited zero and the original
+project remained unchanged. The current successful grant used two requests/30
+reported tokens; this is deterministic fixture evidence, not live-model evidence.
 
-**151 relevant tests passed**: five new layout tests, five slash-command unit
-checks, 136 existing slash-dispatch tests and five overlay regressions. Production
-TUI Clippy passed with warnings denied, and package formatting passed. Initial
-compile errors were corrected. A missing pinned test dependency was downloaded;
-a disk-full linker failure was fixed by retiring obsolete compiled artifacts
-while no compiler ran. Current CLI/test dependency sets and all state/evidence
-were retained; the exact test rerun passed. No assertion was weakened or skipped.
-The current full CLI build and physical TUI qualification are next. A bounded
-localhost fixture is prepared with a live detached daemon, definitions and zero
-idle inference. See [layouts](layouts.md). B4 is not yet physically qualified;
-actual Neovim remains B5. Continue the entire approved MVP after this checkpoint.
+Review confirmation now freezes its displayed payload, permits scrolling and
+captures a request-changes task before drafting. **152 targeted tests passed**:
+six layout tests and 146 existing slash/overlay regressions. Production Clippy,
+formatting and the corrected full CLI/package build passed. An old pending grant
+expired during rebuilding and its stale approval was rejected without execution;
+the fresh bounded grant and subsequent changed-result grant passed. Failure logs
+remain retained. See [layouts](layouts.md) and [testing](testing.md).
+
+B5 must now integrate actual official Neovim and safe separate artifact application;
+B6 remains outstanding. Continue the entire approved MVP without another routine
+implementation approval.
 
 ## B3 qualification
 
@@ -190,7 +189,7 @@ authorize push/publication, outbound communications or unbounded provider spendi
 3. Verify the owner's latest explicit approval and constraints. Without approval,
    answer planning questions or revise documentation only.
 4. Review qualification evidence and remaining gates rather than repeating the
-   baseline. Qualify B4 layouts, then implement B5 official Neovim and B6 gates.
+   baseline. Implement B5 official Neovim, then complete B6 gates.
    Do not restart the completed storage/definition work.
    Full Neovim pane integration remains B5/M8. Keep broader
    feature scope and live-provider budget explicit.

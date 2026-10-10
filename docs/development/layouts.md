@@ -1,6 +1,6 @@
 # Organization layouts
 
-Status: B4 implementation is being tested; physical TUI qualification is pending.
+Status: B4 locally qualified with real CLI/daemon/TUI interaction.
 Actual Neovim and reviewed file application are B5, not delivered by this slice.
 
 Use `/layout [console|workspace|projects|operations|review]`. Console retains the
@@ -23,7 +23,8 @@ launches report the requirement rather than silently taking terminal ownership.
 - Review/task inspection: `a` approves the first pending exact action, `r` rejects
   it, `v` accepts the exact current result digest, and `c` requests changes with
   entered instructions. Decisions require an explicit `y` against the displayed
-  captured payload; Escape cancels. Backend policy/revision/hash fences remain
+  captured payload; Escape cancels; PageUp/PageDown scroll the frozen confirmation. Request-changes
+  drafts remain bound to their captured task/revision. Backend policy/revision/hash fences remain
   authoritative. A timeout reports an unknown outcome; refresh before retrying.
 - `q`/Escape return to Console while remembering the last dashboard preset for
   the next launch. F1 explicitly selects Console. `/layout` can reopen the view.

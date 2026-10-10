@@ -492,3 +492,37 @@ library variants were retired using the latest CLI dependency fingerprints and
 the actual test link inputs; current dependency sets, sources and state remained.
 The corrected offline rerun passed. Physical TUI interaction/full CLI build remain
 pending, so these checks do not yet qualify B4 or the complete MVP.
+
+## B4 final physical qualification
+
+Corrective `organization::tests`: **6 passed, 0 failed/ignored**. The current
+binary repeated slash enum **5**, slash dispatch **136** and overlay **5** checks,
+all passing. Production Clippy with warnings denied, formatting, full CLI build
+and complete package assembly passed. Logs include `mvp-b4-captured-review-tests.log`,
+`mvp-b4-captured-review-clippy.log`, `mvp-b4-corrected-cli-build.log` and
+`mvp-b4-corrected-{slash,dispatch,overlay}.log` in the qualification directory.
+
+Actual packaged CLI TUI was launched in a bash PTY through `script`, using the
+private fixture home and localhost Responses provider. At 120×30, `/layout
+operations`, collapse/expand/search, node pause/resume, pane widths/visibility,
+Projects/Workspace/Review and Console were physically exercised. At 50×20 a
+restart restored the selected layout and pane settings; all four dashboard
+presets rendered stacked panes. Private preferences mode 0600 was verified.
+Closing the TUI left a real approval pending with no report and no auto-approval.
+
+The old 600-second grant expired during rebuilding; confirmation of its exact
+approval was rejected as stale. `expired.json` retains that failure. A fresh
+owner grant reached waiting approval; physical `a`, PageDown and `y` admitted the
+exact native command. The real report and immutable oracle reached needsReview.
+Physical `c`, typed instructions, Enter and `y` paused the task and persisted the
+changes request. A fresh revision-checked grant reran the task; `v`/`y` accepted
+its exact current digest. Inspection showed the actual SHA256 and check exit zero.
+`qualification.json` verifies acceptance, current grant usage (2 requests/30
+reported tokens), actual artifact SHA, real check and original-project isolation.
+The full fixture sequence recorded five deterministic provider requests/75 tokens,
+including the expired one. No external model was called.
+
+Evidence: `/workspace/.onboarding/qualification/mvp-b4-cli/{tui-terminal.log,
+tui-narrow.log,tui-corrected.log,paused-nodes.json,pending.json,expired.json,
+changes.json,accepted.json,qualification.json}`. Actual Neovim inside Workspace,
+safe application and broader release gates remain B5/B6.

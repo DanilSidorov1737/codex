@@ -346,7 +346,9 @@ pub(crate) struct Dashboard {
     search: String,
     input: Option<String>,
     changes: bool,
+    change_target: Option<OrganizationTask>,
     confirmation: Option<Command>,
+    confirmation_text: String,
     message: String,
     commands: mpsc::Sender<Command>,
     updates: mpsc::Receiver<Update>,
@@ -413,7 +415,9 @@ impl Dashboard {
             search: String::new(),
             input: None,
             changes: false,
+            change_target: None,
             confirmation: None,
+            confirmation_text: String::new(),
             message,
             commands,
             updates,
@@ -586,6 +590,7 @@ impl Dashboard {
                 'c' => {
                     self.input = Some(String::new());
                     self.changes = true;
+                    self.change_target = Some(view.task.clone());
                     return;
                 }
                 _ => None,
@@ -614,6 +619,7 @@ impl Dashboard {
             self.scroll = 0;
             self.pane().inspector = true;
             self.pane().inspector_focus = true;
+            self.confirmation_text = clean(&self.details());
         }
         self.message = if self.confirmation.is_some() {
             "Confirm the displayed exact owner decision: y / Esc".into()
@@ -633,6 +639,10 @@ impl Dashboard {
                     }
                 }
                 KeyCode::Esc => self.confirmation = None,
+                KeyCode::Up => self.scroll = self.scroll.saturating_sub(1),
+                KeyCode::Down => self.scroll = self.scroll.saturating_add(1),
+                KeyCode::PageUp => self.scroll = self.scroll.saturating_sub(10),
+                KeyCode::PageDown => self.scroll = self.scroll.saturating_add(10),
                 _ => {}
             }
             return;
@@ -643,14 +653,18 @@ impl Dashboard {
                 KeyCode::Enter => {
                     let value = self.input.take().unwrap_or_default();
                     if self.changes {
-                        if let Some(view) = &self.detail {
+                        if let Some(task) = self.change_target.take() {
                             self.confirmation = Some(Command::Execution(
                                 OrganizationExecutionMutation::RequestChanges {
-                                    task_id: view.task.id.clone(),
-                                    expected_revision: view.task.revision,
+                                    task_id: task.id,
+                                    expected_revision: task.revision,
                                     instructions: value,
                                 },
                             ));
+                            self.scroll = 0;
+                            self.pane().inspector = true;
+                            self.pane().inspector_focus = true;
+                            self.confirmation_text = clean(&self.details());
                             self.message = "Confirm request changes: y / Esc".into();
                         }
                     } else {
@@ -778,6 +792,11 @@ impl Dashboard {
                     self.detail_text = clean(&self.details());
                     self.message =
                         "Owner state loaded; definitions do not imply running agents.".into();
+                    if self.confirmation.is_some() {
+                        self.message =
+                            "Confirm captured owner decision: y / Esc · PageUp/PageDown to inspect"
+                                .into();
+                    }
                     if first {
                         self.inspect();
                     }
@@ -1033,7 +1052,7 @@ impl Dashboard {
             .render(areas[0], buffer);
         if pane.inspector {
             Paragraph::new(if self.confirmation.is_some() {
-                clean(&self.details())
+                self.confirmation_text.clone()
             } else {
                 self.detail_text.clone()
             })

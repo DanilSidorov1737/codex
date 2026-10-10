@@ -123,7 +123,9 @@ fn dashboard() -> Dashboard {
         search: String::new(),
         input: None,
         changes: false,
+        change_target: None,
         confirmation: None,
+        confirmation_text: String::new(),
         message: String::new(),
         commands,
         updates,
@@ -155,6 +157,42 @@ async fn selection_never_approves_another_tasks_detail_and_confirmation_is_froze
     assert_eq!(task_id, "two");
     assert_eq!(expected_hash, "frozen-hash");
     assert!(d.details().contains("frozen-hash"));
+    assert!(d.confirmation_text.contains("frozen-hash"));
+    assert!(!d.confirmation_text.contains("changed"));
+    d.key(KeyEvent::new(
+        KeyCode::PageDown,
+        crossterm::event::KeyModifiers::NONE,
+    ));
+    assert_eq!(d.scroll, 10);
+    assert!(d.confirmation.is_some());
+}
+
+#[tokio::test]
+async fn request_changes_draft_remains_bound_to_the_original_task_revision() {
+    let mut d = dashboard();
+    d.preferences.preset = Preset::Review;
+    d.rebuild();
+    d.selected = Some("one".into());
+    d.detail = Some(Box::new(view("one")));
+    d.decision('c');
+    d.selected = Some("two".into());
+    d.detail = Some(Box::new(view("two")));
+    d.input = Some("Clarify the conclusion".into());
+    d.key(KeyEvent::new(
+        KeyCode::Enter,
+        crossterm::event::KeyModifiers::NONE,
+    ));
+    let Some(Command::Execution(OrganizationExecutionMutation::RequestChanges {
+        task_id,
+        expected_revision,
+        instructions,
+    })) = &d.confirmation
+    else {
+        panic!("missing captured change request")
+    };
+    assert_eq!(task_id, "one");
+    assert_eq!(*expected_revision, 4);
+    assert_eq!(instructions, "Clarify the conclusion");
 }
 
 #[tokio::test]
