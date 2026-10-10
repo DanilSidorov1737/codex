@@ -1951,7 +1951,7 @@ impl App {
                 } else {
                     tui.enter_alt_screen()?;
                     self.overlay = Some(Overlay::Organization(Box::new(crate::organization::Dashboard::open(
-                        app_server.request_handle(), tui.frame_requester(), self.local_settings.codex_home.as_path(), preset, &self.config.model_provider_id,
+                        app_server.request_handle(), tui.frame_requester(), self.local_settings.codex_home.as_path(), preset, &self.config.model_provider_id, self.config.model.as_deref().unwrap_or(""),
                     ))));
                     tui.frame_requester().schedule_frame();
                 }

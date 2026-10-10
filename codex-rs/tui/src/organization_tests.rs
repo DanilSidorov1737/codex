@@ -304,10 +304,61 @@ fn dashboard() -> Dashboard {
         following: false,
         applying: false,
         provider: "test".into(),
+        model: "model".into(),
+        form: None,
         prices: None,
         frame: FrameRequester::test_dummy(),
         is_done: false,
     }
+}
+
+#[tokio::test]
+async fn creation_requires_review_and_confirm_and_cancel_preserves_the_draft() {
+    let mut d = dashboard();
+    let (tx, mut rx) = mpsc::channel(4);
+    d.commands = tx;
+    d.open_form('G');
+    d.form.as_mut().unwrap().paste("Prepare a verified report");
+    let key = |code| KeyEvent::new(code, crossterm::event::KeyModifiers::NONE);
+    d.key(key(KeyCode::Tab));
+    d.form.as_mut().unwrap().paste("Facts match the source");
+    d.key(key(KeyCode::F(6)));
+    assert!(rx.try_recv().is_err());
+    assert!(d.confirmation_text.contains("Prepare a verified report"));
+    d.key(key(KeyCode::Esc));
+    assert!(d.form.is_some());
+    assert!(rx.try_recv().is_err());
+    d.key(key(KeyCode::F(6)));
+    d.key(key(KeyCode::Char('y')));
+    assert!(d.form.is_none());
+    assert!(
+        matches!(rx.try_recv(), Ok(Command::Definition(OrganizationMutation::PutGoal { objective, .. })) if objective == "Prepare a verified report")
+    );
+    assert!(rx.try_recv().is_err());
+}
+
+#[tokio::test]
+async fn authorization_draft_is_bound_to_captured_task_and_revision() {
+    let mut d = dashboard();
+    d.snapshot.records = vec![OrganizationRecord::Task(OrganizationTask {
+        state: "proposed".into(),
+        ..task("one")
+    })];
+    d.preferences.preset = Preset::Review;
+    d.rebuild();
+    d.open_form('s');
+    d.selected = Some("another-task".into());
+    let form = d.form.as_mut().unwrap();
+    let key = |code| KeyEvent::new(code, crossterm::event::KeyModifiers::NONE);
+    form.key(key(KeyCode::Tab));
+    form.key(key(KeyCode::Tab));
+    form.paste("report.txt");
+    d.key(key(KeyCode::F(6)));
+    assert!(
+        matches!(&d.confirmation, Some(Command::Execution(OrganizationExecutionMutation::Authorize { task_id, expected_revision: 4, .. })) if task_id == "one")
+    );
+    assert!(d.confirmation_text.contains("no agent network"));
+    assert!(d.confirmation_text.contains("Cost estimate unavailable"));
 }
 
 #[tokio::test]

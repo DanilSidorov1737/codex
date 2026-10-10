@@ -1,9 +1,24 @@
 # Current status and resumption instructions
 
 Phase 0: **exploration and planning complete for available inputs**.
-Current work: **both UI fixes, local qualification and all three live GPT pilots complete**.
+Current work: **owner-approved TUI creation/authorization and concept-art UI slice in progress**.
 Application features: **delivered for the documented single-owner Linux envelope**.
 The MVP's release criteria are **qualified for the documented single-owner Linux/GPT-5.5 envelope**.
+
+## Approved next slice — 2026-10-10 UTC
+
+The owner approved TUI project/task creation and clear bounded authorization with
+“use ponytail to implement this”, periodic local commits, and visual fidelity to
+the supplied concept art. Scope: owner forms for agents/goals/projects/tasks,
+separate exact execution review, and a dark sidebar/central-pane/inspector shell
+using existing RPC, state, Ratatui and actual Neovim. No new dependency or provider
+calls are needed. Selective Apply, memory retrieval and recurring scheduling remain
+later slices. Preserve the completed real-GPT qualification below.
+
+Implementation is in progress; new automated and real interactive qualification
+will be recorded before this slice is marked complete. Existing Console remains
+the real Codex conversation/composer; dashboard changes must preserve its input
+and native editor focus semantics.
 
 ## Current result and next action
 

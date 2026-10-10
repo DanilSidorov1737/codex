@@ -55,3 +55,25 @@ Qualification must physically exercise all presets, hierarchy search/collapse,
 real owner controls, exact approvals, narrow/wide terminals and preference reload.
 Meaningful automated checks complement that evidence; snapshots alone cannot
 qualify the interaction. See [MVP criteria](mvp.md).
+
+## Owner creation and execution forms (in qualification)
+
+`N` opens a local project form, `T` a proposed task, `G` a goal and `U` an
+arbitrarily named agent. Select a task and press `s` to review its execution scope.
+Tab/Enter advances fields, Shift-Tab goes back, arrows choose named records,
+Alt-Enter inserts a line, and bracketed paste supports multiline criteria and
+file lists. F6 validates and captures the exact owner request. `y` confirms it;
+Escape returns to the draft, and Escape from the draft makes no changes.
+
+Creation uses the existing owner definition APIs. A project uses existing
+project/create and links that returned identity; a link failure reports its ID
+for recovery. It is not an atomic cross-store transaction. A task stays proposed
+until separately authorized. Authorization captures the task ID/revision when
+the form opens, defaults to exact tool approvals and no delegation, and names
+all inputs/immutable files/artifacts/check argv/model/resource bounds. Check argv
+is an explicit JSON array of arrays; it is not parsed as shell text. The frozen
+review includes host tool/network/credential limits, separate acceptance/Apply,
+in-flight token allowance and a matching owner price estimate when available.
+The daemon remains authoritative for validation, permissions and stale revisions.
+
+These controls are under qualification, not a completed release claim yet.

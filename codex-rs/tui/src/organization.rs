@@ -22,6 +22,9 @@ use crate::organization_editor::Editor;
 use crate::organization_preview::Preview;
 use crate::tui::{FrameRequester, Tui, TuiEvent};
 
+#[path = "organization_form.rs"]
+mod form;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) enum Preset {
@@ -151,12 +154,19 @@ enum Command {
     Inspect(String),
     Definition(OrganizationMutation),
     Execution(OrganizationExecutionMutation),
+    Project {
+        params: ProjectCreateParams,
+        goal_id: Option<String>,
+        owner_id: Option<String>,
+        criteria: Vec<String>,
+    },
 }
 enum Update {
     Snapshot(Snapshot),
     Detail(Box<OrganizationExecutionView>),
     Error(String),
     Changed,
+    Saved(OrganizationRecord),
 }
 
 fn request_id() -> RequestId {
@@ -241,12 +251,39 @@ async fn worker(
                         .await?;
                 }
                 Command::Definition(mutation) => {
-                    let _: OrganizationMutateResponse = handle
+                    let response: OrganizationMutateResponse = handle
                         .request_typed(ClientRequest::OrganizationMutate {
                             request_id: request_id(),
                             params: OrganizationMutateParams { mutation },
                         })
                         .await?;
+                    if let Some(record) = response.record {
+                        updates.send(Update::Saved(record)).await?;
+                    }
+                    updates.send(Update::Changed).await?;
+                }
+                Command::Project {
+                    params,
+                    goal_id,
+                    owner_id,
+                    criteria,
+                } => {
+                    let response: ProjectCreateResponse = handle
+                        .request_typed(ClientRequest::ProjectCreate {
+                            request_id: request_id(),
+                            params,
+                        })
+                        .await?;
+                    let project_id = response.project.id;
+                    let response: OrganizationMutateResponse = handle.request_typed(ClientRequest::OrganizationMutate {
+                        request_id: request_id(),
+                        params: OrganizationMutateParams { mutation: OrganizationMutation::LinkProject {
+                            project_id: project_id.clone(), expected_revision: None, goal_id, owner_id, criteria,
+                        } },
+                    }).await.map_err(|e| anyhow::anyhow!("Project {project_id} exists, but linking failed: {e}. Inspect owner state before retrying."))?;
+                    if let Some(record) = response.record {
+                        updates.send(Update::Saved(record)).await?;
+                    }
                     updates.send(Update::Changed).await?;
                 }
                 Command::Execution(mutation) => {
@@ -367,6 +404,8 @@ pub(crate) struct Dashboard {
     following: bool,
     applying: bool,
     provider: String,
+    model: String,
+    form: Option<form::Form>,
     prices: Option<crate::organization_pricing::Prices>,
     frame: FrameRequester,
     pub(crate) is_done: bool,
@@ -405,6 +444,7 @@ impl Dashboard {
         home: &Path,
         preset: Option<Preset>,
         provider: &str,
+        model: &str,
     ) -> Self {
         let path = home.join("organization-layouts.json");
         let (mut preferences, message) = match Preferences::load(&path) {
@@ -446,6 +486,8 @@ impl Dashboard {
             following: false,
             applying: false,
             provider: provider.into(),
+            model: model.into(),
+            form: None,
             prices: crate::organization_pricing::Prices::load(home).ok(),
             frame,
             is_done: false,
@@ -804,6 +846,36 @@ impl Dashboard {
             "No matching decision for the selected record.".into()
         };
     }
+    fn open_form(&mut self, key: char) {
+        let kind = match key {
+            'U' => form::Kind::Agent,
+            'G' => form::Kind::Goal,
+            'N' => form::Kind::Project,
+            'T' => form::Kind::Task,
+            's' => match self.record() {
+                Some(OrganizationRecord::Task(task))
+                    if matches!(
+                        task.state.as_str(),
+                        "proposed" | "paused" | "failed" | "needsReconciliation"
+                    ) =>
+                {
+                    form::Kind::Authorize(task.clone())
+                }
+                _ => {
+                    self.message =
+                        "Select a proposed, paused, failed or reconciled task to authorize.".into();
+                    return;
+                }
+            },
+            _ => return,
+        };
+        self.form = Some(form::Form::new(
+            kind,
+            &self.snapshot.records,
+            self.record(),
+            &self.model,
+        ));
+    }
     fn key(&mut self, key: KeyEvent) {
         if key.kind == KeyEventKind::Release {
             return;
@@ -826,7 +898,7 @@ impl Dashboard {
                 }
                 return;
             }
-            if self.confirmation.is_none() && self.input.is_none() {
+            if self.confirmation.is_none() && self.input.is_none() && self.form.is_none() {
                 match key.code {
                     KeyCode::Char('e' | 'o' | 't' | 'd') => {
                         self.editor_open(key.code);
@@ -882,7 +954,18 @@ impl Dashboard {
                         return;
                     }
                     if let Some(c) = self.confirmation.take() {
-                        self.send(c);
+                        match self.commands.try_send(c) {
+                            Ok(()) => {
+                                self.form = None;
+                                self.message =
+                                    "Owner request submitted; waiting for its receipt.".into();
+                            }
+                            Err(_) => {
+                                self.message =
+                                    "Owner queue busy; no request sent. Review again to retry."
+                                        .into()
+                            }
+                        }
                     }
                 }
                 KeyCode::Esc => self.confirmation = None,
@@ -891,6 +974,23 @@ impl Dashboard {
                 KeyCode::PageUp => self.scroll = self.scroll.saturating_sub(10),
                 KeyCode::PageDown => self.scroll = self.scroll.saturating_add(10),
                 _ => {}
+            }
+            return;
+        }
+        if let Some(form) = &mut self.form {
+            match key.code {
+                KeyCode::Esc => self.form = None,
+                KeyCode::F(6) => match form.command() {
+                    Ok(command) => {
+                        self.confirmation = Some(command);
+                        self.scroll = 0;
+                        self.pane().inspector = true;
+                        self.confirmation_text = clean(&self.details());
+                        self.message = "Review exact scope · y confirm · Esc back to draft".into();
+                    }
+                    Err(e) => form.error = e.to_string(),
+                },
+                _ => form.key(key),
             }
             return;
         }
@@ -1040,6 +1140,7 @@ impl Dashboard {
                 self.changes = false;
             }
             KeyCode::Char('f') => self.send(Command::Refresh),
+            KeyCode::Char(c @ ('U' | 'G' | 'N' | 'T' | 's')) => self.open_form(c),
             KeyCode::Char(c @ ('a' | 'r' | 'v' | 'c' | 'p' | 'x' | 'A')) => self.decision(c),
             _ => {}
         }
@@ -1085,6 +1186,19 @@ impl Dashboard {
                         self.message = e.to_string();
                     }
                     self.send(Command::Refresh);
+                }
+                Update::Saved(record) => {
+                    let id = record_id(&record).map(str::to_string);
+                    if let Some(id) = &id {
+                        self.snapshot
+                            .records
+                            .retain(|r| record_id(r) != Some(id.as_str()));
+                    }
+                    self.snapshot.records.push(record);
+                    self.selected = id;
+                    self.search.clear();
+                    self.rebuild();
+                    self.inspect();
                 }
             }
         }
@@ -1281,8 +1395,28 @@ impl Dashboard {
             let value = match command {
                 Command::Execution(m) => serde_json::to_string_pretty(m),
                 Command::Definition(m) => serde_json::to_string_pretty(m),
+                Command::Project {
+                    params,
+                    goal_id,
+                    owner_id,
+                    criteria,
+                } => serde_json::to_string_pretty(
+                    &serde_json::json!({ "project": params, "goalId": goal_id, "ownerId": owner_id, "criteria": criteria }),
+                ),
                 _ => return text,
             };
+            if let Command::Execution(OrganizationExecutionMutation::Authorize { scope, .. }) =
+                command
+            {
+                text.push_str("\nStarting authorizes background model work in an isolated workspace.\nTools: exec_command, apply_patch; no agent network or owner credentials.\nFinal acceptance and Apply remain separate owner actions.\nToken ceilings permit an already-admitted request to finish.\n");
+                if let Some(estimate) = self.prices.as_ref().and_then(|prices| {
+                    prices.estimate(&self.provider, &scope.model, 0, scope.max_tokens)
+                }) {
+                    text.push_str(&estimate);
+                } else {
+                    text.push_str("Cost estimate unavailable: no matching owner price quote.\n");
+                }
+            }
             text = format!(
                 "EXACT OWNER DECISION (y confirms)\n{}\n\n{text}",
                 value.unwrap_or_default()
@@ -1397,6 +1531,12 @@ impl Dashboard {
             .scroll((self.scroll, 0))
             .render(areas[1], buffer);
         }
+        if self.confirmation.is_none()
+            && let Some(form) = &self.form
+        {
+            Clear.render(regions[1], buffer);
+            cursor = form.render(regions[1], buffer);
+        }
         let prompt = self
             .input
             .as_ref()
@@ -1412,7 +1552,7 @@ impl Dashboard {
                 )
             })
             .unwrap_or_else(|| self.message.clone());
-        Paragraph::new(format!("{}\n↑↓ select · Tab focus · i pane · [ ] size · / search · f refresh · e editor · o edit · t follow · d diff · n file\na approve · r reject · v accept · c changes · A apply accepted · p pause · x cancel · q Console", clean(&prompt))).render(regions[2], buffer);
+        Paragraph::new(format!("{}\nN project · T task · G goal · U agent · s authorize · ↑↓ select · Tab focus · / search · f refresh\na approve · r reject · v accept · c changes · A apply · e editor · o edit · t follow · d diff · q Console", clean(&prompt))).render(regions[2], buffer);
         cursor
     }
     pub(crate) fn handle_event(&mut self, tui: &mut Tui, event: TuiEvent) -> std::io::Result<()> {
@@ -1424,7 +1564,11 @@ impl Dashboard {
         match event {
             TuiEvent::Key(key) => self.key(key),
             TuiEvent::Paste(value) => {
-                if self.preferences.preset == Preset::Workspace
+                if self.confirmation.is_some() {
+                    // A frozen confirmation is never edited by pasted input.
+                } else if let Some(form) = &mut self.form {
+                    form.paste(&value);
+                } else if self.preferences.preset == Preset::Workspace
                     && self.editor.as_ref().is_some_and(|e| e.focused)
                 {
                     if let Some(editor) = &mut self.editor
@@ -1498,6 +1642,16 @@ impl Dashboard {
 
 fn clean(text: &str) -> String {
     crate::history_cell::sanitize_user_text(Cow::Borrowed(text)).into_owned()
+}
+
+fn record_id(record: &OrganizationRecord) -> Option<&str> {
+    match record {
+        OrganizationRecord::Node(n) => Some(&n.id),
+        OrganizationRecord::Goal(g) => Some(&g.id),
+        OrganizationRecord::Project(p) => Some(&p.id),
+        OrganizationRecord::Task(t) => Some(&t.id),
+        _ => None,
+    }
 }
 
 pub(crate) fn saved_preset(home: &Path) -> Option<Preset> {

@@ -1,5 +1,20 @@
 # Testing procedures and evidence
 
+## TUI creation slice — automated checkpoint, 2026-10-10 UTC
+
+Added fixed owner forms using the existing TextArea and typed owner RPCs.
+New checks reject invalid file paths/budgets/check syntax and missing project roots,
+preserve multiline Unicode and stable choice IDs, retain canceled review drafts,
+require explicit confirmation, and bind execution to the captured task revision.
+
+From codex-rs with the pinned activation, ran
+`CARGO_INCREMENTAL=0 RUST_MIN_STACK=8388608 cargo test --locked --offline --profile dev-small -j4 -p codex-tui --lib organization -- --nocapture`:
+**22 passed, 0 failed**, including actual official Neovim editing/diff/dirty-buffer
+checks. Formatting and production `cargo clippy --locked --offline --profile dev-small -j4 -p codex-tui --lib -- -D warnings` passed. This checkpoint does not yet qualify the new production
+TUI forms; a fresh full CLI/package and physical interactions remain required.
+Ponytail review reused existing input/widgets/RPCs without new dependencies or a
+form framework. Correctness review retained host enforcement and exact decisions.
+
 ## Completed live GPT qualification — 2026-10-10 UTC
 
 Owner published the network changes and requested “begin”. The restored environment
