@@ -62,8 +62,10 @@ existing agent. Only the protected local owner origins can use it. The owner
 can inspect a selected agent's private notes; agents use their separately fenced
 tool, never this administrative endpoint. Remote network clients are denied.
 
-In the existing non-Console layouts, select a project or task and press `m` for
-project memory. Select a task and press `M` for its owner's private memory.
+In Projects (F3), select a project or task and press `m` for project memory.
+Select a task and press `M` for its owner's private memory. Task selection in
+Workspace and Review supports the same keys. Operations shows organization
+nodes; switch to Projects to select an explicit memory scope first.
 Type a literal query and press Enter; empty Enter browses recent notes. The
 shared memory view shows the captured project/agent, count, full note bodies and
 source IDs/timestamps. `/` edits the query, `f` refreshes, arrows/PageUp/PageDown

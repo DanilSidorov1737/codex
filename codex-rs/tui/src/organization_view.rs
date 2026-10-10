@@ -492,6 +492,16 @@ impl Dashboard {
                 .render(body, buffer);
         } else if let Some(form) = &self.form {
             cursor = form.render(body, buffer);
+        } else if self.memory_request.is_some() {
+            Paragraph::new(self.memory_text())
+                .wrap(Wrap { trim: false })
+                .scroll((self.scroll, 0))
+                .style(Style::default().fg(foreground(TEXT)))
+                .block(panel(
+                    "Scoped memory · / query · f refresh · ↑↓ scroll · Esc close",
+                    true,
+                ))
+                .render(body, buffer);
         } else {
             let central = areas[0];
             let subtitle = match self.preferences.preset {
@@ -662,7 +672,9 @@ impl Dashboard {
             .map(|s| {
                 format!(
                     "{}{}",
-                    if self.changes {
+                    if self.memory_request.is_some() {
+                        "Memory query: "
+                    } else if self.changes {
                         "Changes: "
                     } else {
                         "Search: "
@@ -671,7 +683,23 @@ impl Dashboard {
                 )
             })
             .unwrap_or_else(|| self.message.clone());
-        Paragraph::new(vec![Line::styled(clean(&prompt), Style::default().fg(foreground(MUTED))), Line::styled("N project · T task · G goal · U agent · s authorize · ↑↓ select · Tab focus · / search · f refresh", Style::default().fg(foreground(BLUE))), Line::styled("i inspector · [ ] split · a approve · v accept · c changes · A Apply · q Console", Style::default().fg(foreground(MUTED)))]).render(regions[2], buffer);
+        let hints = if self.memory_request.is_some() {
+            [
+                "Enter searches · / edit query · f refresh · Esc close memory",
+                "↑↓ / PageUp / PageDown scroll · Empty query lists recent notes",
+            ]
+        } else {
+            [
+                "N project · T task · G goal · U agent · s authorize · ↑↓ select · Tab focus · / search · f refresh",
+                "m project memory · M agent memory · i inspector · a approve · v accept · A Apply · q Console",
+            ]
+        };
+        Paragraph::new(vec![
+            Line::styled(clean(&prompt), Style::default().fg(foreground(MUTED))),
+            Line::styled(hints[0], Style::default().fg(foreground(BLUE))),
+            Line::styled(hints[1], Style::default().fg(foreground(MUTED))),
+        ])
+        .render(regions[2], buffer);
         cursor
     }
 }

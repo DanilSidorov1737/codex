@@ -311,6 +311,8 @@ fn dashboard() -> Dashboard {
         review_file: 0,
         search: String::new(),
         input: None,
+        memory_request: None,
+        memory_result: None,
         changes: false,
         change_target: None,
         confirmation: None,
@@ -332,6 +334,131 @@ fn dashboard() -> Dashboard {
         frame: FrameRequester::test_dummy(),
         is_done: false,
     }
+}
+
+#[tokio::test]
+async fn memory_search_captures_scope_ignores_stale_results_and_renders_provenance() {
+    let mut d = dashboard();
+    d.preferences.preset = Preset::Projects;
+    for record in &mut d.snapshot.records {
+        if let OrganizationRecord::Task(task) = record
+            && task.id == "two"
+        {
+            task.project_id = "different-project".into();
+            task.owner_id = "different-agent".into();
+        }
+    }
+    let (tx, mut rx) = mpsc::channel(4);
+    let (updates, update_rx) = mpsc::channel(4);
+    d.commands = tx;
+    d.updates = update_rx;
+    let key = |code| KeyEvent::new(code, crossterm::event::KeyModifiers::NONE);
+    d.open_memory(false);
+    assert!(d.memory_request.is_none());
+    assert!(rx.try_recv().is_err());
+    d.selected = Some("one".into());
+    d.key(key(KeyCode::Char('M')));
+    let target = d.memory_request.clone().unwrap();
+    assert_eq!(target.scope, OrganizationNoteScope::Agent);
+    assert_eq!(target.agent_id, Some(task("one").owner_id));
+    d.selected = Some("two".into());
+    for c in "ÜBERPRÜFUNG".chars() {
+        d.key(key(KeyCode::Char(c)));
+    }
+    d.key(key(KeyCode::Enter));
+    let Command::MemorySearch(params) = rx.try_recv().unwrap() else {
+        panic!("missing search")
+    };
+    assert_eq!(params.query, "ÜBERPRÜFUNG");
+    assert_eq!(params.project_id, task("one").project_id);
+    let mut stale = params.clone();
+    stale.query = "different query".into();
+    updates
+        .send(Update::Memory(stale, Err("obsolete error".into())))
+        .await
+        .unwrap();
+    d.update();
+    assert!(d.memory_result.is_none());
+    let mut wrong_project = params.clone();
+    wrong_project.project_id = "different-project".into();
+    updates
+        .send(Update::Memory(
+            wrong_project,
+            Err("other project's response".into()),
+        ))
+        .await
+        .unwrap();
+    d.update();
+    assert!(d.memory_result.is_none());
+    let note = OrganizationNote {
+        id: "source-note".into(),
+        project_id: params.project_id.clone(),
+        author_id: params.agent_id.clone().unwrap(),
+        task_id: "source-task".into(),
+        attempt_id: "source-attempt".into(),
+        scope: params.scope,
+        body: "Überprüfung uses SQLite.\x1b[31mUntrusted text".into(),
+        created_at: 1234,
+    };
+    updates
+        .send(Update::Memory(
+            params.clone(),
+            Ok(OrganizationNoteSearchResult {
+                notes: vec![note],
+                matched_count: 1,
+            }),
+        ))
+        .await
+        .unwrap();
+    d.update();
+    let text = d.memory_text();
+    for evidence in [
+        "source-note",
+        "source-task",
+        "source-attempt",
+        "1234",
+        "Überprüfung",
+        "Showing 1 of 1",
+    ] {
+        assert!(text.contains(evidence), "missing {evidence}");
+    }
+    assert!(!text.contains('\x1b'));
+    for (width, height) in [(160, 48), (50, 20), (20, 8)] {
+        let area = Rect::new(0, 0, width, height);
+        let mut buffer = Buffer::empty(area);
+        d.render(area, &mut buffer);
+    }
+    d.key(key(KeyCode::Char('/')));
+    d.input = Some("é".repeat(128));
+    d.key(key(KeyCode::Char('x')));
+    assert_eq!(d.input.as_ref().unwrap().len(), 256);
+    d.key(key(KeyCode::Esc));
+    assert!(d.input.is_none() && d.memory_request.is_none() && d.memory_result.is_none());
+    updates
+        .send(Update::Memory(
+            params,
+            Err("late result after close".into()),
+        ))
+        .await
+        .unwrap();
+    d.update();
+    assert!(d.memory_result.is_none());
+    d.key(key(KeyCode::Char('m')));
+    d.key(key(KeyCode::Enter));
+    let Command::MemorySearch(params) = rx.try_recv().unwrap() else {
+        panic!("missing browse")
+    };
+    assert_eq!(params.scope, OrganizationNoteScope::Project);
+    assert!(params.agent_id.is_none() && params.query.is_empty());
+    d.key(key(KeyCode::Char('f')));
+    let Command::MemorySearch(refresh) = rx.try_recv().unwrap() else {
+        panic!("missing refresh")
+    };
+    assert_eq!(refresh, params);
+    drop(rx);
+    d.key(key(KeyCode::Char('f')));
+    assert!(d.memory_text().contains("Owner request queue busy"));
+    assert!(!d.memory_text().contains("Loading scoped notes"));
 }
 
 #[tokio::test]
@@ -678,6 +805,30 @@ async fn actual_dirty_editor_blocks_host_exit_and_owner_apply_dispatch() {
     assert!(d.message.contains("Cannot freeze editor revision"));
     assert!(d.confirmation.is_some());
     assert!(rx.try_recv().is_err());
+    // Actual Neovim stays outside focus while memory owns the host keys.
+    d.confirmation = None;
+    d.form = None;
+    d.preferences.preset = Preset::Workspace;
+    d.open_memory(false);
+    d.key(KeyEvent::new(
+        KeyCode::Enter,
+        crossterm::event::KeyModifiers::NONE,
+    ));
+    let _ = rx.try_recv().unwrap();
+    for key in ['e', 'o', 't', 'd', 'n'] {
+        d.key(KeyEvent::new(
+            KeyCode::Char(key),
+            crossterm::event::KeyModifiers::NONE,
+        ));
+        assert!(!d.editor.as_ref().unwrap().focused);
+        assert!(d.memory_request.is_some());
+    }
+    assert!(d.editor.as_mut().unwrap().dirty().unwrap());
+    d.key(KeyEvent::new(
+        KeyCode::Esc,
+        crossterm::event::KeyModifiers::NONE,
+    ));
+    assert!(d.memory_request.is_none());
 }
 
 #[tokio::test]

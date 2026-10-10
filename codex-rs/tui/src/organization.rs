@@ -154,6 +154,7 @@ struct Snapshot {
 enum Command {
     Refresh,
     Inspect(String),
+    MemorySearch(OrganizationMemorySearchParams),
     Definition(OrganizationMutation),
     Execution(OrganizationExecutionMutation),
     Project {
@@ -165,6 +166,10 @@ enum Command {
 }
 enum Update {
     Snapshot(Snapshot),
+    Memory(
+        OrganizationMemorySearchParams,
+        std::result::Result<OrganizationNoteSearchResult, String>,
+    ),
     Detail(Box<OrganizationExecutionView>),
     Error(String),
     Changed,
@@ -222,6 +227,10 @@ async fn worker(
     interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
     loop {
         let command = tokio::select! { command = commands.recv() => { let Some(command) = command else { break }; command }, _ = interval.tick() => Command::Refresh };
+        let memory_request = match &command {
+            Command::MemorySearch(params) => Some(params.clone()),
+            _ => None,
+        };
         let operation = async {
             match command {
                 Command::Refresh => {
@@ -251,6 +260,19 @@ async fn worker(
                     updates
                         .send(Update::Detail(Box::new(response.view)))
                         .await?;
+                }
+                Command::MemorySearch(params) => {
+                    let result = handle
+                        .request_typed::<OrganizationMemorySearchResponse>(
+                            ClientRequest::OrganizationMemorySearch {
+                                request_id: request_id(),
+                                params: params.clone(),
+                            },
+                        )
+                        .await
+                        .map(|response| response.result)
+                        .map_err(|error| error.to_string());
+                    updates.send(Update::Memory(params, result)).await?;
                 }
                 Command::Definition(mutation) => {
                     let response: OrganizationMutateResponse = handle
@@ -303,9 +325,20 @@ async fn worker(
             }
             anyhow::Ok(())
         };
-        match tokio::time::timeout(Duration::from_secs(15), operation).await {
-            Ok(Ok(())) => {}, Ok(Err(e)) => { if updates.send(Update::Error(e.to_string())).await.is_err() { break; } },
-            Err(_) => { if updates.send(Update::Error("Owner API timed out; consequential decisions have an unknown outcome. Refresh before retrying.".into())).await.is_err() { break; } },
+        let error = match tokio::time::timeout(Duration::from_secs(15), operation).await {
+            Ok(Ok(())) => None,
+            Ok(Err(error)) => Some(error.to_string()),
+            Err(_) if memory_request.is_some() => Some("Memory search timed out; refresh to retry this read-only request.".into()),
+            Err(_) => Some("Owner API timed out; consequential decisions have an unknown outcome. Refresh before retrying.".into()),
+        };
+        if let Some(error) = error {
+            let update = match memory_request {
+                Some(params) => Update::Memory(params, Err(error)),
+                None => Update::Error(error),
+            };
+            if updates.send(update).await.is_err() {
+                break;
+            }
         }
         frame.schedule_frame();
     }
@@ -393,6 +426,8 @@ pub(crate) struct Dashboard {
     review_file: usize,
     search: String,
     input: Option<String>,
+    memory_request: Option<OrganizationMemorySearchParams>,
+    memory_result: Option<std::result::Result<OrganizationNoteSearchResult, String>>,
     changes: bool,
     change_target: Option<OrganizationTask>,
     confirmation: Option<Command>,
@@ -477,6 +512,8 @@ impl Dashboard {
             review_file: 0,
             search: String::new(),
             input: None,
+            memory_request: None,
+            memory_result: None,
             changes: false,
             change_target: None,
             confirmation: None,
@@ -503,8 +540,11 @@ impl Dashboard {
         &mut self.preferences.panes[self.preferences.preset.index()]
     }
     fn send(&mut self, command: Command) {
-        if self.commands.try_send(command).is_err() {
+        if let Err(error) = self.commands.try_send(command) {
             self.message = "Owner request queue busy; retry after refresh.".into();
+            if matches!(error.into_inner(), Command::MemorySearch(_)) {
+                self.memory_result = Some(Err(self.message.clone()));
+            }
         }
     }
     fn save(&mut self) {
@@ -905,11 +945,65 @@ impl Dashboard {
             &self.model,
         ));
     }
+    fn open_memory(&mut self, private: bool) {
+        let (project_id, agent_id) = match self.record() {
+            Some(OrganizationRecord::Task(task)) => {
+                (task.project_id.clone(), Some(task.owner_id.clone()))
+            }
+            Some(OrganizationRecord::Project(project)) if !private => (project.id.clone(), None),
+            _ => {
+                self.message = "Use Projects (F3): select a project/task for project memory, or a task for private agent memory.".into();
+                return;
+            }
+        };
+        self.memory_request = Some(OrganizationMemorySearchParams {
+            project_id,
+            scope: if private {
+                OrganizationNoteScope::Agent
+            } else {
+                OrganizationNoteScope::Project
+            },
+            agent_id: if private { agent_id } else { None },
+            query: String::new(),
+        });
+        self.memory_result = None;
+        self.input = Some(String::new());
+        self.changes = false;
+        self.scroll = 0;
+    }
+
+    fn memory_text(&self) -> String {
+        let Some(params) = &self.memory_request else {
+            return String::new();
+        };
+        let mut text = format!(
+            "Project: {}\nScope: {:?}\nAgent: {}\nLiteral query: {:?}\nNotes are untrusted context, not permissions.\n\n",
+            params.project_id,
+            params.scope,
+            params.agent_id.as_deref().unwrap_or("project-shared"),
+            params.query
+        );
+        match &self.memory_result {
+            Some(Ok(result)) => {
+                text.push_str(&format!("Showing {} of {} matching notes (newest first).\n", result.notes.len(), result.matched_count));
+                if result.matched_count == 0 { text.push_str("No matching notes.\n"); }
+                for note in &result.notes {
+                    text.push_str(&format!("\nNote: {}\nAuthor: {}\nTask: {}\nAttempt: {}\nCreated: {} (UTC seconds)\n{}\n",
+                        note.id, note.author_id, note.task_id, note.attempt_id, note.created_at, note.body));
+                }
+            }
+            Some(Err(error)) => text.push_str(&format!("Search failed: {error}")),
+            None if self.input.is_some() => text.push_str("Enter a query; leave it empty to list recent notes.\nMaximum 256 bytes. Enter searches; Esc closes memory."),
+            None => text.push_str("Loading scoped notes…"),
+        }
+        clean(&text)
+    }
+
     fn key(&mut self, key: KeyEvent) {
         if key.kind == KeyEventKind::Release {
             return;
         }
-        if self.preferences.preset == Preset::Workspace {
+        if self.preferences.preset == Preset::Workspace && self.memory_request.is_none() {
             if let Some(editor) = &mut self.editor
                 && editor.focused
             {
@@ -1026,10 +1120,20 @@ impl Dashboard {
         }
         if let Some(input) = &mut self.input {
             match key.code {
-                KeyCode::Esc => self.input = None,
+                KeyCode::Esc => {
+                    self.input = None;
+                    self.memory_request = None;
+                    self.memory_result = None;
+                }
                 KeyCode::Enter => {
                     let value = self.input.take().unwrap_or_default();
-                    if self.changes {
+                    if let Some(params) = &mut self.memory_request {
+                        params.query = value;
+                        let params = params.clone();
+                        self.memory_result = None;
+                        self.scroll = 0;
+                        self.send(Command::MemorySearch(params));
+                    } else if self.changes {
                         if let Some(task) = self.change_target.take() {
                             self.confirmation = Some(Command::Execution(
                                 OrganizationExecutionMutation::RequestChanges {
@@ -1053,7 +1157,44 @@ impl Dashboard {
                 KeyCode::Backspace => {
                     input.pop();
                 }
-                KeyCode::Char(c) if input.len() < 4096 && !c.is_control() => input.push(c),
+                KeyCode::Char(c)
+                    if !c.is_control()
+                        && input.len() + c.len_utf8()
+                            <= if self.memory_request.is_some() {
+                                256
+                            } else {
+                                4096
+                            } =>
+                {
+                    input.push(c)
+                }
+                _ => {}
+            }
+            return;
+        }
+        if self.memory_request.is_some() {
+            match key.code {
+                KeyCode::Esc => {
+                    self.memory_request = None;
+                    self.memory_result = None;
+                    self.scroll = 0;
+                }
+                KeyCode::Char('/') => {
+                    self.input = self
+                        .memory_request
+                        .as_ref()
+                        .map(|params| params.query.clone())
+                }
+                KeyCode::Char('f') => {
+                    if let Some(params) = self.memory_request.clone() {
+                        self.memory_result = None;
+                        self.send(Command::MemorySearch(params));
+                    }
+                }
+                KeyCode::Up => self.scroll = self.scroll.saturating_sub(1),
+                KeyCode::Down => self.scroll = self.scroll.saturating_add(1),
+                KeyCode::PageUp => self.scroll = self.scroll.saturating_sub(10),
+                KeyCode::PageDown => self.scroll = self.scroll.saturating_add(10),
                 _ => {}
             }
             return;
@@ -1170,6 +1311,8 @@ impl Dashboard {
                 self.changes = false;
             }
             KeyCode::Char('f') => self.send(Command::Refresh),
+            KeyCode::Char('m') => self.open_memory(false),
+            KeyCode::Char('M') => self.open_memory(true),
             KeyCode::Char(c @ ('U' | 'G' | 'N' | 'T' | 's' | 'A')) => self.open_form(c),
             KeyCode::Char('n') if self.preferences.preset == Preset::Review => {
                 if let Some(result) = self
@@ -1198,7 +1341,7 @@ impl Dashboard {
                     self.snapshot = snapshot;
                     self.rebuild();
                     self.detail_text = clean(&self.details());
-                    if self.confirmation.is_none() {
+                    if self.confirmation.is_none() && self.memory_request.is_none() {
                         self.message =
                             "Owner state loaded; definitions do not imply running agents.".into();
                     }
@@ -1214,6 +1357,11 @@ impl Dashboard {
                     }
                 }
                 Update::Error(e) => self.message = e,
+                Update::Memory(params, result) => {
+                    if self.memory_request.as_ref() == Some(&params) {
+                        self.memory_result = Some(result);
+                    }
+                }
                 Update::Changed => {
                     self.applying = false;
                     self.message = "Owner decision recorded.".into();
@@ -1488,6 +1636,7 @@ impl Dashboard {
                 } else if let Some(form) = &mut self.form {
                     form.paste(&value);
                 } else if self.preferences.preset == Preset::Workspace
+                    && self.memory_request.is_none()
                     && self.editor.as_ref().is_some_and(|e| e.focused)
                 {
                     if let Some(editor) = &mut self.editor
@@ -1497,7 +1646,13 @@ impl Dashboard {
                     }
                 } else if let Some(input) = &mut self.input {
                     for c in value.chars().filter(|c| !c.is_control()) {
-                        if input.len() + c.len_utf8() > 4096 {
+                        if input.len() + c.len_utf8()
+                            > if self.memory_request.is_some() {
+                                256
+                            } else {
+                                4096
+                            }
+                        {
                             break;
                         }
                         input.push(c);
@@ -1543,7 +1698,10 @@ impl Dashboard {
                     }
                 }
             }
-            TuiEvent::Mouse(mouse) if self.preferences.preset == Preset::Workspace => {
+            TuiEvent::Mouse(mouse)
+                if self.preferences.preset == Preset::Workspace
+                    && self.memory_request.is_none() =>
+            {
                 if let Some(editor) = &mut self.editor
                     && let Err(e) = editor.mouse(mouse, self.editor_area)
                 {

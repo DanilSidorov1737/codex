@@ -277,21 +277,26 @@ async fn real_delegation_uses_durable_context_shared_budget_and_checked_artifact
         })
         .await?;
     assert_eq!(private.result.matched_count, 0);
+    let rejected = server
+        .send_request(
+            "organization/memory/search",
+            Some(serde_json::to_value(OrganizationMemorySearchParams {
+                project_id: done.task.project_id.clone(),
+                scope: OrganizationNoteScope::Agent,
+                agent_id: None,
+                query: "".into(),
+            })?),
+        )
+        .await?;
+    let error = server
+        .read_stream_until_error_message(RequestId::Integer(rejected))
+        .await?;
+    assert_eq!(error.error.code, -32602);
     assert!(
-        server
-            .request::<OrganizationMemorySearchResponse>(|request_id| {
-                ClientRequest::OrganizationMemorySearch {
-                    request_id,
-                    params: OrganizationMemorySearchParams {
-                        project_id: done.task.project_id.clone(),
-                        scope: OrganizationNoteScope::Agent,
-                        agent_id: None,
-                        query: "".into(),
-                    },
-                }
-            })
-            .await
-            .is_err()
+        error
+            .error
+            .message
+            .contains("agent search requires an agent ID")
     );
     let accepted = execute(
         &mut server,

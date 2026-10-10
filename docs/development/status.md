@@ -17,12 +17,20 @@ recurring schedules or paid-provider repeats are needed for this slice.
 Implementation and tests are in progress; selective Apply evidence below remains
 the previous qualified application baseline. Do not claim memory qualification yet.
 Backend checkpoint: agent `searchNotes`, protected owner memory RPC/CLI and the
-shared scoped search are implemented without a migration/dependency. The full
-protocol/state suites passed 630 tests, schema comparisons passed 4, and Python
-contracts passed 25. Native API/TUI and physical restart qualification are pending.
+shared scoped search are implemented without a migration/dependency in
+`8d33c5e0d8`. The full protocol/state suites passed 630 tests, schema comparisons
+passed 4, and Python contracts passed 25. The native organization API suite now
+passes 5 tests, the final TUI/actual-Neovim suite passes 26, and the owner-origin
+unit check passes 1. Physical restart qualification and the complete build are pending.
 Initial TUI compile/lint failures (protocol `Result` alias collision and prohibited
-unwrap) were corrected; final warnings-denied verification is pending. SDK
+unwrap) were corrected; final production library Clippy with warnings denied and
+affected-package formatting checks passed. SDK
 generation's initial schema-directory error was corrected and evidence retained.
+The first native API run correctly rejected a private search without an agent ID;
+its success-only test helper panicked on that expected error. Switching to the
+existing error-response helper made all 5 tests pass. Workspace memory now owns
+keyboard/paste/mouse routing while open; the existing real-Neovim dirty-buffer
+test additionally verifies that editor-focus shortcuts cannot bypass the view.
 
 ## Expanded next-step proposal — 2026-10-10 UTC
 
