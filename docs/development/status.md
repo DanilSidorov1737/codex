@@ -1,7 +1,7 @@
 # Current status and resumption instructions
 
 Phase 0: **exploration and planning complete for available inputs**.
-Current work: **startup request-ID fix passes 17 tests and 185 physical offline layout commands; native workflow follow-up in progress; live-provider gate unrun**.
+Current work: **both UI fixes and the full native workflow pass; final-package layout/pilot repetition in progress; live GPT pilots blocked by API egress**.
 Application features: **delivered for the documented single-owner Linux envelope**.
 The MVP is **not fully release-qualified** until A05's bounded live-provider pilot passes.
 
@@ -219,7 +219,9 @@ authorize push/publication, outbound communications or unbounded provider spendi
 - Screenshot request-ID follow-up is in progress: the collision was reproduced
   by a real-transport regression, fixed by unique background UUID IDs, and all
   17 organization/editor tests, production checks, complete CLI build and 185
-  physical offline layout commands pass. Provider-online/full workflow are next. Evidence:
+  physical offline layout commands pass. Provider-online adds 185 more passing commands and fresh native fixture
+  pilots pass. The missing Inspect after automatic selection changes is fixed; its extended
+  regression and full physical approvals/Neovim/detach/accept/Apply workflow pass. Evidence:
   `/workspace/.onboarding/qualification/mvp-followup/`. Original screenshots:
   `/workspace/artifacts/cli-screenshots/`.
 - A05 live-provider/model quality and compatibility is unrun: compatible GPT

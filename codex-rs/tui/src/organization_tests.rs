@@ -374,15 +374,47 @@ async fn request_changes_draft_remains_bound_to_the_original_task_revision() {
 #[tokio::test]
 async fn refreshed_snapshot_preserves_selection_but_removes_deleted_selection() {
     let mut d = dashboard();
+    let (commands, mut command_rx) = mpsc::channel(4);
+    let (updates, update_rx) = mpsc::channel(4);
+    d.commands = commands;
+    d.updates = update_rx;
     d.preferences.preset = Preset::Review;
     d.selected = Some("two".into());
     d.rebuild();
     assert_eq!(d.selected.as_deref(), Some("two"));
-    d.snapshot
-        .records
-        .retain(|r| !matches!(r, OrganizationRecord::Task(t) if t.id == "two"));
-    d.rebuild();
+    updates
+        .send(Update::Snapshot(Snapshot {
+            records: vec![OrganizationRecord::Task(task("one"))],
+        }))
+        .await
+        .unwrap();
+    d.update();
     assert_eq!(d.selected.as_deref(), Some("one"));
+    assert!(matches!(command_rx.try_recv(), Ok(Command::Inspect(id)) if id == "one"));
+    updates
+        .send(Update::Snapshot(Snapshot {
+            records: vec![OrganizationRecord::Task(task("one"))],
+        }))
+        .await
+        .unwrap();
+    d.update();
+    assert_eq!(d.selected.as_deref(), Some("one"));
+    assert!(matches!(
+        command_rx.try_recv(),
+        Err(mpsc::error::TryRecvError::Empty)
+    ));
+    d.search = "new".into();
+    d.rebuild();
+    assert!(d.selected.is_none());
+    updates
+        .send(Update::Snapshot(Snapshot {
+            records: vec![OrganizationRecord::Task(task("new"))],
+        }))
+        .await
+        .unwrap();
+    d.update();
+    assert_eq!(d.selected.as_deref(), Some("new"));
+    assert!(matches!(command_rx.try_recv(), Ok(Command::Inspect(id)) if id == "new"));
 }
 
 #[tokio::test]

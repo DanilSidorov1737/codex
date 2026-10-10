@@ -877,3 +877,77 @@ Ponytail review: lean already; the five-line ID helper reuses installed UUIDs an
 no transport framework/dependency is added. Correctness review checked all five
 production request sites and late/canceled replies. Native provider-online and
 full approval/editor/workflow checks are next, followed by the live access gate.
+
+Provider-online rapid qualification also passed **185 layout commands** at both
+sizes, including ten Console close/reopen cycles: `rapid-provider-online.json` and
+its log/captures. Both offline/online runs made **zero inference requests**.
+Fresh native single-agent coding, delegated coding and document pilots then passed
+immutable isolated owner checks, exact acceptance and explicit Apply; independent
+checks in the original project exited zero. Usage: 2/30, 7/105, 2/30 requests/
+reported tokens. These are deterministic localhost Responses, not live inference.
+Evidence: `native-pilots.log`, `pilots.json`, `provider-requests.jsonl` and fresh
+`*-followup-v1` project directories. Reusing an old project idempotency key first
+triggered the correct project revision conflict before authorization/inference;
+`native-pilots-initial-project-key.log` remains. New unique keys passed.
+
+The physical approval workflow discovered another real dashboard defect: a task
+created after initial loading became selected through a refreshed search, but
+only its basic definition rendered. The worker continued inspecting the previous
+task because snapshot updates called Inspect only on the first load. No approval
+was sent or executed; its bounded pending task expired. Preserve
+`workflow-before-selection-fix.log` / `.json` (one fixture response, 15 reported
+tokens, no tool execution). This is an application failure, not a passing workflow.
+
+The minimal correction calls the existing Inspect path when a refresh changes the
+selected ID, as well as on initial load. The existing selection regression now
+checks deletion/fallback, unchanged selection (no redundant Inspect), and a newly
+appearing search match through actual update channels. Tests, production checks,
+CLI rebuild and the physical workflow rerun are in progress. No model/approval/
+editor authority or backend state logic changed.
+
+Selection correction qualification passed **17 organization/editor tests**, including
+both request-ID and extended selection-refresh regressions, actual Neovim tests,
+formatting, warnings-denied production Clippy, complete CLI build and package.
+Commands match the preceding section; `selection-after.log`, `selection-fmt.log`,
+`selection-clippy.log`, `selection-build.log`, `selection-package.log` (all exit 0).
+The new source package is `mvp-followup/package-v2/`. Its five files hash-match the
+running managed daemon, including CLI SHA256:
+`6152cbbd0e4b47877862685dc5d54f94f29ba3e6fd23f05de24b760089255ae7`.
+`package-proof-v2.json` records source-file hashes and actual process identity.
+
+The full physical workflow then passed on this package:
+
+```bash
+cd /workspace/.onboarding/qualification/mvp-followup
+. /workspace/.onboarding/activate.sh
+python workflow.py
+```
+
+Task `01a1272d-0c5f-7e53-a3e5-9afdf9f85e9d` received two exact approvals using real
+TUI `a`, confirmation and `y`. Actual official Neovim showed phase-one bytes in
+readonly Follow. The second native command waited eight seconds and completed
+phase two after `/quit` exited the TUI; owner reads confirmed Running after exit,
+then NeedsReview and immutable check exit 0. Reopened CLI/Neovim showed native diff
+against the unchanged original. `v`/`y` accepted the exact result while the original
+remained unchanged. `A`/`y` produced a Completed application receipt; the independent
+original-project oracle exited 0 and Neovim reopened the applied phase-two file.
+Usage was three fixture responses/45 reported tokens; zero paid requests.
+Evidence: `workflow.json`, `workflow-ready-checkpoint.json`, `workflow.log` and
+`workflow-*.png` / `.txt`; no duplicate-ID or owner timeout frame was observed.
+
+Two harness/setup corrections were needed after the real selection bug was fixed.
+The nested editor needs the pinned `activate.sh` PATH, not just the absolute path
+used by the outer terminal renderer; `workflow-initial-editor-path.log` remains.
+Reusing the outer Neovim terminal after TUI quit requires a fresh clean buffer:
+`enew!` discards only that owned, exited test terminal; no editor/project buffers.
+`workflow-initial-terminal-reopen.log` and its captures remain; its background work
+and checks had already passed. The delay fixture now requests a 30-second command
+wait, within its 120-second grant. PTY-wrapper Ctrl-C left its owned provider child
+running; after validating PID/cwd/command, that child was stopped and restarted.
+`provider-restart-receipt.json`. No checks/authority/dirty-buffer protection were
+weakened. Final full-workflow exit code is 0.
+
+Ponytail/correctness review: reuse the existing Inspect path on changed selection,
+retain stable-selection caching and frozen approval payloads, and leave stale-detail
+identity guards intact. No new abstraction/dependency/backend authority is added.
+Final-package native pilot/layout repetition and service cleanup are next.

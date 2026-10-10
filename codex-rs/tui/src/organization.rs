@@ -1049,6 +1049,7 @@ impl Dashboard {
             match update {
                 Update::Snapshot(snapshot) => {
                     let first = self.snapshot.records.is_empty();
+                    let selected = self.selected.clone();
                     self.snapshot = snapshot;
                     self.rebuild();
                     self.detail_text = clean(&self.details());
@@ -1059,7 +1060,7 @@ impl Dashboard {
                             "Confirm captured owner decision: y / Esc · PageUp/PageDown to inspect"
                                 .into();
                     }
-                    if first {
+                    if first || self.selected != selected {
                         self.inspect();
                     }
                 }
