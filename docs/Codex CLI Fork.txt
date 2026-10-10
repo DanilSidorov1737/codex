@@ -1,0 +1,714 @@
+﻿Shared System Functions — Definitions
+Shared System Functions are specialized roles or services that support, maintain, oversee, and improve the entire autonomous AI system.
+Unlike operational agents focused on individual projects or tasks, these functions work across the system to ensure it operates efficiently, reliably, securely, and continuously.
+1. Resource & Financial Management
+Manages and optimizes the system's available resources, including financial budgets, computing capacity, storage, time, and operational expenses.
+Responsibilities:
+* Track available resources, budgets, usage, and costs.
+* Allocate resources across agents, projects, and tasks.
+* Monitor spending, consumption, and resource efficiency.
+* Maintain financial records and reconcile transactions when applicable.
+* Forecast future resource requirements and constraints.
+* Enforce spending limits and resource boundaries.
+* Identify waste and recommend resource optimizations.
+* Ensure sustainable operation within available resources.
+2. Agent & Organization Management (HR)
+Manages the structure, lifecycle, responsibilities, and performance of agents and teams throughout the system.
+Responsibilities:
+* Define and maintain agent roles, responsibilities, and organizational relationships.
+* Create, configure, modify, combine, and retire agents or teams within authorized limits.
+* Maintain the organizational hierarchy and agent registry.
+* Assign or recommend appropriate agents for different responsibilities.
+* Evaluate agent performance, reliability, and effectiveness.
+* Identify when additional agents or specialized roles are needed.
+* Improve agent instructions, tools, and capabilities.
+* Adjust agent responsibilities and recommend changes to autonomy or authority.
+* Preserve role continuity when individual sessions or agent implementations change.
+3. Auditing & Risk Management
+Independently evaluates system activity, decisions, and outcomes to ensure accuracy, accountability, reliability, and appropriate risk management.
+Responsibilities:
+* Audit significant actions, decisions, resource usage, and reported results.
+* Verify that claimed outcomes are supported by evidence.
+* Identify operational, technical, financial, and organizational risks.
+* Detect anomalies, misleading metrics, and suspicious behavior.
+* Evaluate compliance with established rules and authority boundaries.
+* Investigate failures, incidents, and unexpected outcomes.
+* Challenge unsupported assumptions and questionable decisions.
+* Recommend corrective actions and risk-reduction measures.
+* Escalate critical findings independently to authorized human oversight.
+4. Memory & Knowledge Management
+Maintains the system's long-term memory, shared knowledge, documentation, and accumulated experience so information remains accurate, organized, and accessible.
+Responsibilities:
+* Manage persistent memory across agents, teams, and projects.
+* Organize shared knowledge bases, documentation, and reference materials.
+* Preserve important decisions, findings, procedures, and lessons.
+* Capture useful knowledge from completed tasks, projects, and discussions.
+* Retrieve relevant information when agents need it.
+* Prevent unnecessary repetition of previously completed research or work.
+* Detect outdated, duplicate, contradictory, or unreliable information.
+* Maintain knowledge provenance and appropriate access boundaries.
+* Consolidate and promote validated knowledge for broader system reuse.
+* Support continuity across sessions, model changes, and system restarts.
+5. Orchestration & Continuous Improvement
+Observes and improves how the entire autonomous system operates, focusing on coordination, workflows, tools, agent effectiveness, and long-term efficiency.
+Responsibilities:
+* Monitor system-wide workflows, coordination, and execution efficiency.
+* Identify bottlenecks, duplicated work, recurring failures, and ineffective processes.
+* Investigate root causes of repeated operational problems.
+* Improve agent instructions, workflows, communication, and task routing.
+* Optimize model selection, tool usage, and coordination mechanisms.
+* Develop or standardize reusable processes and capabilities.
+* Propose improvements to system architecture and supporting software.
+* Test and measure the effectiveness of proposed changes.
+* Deploy authorized improvements with versioning and rollback protection.
+* Reduce unnecessary complexity, overhead, and resource waste.
+* Continuously increase the system's reliability, autonomy, and effectiveness.
+Distinction: Systems & Infrastructure Management keeps the technical environment functioning. Orchestration & Continuous Improvement improves how the overall system uses that environment to accomplish its goals.
+6. Systems & Infrastructure Management
+Maintains the technical environment, software, hardware, services, and supporting infrastructure required for continuous autonomous operation.
+Responsibilities:
+* Monitor system health, availability, storage, and computing resources.
+* Manage operating environments, applications, services, and dependencies.
+* Install, configure, update, and maintain authorized software.
+* Maintain execution environments, containers, and local or remote services.
+* Detect and resolve infrastructure failures and technical problems.
+* Manage backups, restoration procedures, and disaster recovery.
+* Monitor networking, system processes, and connected devices.
+* Maintain reliable startup, background execution, and restart recovery.
+* Perform routine system maintenance and resource cleanup.
+* Support deployment, environment configuration, and infrastructure changes.
+* Coordinate with Security and Orchestration on recurring technical issues.
+7. Security & Governance
+Protects the autonomous system, its information, resources, and external connections while enforcing policies, permissions, and human-defined authority boundaries.
+Responsibilities:
+* Maintain and enforce system-wide security policies.
+* Manage agent permissions and role-based access restrictions.
+* Protect credentials, secrets, sensitive information, and privileged resources.
+* Enforce project isolation and least-privilege access.
+* Verify authorization before sensitive or consequential actions.
+* Manage approval requirements and protected human authority.
+* Detect unauthorized behavior, suspicious activities, and security weaknesses.
+* Assess security risks associated with external tools and integrations.
+* Protect against untrusted instructions and malicious external content.
+* Coordinate security incident response and containment.
+* Maintain emergency restrictions, lockdown procedures, and shutdown safeguards.
+* Prevent agents from independently weakening protected controls or expanding their own authority.
+8. Procurement & Capability Acquisition
+Discovers, evaluates, obtains, and manages the tools, services, resources, and capabilities needed to support the system's evolving objectives.
+Responsibilities:
+* Identify missing capabilities and required resources.
+* Search existing internal tools and available capabilities before acquiring new ones.
+* Research external tools, software, services, APIs, models, and integrations.
+* Evaluate alternatives based on functionality, quality, cost, security, and reliability.
+* Recommend whether to reuse, configure, integrate, purchase, or develop a capability.
+* Acquire and configure authorized tools and resources.
+* Maintain a registry of available capabilities, services, vendors, and dependencies.
+* Track licenses, subscriptions, renewals, and ongoing maintenance requirements.
+* Coordinate integration and deployment with relevant agents or teams.
+* Identify redundant, obsolete, or unnecessarily expensive resources.
+* Recommend upgrades, replacements, or retirement of existing capabilities.
+* Minimize unnecessary dependencies and long-term maintenance burdens.
+How they work together
+Function
+	Primary responsibility
+	Resource & Financial Management
+	What resources do we have, and how should they be allocated?
+	Agent & Organization Management
+	Which agents and teams should exist, and what should their responsibilities be?
+	Auditing & Risk Management
+	Is the system operating correctly, and are its decisions and reported results trustworthy?
+	Memory & Knowledge Management
+	What does the system know, what has it learned, and how can that knowledge be reused?
+	Orchestration & Continuous Improvement
+	How can the system operate more intelligently, efficiently, and reliably?
+	Systems & Infrastructure Management
+	Is the underlying technical environment healthy, available, and functioning properly?
+	Security & Governance
+	What is the system permitted to do, and how are its boundaries enforced?
+	Procurement & Capability Acquisition
+	What new tools, resources, or capabilities does the system need, and how should it obtain them?
+	
+
+
+
+Comprehensive General-Purpose Autonomous System Capabilities
+This is a consolidated capability inventory, generalized into requirements for a general-purpose autonomous multi-agent system.
+The list describes what the system should ultimately be capable of, regardless of whether it is used for software development, research, creative production, personal automation, organizational management, or other activities.
+It is independent of specific frameworks, AI providers, operating systems, hardware, and business models.
+These are desired capabilities, not requirements to build a separate subsystem for each item. The system should reuse existing capabilities where possible. Financial, external-account, and physical-world capabilities apply when relevant and explicitly authorized.
+I. Goals, Strategy & Autonomous Decision-Making
+1. Mission, Goals & Objective Management
+* High-Level Mission Definition — Accept and maintain overarching missions, desired outcomes, constraints, and priorities.
+* Hierarchical Goal Structures — Organize objectives into multiple levels, from overarching missions to individual tasks.
+* Autonomous Goal Decomposition — Translate broad instructions into achievable subgoals, milestones, and actionable tasks.
+* Goal Ownership & Accountability — Assign responsible agents, teams, or other participants to each objective.
+* Goal Dependencies & Relationships — Track prerequisites, dependencies, conflicts, and relationships among objectives.
+* Measurable Success Criteria — Define completion conditions, performance metrics, expected outputs, and acceptable results.
+* Goal Prioritization — Rank objectives according to importance, urgency, available resources, and expected value.
+* Dynamic Goal Adjustment — Revise, pause, resume, expand, or terminate subordinate objectives as conditions change.
+* Goal Progress Tracking — Monitor progress, blockers, outcomes, and remaining work.
+* Long-Term Goal Persistence — Preserve objectives across agent sessions, restarts, system upgrades, and organizational changes.
+* Mission Alignment — Ensure decisions and actions remain consistent with higher-level objectives and protected constraints.
+2. Autonomous Strategic Planning & Decision-Making
+* Independent Decision-Making — Make decisions within delegated authority without requiring human instructions for every step.
+* Strategic Planning — Develop short-term, medium-term, and long-term approaches to achieving objectives.
+* Multi-Step Reasoning — Analyze complex problems, dependencies, implications, and alternative courses of action.
+* Adaptive Planning — Update strategies and execution plans when new information or circumstances emerge.
+* Evidence-Based Decision-Making — Use research, historical results, measurements, and available evidence to support decisions.
+* Alternative Evaluation — Compare possible approaches based on effectiveness, cost, complexity, risk, and feasibility.
+* Independent Judgment — Challenge assumptions, identify weak proposals, and disagree constructively with users or other agents.
+* Uncertainty Awareness — Recognize incomplete information, assumptions, unknowns, and confidence levels.
+* Predictive Decision Support — Estimate likely outcomes, costs, risks, and probabilities before significant actions.
+* Conflict Resolution — Resolve disagreements between goals, agents, recommendations, and competing priorities.
+* Decision Accountability — Record important decisions, reasoning summaries, supporting evidence, and eventual outcomes.
+3. Proactive Discovery & Opportunity Management
+* Autonomous Opportunity Discovery — Identify new problems, tasks, ideas, opportunities, and potential areas of useful activity.
+* Proactive Initiative Generation — Propose worthwhile projects or improvements without waiting for explicit human requests.
+* Cross-Domain Exploration — Investigate opportunities across different disciplines and application areas.
+* Opportunity Research & Evaluation — Assess feasibility, demand, usefulness, costs, risks, and expected outcomes.
+* Multi-Initiative Portfolio Management — Coordinate multiple opportunities and ongoing initiatives simultaneously.
+* Dynamic Resource Allocation — Shift attention and resources toward higher-priority or better-performing initiatives.
+* Small-Scale Validation — Test uncertain ideas through inexpensive experiments before making larger commitments.
+* Opportunity Prioritization — Balance immediate results, long-term value, learning potential, and strategic importance.
+* Initiative Selection & Termination — Decide when to start, continue, expand, pivot, pause, or discontinue work.
+* Cross-Project Synergy Discovery — Identify opportunities to combine knowledge, tools, outputs, or capabilities from different initiatives.
+* Value-Oriented Operation — Prefer meaningful, verified outcomes over unnecessary activity or artificially generated work.
+4. Autonomous Project & Initiative Lifecycle Management
+* Project Creation — Establish new projects from goals, ideas, opportunities, or external requests.
+* Project Planning — Define objectives, owners, milestones, dependencies, resources, and expected outputs.
+* Structured Project Lifecycles — Manage projects through discovery, research, validation, execution, review, and completion.
+* Autonomous Project Execution — Coordinate the work required to progress projects with limited human supervision.
+* Multi-Project Management — Maintain and coordinate several independent projects concurrently.
+* Project Monitoring — Track progress, deadlines, resource use, quality, risks, and blockers.
+* Project Review & Adaptation — Evaluate results and determine whether to adjust approach, scope, or priorities.
+* Project Isolation — Keep project-specific context, resources, information, and permissions appropriately separated.
+* Project Completion Verification — Validate deliverables and confirm that acceptance criteria have been satisfied.
+* Project Termination & Archival — Safely close unsuccessful or completed projects, preserving useful outputs and lessons.
+* Project Knowledge Reuse — Transfer validated, reusable knowledge and capabilities to other appropriate projects.
+II. Multi-Agent Architecture & Organization
+5. Multi-Agent Organization / Hierarchy
+* Hierarchical Agent Structures — Support multiple organizational levels, including supervisory, coordinating, and executing agents.
+* Flexible Organizational Models — Support hierarchical, functional, project-based, and other appropriate structures.
+* Specialized Agent Roles — Assign agents distinct expertise, responsibilities, capabilities, and operational purposes.
+* Supervisory Agent Relationships — Enable higher-level agents to direct, evaluate, and coordinate subordinate agents.
+* Shared Functional Services — Support specialized system-wide functions for knowledge, security, auditing, operations, resources, and improvement.
+* Defined Authority Structures — Establish clear decision rights, responsibilities, permissions, and escalation paths.
+* Organizational State Management — Maintain a persistent record of the structure, relationships, and responsibilities of agents.
+* Cross-Hierarchy Coordination — Enable communication and cooperation across teams, organizational levels, and functional boundaries.
+* Organizational Independence from Sessions — Preserve roles and responsibilities independently of the agent processes executing them.
+* Adaptive Organizational Complexity — Keep the organization as simple as practical while allowing complexity to grow when justified.
+6. Dynamic Agent & Team Lifecycle Management
+* Autonomous Agent Creation — Create or instantiate agents when new work or capabilities are required, subject to platform authority.
+* Temporary & Persistent Agents — Support short-lived agents for bounded tasks and persistent roles for continuing responsibilities.
+* Dynamic Team Formation — Assemble groups of agents around projects, objectives, or specialized tasks.
+* Agent Role Definition — Maintain structured instructions describing objectives, responsibilities, constraints, tools, and expectations.
+* Agent Onboarding & Initialization — Configure new agents with appropriate context, permissions, capabilities, and assignments.
+* Agent Performance Evaluation — Assess agents based on actual results, reliability, efficiency, and quality.
+* Agent Improvement & Retraining — Improve behavior through instruction updates, better tools, memory, examples, and evaluation.
+* Agent Promotion & Authority Adjustment — Expand or reduce autonomy, tools, and responsibilities based on demonstrated performance.
+* Agent Replacement & Succession — Replace execution sessions or agent implementations without losing the persistent role.
+* Team Reorganization — Merge, split, expand, restructure, or retire teams as workload changes.
+* Agent Retirement — Deactivate unnecessary, ineffective, or obsolete roles while preserving relevant knowledge and work.
+* Agent Capacity Management — Avoid unnecessary agent creation and manage the number of active agents according to demand.
+7. Autonomous Delegation, Coordination & Work Ownership
+* Hierarchical Task Delegation — Allow agents to assign work to subordinate or specialized agents.
+* Autonomous Task Decomposition — Break complex assignments into smaller activities suitable for delegation.
+* Capability-Based Assignment — Match tasks with agents based on expertise, available tools, reliability, and cost.
+* Explicit Task Ownership — Assign one accountable owner for each active task.
+* Task Context Packaging — Provide assigned agents with relevant instructions, resources, dependencies, and acceptance criteria.
+* Parallel Work Coordination — Distribute independent work across multiple agents simultaneously.
+* Dependency Management — Coordinate tasks that depend on the completion or outputs of other tasks.
+* Duplicate Work Prevention — Detect existing assignments or completed work before initiating overlapping activities.
+* Conflict & Collision Prevention — Prevent simultaneous agents from making incompatible changes to shared resources.
+* Task Claiming & Resource Locking — Use task ownership, leases, locks, or equivalent coordination mechanisms when needed.
+* Delegated Work Review — Inspect outputs and verify successful completion before accepting delegated work.
+* Structured Agent Handoffs — Transfer task context, progress, partial outputs, and responsibilities between agents.
+* Blocker Resolution & Escalation — Reassign, revise, or escalate work when an agent cannot make progress.
+8. Inter-Agent Communication, Meetings & Collective Intelligence
+* Agent-to-Agent Messaging — Enable direct communication between agents, teams, and organizational levels.
+* Structured Communication Protocols — Associate messages with senders, recipients, tasks, priorities, timestamps, and requested actions.
+* Hierarchical Reporting — Aggregate and summarize information appropriately as it moves through supervisory levels.
+* Cross-Functional Collaboration — Allow agents from different specialties or projects to work together.
+* Selective Information Sharing — Route messages only to relevant participants rather than broadcasting all information system-wide.
+* Multi-Agent Meetings — Support structured discussions, reviews, planning sessions, and collaborative decision-making.
+* Collaborative Brainstorming — Enable agents to build on ideas, question assumptions, and explore alternatives interactively.
+* Constructive Debate & Dissent — Encourage meaningful disagreement and comparison of competing ideas.
+* Dynamic Meeting Participation — Invite or permit relevant agents to join discussions based on expertise or overlapping responsibilities.
+* Shared Calendar & Scheduling — Coordinate meetings, reviews, deadlines, maintenance, and other scheduled activities.
+* Meeting Documentation — Record discussions, decisions, disagreements, open questions, and relevant evidence.
+* Automatic Follow-Up Generation — Convert appropriate meeting outcomes into tracked tasks or future reviews.
+* Communication Efficiency — Reduce unnecessary meetings, repetitive messages, and reporting overhead.
+III. Autonomous Operations & Workflow Execution
+9. Task, Workflow & Process Orchestration
+* Autonomous Task Creation — Generate tasks from objectives, events, decisions, and identified needs.
+* Complete Task Lifecycle Management — Support proposed, approved, queued, active, blocked, review, completed, cancelled, and archived states.
+* Workflow Planning & Execution — Build and execute structured sequences of activities.
+* Dynamic Workflow Generation — Create new processes and procedures to accomplish previously unsupported tasks.
+* Sequential & Parallel Workflows — Execute ordered, concurrent, and dependency-driven activities.
+* Conditional Workflow Logic — Change execution paths based on events, results, rules, and decisions.
+* Reusable Workflow Templates — Standardize recurring procedures and repeatable processes.
+* Task Scheduling & Deadlines — Schedule execution, review dates, recurring activities, and time-sensitive tasks.
+* Task Resource Constraints — Assign limits for time, computation, tools, concurrency, or spending.
+* Workflow State Tracking — Monitor the exact status of active and pending work.
+* Task Checkpointing — Preserve progress and intermediate results for subsequent execution.
+* Task Validation & Acceptance — Check outputs against explicit requirements before declaring work complete.
+* Workflow Modification & Retirement — Adapt or discontinue workflows when requirements change or processes become ineffective.
+10. 24/7 Autonomous Operations
+* Continuous System Availability — Remain accessible and operational without requiring continuous human supervision.
+* Unattended Operation — Perform authorized work over extended periods without human intervention.
+* Persistent Background Execution — Support ongoing schedules, services, monitoring, and task execution.
+* Event-Driven Execution — Start appropriate work in response to relevant external or internal events.
+* Time-Based Automation — Run activities according to configurable schedules, intervals, and deadlines.
+* Reactive Automation — Respond to messages, alerts, task completions, state changes, and other triggers.
+* Proactive Autonomous Activity — Initiate useful maintenance, research, planning, or improvements when justified.
+* Intelligent Idle Behavior — Avoid unnecessary activity and remain at low operating cost when there is no useful work.
+* Concurrent Autonomous Operations — Continue multiple independent activities without blocking the entire system.
+* Nonblocking Human Dependencies — Continue unrelated work while awaiting human input or approval.
+* Automatic Startup & Resumption — Restore normal operation after supported system restarts or interruptions.
+* Continuous Operational Coordination — Maintain responsibility for active work, future work, and system condition over time.
+11. Persistent Execution & Session Independence
+* Session-Independent State — Ensure important work and knowledge do not depend on a single conversation or execution session.
+* Persistent Role Continuity — Reconstruct agent responsibilities and operating context when a new session begins.
+* Task Resumption — Continue partially completed activities without restarting unnecessarily.
+* Execution Checkpointing — Save progress, intermediate outputs, decisions, and relevant context.
+* Cross-Session Handoffs — Transfer responsibilities and task state between execution sessions.
+* Interrupted Work Recovery — Identify what was completed, what remains, and which actions can safely resume.
+* State Reconciliation — Resolve uncertainty about actions that may have executed before an interruption.
+* Long-Duration Workflow Support — Maintain activities that span hours, days, weeks, or longer.
+* Model & Runtime Independence — Preserve continuity when the underlying AI model or execution environment changes.
+* Efficient Context Reconstruction — Restore only the information relevant to the current agent and task.
+12. Autonomous Supervision & Blocker Management
+* Agent Progress Monitoring — Detect whether agents are making useful progress toward assigned objectives.
+* Stalled Task Detection — Identify work that has stopped progressing or exceeded expected time limits.
+* Infinite Loop Detection — Recognize repeated reasoning, repeated tool calls, and unproductive execution cycles.
+* Resource Overrun Detection — Detect excessive computation, spending, retries, or time consumption.
+* Scope Deviation Detection — Identify agents acting outside their assigned objectives or authority.
+* Dependency Blocker Identification — Detect missing inputs, unavailable tools, permissions, or unresolved prerequisites.
+* Automatic Recovery Attempts — Apply safe retry, reassignment, or alternative execution strategies when appropriate.
+* Escalation & Intervention — Notify a supervising agent or human when automated recovery is insufficient.
+* Partial Work Preservation — Retain useful outputs and context when a task must be paused, cancelled, or reassigned.
+* Wasteful Activity Prevention — Stop activities that consume resources without producing meaningful progress.
+* Systemic Problem Detection — Recognize when repeated agent failures indicate a broader workflow, tooling, or memory issue.
+IV. Memory, Knowledge, State & Information Management
+13. Canonical State & Structured Record Management
+* Authoritative System State — Maintain a reliable source of truth for current system conditions and responsibilities.
+* Structured State Storage — Store operational information in queryable, structured formats rather than relying on chat history.
+* Agent & Role Registries — Maintain records of agents, roles, permissions, capabilities, status, and relationships.
+* Goal, Project & Task Registries — Track objectives, ownership, dependencies, status, and outcomes.
+* Decision & Experiment Registries — Preserve decisions, hypotheses, tests, evidence, and results.
+* Tool & Capability Registries — Track available tools, integrations, versions, costs, permissions, and dependencies.
+* Resource & Asset Registries — Track available resources, equipment, services, software, commitments, and relevant ownership.
+* Policy, Risk & Incident Registries — Maintain governance rules, identified risks, incidents, and associated actions.
+* Communication & Meeting Records — Maintain schedules, decisions, follow-ups, and organizational communications.
+* Financial & Transaction Records — Preserve authoritative financial information when financial operations are enabled.
+* Approval & Human Action Records — Track pending authorizations, human-dependent tasks, and decisions.
+* Dependency Mapping — Record relationships between agents, projects, workflows, tools, services, and resources.
+* State Consistency & Integrity — Prevent conflicting, incomplete, or contradictory operational records.
+* State Migration & Portability — Preserve authoritative information through schema changes, upgrades, and platform migrations.
+14. Persistent Memory & Knowledge Management
+* Long-Term Memory — Preserve important information, experiences, and learning across extended periods.
+* Hierarchical Memory Structures — Support working memory, agent memory, project memory, team memory, shared knowledge, and archives.
+* Contextual Memory Retrieval — Retrieve information relevant to the current task or decision.
+* Memory Isolation & Access Control — Restrict knowledge access according to role, project, sensitivity, and authorization.
+* Shared Knowledge Repositories — Maintain documentation, procedures, lessons, reference material, and reusable expertise.
+* Automatic Knowledge Capture — Extract meaningful knowledge from completed work, experiments, meetings, and incidents.
+* Knowledge Consolidation — Summarize, combine, and organize information accumulated across sessions.
+* Knowledge Promotion — Elevate validated knowledge from local contexts into broader reusable knowledge repositories.
+* Memory Quality Management — Detect outdated, incorrect, duplicate, incomplete, or contradictory information.
+* Knowledge Provenance — Track where information originated and what evidence supports it.
+* Memory Freshness Evaluation — Periodically review whether stored knowledge remains accurate and useful.
+* Knowledge Reuse — Prevent repeated research, rediscovery, and recurring mistakes.
+* Intelligent Context Management — Load only useful knowledge into active reasoning contexts.
+* Historical Knowledge Preservation — Retain important historical information without confusing it with current state.
+15. Artifact, File & Data Asset Management
+* Unified Artifact Management — Organize outputs produced by agents, workflows, and external tools.
+* Multi-Format Storage — Support code, documents, spreadsheets, media, datasets, designs, models, logs, and other files.
+* Artifact Ownership & Metadata — Associate outputs with their source, project, task, creator, timestamps, and intended purpose.
+* Artifact Versioning — Preserve versions and change histories for important outputs.
+* Source Control Integration — Manage repositories, branches, changes, releases, and collaborative development artifacts.
+* Artifact Search & Retrieval — Locate existing work products for inspection, modification, or reuse.
+* Cross-Project Artifact Reuse — Share reusable components and outputs when permitted.
+* Artifact Validation — Verify completeness, quality, integrity, and suitability for intended use.
+* Controlled Artifact Access — Protect sensitive or project-specific outputs from inappropriate access.
+* Artifact Publishing & Export — Prepare and deliver outputs to authorized destinations or external systems.
+* Retention & Archival Policies — Preserve important artifacts and clean up obsolete data according to defined rules.
+* Artifact Dependency Tracking — Identify which projects, workflows, or systems depend on particular files or outputs.
+16. Full Auditability, Traceability & Explainability
+* Comprehensive Activity Logging — Record meaningful actions, decisions, tool calls, communications, and system changes.
+* End-to-End Traceability — Connect high-level instructions to subordinate goals, tasks, actions, outputs, and outcomes.
+* Agent Action Attribution — Identify which agent, role, or participant performed each significant action.
+* Decision Provenance — Preserve the reasoning summaries, evidence, authority, and context behind significant decisions.
+* Execution History — Maintain chronological records of events, state transitions, failures, and recoveries.
+* Resource & Cost Attribution — Associate resource consumption with the activities responsible for it.
+* Append-Oriented Audit History — Preserve historical records without silently rewriting meaningful past events.
+* Action Correlation — Link related operations across agents, projects, tools, and services.
+* Evidence-Backed Reporting — Support reported outcomes with verifiable artifacts, records, or external evidence.
+* External Outcome Verification — Distinguish intended actions from actions that actually succeeded.
+* Historical Investigation — Reconstruct what occurred during a task, project, incident, or system change.
+* Explainable System Behavior — Answer why something happened, who authorized it, what changed, and what resulted.
+* Secure Audit Storage — Protect logs against unauthorized modification and prevent sensitive credentials from being recorded.
+V. Research, Tools, Integrations & Capability Expansion
+17. Autonomous Research & Information Discovery
+* Independent Research Execution — Investigate questions, problems, technologies, and opportunities without step-by-step guidance.
+* Multi-Source Information Gathering — Collect relevant information from permitted internal and external sources.
+* Research Planning — Define research questions, methods, information requirements, and expected outputs.
+* Source Evaluation — Assess credibility, relevance, freshness, completeness, and reliability of information.
+* Comparative Research — Evaluate competing solutions, methods, products, or approaches.
+* Existing Knowledge Discovery — Search stored knowledge and previous work before repeating research.
+* Hypothesis Formation & Testing — Develop explanations or predictions and test them against evidence.
+* Research Synthesis — Combine information from multiple sources into useful conclusions and recommendations.
+* Evidence & Assumption Separation — Distinguish established facts from estimates, hypotheses, and speculation.
+* Research Outcome Verification — Validate important conclusions through evidence or independent checks.
+* Research Efficiency Management — Avoid endless investigation when sufficient evidence exists to make a decision.
+* Reusable Research Knowledge — Preserve findings, sources, methodologies, and lessons for future use.
+18. Autonomous Capability Discovery & Acquisition
+* Capability Inventory — Maintain an understanding of what the system can currently do.
+* Capability Gap Identification — Identify abilities required to achieve goals that the system does not yet possess.
+* Tool & Technology Discovery — Find existing software, services, libraries, models, skills, and integrations that can provide needed functionality.
+* Native Capability Evaluation — Determine whether existing system or platform functionality already solves a requirement.
+* Open-Source & Third-Party Evaluation — Assess available solutions before investing in custom development.
+* Capability Comparison — Evaluate alternatives by functionality, quality, security, cost, reliability, and maintenance requirements.
+* Autonomous Tool Selection — Choose appropriate tools or propose selections according to the task and defined authority.
+* Skill & Integration Installation — Configure and enable approved capabilities when necessary.
+* Custom Capability Development — Build new tools, wrappers, workflows, or integrations when existing solutions are insufficient.
+* Capability Standardization — Turn repeatedly useful techniques into reusable system-wide tools or procedures.
+* Capability Improvement — Upgrade and refine existing tools based on measured performance.
+* Capability Lifecycle Management — Track versions, dependencies, ownership, health, and maintenance requirements.
+* Capability Retirement — Remove obsolete, unsafe, redundant, or unnecessarily expensive capabilities.
+* Extensibility & Modularity — Add or replace capabilities without requiring extensive changes to the entire system.
+19. Tool Execution & External System Integration
+* General-Purpose Tool Invocation — Execute authorized operations through available tools and services.
+* API Integration — Interact with external systems through structured programmatic interfaces.
+* Command-Line Integration — Use CLI-based tools for software development, operations, and automation.
+* Plugin & Extension Integration — Extend functionality through supported plugins, skills, or equivalent mechanisms.
+* Interoperable Tool Protocols — Support standardized interfaces for connecting tools and services.
+* Cross-Service Workflow Execution — Coordinate activities across multiple external tools and platforms.
+* Local & Remote Execution — Perform permitted tasks in local environments and connected external systems.
+* Integration Configuration & Maintenance — Set up, update, test, and maintain external connections.
+* Tool Permission Enforcement — Ensure each agent can access only the tools and actions required for its responsibilities.
+* Tool Health & Compatibility Monitoring — Detect failed integrations, outdated dependencies, and changing capabilities.
+* Tool Failure Handling — Retry safely, switch alternatives, or escalate when a required integration fails.
+* Execution Method Selection — Prefer reliable structured methods over more fragile interaction methods where practical.
+* Verified Tool Outcomes — Confirm that external actions succeeded instead of assuming success from a tool invocation.
+20. Computer, Browser & Operating Environment Control
+* Operating System Interaction — Perform authorized operations within the host operating environment.
+* Filesystem Management — Create, organize, move, update, search, and remove files and directories.
+* Software Installation & Maintenance — Install, configure, update, and remove approved applications and packages.
+* Process & Service Management — Start, monitor, stop, restart, and maintain local services and processes.
+* Environment Configuration — Configure working environments, dependencies, runtime settings, and development environments.
+* Browser Automation — Navigate websites, extract information, complete workflows, and interact with supported web applications.
+* Graphical Interface Automation — Operate desktop or other GUI applications when structured interfaces are unavailable.
+* Script & Automation Execution — Use local scripts, operating-system automation, and scheduled commands.
+* Container & Virtual Environment Management — Create and maintain isolated execution environments when useful.
+* System Resource Management — Monitor and maintain storage, memory, processes, networking, and other operational resources.
+* Device & Peripheral Integration — Interact with authorized printers, storage devices, sensors, and other connected equipment.
+* Workspace Personalization — Organize and configure the system's working environment for effective operation.
+* Physical-World Action Coordination — Prepare instructions or digital outputs for physical tasks and request authorized human assistance where needed.
+* Environment Safety Controls — Restrict privileged or destructive actions and preserve protected recovery access.
+21. Multimodal Production & Cross-Domain Execution
+* Text Generation & Editing — Produce, revise, summarize, and transform written content.
+* Software Development — Design, implement, test, debug, maintain, and deploy software.
+* Data Processing & Analysis — Collect, transform, analyze, visualize, and interpret structured or unstructured data.
+* Document & Office Artifact Creation — Produce documents, spreadsheets, presentations, reports, and structured records.
+* Image Generation & Editing — Create, modify, review, and manage visual content.
+* Audio Processing & Production — Support speech, transcription, sound processing, and audio creation.
+* Video Processing & Production — Support video creation, editing, processing, and publication workflows.
+* Design & Visualization — Create technical designs, illustrations, layouts, and other visual assets.
+* 3D Modeling & CAD — Produce and modify three-dimensional designs, models, and fabrication-ready assets.
+* Simulation & Interactive Development — Support simulations, interactive applications, games, and related systems.
+* Research & Analytical Production — Generate reports, forecasts, models, datasets, and research deliverables.
+* Digital-to-Physical Workflows — Prepare prototypes, fabrication instructions, and other outputs used in physical processes.
+* Multimodal Workflow Coordination — Combine different output formats and tools within one end-to-end process.
+* Cross-Disciplinary Problem-Solving — Combine capabilities from multiple technical, creative, and analytical domains.
+* Output Quality Validation — Review generated outputs against accuracy, usefulness, quality, and task-specific standards.
+22. External Account, Identity & Communication Management
+* External Account Creation — Create and configure permitted digital accounts when required for authorized activities.
+* Account Lifecycle Management — Maintain, update, secure, recover, and retire external accounts.
+* Account & Service Registries — Track account purpose, ownership, credentials references, recovery methods, associated resources, and restrictions.
+* Digital Identity Management — Maintain appropriate identities, profiles, branding, and communication information for system activities.
+* Credential & Authentication Integration — Use authorized authentication mechanisms while protecting sensitive access information.
+* External Messaging — Send, receive, classify, and respond to authorized communications.
+* Multi-Channel Communication — Interact through email, messaging platforms, collaboration services, and other supported channels.
+* External Publishing & Distribution — Publish permitted content, software, research, or other outputs to appropriate destinations.
+* Relationship & Contact Management — Track relevant external contacts, communication history, and follow-up requirements.
+* Responsible Communication Controls — Apply rate limits, duplicate-contact prevention, opt-out handling, and truthful representation.
+* Account Cost & Renewal Tracking — Track subscription commitments, renewal dates, and usage where applicable.
+* Account Recovery & Offboarding — Preserve recovery information and define secure methods for closing or migrating accounts.
+23. External Human & Specialized Workforce Integration
+* Human Capability Recognition — Identify tasks better handled by people because of expertise, judgment, legal requirements, or physical presence.
+* External Specialist Discovery — Find suitable human specialists or service providers for authorized activities.
+* Workforce Evaluation & Selection — Compare candidates based on skill, suitability, cost, availability, and reliability.
+* External Task Delegation — Assign clearly scoped work to human participants or authorized external services.
+* Structured Work Briefing — Prepare objectives, expected outputs, deadlines, resources, and acceptance criteria.
+* Human-Agent Collaboration — Coordinate activities that require contributions from both agents and people.
+* External Deliverable Review — Verify work quality and completeness before accepting results.
+* Sensitive Information Protection — Limit shared information and credentials to what an external participant needs.
+* External Resource & Payment Tracking — Maintain records of authorized commitments, deliverables, and compensation when applicable.
+* External Contributor Performance History — Preserve evidence about reliability and quality for future assignments.
+* Physical-World & Identity Assistance — Route tasks requiring physical presence, legal identity, or human verification to appropriate people.
+* Nonblocking Coordination — Continue unrelated work while human participants complete their assigned tasks.
+VI. Resource Management, Human Control, Security & Governance
+24. Autonomous Resource, Budget & Transaction Management
+* Resource Awareness — Maintain an accurate understanding of available computation, time, storage, tools, services, equipment, and financial resources.
+* Resource Allocation — Distribute available resources across agents, projects, tasks, and operational activities.
+* Budget Definition & Enforcement — Establish and enforce limits on authorized resource consumption.
+* Resource Usage Tracking — Record consumption by agent, workflow, project, tool, or other relevant activity.
+* Cost Forecasting — Estimate expected resource requirements and operating expenses.
+* Autonomous Procurement — Research, select, and acquire authorized resources when necessary.
+* Cost-Benefit Analysis — Compare expected value with acquisition, maintenance, operational, and replacement costs.
+* Resource Inventory Management — Track available resources and avoid purchasing or recreating capabilities unnecessarily.
+* Transaction Execution — Support permitted purchases, payments, transfers, or other transactions when applicable.
+* Financial & Transaction Ledgers — Maintain accurate records of financial activity, commitments, and balances.
+* Transaction Reconciliation — Verify internal records against external provider or payment records.
+* Reserve & Contingency Management — Preserve resources for essential operations and unexpected requirements.
+* Resource Health Thresholds — Adjust activity when financial or computational resources become constrained.
+* Resource Conservation & Optimization — Avoid unnecessary expenditure, idle resource consumption, and duplicate purchases.
+* Subscription & Commitment Management — Track recurring costs, expiration, renewal, cancellation, and dependencies.
+* Financial Safety Boundaries — Prevent unauthorized spending, debt, funding expansion, or access to protected financial resources.
+* Sustainable Operation — Manage available resources so the system can continue useful operation within its established limits.
+25. Human Interaction, Oversight & Escalation
+* Unified Human Interface — Provide a clear primary interaction channel between the user and the autonomous system.
+* Natural Language Instruction Processing — Interpret high-level, unstructured requests and directions.
+* Instruction Classification — Distinguish questions, suggestions, goals, directives, approvals, and emergency instructions.
+* High-Level Intent Translation — Convert human objectives into internal goals, plans, tasks, and assignments.
+* Minimal Human Supervision — Avoid depending on humans for routine decisions, execution, or coordination.
+* Autonomous Implementation Decisions — Select reasonable technical and operational approaches within delegated authority.
+* Human Approval Workflows — Request approval when an action exceeds the system's granted authority.
+* Human Action Queue — Track actions requiring human assistance, their urgency, rationale, affected work, and next steps.
+* Clear Human Handoffs — Prepare the information, instructions, and materials needed for human-dependent actions.
+* Nonblocking Human Dependencies — Continue independent work while waiting for human participation.
+* Human Override Authority — Allow authorized users to reject, modify, or override system recommendations and actions.
+* System Pause & Constraint Controls — Allow authorized users to pause activities, impose restrictions, or change delegated authority.
+* Emergency Shutdown Control — Preserve independent human authority to disable or stop the system.
+* Adaptive Communication Preferences — Support different levels of reporting detail and notification frequency.
+* Independent Recommendations — Provide reasoned disagreement or alternative proposals rather than automatically agreeing with instructions.
+* On-Demand Explanation — Allow humans to inspect system decisions, actions, progress, failures, and current state.
+26. Security, Access Control & Information Isolation
+* Role-Based Access Control — Assign permissions according to agent responsibilities.
+* Least-Privilege Access — Restrict agents to only the information, tools, and operations needed for their work.
+* Fine-Grained Permission Scoping — Apply restrictions by role, project, tool, account, resource, action, amount, or time.
+* Credential & Secret Management — Securely store and use authentication tokens, passwords, keys, and other sensitive information.
+* Secret Isolation — Prevent ordinary agent memory, prompts, repositories, and logs from exposing sensitive credentials.
+* Project & Workspace Isolation — Separate unrelated work contexts and resources through appropriate access enforcement.
+* Execution Sandboxing — Restrict potentially unsafe commands, scripts, applications, and tools to controlled environments.
+* Trusted Communication Channels — Authenticate and restrict channels capable of issuing privileged system instructions.
+* Untrusted Input Protection — Treat external messages, websites, files, and tool outputs as data rather than privileged instructions.
+* Prompt Injection Resistance — Prevent untrusted material from overriding system policies or delegated authority.
+* Supply-Chain Security — Evaluate third-party tools, plugins, dependencies, and packages before granting access.
+* Protected Administrative Authority — Keep recovery credentials, root privileges, and emergency controls beyond ordinary agent authority.
+* Data Privacy & Classification — Control access, retention, sharing, and handling of sensitive information.
+* Security Monitoring — Detect suspicious behavior, unauthorized access attempts, and credential-related problems.
+* Security Incident Containment — Restrict access or operations when a security concern is detected.
+27. Policy, Rules, Permissions & Governance
+* Persistent Policy Management — Maintain system-wide rules, operational principles, and behavioral constraints.
+* Hierarchical Authority Rules — Define what different agents, roles, and participants may decide or perform.
+* Protected Mission & Authority Boundaries — Preserve high-level constraints that subordinate agents cannot independently change.
+* Action Classification — Distinguish autonomous, notify-after, approval-required, and prohibited actions.
+* Deterministic Rule Enforcement — Enforce important limits through actual software, credential, and resource controls rather than instructions alone.
+* Approval Chain Management — Route sensitive actions to the appropriate authorized decision-maker.
+* Permission Verification — Validate authorization before executing consequential operations.
+* Policy Compliance Monitoring — Identify behavior that conflicts with established rules or restrictions.
+* Governance Recordkeeping — Preserve current policies, approval histories, overrides, and relevant changes.
+* Controlled Authority Expansion — Increase agent privileges only through permitted authorization processes.
+* Regulatory & Legal Boundary Recognition — Identify activities requiring human identity, legal approval, or specialized compliance review.
+* Emergency Operating Modes — Support restricted, cautionary, recovery, lockdown, or other appropriate states.
+* Protected Control Integrity — Prevent agents from disabling safeguards or expanding their own powers without authorization.
+28. Safe External Actions & Side-Effect Management
+* Pre-Execution Authorization — Validate permissions before performing actions that modify external systems.
+* Resource Reservation — Reserve required budgets, resources, or access rights before committing consequential actions.
+* Intent Recording — Record the planned action and relevant authorization before execution.
+* Idempotent Execution — Prevent actions from being unintentionally duplicated through retries or restarts.
+* Duplicate Action Prevention — Detect previously completed messages, purchases, changes, or transactions.
+* Transaction & Action Verification — Confirm the actual outcome of external operations.
+* External State Reconciliation — Resolve differences between local state and the state reported by external services.
+* Safe Retry Management — Determine whether a failed or interrupted operation can be retried without harmful effects.
+* Irreversible Action Protection — Require appropriate review or approval before high-consequence changes.
+* Dry-Run & Simulation Support — Test actions without producing real external effects when appropriate.
+* Rollback & Compensating Actions — Reverse changes or perform safe corrective actions when possible.
+* Uncertain Outcome Handling — Pause or investigate when it is unclear whether an external action succeeded.
+* Complete Side-Effect Auditing — Maintain evidence of attempted actions, completed actions, failures, and resulting changes.
+29. Independent Auditing, Quality Assurance & Risk Management
+* Independent System Auditing — Evaluate system behavior through review processes distinct from the agents performing the work.
+* Output Quality Assessment — Inspect deliverables for accuracy, completeness, usefulness, and adherence to requirements.
+* Claim Verification — Validate reported results against evidence instead of relying solely on agent statements.
+* Policy & Permission Auditing — Check that operations complied with delegated authority and protected restrictions.
+* Risk Identification — Detect operational, technical, security, resource, and other relevant risks.
+* Risk Assessment & Prioritization — Estimate likelihood, severity, and possible consequences.
+* Anomaly Detection — Recognize unexpected activity, suspicious usage, inconsistent records, and unusual outcomes.
+* Independent Assumption Testing — Challenge weak reasoning, inaccurate predictions, and unsupported conclusions.
+* Performance Integrity Checks — Detect misleading metrics, inflated progress reports, and measurements that do not reflect actual value.
+* Balanced Performance Evaluation — Pair success metrics with measures that detect unintended negative outcomes.
+* Forecast Calibration — Compare predictions with actual results to improve future decisions.
+* Incident Investigation — Analyze failures, policy violations, discrepancies, and unexpected results.
+* Corrective Action Recommendations — Propose improvements based on audit findings.
+* Independent Escalation — Allow critical audit or risk findings to reach authorized human supervisors without being suppressed by the agents being reviewed.
+VII. Reliability, Recovery & Operational Resilience
+30. Autonomous System Health & Reliability Management
+* Continuous Health Monitoring — Monitor the condition of agents, workflows, services, integrations, and system resources.
+* Service Availability Monitoring — Detect unavailable or degraded components.
+* Background Process Supervision — Monitor persistent processes and restart failed services when appropriate.
+* Error & Exception Detection — Identify execution failures, abnormal behavior, and unexpected results.
+* Automatic Fault Recovery — Recover from ordinary failures without requiring manual intervention.
+* Safe Retry & Backoff Management — Retry recoverable operations while avoiding excessive attempts or resource consumption.
+* Failure Isolation — Prevent a failed task, agent, or service from unnecessarily disrupting unrelated work.
+* Stale State & Lock Recovery — Detect and resolve abandoned task claims, expired leases, or outdated execution records.
+* Credential & Dependency Health Checks — Detect expired credentials, unavailable integrations, or broken dependencies.
+* Runtime Resource Protection — Restrict or suspend work when resource limits are threatened.
+* Service Degradation Handling — Switch to suitable alternatives or reduce functionality when components are unavailable.
+* Operational Status Management — Maintain normal, restricted, degraded, recovery, or emergency operating states.
+* Reliability Metrics — Measure uptime, error rates, recovery times, failed tasks, and required human interventions.
+31. Backup, Disaster Recovery & Incident Response
+* Automated Backup Management — Preserve important system state, configurations, knowledge, databases, and artifacts.
+* Multi-Layer Backup Support — Use appropriate combinations of snapshots, repositories, local backups, and external storage.
+* Independent Recovery Resources — Protect critical recovery information from ordinary agent modification.
+* Backup Integrity Verification — Confirm that backups are complete, readable, and suitable for restoration.
+* Automated Recovery Procedures — Restore important state and services after supported failures or interruptions.
+* Tested Restoration — Periodically verify restoration in a safe environment.
+* Full Environment Reconstruction — Support rebuilding the operational system from preserved data and documented configuration.
+* Disaster Recovery Planning — Prepare procedures for major infrastructure loss or corruption.
+* Incident Detection & Classification — Identify security, data, operational, financial, and integration incidents.
+* Incident Response Procedures — Apply appropriate containment, investigation, correction, and recovery processes.
+* Incident Escalation — Notify authorized participants when the severity exceeds autonomous response authority.
+* Post-Incident Analysis — Record causes, consequences, corrective actions, and lessons.
+* Safe Shutdown Procedures — Stop active operations, preserve state, secure resources, and record incomplete work.
+* Controlled Restart & Recovery — Resume safe operation while accounting for unfinished or uncertain external actions.
+VIII. Continuous Learning, Self-Improvement & Adaptive Intelligence
+32. Continuous Learning & Autonomous Self-Improvement
+* Continuous Performance Observation — Analyze ongoing operations to identify strengths, weaknesses, and inefficiencies.
+* Learning from Success — Identify approaches and capabilities associated with successful outcomes.
+* Learning from Failure — Identify unsuccessful patterns, mistakes, and ineffective procedures.
+* Systemic Root-Cause Analysis — Determine whether recurring problems originate in agents, prompts, tools, workflows, or memory.
+* Workflow Optimization — Improve the efficiency and reliability of execution processes.
+* Prompt & Instruction Optimization — Refine agent instructions based on observed performance.
+* Knowledge System Improvement — Improve memory accuracy, organization, retrieval, and reuse.
+* Coordination Improvement — Reduce communication problems, duplicated work, poor handoffs, and unnecessary meetings.
+* Tool & Model Optimization — Improve selection and configuration based on actual task results.
+* Reusable Solution Discovery — Convert repeatedly useful solutions into shared capabilities or standardized procedures.
+* Performance Feedback Loops — Compare intended outcomes against actual results to guide changes.
+* Measured Improvement Validation — Verify that changes produce real benefits rather than assumed improvements.
+* Institutional Learning — Preserve useful discoveries so future agents and sessions benefit from past experience.
+* Continuous Adaptation — Adjust system behavior, workflows, and capabilities as requirements evolve.
+33. Safe Self-Modification & System Evolution
+* Autonomous Improvement Proposals — Identify and propose modifications to system components and operating procedures.
+* Controlled Workflow Modification — Update approved processes, templates, and automation logic.
+* Agent Configuration Improvement — Revise role instructions, tool configurations, and nonprotected agent settings.
+* Tool & Integration Development — Build or modify supporting software when justified by an observed need.
+* Version-Controlled Changes — Preserve the history of important modifications to prompts, workflows, configurations, and code.
+* Hypothesis-Based Improvements — Define the expected benefit and success criteria before introducing material changes.
+* Development & Testing Environments — Evaluate modifications outside critical live operations where appropriate.
+* Regression Testing — Check that changes do not damage existing functionality.
+* Controlled Deployment — Introduce changes gradually and verify their effects.
+* Automatic or Controlled Rollback — Restore a previous stable version when a change causes problems.
+* Change Impact Analysis — Identify affected agents, projects, tools, dependencies, and resources.
+* Change Audit Trails — Record why a modification was made, what changed, and what results followed.
+* Protected Boundary Preservation — Prevent autonomous modifications from weakening independent security, spending, approval, or shutdown controls.
+* Evidence-Driven Evolution — Prefer small, useful improvements over speculative rewrites or unnecessary architectural changes.
+34. Multi-Model Intelligence & Compute Orchestration
+* Multiple AI Model Support — Use different models or intelligence providers for different responsibilities.
+* Intelligent Model Routing — Choose models according to task complexity, required capabilities, quality, reliability, and cost.
+* Task-Specific Intelligence Selection — Apply suitable reasoning, coding, analysis, classification, or multimodal capabilities.
+* Deterministic & AI Hybrid Execution — Use traditional algorithms, rules, scripts, or databases when AI inference is unnecessary.
+* Specialized Intelligence Components — Support narrow models for classification, retrieval, ranking, routing, anomaly detection, and prediction.
+* Local & Remote Model Execution — Use available local or hosted computation based on requirements and resource availability.
+* Model Performance Benchmarking — Compare models using representative historical or real-world tasks.
+* Cost-Quality Optimization — Balance reliability, latency, resource usage, and output quality.
+* Context Window Optimization — Supply each model with relevant information without unnecessary context consumption.
+* Model Usage & Quota Management — Track consumption, limits, availability, and operating constraints.
+* Model Lifecycle Management — Evaluate, configure, deploy, monitor, update, replace, or retire specialized models.
+* Model Drift Monitoring — Identify declining quality or changes in specialized-model effectiveness.
+* Risk-Aware Model Selection — Account for task consequences and tool privileges rather than optimizing for inference cost alone.
+* Provider Independence — Preserve important data and responsibilities when changing model implementations or providers.
+35. Performance Evaluation, Metrics & Outcome Measurement
+* System-Wide Performance Measurement — Evaluate overall effectiveness across multiple dimensions.
+* Agent Performance Metrics — Track individual agent quality, reliability, efficiency, and contribution.
+* Task & Workflow Metrics — Measure completion rates, delays, failures, retries, and duplicated work.
+* Project & Objective Metrics — Evaluate progress and outcomes against defined success criteria.
+* Resource Efficiency Metrics — Track computation, spending, time, and maintenance costs.
+* Knowledge Quality Metrics — Measure retrieval success, information freshness, lesson reuse, and repeated mistakes.
+* Autonomy Metrics — Measure useful work completed independently and the frequency of required human intervention.
+* Reliability Metrics — Track failures, incidents, recovery times, and operational availability.
+* Coordination Overhead Metrics — Assess unnecessary communication, administrative work, and approval delays.
+* Outcome Quality Metrics — Evaluate actual usefulness, user feedback, successful deliverables, or other relevant impact.
+* Predictive Performance Analysis — Estimate future requirements, resource use, risk, and potential results.
+* Balanced Scorecards — Combine primary performance indicators with measures that detect unintended negative outcomes.
+* Historical Performance Comparison — Identify improvement or deterioration across time.
+* Evidence-Based Accountability — Associate outcomes with the goals, decisions, agents, and activities responsible for them.
+IX. Visibility, Efficiency, Scalability & Operational Maturity
+36. Observability, Dashboards & Autonomous Reporting
+* Centralized System Dashboard — Provide a unified view of the autonomous system and its activities.
+* Live Agent & Organization Visibility — Display active roles, relationships, responsibilities, status, and current assignments.
+* Goal & Project Visibility — Show objectives, progress, milestones, priorities, and blockers.
+* Task Execution Monitoring — Display ongoing, scheduled, pending, failed, and completed work.
+* Resource & Cost Visibility — Show relevant budgets, usage, commitments, and resource availability.
+* System Health Visibility — Present service status, errors, incidents, backup condition, and recovery status.
+* Audit & Activity Exploration — Allow users to inspect significant actions, changes, decisions, and events.
+* Autonomous Status Reporting — Generate structured reports without requiring manual compilation.
+* Scheduled Reports — Support configurable daily, weekly, monthly, or other reporting intervals.
+* On-Demand Reporting — Answer questions about current conditions, recent changes, performance, and decisions.
+* Intelligent Summary Generation — Present concise information appropriate to the recipient's role or needs.
+* Exception-Based Notifications — Highlight meaningful problems, unusual events, or decisions requiring attention.
+* Human Action Visibility — Show approvals, unresolved requests, and assistance needed from authorized people.
+* Future Work & Schedule Visibility — Display upcoming meetings, deadlines, maintenance, and planned activities.
+* Evidence-Linked Reporting — Connect summaries to supporting records, outputs, and audit history.
+* Configurable Reporting Detail — Support concise overviews and deeper investigation without overwhelming users.
+* Multi-Channel Report Delivery — Deliver reports through authorized messaging, dashboards, files, or other suitable outputs.
+37. Operational Efficiency, Scalability & Portability
+* Resource-Efficient Operation — Minimize unnecessary computation, tool usage, storage, and other costs.
+* Demand-Based Scaling — Increase or decrease active agents, workloads, and resources according to actual needs.
+* Modular System Architecture — Separate responsibilities into components that can be maintained or replaced independently.
+* Reusable System Components — Share general-purpose capabilities and infrastructure across projects.
+* Minimal Operational Overhead — Avoid unnecessary roles, procedures, meetings, services, and administrative complexity.
+* Intelligent Workload Distribution — Balance assignments across available agents and execution resources.
+* Adaptive Concurrency — Control parallel execution according to dependencies, system capacity, and resource limits.
+* Context & Memory Efficiency — Avoid repeatedly loading large amounts of irrelevant information.
+* Cost-Aware Scheduling — Trigger expensive operations only when justified by expected usefulness.
+* Infrastructure Reuse — Prefer available platform functionality before introducing custom components.
+* Vendor & Technology Portability — Avoid unnecessary dependence on one framework, provider, or service.
+* Data Export & Migration — Preserve the ability to transfer system state, knowledge, and artifacts.
+* Incremental Capability Expansion — Add infrastructure and complexity only when actual requirements justify it.
+* Maintainability & Upgradeability — Keep components understandable, documented, testable, and replaceable.
+* Graceful Degradation — Continue supported essential operations when optional capabilities are unavailable.
+* Sustainable Long-Term Operation — Balance effectiveness, reliability, operating cost, and maintenance burden.
+38. System Validation, Testing & Operational Readiness
+* Capability Verification — Confirm which features, tools, permissions, and integrations are actually available and functioning.
+* Environment Discovery & Assessment — Inspect available resources, operating conditions, dependencies, and limitations.
+* Capability Gap Reporting — Identify missing requirements and evaluate whether they justify new implementation work.
+* Controlled Initial Activation — Begin with the smallest useful and appropriately secured operating configuration.
+* Low-Risk Pilot Execution — Validate meaningful end-to-end work before expanding operational authority.
+* Agent Coordination Testing — Verify delegation, ownership, collaboration, handoffs, and duplicate-work prevention.
+* Continuity & Recovery Testing — Demonstrate that interrupted tasks and persistent roles can resume correctly.
+* Security & Isolation Testing — Confirm that role permissions, protected information, and project boundaries are enforced.
+* Budget & Resource Enforcement Testing — Verify that agents cannot bypass established external resource limits.
+* Approval & Governance Testing — Confirm that protected actions cannot be self-authorized by ordinary agents.
+* External Action Safety Testing — Validate idempotency, retries, outcome verification, and transaction reconciliation.
+* Audit Completeness Testing — Confirm that significant decisions and actions produce sufficient traceable records.
+* Backup & Restoration Testing — Demonstrate successful recovery from preserved system data.
+* Change & Rollback Testing — Verify that system modifications can be evaluated and harmful changes reversed.
+* Human Oversight Testing — Confirm communication, approval, override, pause, and shutdown controls.
+* Unattended Operation Testing — Demonstrate useful and safe operation during extended periods without routine supervision.
+* Learning & Improvement Testing — Verify that recurring failures produce useful corrective changes and measurable improvements.
+* Evidence-Based Readiness Assessment — Require actual test results rather than unsupported claims of capability.
+* Risk-Proportionate Validation — Apply stronger checks to consequential operations without delaying ordinary low-risk work through unnecessary setup procedures.
+* Progressive Autonomy Expansion — Increase operational responsibility only as 
+Neovim Integration & Collaborative AI Editing
+The system will integrate Neovim as a fully functional, terminal-native code editor within the main CLI/TUI environment, allowing users to write, navigate, inspect, and modify code without leaving the autonomous AI system. This integration will use the actual Neovim editing engine rather than recreating its functionality, preserving features such as Vim motions, modal editing, syntax highlighting, language server support, plugins, split windows, and keyboard-driven navigation. Users will be able to open files directly from the project explorer, AI conversations, task manager, or command palette. Neovim will operate as an integrated, optional workspace component alongside AI chat, agent management, terminal execution, and other system panels. The interface will support customizable layouts, tabs, resizable panes, and persistent editing sessions, allowing users to switch seamlessly between manual development and autonomous operations.
+A central capability of this integration will be collaborative human-AI development, allowing users and autonomous coding agents to work simultaneously on the same project. Users will be able to follow an agent's activity in real time, automatically navigate to files it is modifying, inspect live changes, and review Git-style diffs directly within the editor. Dedicated Follow AI, Live Diff, and Independent Editing modes will allow users to observe an agent's work, review and selectively accept or reject proposed changes, or continue editing unrelated code without interruption. Agents should operate in isolated workspaces or Git worktrees when appropriate, with change tracking and conflict detection to prevent accidental overwrites. Users will also be able to select code and request explanations, refactoring, debugging, tests, or other modifications directly from AI agents. The editor will remain independent of the underlying autonomous runtime, ensuring that agents, projects, and background operations continue functioning even when Neovim is closed or the user switches to another workspace.
+
+
+1. This is a generalized AI System
+2. Users shouldn’t be locked into the example hierarchy I gave as an example
+3. They want 10 directors, 100 managers, and 1000 workers for sure, they want just one agent for sure, they want one worker for sure, they want one manager and 10 workers for sure.
+4. The main goal isn’t to build one specific X system, but allow users to do what they want. If they want to make a whole enterprise with a CEO, Marketing Director, Sales Director, Tech Director with 10 managers doing 10 projects and 100 workers for sure. Or if they just want to work on a side project then just 1 manager and 10 workers are also good.
+5. This is still the codex CLI but with just more features, especially NeoVim. Coding, Following AI Live, Seeing Diffs.
+6. Need to change the CLI to add more stuff to make it easier to view what is happening
+7. UI should be like a pane base layout system with saved presets. The 5 Main Layouts
+   1. Console — the default
+      1. The main conversation and command interface. Talk to agents, assign objectives, run commands, see progress, and inspect results. It should feel familiar to Codex CLI users.
+   2. Workspace — the editor
+      1. Actual Neovim, file explorer, AI chat, terminal, live diffs, and tests. Optimized for working alongside agents without leaving the TUI.
+   3. Projects — the planning view
+      1. Goals, projects, tasks, dependencies, milestones, ownership, and deliverables. Works for coding and non-coding projects.
+   4. Operations — mission control
+      1. All running agents, teams, workflows, schedules, failures, resource usage, and system health. This is where users supervise large-scale autonomous work.
+   5. Review — approvals and changes
+      1. Proposed file changes, Git diffs, test results, completed artifacts, approvals, audit records, and requests for human action.
