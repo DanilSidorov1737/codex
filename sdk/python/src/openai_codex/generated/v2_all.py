@@ -3018,6 +3018,148 @@ class NullableGetAccountTokenUsageParams(RootModel[GetAccountTokenUsageParams | 
     ]
 
 
+class OrganizationActionState(Enum):
+    pending = "pending"
+    dispatched = "dispatched"
+    completed = "completed"
+    failed = "failed"
+    uncertain = "uncertain"
+    rejected = "rejected"
+
+
+class OrganizationApprovalState(Enum):
+    pending = "pending"
+    approved = "approved"
+    rejected = "rejected"
+    superseded = "superseded"
+
+
+class OrganizationArtifactBase(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    path: str
+    sha256: Annotated[
+        str | None,
+        Field(
+            description="None means the file did not exist when the isolated attempt was prepared."
+        ),
+    ] = None
+
+
+class OrganizationArtifactEvidence(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    bytes: Annotated[int, Field(ge=0)]
+    path: str
+    sha256: str
+
+
+class OrganizationCheckEvidence(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    argv: list[str]
+    exit_code: Annotated[int | None, Field(alias="exitCode")] = None
+    output: str
+    truncated: bool
+
+
+class StopOrganizationExecutionMutation(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    cancel: bool
+    expected_revision: Annotated[int, Field(alias="expectedRevision")]
+    task_id: Annotated[str, Field(alias="taskId")]
+    type: Annotated[Literal["stop"], Field(title="StopOrganizationExecutionMutationType")]
+
+
+class DecideApprovalOrganizationExecutionMutation(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    approval_id: Annotated[str, Field(alias="approvalId")]
+    approve: bool
+    expected_hash: Annotated[str, Field(alias="expectedHash")]
+    task_id: Annotated[str, Field(alias="taskId")]
+    type: Annotated[
+        Literal["decideApproval"], Field(title="DecideApprovalOrganizationExecutionMutationType")
+    ]
+
+
+class AcceptOrganizationExecutionMutation(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    digest: str
+    expected_revision: Annotated[int, Field(alias="expectedRevision")]
+    task_id: Annotated[str, Field(alias="taskId")]
+    type: Annotated[Literal["accept"], Field(title="AcceptOrganizationExecutionMutationType")]
+
+
+class RequestChangesOrganizationExecutionMutation(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    expected_revision: Annotated[int, Field(alias="expectedRevision")]
+    instructions: str
+    task_id: Annotated[str, Field(alias="taskId")]
+    type: Annotated[
+        Literal["requestChanges"], Field(title="RequestChangesOrganizationExecutionMutationType")
+    ]
+
+
+class OrganizationExecutionScope(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    artifacts: Annotated[
+        list[str],
+        Field(description="Files whose hashes must accompany the result presented for review."),
+    ]
+    checks: Annotated[
+        list[list[str]],
+        Field(
+            description="Owner-supplied argv, executed by the host in the same restricted workspace."
+        ),
+    ]
+    delegates: list[str]
+    immutable_files: Annotated[
+        list[str],
+        Field(
+            alias="immutableFiles",
+            description="Input files mounted read-only, including owner-selected test oracles.",
+        ),
+    ]
+    input_files: Annotated[
+        list[str],
+        Field(
+            alias="inputFiles",
+            description="Files copied from the linked project into an isolated attempt workspace.",
+        ),
+    ]
+    max_attempts: Annotated[int, Field(alias="maxAttempts", ge=0)]
+    max_children: Annotated[int, Field(alias="maxChildren", ge=0)]
+    max_model_requests: Annotated[int, Field(alias="maxModelRequests", ge=0)]
+    max_seconds: Annotated[int, Field(alias="maxSeconds", ge=0)]
+    max_tokens: Annotated[
+        int,
+        Field(
+            alias="maxTokens",
+            description="Reported aggregate token ceiling; one provider request may be in flight.",
+        ),
+    ]
+    model: str
+    require_tool_approval: Annotated[bool, Field(alias="requireToolApproval")]
+
+
 class OrganizationGoal(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
@@ -3180,6 +3322,45 @@ class OrganizationTask(BaseModel):
     project_id: Annotated[str, Field(alias="projectId")]
     revision: int
     state: str
+
+
+class OrganizationTaskAuthorization(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    expires_at: Annotated[int, Field(alias="expiresAt")]
+    id: str
+    node_revision: Annotated[int, Field(alias="nodeRevision")]
+    project_revision: Annotated[int, Field(alias="projectRevision")]
+    revoked: bool
+    scope: OrganizationExecutionScope
+    task_id: Annotated[str, Field(alias="taskId")]
+
+
+class OrganizationTaskResult(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    accepted: bool
+    artifact_bases: Annotated[list[OrganizationArtifactBase], Field(alias="artifactBases")]
+    artifacts: list[OrganizationArtifactEvidence]
+    attempt_id: Annotated[str, Field(alias="attemptId")]
+    checks: list[OrganizationCheckEvidence]
+    digest: str
+
+
+class OrganizationTaskState(Enum):
+    proposed = "proposed"
+    queued = "queued"
+    running = "running"
+    waiting_approval = "waitingApproval"
+    waiting_dependency = "waitingDependency"
+    paused = "paused"
+    needs_reconciliation = "needsReconciliation"
+    needs_review = "needsReview"
+    failed = "failed"
+    cancelled = "cancelled"
+    accepted = "accepted"
 
 
 class PatchApplyStatus(Enum):
@@ -9100,6 +9281,70 @@ class NewThreadModelDefaults(BaseModel):
     service_tier: Annotated[str | None, Field(alias="serviceTier")] = None
 
 
+class OrganizationActionApproval(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    action_hash: Annotated[str, Field(alias="actionHash")]
+    action_id: Annotated[str, Field(alias="actionId")]
+    arguments: Annotated[
+        str,
+        Field(description="Exact arguments are private owner-review data, not audit/log payloads."),
+    ]
+    attempt_id: Annotated[str, Field(alias="attemptId")]
+    expires_at: Annotated[int, Field(alias="expiresAt")]
+    id: str
+    state: OrganizationApprovalState
+    tool: str
+
+
+class OrganizationActionIntent(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    action_hash: Annotated[str, Field(alias="actionHash")]
+    approval_id: Annotated[str | None, Field(alias="approvalId")] = None
+    arguments: str
+    attempt_id: Annotated[str, Field(alias="attemptId")]
+    call_id: Annotated[str, Field(alias="callId")]
+    id: str
+    receipt: str | None = None
+    state: OrganizationActionState
+    tool: str
+
+
+class AuthorizeOrganizationExecutionMutation(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    expected_revision: Annotated[int, Field(alias="expectedRevision")]
+    scope: OrganizationExecutionScope
+    task_id: Annotated[str, Field(alias="taskId")]
+    type: Annotated[Literal["authorize"], Field(title="AuthorizeOrganizationExecutionMutationType")]
+
+
+class OrganizationExecutionMutation(
+    RootModel[
+        AuthorizeOrganizationExecutionMutation
+        | StopOrganizationExecutionMutation
+        | DecideApprovalOrganizationExecutionMutation
+        | AcceptOrganizationExecutionMutation
+        | RequestChangesOrganizationExecutionMutation
+    ]
+):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    root: (
+        AuthorizeOrganizationExecutionMutation
+        | StopOrganizationExecutionMutation
+        | DecideApprovalOrganizationExecutionMutation
+        | AcceptOrganizationExecutionMutation
+        | RequestChangesOrganizationExecutionMutation
+    )
+
+
 class PutNodeOrganizationMutation(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
@@ -9198,6 +9443,29 @@ class OrganizationRecord(
         | TaskOrganizationRecord
         | MembershipOrganizationRecord
     )
+
+
+class OrganizationTaskAttempt(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    artifact_bases: Annotated[
+        list[OrganizationArtifactBase] | None, Field(alias="artifactBases")
+    ] = []
+    authorization_id: Annotated[str, Field(alias="authorizationId")]
+    generation: int
+    id: str
+    lease_until: Annotated[int, Field(alias="leaseUntil")]
+    model_requests: Annotated[int, Field(alias="modelRequests", ge=0)]
+    reported_model_requests: Annotated[int, Field(alias="reportedModelRequests", ge=0)]
+    reported_tokens: Annotated[int, Field(alias="reportedTokens")]
+    runtime_active: Annotated[bool | None, Field(alias="runtimeActive")] = False
+    started_at: Annotated[int, Field(alias="startedAt")]
+    state: OrganizationTaskState
+    task_id: Annotated[str, Field(alias="taskId")]
+    thread_id: Annotated[str, Field(alias="threadId")]
+    turn_id: Annotated[str | None, Field(alias="turnId")] = None
+    workspace: str | None = None
 
 
 class OverriddenMetadata(BaseModel):
@@ -11417,6 +11685,25 @@ class ModelsRequirements(BaseModel):
         populate_by_name=True,
     )
     new_thread: Annotated[NewThreadModelDefaults | None, Field(alias="newThread")] = None
+
+
+class OrganizationExecutionView(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    actions: list[OrganizationActionIntent]
+    approvals: list[OrganizationActionApproval]
+    attempts: Annotated[
+        list[OrganizationTaskAttempt],
+        Field(
+            description="Recent attempts, newest first; each authorization permits at most three."
+        ),
+    ]
+    authorization: OrganizationTaskAuthorization | None = None
+    authorization_model_requests: Annotated[int, Field(alias="authorizationModelRequests", ge=0)]
+    authorization_used_tokens: Annotated[int, Field(alias="authorizationUsedTokens")]
+    result: OrganizationTaskResult | None = None
+    task: OrganizationTask
 
 
 class PluginShareContext(BaseModel):

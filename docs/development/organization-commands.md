@@ -1,4 +1,4 @@
-# Organization definitions: B1 commands
+# Organization commands
 
 The experimental organization API uses the existing local Codex app-server.
 The CLI commands below use its normal daemon/session bootstrap. An explicit
@@ -94,3 +94,105 @@ a complete host, and reconcile their references before execution.
 Linux directory/file ownership and modes are checked, including symlinks and
 hard links. Same-user agent sandbox exclusion is a separate B2 requirement;
 file modes alone are not a boundary against an unsandboxed same-user process.
+
+## B2 execution commands
+
+Execution uses the detached local daemon. Start it with the same configuration,
+`CODEX_HOME` and `CODEX_SQLITE_HOME` as the owner commands:
+
+```bash
+codex app-server daemon start
+codex organization execution-read TASK_ID
+codex organization execute authorize.json
+```
+
+`execute` reads a typed execution mutation from a JSON file of at most 128 KiB.
+It rejects `--no-daemon` and an embedded-server fallback. Definition commands
+remain available without background execution. The RPC counterparts are
+`organization/execution/read` and `organization/execution/mutate` with experimental
+API capability enabled. They accept protected local owner origins only.
+
+```json
+{
+  "type": "authorize",
+  "taskId": "TASK_ID",
+  "expectedRevision": 1,
+  "scope": {
+    "inputFiles": ["source.txt", "oracle.py"],
+    "immutableFiles": ["oracle.py"],
+    "artifacts": ["report.txt"],
+    "checks": [["python3", "oracle.py"]],
+    "model": "gpt-5.4",
+    "maxTokens": 20000,
+    "maxSeconds": 120,
+    "maxModelRequests": 2,
+    "maxAttempts": 1,
+    "requireToolApproval": true,
+    "delegates": [],
+    "maxChildren": 0
+  }
+}
+```
+
+The example model is used by deterministic local tests; live-provider compatibility
+must be qualified separately. `maxTokens` covers reported usage and admits at most
+one unreported request per attempt; a request already in flight can exceed it.
+Provider retries are disabled. These limits are not an exact money or OS-memory cap.
+Linux/local execution is the current operating envelope. Two active slots and at
+most sixteen live attempt workers bound the daemon queue.
+
+The owner selects explicit project-relative inputs, artifacts and check argv.
+Inputs are snapshotted into a private attempt workspace; the original project and
+owner data/state remain unavailable in the native sandbox. Immutable inputs
+remain read-only. Agent tools are restricted to native `exec_command` and
+`apply_patch`; network, inherited credentials, remote environments and privilege
+expansion arguments are denied. The daemon's normal private-home helper installation is supported by granting
+read access to exact executable files, never their sibling data. Install helpers
+outside the original project. A protected directory containing helpers that
+intersects system default read roots is rejected; a blanket deny cannot safely
+reopen a read-only helper on this native backend.
+Artifacts are bounded regular files with real hashes; checks run in the same
+restricted workspace. Input limits are 8 MiB/file and 64 MiB total. Native helpers
+receive only the exact read access needed to run.
+
+Inspect `execution-read` for the current task revision, authorization, attempts,
+exact approvals/actions, usage and result. Decide a pending approval with its
+exact returned ID/hash; silence does not approve it:
+
+```json
+{
+  "type": "decideApproval",
+  "taskId": "TASK_ID",
+  "approvalId": "APPROVAL_ID",
+  "expectedHash": "RETURNED_ACTION_HASH",
+  "approve": true
+}
+```
+
+An interrupted attempt enters `needsReconciliation`; dispatched actions become
+`uncertain` and are not replayed. Pending approvals remain recorded but their old
+lease cannot be accepted. Pause/cancel revokes authority immediately and retains
+the active slot until native cleanup is joined. Restart reconciles before execution
+reads/decisions, so an unexpired old approval cannot revive a crashed attempt.
+
+```json
+{ "type": "stop", "taskId": "TASK_ID", "expectedRevision": 3, "cancel": false }
+```
+
+Successful artifact/check collection produces `needsReview`, not acceptance.
+Final acceptance references the exact returned evidence digest and current task
+revision; failed checks cannot be accepted. Acceptance does not apply files to
+the original project. Explicit safe file application follows in B5.
+
+```json
+{
+  "type": "accept",
+  "taskId": "TASK_ID",
+  "expectedRevision": 4,
+  "digest": "RETURNED_RESULT_DIGEST"
+}
+```
+
+For revision work, use `requestChanges` with `taskId`, `expectedRevision` and bounded
+`instructions`, then issue a new explicit authorization. Delegation and scoped
+notes are B3 work; nonempty delegation fields are not yet an implemented workflow.

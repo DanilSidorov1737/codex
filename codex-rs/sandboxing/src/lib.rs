@@ -64,6 +64,19 @@ pub use windows::windows_sandbox_uses_elevated_backend;
 
 use codex_protocol::error::CodexErr;
 
+/// Linux system paths exposed by the native `:minimal` filesystem policy.
+/// Keep policy consumers and the Bubblewrap implementation on the same list.
+pub const LINUX_PLATFORM_DEFAULT_READ_ROOTS: &[&str] = &[
+    "/bin",
+    "/sbin",
+    "/usr",
+    "/etc",
+    "/lib",
+    "/lib64",
+    "/nix/store",
+    "/run/current-system/sw",
+];
+
 #[cfg(not(target_os = "linux"))]
 pub fn system_bwrap_warning(
     _permission_profile: &codex_protocol::models::PermissionProfile,

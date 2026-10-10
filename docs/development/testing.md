@@ -1,5 +1,57 @@
 # Testing procedures and evidence
 
+## B2 application qualification (CLI checks in progress)
+
+- `CARGO_INCREMENTAL=0 RUST_MIN_STACK=8388608 cargo test --locked --offline --profile dev-small -p codex-protocol --test organization_execution_contract -j4`: exit 0, **one passed**, zero failed/ignored. All five execution mutation wire variants match their schema fields; unknown authority and misspelled revision fields are rejected.
+- `CARGO_INCREMENTAL=0 RUST_MIN_STACK=8388608 cargo test --locked --offline --profile dev-small -p codex-app-server --lib organization -j4`: exit 0, **three passed**, zero failed/ignored. Tests cover owner origins, privilege-expansion arguments, traversal/symlink/hard-link rejection and bounded artifact reads.
+- `CARGO_INCREMENTAL=0 RUST_MIN_STACK=8388608 cargo test --locked --offline --profile dev-small -p codex-app-server --test all suite::v2::organization -j4`: exit 0, **three passed**, zero failed/ignored. Tests run the actual local Codex runtime and native sandbox with a deterministic Responses fixture. Exact approval precedes a real artifact; the immutable owner check runs and its output/hash/base evidence is recorded before exact-digest acceptance. SIGKILL/restart retains a pending approval, immediately reconciles the attempt and rejects its old lease without replay.
+- Nine actual OS probes deny protected DB read/write, fixture credential read, original-project read/write, immutable-oracle write, owner-control Unix socket connect, provider-network connect and inherited credential-marker access. Fixture paths are checked to exist before the attempt; the marker is present in the local daemon's environment. The Unix socket in these API tests is a real local control fixture, not yet the daemon's actual owner transport.
+- Added explicit denies for canonical owner homes/state and the original project, including custom paths under otherwise readable roots. Repeated production Clippy (`--lib -- -Dwarnings`), three unit checks and all three API tests: all passed. This preliminary policy rejected helpers inside owner state; the ensuing physical daemon test exposed the normal private-home installation overlap. Its correction and rerun are in progress; original-project helper overlap remains rejected.
+- Initial integration failures were fixture defects: fallible path construction in a `ClientRequest` closure; using the success-only RPC helper to inspect an expected denial; and creating a denied network socket outside the probe's exception handler. Corrected the fixtures and reran, retaining the stale-lease and all nine isolation assertions. Production policy was not weakened.
+
+Logs: `mvp-b2-execution-contract-tests.log`, `mvp-b2-worker-unit-tests.log`,
+`mvp-b2-background-api-tests.log` and the corrective
+`mvp-b2-background-api-current-tests.log` in the qualification directory.
+Final logs: `mvp-b2-background-api-local-isolation-tests.log`,
+`mvp-b2-protected-roots-clippy.log`, `mvp-b2-protected-roots-unit-tests.log`
+and `mvp-b2-protected-roots-api-tests.log`.
+The checks run outside the outer tool sandbox to permit the already-authorized
+real native sandbox/socket qualification. Fixtures remain local; no live model
+is claimed. Actual daemon transport/CLI and mid-native-action cleanup checks remain pending.
+
+The cloud disk reached its build-cache limit. Removed unused pnpm registry
+metadata and three identified obsolete unit-test executables. Current executables,
+current libraries, active build outputs and recorded test logs were retained; incremental
+compilation remains disabled.
+
+The first physical run used the raw Cargo binary; daemon startup correctly
+rejected its missing package, and `organization execute` rejected embedded-server
+fallback. The repository packaging helper assembled the current binary and native
+helpers without new installation or external requests. That real daemon then
+exposed a policy bug: its helpers live inside `CODEX_HOME`, while the preliminary
+profile blanket-denied that parent. Correcting this with exact-file read grants
+under a private allowlist, sharing the existing native system-read-root constant,
+and rejecting unsafe system-root overlap. The API regression now stages actual
+helpers inside the owner home and retains all nine denial assertions. Corrective
+Clippy passed with warnings denied; the three application unit checks passed.
+The corrective API run passed **three tests**, zero failed/ignored, with both
+private-home helper staging and canonical state co-located in that home. All nine
+OS denial assertions and stale-lease/crash assertions remain. The fixture first
+failed to compile on an unborrowed destination path; a later state-path conversion
+missed a multiline `.path()` and one rerun used the wrong working directory.
+Corrected these fixture errors and ran a full integration type check successfully
+before the passing native run. No assertion was removed. Logs:
+`mvp-b2-private-helpers-clippy.log`, `mvp-b2-private-helpers-unit-tests.log`,
+`mvp-b2-private-helpers-fixture-check.log`,
+`mvp-b2-private-helpers-api-verified-tests.log`. The corrected CLI rebuild and
+manual default-daemon workflow remain pending.
+
+Further disk cleanup removed identified obsolete standalone tests/B1 CLI,
+pre-admission core archives not referenced by the active compiler, downloaded
+package caches and stopped obsolete fixture daemon packages. Source/state,
+current artifacts and evidence were retained. No compiler working directory was
+removed.
+
 ## B2 core admission gates under qualification
 
 `CARGO_INCREMENTAL=0 RUST_MIN_STACK=8388608 cargo test --locked --offline --profile dev-small -p codex-core --lib --test all model_request -j4`:

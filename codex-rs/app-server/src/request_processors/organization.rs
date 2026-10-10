@@ -3,45 +3,58 @@
 use crate::error_code::internal_error;
 use crate::error_code::invalid_params;
 use crate::error_code::invalid_request;
+use crate::organization_runtime::OrganizationRuntime;
 use crate::transport::ConnectionOrigin;
 use codex_app_server_protocol::ClientResponsePayload;
 use codex_app_server_protocol::JSONRPCErrorError;
 use codex_app_server_protocol::OrganizationBackupResponse;
+use codex_app_server_protocol::OrganizationExecutionMutateParams;
+use codex_app_server_protocol::OrganizationExecutionMutateResponse;
+use codex_app_server_protocol::OrganizationExecutionReadParams;
+use codex_app_server_protocol::OrganizationExecutionReadResponse;
 use codex_app_server_protocol::OrganizationListParams;
 use codex_app_server_protocol::OrganizationListResponse;
 use codex_app_server_protocol::OrganizationMutateParams;
 use codex_app_server_protocol::OrganizationMutateResponse;
+use codex_core::ThreadManager;
+use codex_core::config::Config;
 use codex_protocol::organization::OrganizationMutation;
+use codex_protocol::organization_execution::OrganizationExecutionMutation;
 use codex_state::organization::OrganizationStore;
 use codex_thread_store::ThreadStore;
-use std::path::PathBuf;
 use std::sync::Arc;
-use tokio::sync::OnceCell;
 
 pub(crate) struct OrganizationRequestProcessor {
-    sqlite_home: PathBuf,
-    store: OnceCell<OrganizationStore>,
+    runtime: Arc<OrganizationRuntime>,
     thread_store: Arc<dyn ThreadStore>,
 }
 
 impl OrganizationRequestProcessor {
-    pub(crate) fn new(sqlite_home: PathBuf, thread_store: Arc<dyn ThreadStore>) -> Self {
+    pub(crate) fn new(
+        config: Arc<Config>,
+        manager: &Arc<ThreadManager>,
+        thread_store: Arc<dyn ThreadStore>,
+    ) -> Self {
         Self {
-            sqlite_home,
-            store: OnceCell::new(),
+            runtime: OrganizationRuntime::new(
+                config,
+                Arc::downgrade(manager),
+                thread_store.clone(),
+            ),
             thread_store,
         }
     }
 
     async fn store(&self) -> Result<&OrganizationStore, JSONRPCErrorError> {
-        self.store
-            .get_or_try_init(|| async { OrganizationStore::open(&self.sqlite_home).await })
-            .await
-            .map_err(|error| {
-                internal_error(format!(
-                    "organization state unavailable; preserve and restore it: {error:#}"
-                ))
-            })
+        self.runtime.store().await.map_err(|error| {
+            internal_error(format!(
+                "organization state unavailable; preserve and restore it: {error:#}"
+            ))
+        })
+    }
+
+    pub(crate) fn shutdown(&self) {
+        self.runtime.shutdown();
     }
 
     pub(crate) async fn list(
@@ -117,6 +130,120 @@ impl OrganizationRequestProcessor {
             }
             .into(),
         ))
+    }
+
+    pub(crate) async fn execution_read(
+        &self,
+        params: OrganizationExecutionReadParams,
+        origin: ConnectionOrigin,
+    ) -> Result<Option<ClientResponsePayload>, JSONRPCErrorError> {
+        require_owner(origin)?;
+        self.runtime
+            .ensure_execution_owner()
+            .await
+            .map_err(|error| internal_error(format!("execution owner unavailable: {error:#}")))?;
+        let view = self
+            .store()
+            .await?
+            .execution_view(&params.task_id)
+            .await
+            .map_err(|error| invalid_params(format!("execution read rejected: {error:#}")))?;
+        Ok(Some(OrganizationExecutionReadResponse { view }.into()))
+    }
+
+    pub(crate) async fn execution_mutate(
+        &self,
+        params: OrganizationExecutionMutateParams,
+        origin: ConnectionOrigin,
+    ) -> Result<Option<ClientResponsePayload>, JSONRPCErrorError> {
+        require_owner(origin)?;
+        if serde_json::to_vec(&params)
+            .map_err(|_| invalid_params("invalid execution mutation"))?
+            .len()
+            > 128 * 1024
+        {
+            return Err(invalid_params("execution mutation exceeds 128 KiB"));
+        }
+        let task_id = params.mutation.task_id().to_owned();
+        // Reconcile interrupted work before any approval/review can be decided
+        // against a previous daemon's otherwise unexpired lease.
+        self.runtime
+            .ensure_execution_owner()
+            .await
+            .map_err(|error| internal_error(format!("execution owner unavailable: {error:#}")))?;
+        let store = self.store().await?;
+        let result = async {
+            match params.mutation {
+                OrganizationExecutionMutation::Authorize {
+                    task_id,
+                    expected_revision,
+                    scope,
+                } => {
+                    store
+                        .authorize_task(
+                            &task_id,
+                            expected_revision,
+                            scope,
+                            crate::organization_runtime::now(),
+                        )
+                        .await?;
+                }
+                OrganizationExecutionMutation::Stop {
+                    task_id,
+                    expected_revision,
+                    cancel,
+                } => store.stop_task(&task_id, expected_revision, cancel).await?,
+                OrganizationExecutionMutation::DecideApproval {
+                    task_id,
+                    approval_id,
+                    expected_hash,
+                    approve,
+                } => {
+                    let view = store.execution_view(&task_id).await?;
+                    anyhow::ensure!(
+                        view.approvals
+                            .iter()
+                            .any(|approval| approval.id == approval_id),
+                        "approval does not belong to the current task attempt"
+                    );
+                    store
+                        .decide_approval(
+                            &approval_id,
+                            &expected_hash,
+                            approve,
+                            crate::organization_runtime::now(),
+                        )
+                        .await?;
+                }
+                OrganizationExecutionMutation::Accept {
+                    task_id,
+                    expected_revision,
+                    digest,
+                } => {
+                    store
+                        .accept_result(&task_id, expected_revision, &digest)
+                        .await?
+                }
+                OrganizationExecutionMutation::RequestChanges {
+                    task_id,
+                    expected_revision,
+                    instructions,
+                } => {
+                    store
+                        .request_changes(&task_id, expected_revision, &instructions)
+                        .await?
+                }
+            }
+            Ok::<(), anyhow::Error>(())
+        }
+        .await;
+        result
+            .map_err(|error| invalid_params(format!("execution mutation rejected: {error:#}")))?;
+        self.runtime.wake();
+        let view = store.execution_view(&task_id).await.map_err(|error| {
+            internal_error(format!("execution committed; reread task state: {error:#}"))
+        })?;
+        Ok(Some(OrganizationExecutionMutateResponse { view }.into()))
     }
 }
 

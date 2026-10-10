@@ -16179,6 +16179,491 @@
         ],
         "title": "Nullable_GetAccountTokenUsageParams"
       },
+      "OrganizationActionApproval": {
+        "properties": {
+          "actionHash": {
+            "type": "string"
+          },
+          "actionId": {
+            "type": "string"
+          },
+          "arguments": {
+            "description": "Exact arguments are private owner-review data, not audit/log payloads.",
+            "type": "string"
+          },
+          "attemptId": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "id": {
+            "type": "string"
+          },
+          "state": {
+            "$ref": "#/definitions/v2/OrganizationApprovalState"
+          },
+          "tool": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "actionHash",
+          "actionId",
+          "arguments",
+          "attemptId",
+          "expiresAt",
+          "id",
+          "state",
+          "tool"
+        ],
+        "type": "object"
+      },
+      "OrganizationActionIntent": {
+        "properties": {
+          "actionHash": {
+            "type": "string"
+          },
+          "approvalId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "arguments": {
+            "type": "string"
+          },
+          "attemptId": {
+            "type": "string"
+          },
+          "callId": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "receipt": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "state": {
+            "$ref": "#/definitions/v2/OrganizationActionState"
+          },
+          "tool": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "actionHash",
+          "arguments",
+          "attemptId",
+          "callId",
+          "id",
+          "state",
+          "tool"
+        ],
+        "type": "object"
+      },
+      "OrganizationActionState": {
+        "enum": [
+          "pending",
+          "dispatched",
+          "completed",
+          "failed",
+          "uncertain",
+          "rejected"
+        ],
+        "type": "string"
+      },
+      "OrganizationApprovalState": {
+        "enum": [
+          "pending",
+          "approved",
+          "rejected",
+          "superseded"
+        ],
+        "type": "string"
+      },
+      "OrganizationArtifactBase": {
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "sha256": {
+            "description": "None means the file did not exist when the isolated attempt was prepared.",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "type": "object"
+      },
+      "OrganizationArtifactEvidence": {
+        "properties": {
+          "bytes": {
+            "format": "uint64",
+            "minimum": 0.0,
+            "type": "integer"
+          },
+          "path": {
+            "type": "string"
+          },
+          "sha256": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "bytes",
+          "path",
+          "sha256"
+        ],
+        "type": "object"
+      },
+      "OrganizationCheckEvidence": {
+        "properties": {
+          "argv": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "exitCode": {
+            "format": "int32",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "output": {
+            "type": "string"
+          },
+          "truncated": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "argv",
+          "output",
+          "truncated"
+        ],
+        "type": "object"
+      },
+      "OrganizationExecutionMutation": {
+        "oneOf": [
+          {
+            "additionalProperties": false,
+            "properties": {
+              "expectedRevision": {
+                "format": "int64",
+                "type": "integer"
+              },
+              "scope": {
+                "$ref": "#/definitions/v2/OrganizationExecutionScope"
+              },
+              "taskId": {
+                "type": "string"
+              },
+              "type": {
+                "enum": [
+                  "authorize"
+                ],
+                "title": "AuthorizeOrganizationExecutionMutationType",
+                "type": "string"
+              }
+            },
+            "required": [
+              "expectedRevision",
+              "scope",
+              "taskId",
+              "type"
+            ],
+            "title": "AuthorizeOrganizationExecutionMutation",
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "cancel": {
+                "type": "boolean"
+              },
+              "expectedRevision": {
+                "format": "int64",
+                "type": "integer"
+              },
+              "taskId": {
+                "type": "string"
+              },
+              "type": {
+                "enum": [
+                  "stop"
+                ],
+                "title": "StopOrganizationExecutionMutationType",
+                "type": "string"
+              }
+            },
+            "required": [
+              "cancel",
+              "expectedRevision",
+              "taskId",
+              "type"
+            ],
+            "title": "StopOrganizationExecutionMutation",
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "approvalId": {
+                "type": "string"
+              },
+              "approve": {
+                "type": "boolean"
+              },
+              "expectedHash": {
+                "type": "string"
+              },
+              "taskId": {
+                "type": "string"
+              },
+              "type": {
+                "enum": [
+                  "decideApproval"
+                ],
+                "title": "DecideApprovalOrganizationExecutionMutationType",
+                "type": "string"
+              }
+            },
+            "required": [
+              "approvalId",
+              "approve",
+              "expectedHash",
+              "taskId",
+              "type"
+            ],
+            "title": "DecideApprovalOrganizationExecutionMutation",
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "digest": {
+                "type": "string"
+              },
+              "expectedRevision": {
+                "format": "int64",
+                "type": "integer"
+              },
+              "taskId": {
+                "type": "string"
+              },
+              "type": {
+                "enum": [
+                  "accept"
+                ],
+                "title": "AcceptOrganizationExecutionMutationType",
+                "type": "string"
+              }
+            },
+            "required": [
+              "digest",
+              "expectedRevision",
+              "taskId",
+              "type"
+            ],
+            "title": "AcceptOrganizationExecutionMutation",
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "expectedRevision": {
+                "format": "int64",
+                "type": "integer"
+              },
+              "instructions": {
+                "type": "string"
+              },
+              "taskId": {
+                "type": "string"
+              },
+              "type": {
+                "enum": [
+                  "requestChanges"
+                ],
+                "title": "RequestChangesOrganizationExecutionMutationType",
+                "type": "string"
+              }
+            },
+            "required": [
+              "expectedRevision",
+              "instructions",
+              "taskId",
+              "type"
+            ],
+            "title": "RequestChangesOrganizationExecutionMutation",
+            "type": "object"
+          }
+        ]
+      },
+      "OrganizationExecutionScope": {
+        "additionalProperties": false,
+        "properties": {
+          "artifacts": {
+            "description": "Files whose hashes must accompany the result presented for review.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "checks": {
+            "description": "Owner-supplied argv, executed by the host in the same restricted workspace.",
+            "items": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "type": "array"
+          },
+          "delegates": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "immutableFiles": {
+            "description": "Input files mounted read-only, including owner-selected test oracles.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "inputFiles": {
+            "description": "Files copied from the linked project into an isolated attempt workspace.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "maxAttempts": {
+            "format": "uint32",
+            "minimum": 0.0,
+            "type": "integer"
+          },
+          "maxChildren": {
+            "format": "uint32",
+            "minimum": 0.0,
+            "type": "integer"
+          },
+          "maxModelRequests": {
+            "format": "uint32",
+            "minimum": 0.0,
+            "type": "integer"
+          },
+          "maxSeconds": {
+            "format": "uint32",
+            "minimum": 0.0,
+            "type": "integer"
+          },
+          "maxTokens": {
+            "description": "Reported aggregate token ceiling; one provider request may be in flight.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "model": {
+            "type": "string"
+          },
+          "requireToolApproval": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "artifacts",
+          "checks",
+          "delegates",
+          "immutableFiles",
+          "inputFiles",
+          "maxAttempts",
+          "maxChildren",
+          "maxModelRequests",
+          "maxSeconds",
+          "maxTokens",
+          "model",
+          "requireToolApproval"
+        ],
+        "type": "object"
+      },
+      "OrganizationExecutionView": {
+        "properties": {
+          "actions": {
+            "items": {
+              "$ref": "#/definitions/v2/OrganizationActionIntent"
+            },
+            "type": "array"
+          },
+          "approvals": {
+            "items": {
+              "$ref": "#/definitions/v2/OrganizationActionApproval"
+            },
+            "type": "array"
+          },
+          "attempts": {
+            "description": "Recent attempts, newest first; each authorization permits at most three.",
+            "items": {
+              "$ref": "#/definitions/v2/OrganizationTaskAttempt"
+            },
+            "type": "array"
+          },
+          "authorization": {
+            "anyOf": [
+              {
+                "$ref": "#/definitions/v2/OrganizationTaskAuthorization"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "authorizationModelRequests": {
+            "format": "uint32",
+            "minimum": 0.0,
+            "type": "integer"
+          },
+          "authorizationUsedTokens": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "$ref": "#/definitions/v2/OrganizationTaskResult"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "task": {
+            "$ref": "#/definitions/v2/OrganizationTask"
+          }
+        },
+        "required": [
+          "actions",
+          "approvals",
+          "attempts",
+          "authorizationModelRequests",
+          "authorizationUsedTokens",
+          "task"
+        ],
+        "type": "object"
+      },
       "OrganizationGoal": {
         "properties": {
           "criteria": {
@@ -16831,6 +17316,182 @@
           "state"
         ],
         "type": "object"
+      },
+      "OrganizationTaskAttempt": {
+        "properties": {
+          "artifactBases": {
+            "default": [],
+            "items": {
+              "$ref": "#/definitions/v2/OrganizationArtifactBase"
+            },
+            "type": "array"
+          },
+          "authorizationId": {
+            "type": "string"
+          },
+          "generation": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "id": {
+            "type": "string"
+          },
+          "leaseUntil": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "modelRequests": {
+            "format": "uint32",
+            "minimum": 0.0,
+            "type": "integer"
+          },
+          "reportedModelRequests": {
+            "format": "uint32",
+            "minimum": 0.0,
+            "type": "integer"
+          },
+          "reportedTokens": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "runtimeActive": {
+            "default": false,
+            "type": "boolean"
+          },
+          "startedAt": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "state": {
+            "$ref": "#/definitions/v2/OrganizationTaskState"
+          },
+          "taskId": {
+            "type": "string"
+          },
+          "threadId": {
+            "type": "string"
+          },
+          "turnId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "workspace": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "authorizationId",
+          "generation",
+          "id",
+          "leaseUntil",
+          "modelRequests",
+          "reportedModelRequests",
+          "reportedTokens",
+          "startedAt",
+          "state",
+          "taskId",
+          "threadId"
+        ],
+        "type": "object"
+      },
+      "OrganizationTaskAuthorization": {
+        "properties": {
+          "expiresAt": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "id": {
+            "type": "string"
+          },
+          "nodeRevision": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "projectRevision": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "revoked": {
+            "type": "boolean"
+          },
+          "scope": {
+            "$ref": "#/definitions/v2/OrganizationExecutionScope"
+          },
+          "taskId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "expiresAt",
+          "id",
+          "nodeRevision",
+          "projectRevision",
+          "revoked",
+          "scope",
+          "taskId"
+        ],
+        "type": "object"
+      },
+      "OrganizationTaskResult": {
+        "properties": {
+          "accepted": {
+            "type": "boolean"
+          },
+          "artifactBases": {
+            "items": {
+              "$ref": "#/definitions/v2/OrganizationArtifactBase"
+            },
+            "type": "array"
+          },
+          "artifacts": {
+            "items": {
+              "$ref": "#/definitions/v2/OrganizationArtifactEvidence"
+            },
+            "type": "array"
+          },
+          "attemptId": {
+            "type": "string"
+          },
+          "checks": {
+            "items": {
+              "$ref": "#/definitions/v2/OrganizationCheckEvidence"
+            },
+            "type": "array"
+          },
+          "digest": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "accepted",
+          "artifactBases",
+          "artifacts",
+          "attemptId",
+          "checks",
+          "digest"
+        ],
+        "type": "object"
+      },
+      "OrganizationTaskState": {
+        "enum": [
+          "proposed",
+          "queued",
+          "running",
+          "waitingApproval",
+          "waitingDependency",
+          "paused",
+          "needsReconciliation",
+          "needsReview",
+          "failed",
+          "cancelled",
+          "accepted"
+        ],
+        "type": "string"
       },
       "OverriddenMetadata": {
         "properties": {

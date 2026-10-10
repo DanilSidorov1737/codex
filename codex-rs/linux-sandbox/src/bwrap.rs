@@ -50,16 +50,7 @@ use globset::GlobSetBuilder;
 ///
 /// These are intentionally system-level paths only (plus Nix store roots) so
 /// `include_platform_defaults` does not silently widen access to user data.
-const LINUX_PLATFORM_DEFAULT_READ_ROOTS: &[&str] = &[
-    "/bin",
-    "/sbin",
-    "/usr",
-    "/etc",
-    "/lib",
-    "/lib64",
-    "/nix/store",
-    "/run/current-system/sw",
-];
+use codex_sandboxing::LINUX_PLATFORM_DEFAULT_READ_ROOTS;
 
 /// External scanner used by deny-glob expansion and its dependency inventory.
 pub const GLOB_SCAN_PROGRAM: &str = "rg";

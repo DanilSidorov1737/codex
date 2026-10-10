@@ -192,6 +192,11 @@ impl TestAppServer {
         self.process.wait().await
     }
 
+    /// Force a crash without graceful stdio/runtime teardown for recovery tests.
+    pub async fn crash_for_test(&mut self) -> std::io::Result<()> {
+        self.process.kill().await
+    }
+
     #[cfg(unix)]
     pub fn send_sigterm(&self) -> anyhow::Result<()> {
         let pid = self.process.id().context("app-server has no pid")?;

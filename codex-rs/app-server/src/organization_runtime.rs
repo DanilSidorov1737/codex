@@ -1,0 +1,700 @@
+//! Bounded daemon work around the existing isolated Codex thread runtime.
+
+use crate::organization_workspace::TaskWorkspace;
+use anyhow::Context;
+use anyhow::Result;
+use anyhow::ensure;
+use codex_core::StartIfIdleSubmission;
+use codex_core::StartThreadOptions;
+use codex_core::ThreadManager;
+use codex_core::TurnInputRequest;
+use codex_core::config::Config;
+use codex_extension_api::*;
+use codex_features::Feature;
+use codex_protocol::ThreadId;
+use codex_protocol::config_types::ShellEnvironmentPolicy;
+use codex_protocol::config_types::ShellEnvironmentPolicyInherit;
+use codex_protocol::config_types::WebSearchMode;
+use codex_protocol::organization::OrganizationRecord;
+use codex_protocol::organization::OrganizationRecordKind;
+use codex_protocol::organization_execution::*;
+use codex_protocol::protocol::AskForApproval;
+use codex_protocol::user_input::UserInput;
+use codex_state::organization::OrganizationStore;
+use codex_thread_store::ThreadStore;
+use futures::StreamExt;
+use std::collections::HashMap;
+use std::fs::File;
+use std::sync::Arc;
+use std::sync::Mutex;
+use std::sync::Weak;
+use std::time::Duration;
+use tokio::sync::Notify;
+use tokio::sync::OnceCell;
+use tokio::sync::OwnedMutexGuard;
+use tokio_util::sync::CancellationToken;
+use tokio_util::task::TaskTracker;
+use uuid::Uuid;
+
+const MAX_ACTIVE: u32 = 2;
+const MAX_LIVE_ATTEMPTS: usize = 16;
+
+pub(crate) struct OrganizationRuntime {
+    config: Arc<Config>,
+    manager: Weak<ThreadManager>,
+    thread_store: Arc<dyn ThreadStore>,
+    store: OnceCell<OrganizationStore>,
+    execution_owner: OnceCell<Arc<File>>,
+    worker_id: String,
+    shutdown: CancellationToken,
+    wake: Arc<Notify>,
+    workers: TaskTracker,
+}
+
+impl OrganizationRuntime {
+    pub(crate) fn new(
+        config: Arc<Config>,
+        manager: Weak<ThreadManager>,
+        thread_store: Arc<dyn ThreadStore>,
+    ) -> Arc<Self> {
+        let runtime = Arc::new(Self {
+            config,
+            manager,
+            thread_store,
+            store: OnceCell::new(),
+            execution_owner: OnceCell::new(),
+            worker_id: Uuid::now_v7().to_string(),
+            shutdown: CancellationToken::new(),
+            wake: Arc::new(Notify::new()),
+            workers: TaskTracker::new(),
+        });
+        let weak = Arc::downgrade(&runtime);
+        let shutdown = runtime.shutdown.clone();
+        let wake = runtime.wake.clone();
+        tokio::spawn(async move {
+            loop {
+                tokio::select! { _=shutdown.cancelled()=>break, _=wake.notified()=>{}, _=tokio::time::sleep(Duration::from_secs(5))=>{} }
+                let Some(runtime) = weak.upgrade() else { break };
+                // Existing installations allocate no organization store until used.
+                if runtime.store.get().is_none()
+                    && !runtime
+                        .config
+                        .sqlite_config()
+                        .home()
+                        .join("organization")
+                        .exists()
+                {
+                    continue;
+                }
+                if let Err(error) = runtime.dispatch_queued().await {
+                    tracing::warn!("organization scheduling stopped for this cycle: {error:#}");
+                }
+            }
+        });
+        runtime
+    }
+
+    pub(crate) async fn store(&self) -> Result<&OrganizationStore> {
+        self.store
+            .get_or_try_init(|| OrganizationStore::open(self.config.sqlite_config().home()))
+            .await
+    }
+
+    pub(crate) async fn ensure_execution_owner(&self) -> Result<Arc<File>> {
+        ensure!(
+            cfg!(target_os = "linux"),
+            "organization execution is currently qualified only on Linux"
+        );
+        ensure!(
+            self.manager
+                .upgrade()
+                .context("thread manager stopped")?
+                .environment_manager()
+                .default_environment()
+                .is_some_and(|environment| !environment.is_remote()),
+            "managed organization execution requires a local execution environment"
+        );
+        Ok(self
+            .execution_owner
+            .get_or_try_init(|| async {
+                let store = self.store().await?;
+                let owner = Arc::new(store.acquire_execution_owner()?);
+                store.reconcile_interrupted_attempts().await?;
+                Ok::<_, anyhow::Error>(owner)
+            })
+            .await?
+            .clone())
+    }
+
+    pub(crate) fn wake(&self) {
+        self.wake.notify_one();
+    }
+    pub(crate) fn shutdown(&self) {
+        self.shutdown.cancel();
+        self.workers.close();
+    }
+
+    async fn dispatch_queued(self: &Arc<Self>) -> Result<()> {
+        self.ensure_execution_owner().await?;
+        let manager = self.manager.upgrade().context("thread manager stopped")?;
+        while self.workers.len() < MAX_LIVE_ATTEMPTS {
+            let thread_id = manager.reserve_thread_id();
+            let Some(attempt) = self
+                .store()
+                .await?
+                .claim_task(&self.worker_id, &thread_id.to_string(), now(), MAX_ACTIVE)
+                .await?
+            else {
+                break;
+            };
+            let runtime = self.clone();
+            self.workers.spawn(async move {
+                let tasks=TaskTracker::new();
+                if let Err(error)=runtime.run_attempt(&attempt, thread_id, &tasks).await {
+                    // No arguments, prompts or credentials are included in this log.
+                    tracing::warn!(attempt_id=%attempt.id, "organization attempt stopped: {error:#}");
+                    if let Ok(store)=runtime.store().await { let _=store.fail_attempt(&attempt.id, &runtime.worker_id).await; }
+                }
+                tasks.close();
+                if tokio::time::timeout(Duration::from_secs(10), tasks.wait()).await.is_ok() {
+                    if let Ok(store)=runtime.store().await { let _=store.release_attempt_capacity(&attempt.id, &runtime.worker_id).await; }
+                } else {
+                    tracing::warn!(attempt_id=%attempt.id, "native cleanup did not finish; execution reservation retained for reconciliation");
+                }
+                runtime.wake();
+            });
+        }
+        Ok(())
+    }
+
+    async fn run_attempt(
+        &self,
+        attempt: &OrganizationTaskAttempt,
+        thread_id: ThreadId,
+        runtime_tasks: &TaskTracker,
+    ) -> Result<()> {
+        let owner = self.ensure_execution_owner().await?;
+        let store = self.store().await?.clone();
+        let view = store.execution_view(&attempt.task_id).await?;
+        let authorization = view.authorization.context("task authorization missing")?;
+        let linked = self
+            .thread_store
+            .read_project(view.task.project_id.clone())
+            .await?
+            .context("linked project missing")?;
+        let OrganizationRecord::Project(project) = store
+            .read_definition(OrganizationRecordKind::Projects, &view.task.project_id)
+            .await?
+        else {
+            anyhow::bail!("invalid linked project record")
+        };
+        let OrganizationRecord::Node(node) = store
+            .read_definition(OrganizationRecordKind::Nodes, &view.task.owner_id)
+            .await?
+        else {
+            anyhow::bail!("invalid task owner record")
+        };
+        let role = if let Some(id) = node.role_version_id {
+            let OrganizationRecord::Role(role) = store
+                .read_definition(OrganizationRecordKind::Roles, &id)
+                .await?
+            else {
+                anyhow::bail!("invalid role version")
+            };
+            role.instructions
+        } else {
+            String::new()
+        };
+        ensure!(
+            linked
+                .roots
+                .iter()
+                .map(|root| &root.path)
+                .eq(project.roots.iter()),
+            "linked project roots changed"
+        );
+        let workspace = Arc::new(TaskWorkspace::create(
+            &self.config,
+            std::path::Path::new(&project.roots[0]),
+            &attempt.id,
+            &authorization.scope,
+        )?);
+        store
+            .bind_attempt_runtime(
+                &attempt.id,
+                &self.worker_id,
+                &OrganizationRuntimeBinding {
+                    workspace: workspace.root.to_string_lossy().into_owned(),
+                    turn_id: None,
+                    artifact_bases: workspace.artifact_bases.clone(),
+                },
+                now(),
+            )
+            .await?;
+        let stop = self.shutdown.child_token();
+        let guard = Arc::new(AttemptGuard {
+            store: store.clone(),
+            attempt_id: attempt.id.clone(),
+            worker_id: self.worker_id.clone(),
+            thread_id: thread_id.to_string(),
+            workspace: workspace.root.to_string_lossy().into_owned(),
+            artifact_bases: workspace.artifact_bases.clone(),
+            model: authorization.scope.model.clone(),
+            completed: CancellationToken::new(),
+            failed: CancellationToken::new(),
+            stop: stop.clone(),
+            serial: Arc::new(tokio::sync::Mutex::new(())),
+            dispatched: Mutex::new(HashMap::new()),
+            _execution_owner: owner,
+        });
+        let _stop_on_exit = stop.clone().drop_guard();
+        let manager = self.manager.upgrade().context("thread manager stopped")?;
+        let mut config = (*self.config).clone();
+        configure_task(&mut config, &workspace, &authorization.scope)?;
+        // Instructions are content, not grants; core isolation removes inherited
+        // extensions and uses only the explicit registry supplied here.
+        config.developer_instructions = Some(format!(
+            "Execute only this authorized task in the isolated workspace. Tool approvals and limits are host enforced. Produce the requested artifacts; do not declare them accepted.\nOwner-defined role instructions:\n{role}"
+        ));
+        let mut registry = ExtensionRegistryBuilder::<Config>::new();
+        registry.model_request_contributor(guard.clone());
+        registry.tool_lifecycle_contributor(guard.clone());
+        registry.turn_lifecycle_contributor(guard.clone());
+        let mut options = StartThreadOptions::new(config);
+        // Bind exactly the qualified local environment. Default selections may
+        // also include remote attachments, which are outside this MVP's scope.
+        let local_environment = manager
+            .environment_manager()
+            .default_environment_id()
+            .context("local execution environment missing")?
+            .to_owned();
+        options.environments = Some(
+            manager
+                .default_environment_requests(
+                    &workspace.root,
+                    std::slice::from_ref(&workspace.root),
+                )
+                .into_iter()
+                .filter(|environment| environment.environment_id == local_environment)
+                .collect(),
+        );
+        options.reserved_thread_id = Some(thread_id);
+        options
+            .thread_extension_init
+            .insert(SessionIsolation::Isolated);
+        options
+            .thread_extension_init
+            .insert(IsolatedSessionExtensions(Arc::new(registry.build())));
+        options.thread_extension_init.insert(ToolPolicy {
+            allowed_tools: Some(
+                ["exec_command", "apply_patch"]
+                    .map(ToolName::plain)
+                    .to_vec(),
+            ),
+            require_managed_sandbox: true,
+            require_unified_exec: false,
+            expose_additional_permissions: false,
+        });
+        let work = async {
+            let new = manager
+                .start_thread_until(options, stop.clone().cancelled_owned(), runtime_tasks)
+                .await?;
+            let input = format!(
+                "Task: {}\nAcceptance criteria:\n{}\nDeclared artifacts: {}",
+                view.task.instructions,
+                view.task.criteria.join("\n"),
+                authorization.scope.artifacts.join(", ")
+            );
+            ensure!(
+                matches!(
+                    new.thread
+                        .start_turn_if_idle(TurnInputRequest::user_input(vec![UserInput::Text {
+                            text: input,
+                            text_elements: Vec::new()
+                        }]))
+                        .await?,
+                    StartIfIdleSubmission::Started { .. }
+                ),
+                "reserved task thread could not start"
+            );
+            tokio::select! { _=guard.completed.cancelled()=>{}, _=guard.failed.cancelled()=>anyhow::bail!("Codex task runtime reported failure") }
+            ensure!(
+                !guard.failed.is_cancelled() && !stop.is_cancelled(),
+                "Codex task runtime did not complete successfully"
+            );
+            let checks = workspace
+                .checks(&self.config, &authorization.scope, stop.clone())
+                .await?;
+            let artifacts = workspace.artifacts(&authorization.scope)?;
+            store
+                .record_result(&attempt.id, &self.worker_id, artifacts, checks, now())
+                .await?;
+            Ok::<_, anyhow::Error>(())
+        };
+        tokio::pin!(work);
+        let deadline = tokio::time::sleep(Duration::from_secs(u64::from(
+            authorization.scope.max_seconds,
+        )));
+        tokio::pin!(deadline);
+        let mut heartbeat = tokio::time::interval(Duration::from_secs(1));
+        loop {
+            tokio::select! {
+                biased;
+                result=&mut work=>return result,
+                _=stop.cancelled()=>anyhow::bail!("organization execution stopped"),
+                _=&mut deadline=>anyhow::bail!("elapsed task budget exhausted"),
+                _=heartbeat.tick()=>store.heartbeat_attempt(&attempt.id, &self.worker_id, now()).await?,
+            }
+        }
+    }
+}
+
+fn configure_task(
+    config: &mut Config,
+    workspace: &TaskWorkspace,
+    scope: &OrganizationExecutionScope,
+) -> Result<()> {
+    config.cwd = workspace.root.clone();
+    config.workspace_roots = vec![workspace.root.clone()];
+    config
+        .permissions
+        .set_workspace_roots(config.workspace_roots.clone());
+    config
+        .permissions
+        .set_permission_profile(workspace.profile.clone())?;
+    config
+        .permissions
+        .approval_policy
+        .set(AskForApproval::Never)?;
+    config.permissions.allow_login_shell = false;
+    config.permissions.shell_environment_policy = ShellEnvironmentPolicy {
+        inherit: ShellEnvironmentPolicyInherit::None,
+        ignore_default_excludes: false,
+        r#set: HashMap::from([
+            ("PATH".into(), "/usr/bin:/bin".into()),
+            ("HOME".into(), workspace.root.to_string_lossy().into_owned()),
+            (
+                "TMPDIR".into(),
+                workspace.root.to_string_lossy().into_owned(),
+            ),
+        ]),
+        ..Default::default()
+    };
+    config.model = Some(scope.model.clone());
+    // Each provider attempt must have its own durable admission. The MVP uses
+    // HTTP without transparent retries; ambiguous requests require reconciliation.
+    config.model_provider.supports_websockets = false;
+    config.model_provider.request_max_retries = Some(0);
+    config.model_provider.stream_max_retries = Some(0);
+    config.web_search_mode.set(WebSearchMode::Disabled)?;
+    config.mcp_servers.set(HashMap::new())?;
+    for feature in [
+        Feature::UnifiedExec,
+        Feature::CodeMode,
+        Feature::CodeModeHost,
+        Feature::CodeModeOnly,
+        Feature::CodeModePrewarm,
+        Feature::MultiAgentV2,
+        Feature::MultiAgentMode,
+        Feature::Goals,
+        Feature::CodexHooks,
+        Feature::PluginHooks,
+        Feature::ShellSnapshot,
+        Feature::ShellSnapshotV2,
+        Feature::Apps,
+    ] {
+        config.features.disable(feature)?;
+    }
+    config.notify = None;
+    config.project_doc_max_bytes = 0;
+    config.orchestrator_mcp_enabled = false;
+    Ok(())
+}
+
+#[derive(Debug)]
+struct AttemptGuard {
+    store: OrganizationStore,
+    attempt_id: String,
+    worker_id: String,
+    thread_id: String,
+    workspace: String,
+    artifact_bases: Vec<OrganizationArtifactBase>,
+    model: String,
+    completed: CancellationToken,
+    failed: CancellationToken,
+    stop: CancellationToken,
+    serial: Arc<tokio::sync::Mutex<()>>,
+    dispatched: Mutex<HashMap<String, OwnedMutexGuard<()>>>,
+    _execution_owner: Arc<File>,
+}
+
+impl ModelRequestContributor for AttemptGuard {
+    fn request_guarded<'a>(
+        &'a self,
+        input: ModelRequestInput<'a>,
+    ) -> ExtensionFuture<'a, std::result::Result<Option<Box<dyn ModelResponseInterceptor>>, String>>
+    {
+        Box::pin(async move {
+            if input.kind == ModelRequestKind::Warmup {
+                return Ok(None);
+            }
+            if input.thread_id != self.thread_id
+                || input.model != self.model
+                || self.stop.is_cancelled()
+                || self.failed.is_cancelled()
+            {
+                return Err("managed model request identity or authority changed".into());
+            }
+            let (sequence, prior) = self
+                .store
+                .admit_model_request(&self.attempt_id, &self.worker_id, now())
+                .await
+                .map_err(|error| format!("managed inference admission denied: {error:#}"))?;
+            Ok(Some(Box::new(UsageReceipt {
+                store: self.store.clone(),
+                attempt_id: self.attempt_id.clone(),
+                worker_id: self.worker_id.clone(),
+                sequence,
+                prior,
+            }) as Box<dyn ModelResponseInterceptor>))
+        })
+    }
+}
+
+struct UsageReceipt {
+    store: OrganizationStore,
+    attempt_id: String,
+    worker_id: String,
+    sequence: u32,
+    prior: i64,
+}
+impl ModelResponseInterceptor for UsageReceipt {
+    fn intercept(self: Box<Self>, stream: ModelResponseStream) -> ModelResponseStream {
+        Box::pin(stream.then(move |event| {
+            let store = self.store.clone();
+            let attempt = self.attempt_id.clone();
+            let worker = self.worker_id.clone();
+            let sequence = self.sequence;
+            let prior = self.prior;
+            async move {
+                if let Ok(ResponseEvent::Completed { token_usage, .. }) = &event {
+                    let Some(usage) = token_usage else {
+                        return Err(ModelResponseError::Stream(
+                            "managed task provider omitted usage; reconciliation required".into(),
+                        ));
+                    };
+                    let Some(total) = prior
+                        .checked_add(usage.total_tokens)
+                        .filter(|total| *total >= prior)
+                    else {
+                        return Err(ModelResponseError::Stream(
+                            "invalid managed task token usage".into(),
+                        ));
+                    };
+                    if store
+                        .checkpoint_usage(&attempt, &worker, sequence, total)
+                        .await
+                        .is_err()
+                    {
+                        return Err(ModelResponseError::Stream(
+                            "managed task usage could not be durably recorded".into(),
+                        ));
+                    }
+                }
+                event
+            }
+        }))
+    }
+}
+
+impl ToolLifecycleContributor for AttemptGuard {
+    fn admit_tool_start<'a>(
+        &'a self,
+        input: ToolStartInput<'a>,
+    ) -> ExtensionFuture<'a, std::result::Result<(), String>> {
+        Box::pin(async move {
+            if input.thread_store.level_id() != self.thread_id
+                || input.mcp_tool.is_some()
+                || !input.tool_name.is_default_namespace()
+            {
+                return Err("tool outside managed task runtime".into());
+            }
+            let arguments = input.payload.log_payload();
+            validate_native_arguments(&input.tool_name.name, &arguments)
+                .map_err(|error| format!("managed tool arguments denied: {error:#}"))?;
+            let permit = self.serial.clone().lock_owned().await;
+            let action = self
+                .store
+                .prepare_action(
+                    &self.attempt_id,
+                    &self.worker_id,
+                    input.call_id,
+                    &input.tool_name.name,
+                    &arguments,
+                    now(),
+                )
+                .await
+                .map_err(|error| format!("managed tool admission denied: {error:#}"))?;
+            loop {
+                if self.stop.is_cancelled() || self.failed.is_cancelled() {
+                    return Err("managed task stopped".into());
+                }
+                if self
+                    .store
+                    .dispatch_action(&action.id, &self.worker_id, now(), MAX_ACTIVE)
+                    .await
+                    .map_err(|error| format!("managed tool dispatch denied: {error:#}"))?
+                {
+                    break;
+                }
+                tokio::select! { _=self.stop.cancelled()=>return Err("managed task stopped".into()), _=tokio::time::sleep(Duration::from_millis(250))=>{} }
+            }
+            self.dispatched
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner)
+                .insert(input.call_id.to_owned(), permit);
+            Ok(())
+        })
+    }
+
+    fn on_tool_finish<'a>(&'a self, input: ToolFinishInput<'a>) -> ToolLifecycleFuture<'a> {
+        Box::pin(async move {
+            let permit = self
+                .dispatched
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner)
+                .remove(input.call_id);
+            if permit.is_none() {
+                return;
+            }
+            let succeeded = matches!(input.outcome, ToolCallOutcome::Completed { success: true });
+            if self
+                .store
+                .finish_action(
+                    &self.attempt_id,
+                    &self.worker_id,
+                    input.call_id,
+                    succeeded,
+                    &format!("{:?}", input.outcome),
+                )
+                .await
+                .is_err()
+            {
+                self.failed.cancel();
+            }
+            drop(permit);
+        })
+    }
+}
+
+/// Owner action approval permits this action inside the existing scope. It
+/// never authorizes a broader sandbox, another environment or persistent rules.
+fn validate_native_arguments(tool: &str, arguments: &str) -> Result<()> {
+    ensure!(
+        arguments.len() <= 128 * 1024 && !arguments.contains('\0'),
+        "invalid tool argument size"
+    );
+    if tool != "exec_command" {
+        return Ok(());
+    }
+    let arguments: serde_json::Value = serde_json::from_str(arguments)?;
+    let object = arguments
+        .as_object()
+        .context("command arguments must be an object")?;
+    ensure!(
+        object
+            .get("sandbox_permissions")
+            .is_none_or(|value| value == "use_default"),
+        "managed commands cannot request sandbox escalation"
+    );
+    for key in ["additional_permissions", "prefix_rule"] {
+        ensure!(
+            object.get(key).is_none_or(serde_json::Value::is_null),
+            "managed commands cannot request {key}"
+        );
+    }
+    ensure!(
+        object.get("login").is_none_or(|value| value == false),
+        "managed commands cannot use login shells"
+    );
+    ensure!(
+        object
+            .get("environment_id")
+            .is_none_or(|value| value.is_null() || value == "local"),
+        "managed commands cannot select another environment"
+    );
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn exact_action_approval_does_not_expand_execution_authority() {
+        assert!(
+            validate_native_arguments(
+                "exec_command",
+                r#"{"cmd":"printf ok","login":false,"sandbox_permissions":"use_default"}"#
+            )
+            .is_ok()
+        );
+        for request in [
+            json!({"cmd":"id", "sandbox_permissions":"require_escalated"}),
+            json!({"cmd":"id", "additional_permissions":{"network":{"enabled":true}}}),
+            json!({"cmd":"id", "prefix_rule":["id"]}),
+            json!({"cmd":"id", "login":true}),
+            json!({"cmd":"id", "environment_id":"remote"}),
+            json!(["id"]),
+        ] {
+            assert!(
+                validate_native_arguments("exec_command", &request.to_string()).is_err(),
+                "unexpected authority: {request}"
+            );
+        }
+    }
+}
+
+impl TurnLifecycleContributor for AttemptGuard {
+    fn on_turn_start<'a>(&'a self, input: TurnStartInput<'a>) -> ExtensionFuture<'a, ()> {
+        Box::pin(async move {
+            if self
+                .store
+                .bind_attempt_runtime(
+                    &self.attempt_id,
+                    &self.worker_id,
+                    &OrganizationRuntimeBinding {
+                        workspace: self.workspace.clone(),
+                        turn_id: Some(input.turn_id.to_owned()),
+                        artifact_bases: self.artifact_bases.clone(),
+                    },
+                    now(),
+                )
+                .await
+                .is_err()
+            {
+                self.failed.cancel();
+            }
+        })
+    }
+    fn on_turn_stop<'a>(&'a self, _input: TurnStopInput<'a>) -> ExtensionFuture<'a, ()> {
+        Box::pin(async move {
+            self.completed.cancel();
+        })
+    }
+    fn on_turn_abort<'a>(&'a self, _input: TurnAbortInput<'a>) -> ExtensionFuture<'a, ()> {
+        Box::pin(async move {
+            self.failed.cancel();
+        })
+    }
+    fn on_turn_error<'a>(&'a self, _input: TurnErrorInput<'a>) -> ExtensionFuture<'a, ()> {
+        Box::pin(async move {
+            self.failed.cancel();
+        })
+    }
+}
+
+pub(crate) fn now() -> i64 {
+    chrono::Utc::now().timestamp()
+}

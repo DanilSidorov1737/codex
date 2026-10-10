@@ -1,6 +1,8 @@
 use crate::SessionArchiveConfigOverrides;
 use crate::finalize_session_archive_interactive;
 use clap::Parser;
+use codex_app_server_protocol::OrganizationExecutionMutateParams;
+use codex_app_server_protocol::OrganizationExecutionReadParams;
 use codex_app_server_protocol::OrganizationListParams;
 use codex_app_server_protocol::OrganizationMutateParams;
 use codex_app_server_protocol::ProjectCreateParams;
@@ -33,6 +35,11 @@ enum Action {
     },
     /// Apply a typed owner mutation read from a JSON file.
     Mutate { file: PathBuf },
+    /// Inspect durable attempt state, pending approvals, action receipts and evidence.
+    ExecutionRead { task_id: String },
+    /// Authorize, stop, decide an exact approval or review a result from JSON.
+    /// Background execution requires the detached local daemon.
+    Execute { file: PathBuf },
     /// Create metadata using the existing Codex project API, then link it with mutate.
     ProjectCreate {
         name: String,
@@ -82,16 +89,21 @@ pub(crate) async fn run(
             limit: Some(limit),
         }),
         Action::Mutate { file } => {
-            let file = tokio::fs::File::open(file).await?;
-            let metadata = file.metadata().await?;
-            anyhow::ensure!(
-                metadata.is_file() && metadata.len() <= 128 * 1024,
-                "mutation must be a JSON file of at most 128 KiB"
-            );
-            let mut bytes = Vec::new();
-            file.take(128 * 1024 + 1).read_to_end(&mut bytes).await?;
-            anyhow::ensure!(bytes.len() <= 128 * 1024, "mutation exceeds 128 KiB");
+            let bytes = read_mutation(file).await?;
             OrganizationCommandAction::Mutate(OrganizationMutateParams {
+                mutation: serde_json::from_slice(&bytes)?,
+            })
+        }
+        Action::ExecutionRead { task_id } => {
+            OrganizationCommandAction::ExecutionRead(OrganizationExecutionReadParams { task_id })
+        }
+        Action::Execute { file } => {
+            anyhow::ensure!(
+                !interactive.no_daemon,
+                "background task execution requires the local daemon; remove --no-daemon"
+            );
+            let bytes = read_mutation(file).await?;
+            OrganizationCommandAction::ExecutionMutate(OrganizationExecutionMutateParams {
                 mutation: serde_json::from_slice(&bytes)?,
             })
         }
@@ -123,4 +135,17 @@ pub(crate) async fn run(
     .await
     .map_err(|error| anyhow::anyhow!("{error:#}"))?;
     Ok(serde_json::to_string_pretty(&value)?)
+}
+
+async fn read_mutation(path: PathBuf) -> anyhow::Result<Vec<u8>> {
+    let file = tokio::fs::File::open(path).await?;
+    let metadata = file.metadata().await?;
+    anyhow::ensure!(
+        metadata.is_file() && metadata.len() <= 128 * 1024,
+        "mutation must be a JSON file of at most 128 KiB"
+    );
+    let mut bytes = Vec::new();
+    file.take(128 * 1024 + 1).read_to_end(&mut bytes).await?;
+    anyhow::ensure!(bytes.len() <= 128 * 1024, "mutation exceeds 128 KiB");
+    Ok(bytes)
 }

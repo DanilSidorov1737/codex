@@ -2369,6 +2369,251 @@
       ],
       "type": "string"
     },
+    "OrganizationExecutionMutation": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "expectedRevision": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "scope": {
+              "$ref": "#/definitions/OrganizationExecutionScope"
+            },
+            "taskId": {
+              "type": "string"
+            },
+            "type": {
+              "enum": [
+                "authorize"
+              ],
+              "title": "AuthorizeOrganizationExecutionMutationType",
+              "type": "string"
+            }
+          },
+          "required": [
+            "expectedRevision",
+            "scope",
+            "taskId",
+            "type"
+          ],
+          "title": "AuthorizeOrganizationExecutionMutation",
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "cancel": {
+              "type": "boolean"
+            },
+            "expectedRevision": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "taskId": {
+              "type": "string"
+            },
+            "type": {
+              "enum": [
+                "stop"
+              ],
+              "title": "StopOrganizationExecutionMutationType",
+              "type": "string"
+            }
+          },
+          "required": [
+            "cancel",
+            "expectedRevision",
+            "taskId",
+            "type"
+          ],
+          "title": "StopOrganizationExecutionMutation",
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "approvalId": {
+              "type": "string"
+            },
+            "approve": {
+              "type": "boolean"
+            },
+            "expectedHash": {
+              "type": "string"
+            },
+            "taskId": {
+              "type": "string"
+            },
+            "type": {
+              "enum": [
+                "decideApproval"
+              ],
+              "title": "DecideApprovalOrganizationExecutionMutationType",
+              "type": "string"
+            }
+          },
+          "required": [
+            "approvalId",
+            "approve",
+            "expectedHash",
+            "taskId",
+            "type"
+          ],
+          "title": "DecideApprovalOrganizationExecutionMutation",
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "digest": {
+              "type": "string"
+            },
+            "expectedRevision": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "taskId": {
+              "type": "string"
+            },
+            "type": {
+              "enum": [
+                "accept"
+              ],
+              "title": "AcceptOrganizationExecutionMutationType",
+              "type": "string"
+            }
+          },
+          "required": [
+            "digest",
+            "expectedRevision",
+            "taskId",
+            "type"
+          ],
+          "title": "AcceptOrganizationExecutionMutation",
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "expectedRevision": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "instructions": {
+              "type": "string"
+            },
+            "taskId": {
+              "type": "string"
+            },
+            "type": {
+              "enum": [
+                "requestChanges"
+              ],
+              "title": "RequestChangesOrganizationExecutionMutationType",
+              "type": "string"
+            }
+          },
+          "required": [
+            "expectedRevision",
+            "instructions",
+            "taskId",
+            "type"
+          ],
+          "title": "RequestChangesOrganizationExecutionMutation",
+          "type": "object"
+        }
+      ]
+    },
+    "OrganizationExecutionScope": {
+      "additionalProperties": false,
+      "properties": {
+        "artifacts": {
+          "description": "Files whose hashes must accompany the result presented for review.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "checks": {
+          "description": "Owner-supplied argv, executed by the host in the same restricted workspace.",
+          "items": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "type": "array"
+        },
+        "delegates": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "immutableFiles": {
+          "description": "Input files mounted read-only, including owner-selected test oracles.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "inputFiles": {
+          "description": "Files copied from the linked project into an isolated attempt workspace.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "maxAttempts": {
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "maxChildren": {
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "maxModelRequests": {
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "maxSeconds": {
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "maxTokens": {
+          "description": "Reported aggregate token ceiling; one provider request may be in flight.",
+          "format": "int64",
+          "type": "integer"
+        },
+        "model": {
+          "type": "string"
+        },
+        "requireToolApproval": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "artifacts",
+        "checks",
+        "delegates",
+        "immutableFiles",
+        "inputFiles",
+        "maxAttempts",
+        "maxChildren",
+        "maxModelRequests",
+        "maxSeconds",
+        "maxTokens",
+        "model",
+        "requireToolApproval"
+      ],
+      "type": "object"
+    },
     "OrganizationMutation": {
       "oneOf": [
         {

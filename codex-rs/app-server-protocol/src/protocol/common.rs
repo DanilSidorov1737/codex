@@ -793,6 +793,18 @@ client_request_definitions! {
         serialization: global("organization"),
         response: v2::OrganizationBackupResponse,
     },
+    #[experimental("organization/execution/read")]
+    OrganizationExecutionRead => "organization/execution/read" {
+        params: v2::OrganizationExecutionReadParams,
+        serialization: global_shared_read("organization"),
+        response: v2::OrganizationExecutionReadResponse,
+    },
+    #[experimental("organization/execution/mutate")]
+    OrganizationExecutionMutate => "organization/execution/mutate" {
+        params: v2::OrganizationExecutionMutateParams,
+        serialization: global("organization"),
+        response: v2::OrganizationExecutionMutateResponse,
+    },
     #[experimental("project/list")]
     ProjectList => "project/list" {
         params: v2::ProjectListParams,

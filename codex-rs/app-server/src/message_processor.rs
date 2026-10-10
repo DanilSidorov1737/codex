@@ -509,7 +509,8 @@ impl MessageProcessor {
             Arc::clone(&thread_list_state_permit),
         );
         let organization_processor = OrganizationRequestProcessor::new(
-            config.sqlite_config().home().to_path_buf(),
+            Arc::clone(&config),
+            &thread_manager,
             Arc::clone(&thread_store),
         );
         let thread_processor = ThreadRequestProcessor::new(
@@ -624,6 +625,7 @@ impl MessageProcessor {
     }
 
     pub(crate) fn clear_runtime_references(&self) {
+        self.organization_processor.shutdown();
         self.account_processor.clear_external_auth();
         self.apps_processor.shutdown();
         self.models_refresh_worker.shutdown();
@@ -1504,6 +1506,16 @@ impl MessageProcessor {
             }
             ClientRequest::OrganizationBackup { .. } => {
                 self.organization_processor.backup(session.origin).await
+            }
+            ClientRequest::OrganizationExecutionRead { params, .. } => {
+                self.organization_processor
+                    .execution_read(params, session.origin)
+                    .await
+            }
+            ClientRequest::OrganizationExecutionMutate { params, .. } => {
+                self.organization_processor
+                    .execution_mutate(params, session.origin)
+                    .await
             }
             ClientRequest::ProjectRead { params, .. } => {
                 self.project_processor.project_read(params).await
