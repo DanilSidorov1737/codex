@@ -14,6 +14,13 @@ Deterministic Responses fixtures exercise the real packaged CLI, detached daemon
 native sandbox, actual filesystem and independent immutable owner checks. They
 cannot establish live model quality, provider compatibility or real billing.
 
+The later owner-approved TUI creation/authorization and concept-art usability slice
+is qualified on application source `46d999bf5b`. Production format/Clippy, full
+CLI/package, 23 targeted tests and two fresh complete physical native workflows
+passed; the backend is unchanged from the live-qualified MVP. These new UI checks
+used local deterministic Responses and zero paid calls; real-model evidence below
+remains tied to its earlier source. Current package and exact hashes are in status.md.
+
 ## Acceptance evidence
 
 | Criterion | Local result and evidence | Remaining boundary |
@@ -29,7 +36,7 @@ cannot establish live model quality, provider compatibility or real billing.
 | A09 budgets/limits | Real reported usage, exhausted request/tool gates, child shared-budget/capacity races; invalid boot limit creates no grant/attempt | Corrected four-active/default-two native checks passed; provider billing is not capped |
 | A10 uncertain effects | Native post-dispatch crash and application intent restart become reconciliation/uncertain, with no automatic replay | External financial/messaging effects excluded |
 | A11 protected authority | Nine real sandbox denial assertions cover canonical state, owner IPC/home, other roots and privileged arguments | Notes/instructions remain untrusted input |
-| A12 five layouts | Final source: 370 physical commands at 120×36/50×20, 20 ms switches and 20 Console reopen cycles; 17 organization/editor tests and prior 152 layout/slash/overlay checks passed | Linux clean-terminal envelope |
+| A12 five layouts | Current UI: 23 targeted tests, 60 physical switches per fresh monochrome/RGB workflow across three sizes; earlier startup source passed 370 commands, 20 Console reopen cycles and 152 layout/slash/overlay checks | Linux clean-terminal envelope; Console retains existing chat, hierarchy uses indented cards |
 | A13 Operations tree | Actual selection/search/collapse/expand and pause/resume; 1,000-agent deep-node PTY benchmark passed | Frontend bounds record loading; owner CLI/API pagination extends inspection |
 | A14 official Neovim | Actual v0.12.6 modal Unicode save/paste/undo, splits/diff, focus and resize passed | Clean configuration; user plugins/configs unqualified |
 | A15 isolated editing/review | Protected read-only preview, native diff, dirty buffers/changed originals, exact hash Apply and owner oracle passed | Actual two-stage native Follow retained focus/cursor; external writers must be coordinated |
@@ -108,7 +115,7 @@ added. The heartbeat fix retains the single connection and corrects future polli
 instead of adding connections to hide contention. Correctness/security/native
 checks accompany the simplicity review; no standalone hooks were installed.
 
-## Release gate and resumption
+## Historical B6 release gate and resumption
 
 All independent local gates passed: four/two-active native execution, zero-effect
 model/limit denial, real quote/native Follow, corrected idle redraw, final hierarchy
@@ -141,7 +148,7 @@ writers remains unqualified/deferred. Prefer disjoint child artifacts.
 
 ## Startup/workflow follow-up — 2026-10-10 UTC
 
-Current application source is `6a4a9f6329`, following `4a19208b2c`.
+Application source for this earlier checkpoint is `6a4a9f6329`, following `4a19208b2c`.
 The final complete source/managed package has CLI SHA256
 `6152cbbd0e4b47877862685dc5d54f94f29ba3e6fd23f05de24b760089255ae7`;
 all helpers/manifests and running process identity were matched. Package:

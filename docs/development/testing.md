@@ -1,5 +1,114 @@
 # Testing procedures and evidence
 
+## Completed TUI creation and concept-art qualification — 2026-10-10 UTC
+
+Application source `46d999bf5bf868d4ac7b8eaf2f96c66ac8b51cac`, following owner
+forms commit `05a313c3f3`. Root/scoped instructions, all seven supplied images and
+the existing owner API/TextArea/editor/palette paths were inspected. Ponytail and
+correctness review reused those contracts plus installed Ratatui/diffy/UUIDs;
+there is no new form framework, backend/protocol/schema or dependency change.
+Frozen confirmations, stale-revision/hash fences, dirty-buffer protection and
+bounded artifact reads remain enforced. Project create/link crosses two stores;
+partial link failures report the created identity and require inspection before retry.
+
+### Automated and package checks
+
+From `/workspace/codex/codex-rs`, after `. /workspace/.onboarding/activate.sh`:
+
+- `cargo fmt -p codex-tui -- --check`: exit 0.
+- `CARGO_INCREMENTAL=0 RUST_MIN_STACK=8388608 cargo clippy --locked --offline --profile dev-small -j4 -p codex-tui --lib -- -D warnings`: exit 0.
+- `CARGO_INCREMENTAL=0 RUST_MIN_STACK=8388608 cargo test --locked --offline --profile dev-small -j4 -p codex-tui --lib organization -- --nocapture`: **23 passed, 0 failed/ignored**, including actual official-Neovim editing/diff/dirty-buffer behavior, request-ID overlap, project/create → returned-ID linking, captured authorization revision, canceled drafts, multiline Unicode, meaningful scope validation and tampered-artifact rejection.
+- `CARGO_INCREMENTAL=0 RUST_MIN_STACK=8388608 cargo build --locked --offline --profile dev-small -j4 -p codex-cli --bin codex`: exit 0.
+
+Logs: `tui-creation-art-20261010/{clippy,tests,build}.log` under
+`/workspace/.onboarding/qualification/`. The existing package builder exited 0:
+from `/workspace/codex`, `CODEX_REPO_ROOT=/workspace/codex python scripts/build_codex_package.py --target x86_64-unknown-linux-gnu --package-dir /workspace/.onboarding/qualification/tui-creation-art-20261010/package --entrypoint-bin /workspace/codex/codex-rs/target/dev-small/codex --code-mode-host-bin /workspace/.onboarding/qualification/mvp-followup/package-v2/bin/codex-code-mode-host --bwrap-bin /workspace/.onboarding/qualification/mvp-followup/package-v2/codex-resources/bwrap --rg-bin /workspace/.onboarding/qualification/mvp-followup/package-v2/codex-path/rg --strip none`.
+Unchanged native helpers were reused. All five source package files independently
+matched the private installed package; CLI SHA256 is
+`3c5c1741035d8960897d369656e7840ac7aa5b2bdaeb3eb8ac2272416d4ebb05`.
+
+### Actual physical workflows and screenshots
+
+Two fresh owner homes used the final complete package, protected native owner
+socket, official Neovim v0.12.6 and the existing localhost deterministic Responses
+fixture. Native checks used authorized unsandboxed execution because the outer
+sandbox masks owner IPC/process paths; permission checks were retained.
+Set both CODEX_HOME and CODEX_SQLITE_HOME to `ui-art-home` or `ui-rgb-home`
+under the qualification root; run the package's `app-server daemon start`/`stop`
+with that same home. Fresh startup installs the complete package. Both lifecycle
+commands exited 0. Physical input entered the actual CLI running in official
+Neovim's native terminal, and Workspace launched its own actual embedded editor.
+Owner RPC assertions were read-only; creation/decisions used TUI commands.
+
+Each workflow physically:
+
+1. Created two arbitrarily named related agents with `U`, canceled a captured
+   review without creating records, retained the draft, then used F6/`y`.
+   Selected/collapsed/expanded the actual hierarchy.
+2. Created a goal, project with existing absolute root/owner/goal, and linked task
+   with `G`/`N`/`T`. Verified canonical IDs/criteria and **zero inference** while
+   proposed and through canceled execution review.
+3. Used `s` to declare inputs, immutable oracle, output, argv check, model and
+   resource bounds; F6/`y` authorized work. Approved two exact native tool actions
+   using `a`/`y`, and saw the first-stage file in official-Neovim Follow.
+4. Entered Console and physically `/quit`; the delayed native command completed
+   to NeedsReview with the frontend closed. Reopened the CLI with stable definitions.
+   Original project remained unchanged; both exact approval receipts persisted.
+5. Inspected the verified inline diff and actual Neovim diff. Used `v`/`y` for
+   exact acceptance, proved the original unchanged, then `A`/`y` for Completed
+   Apply. Ran the independent original oracle (exit 0) and reopened the applied file.
+6. Physically edited/saved Unicode in real Neovim, verified disk contents, undid
+   and saved again. Resized the real terminal to 120×36, 50×20 and 160×48;
+   20 switches per size at 30 ms intervals passed without duplicate-ID/timeout frames.
+
+Each run used **three localhost Responses/45 fixture-reported tokens, zero paid
+calls**; combined 120 layout switches. The `gpt-5.5` catalog identity is a fixture
+label here. Previous real GPT qualification remains separately recorded below.
+The independent `verify.py` read fresh canonical records and confirmed two nodes,
+one goal/project/task, immutable oracle hashes, completed actions, accepted artifact
+SHA256, completed Apply, usage and all installed helper/manifest hashes.
+
+Evidence roots: `tui-creation-art-20261010/` and `tui-creation-art-rgb-20261010/`.
+Reproduction scripts are `provider.py`, `terminal.py`, `run.py`; independent check
+is `tui-creation-art-20261010/verify.py <RGB evidence root>`. Preserve all result JSON,
+prepared scopes, provider request logs, native PNG/text captures and cleanup records.
+Actual 16-image RGB archive: `/workspace/artifacts/cli-ui-update/cli-ui-update-screenshots.zip`.
+Both owned daemons/providers and native frontends are stopped; PID records removed.
+The container retains stopped daemon zombies with no execution; do not broadly kill
+other processes or rerun accepted/applied tasks. State and original failures remain.
+
+### Setup corrections and qualification limits
+
+Initial `daemon update --from-cli --yes` correctly rejected a fresh home with no
+selected package; ordinary `daemon start` installed it. The first long private-home
+path produced a 110-byte Unix socket and client `AF_UNIX path too long` before any
+tasks/inference. Only that owned daemon was stopped; moved its private home intact
+to a 91-byte socket path. Its absolute package symlink then pointed at the old home;
+changed only that owned symlink to its verified relative release path and restarted.
+`initial-socket-path-failure.json` preserves the original failure.
+
+The first entire workflow inherited `NO_COLOR=1` and passed monochrome fallback.
+A read-only capture with NO_COLOR removed showed basic color; explicit
+`FORCE_COLOR=3` selected the native terminal's supported RGB output. A second **fresh**
+workflow then passed and independently verified actual background/panel/blue/green
+pixels against the requested palette. Only test terminal environment changed;
+production color detection/accessibility were preserved. The native screenshots
+were visually reviewed against the concepts; no concept art was edited into evidence.
+
+Visual adaptations are documented in layouts.md: original Console chat/composer,
+indented card hierarchy, narrow pane stacking, no unsupported CPU/cost/timeline
+widgets. Inline review shows the first UTF-8 artifact up to 64 KiB per side and an
+original snapshot at load; Apply independently rechecks the current base. Advanced
+role/membership operations remain in the owner CLI. The full repository/other-platform
+suite and user Neovim plugins were not rerun for this TUI-only slice. These checks
+qualify the changed native UI flow; they do not assert new live model quality,
+distributed scale or provider billing results.
+
+Final documentation/artifact verification: **113 local links across 22 files**
+resolved, added credential-pattern check and `git diff --check` passed, and the
+16-image archive passed ZIP CRC verification. Receipt: RGB evidence root's
+`documentation-check.json`. Application source stayed unchanged after qualification.
+
 ## Concept-art shell — automated checkpoint, 2026-10-10 UTC
 
 Added responsive dashboard shell, canonical Operations counts/card tree, actual

@@ -15,6 +15,13 @@ initial qualified mode; user-config/plugin compatibility remains a later gate.
 Neovim owns text, modal commands, undo, splits, diff and file writes. Ratatui
 renders native cells/highlights/cursor. No custom editor or Vim clone is used.
 
+The qualified concept-art UI slice adds a declared-file Explorer, centered native
+grid, AI Collaboration inspector and Follow/Diff/Independent action panel. Clean
+Neovim enables native line numbers and the matching dark Normal highlight; no user
+editor configuration is edited. Both fresh physical workflows passed native Follow,
+diff, original reopening, Unicode editing/save/undo and resize. See layouts.md and
+the current testing checkpoint for captures and terminal palette adaptations.
+
 The narrow transport uses MIT `rmpv = 1.3.1` and its MIT `rmp = 0.8.15` dependency
 (existing num-traits). Both require Rust 1.85, below this checkout's 1.95 toolchain.
 Sources: https://github.com/3Hren/msgpack-rust. LGPL nvim-rs was not added and the

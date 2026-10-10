@@ -46,17 +46,17 @@ related-record display is bounded to 128, and tree traversal is iterative with
 bounded indentation. The owner loader caps each kind at 2,000 records and reports
 overflow rather than silently pretending the load is complete.
 
-Organization creation, role versioning, project linking and execution grants
-remain available through the documented owner CLI. These layouts display existing
-state; no synthetic progress, CPU utilization, dollar costs or test results are
-invented. See [command guide](organization-commands.md).
+Owner creation and explicit execution grants are available through the native
+forms below and documented owner CLI. Advanced role versioning/membership remains
+in the CLI. Dashboards display canonical state and evidence; unsupported CPU,
+timeline and billing metrics are deferred. See [command guide](organization-commands.md).
 
 Qualification must physically exercise all presets, hierarchy search/collapse,
 real owner controls, exact approvals, narrow/wide terminals and preference reload.
 Meaningful automated checks complement that evidence; snapshots alone cannot
 qualify the interaction. See [MVP criteria](mvp.md).
 
-## Owner creation and execution forms (in qualification)
+## Owner creation and execution forms (qualified)
 
 `N` opens a local project form, `T` a proposed task, `G` a goal and `U` an
 arbitrarily named agent. Select a task and press `s` to review its execution scope.
@@ -76,9 +76,11 @@ review includes host tool/network/credential limits, separate acceptance/Apply,
 in-flight token allowance and a matching owner price estimate when available.
 The daemon remains authoritative for validation, permissions and stale revisions.
 
-These controls are under qualification, not a completed release claim yet.
+Two fresh real packaged-CLI/native-daemon workflows passed these controls, exact
+approvals, detached completion, official-Neovim review, acceptance and Apply.
+See [testing](testing.md) for commands/evidence and the deterministic provider limit.
 
-## Concept-art dashboard shell (in qualification)
+## Concept-art dashboard shell (qualified)
 
 The supplied Console/Workspace/Projects/Operations/Review art is the visual
 reference. Dashboard surfaces now use its dark charcoal/navy palette, blue
@@ -101,3 +103,11 @@ Console conversation/composer is preserved. Wide connected organization diagrams
 unsupported CPU/memory/24-hour cost charts, timelines and future actions from the
 art are not fabricated. The current interactive tree remains usable for deep,
 user-defined hierarchies.
+
+Fresh pane defaults allocate 65% to the center; existing saved ratios are preserved.
+Color uses the shared terminal palette and contrast helpers: true-color targets the
+reference RGB palette, 256-color terminals quantize it, and limited/no-color terminals
+keep readable native defaults. Physical monochrome and RGB workflows both passed.
+RGB captures used the real Neovim terminal with `FORCE_COLOR=3`, `COLORTERM=truecolor`
+and inherited `NO_COLOR` removed only in that owned test terminal. Screenshots and
+plain native cell captures are in `/workspace/artifacts/cli-ui-update/`.

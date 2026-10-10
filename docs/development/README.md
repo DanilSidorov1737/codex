@@ -1,6 +1,8 @@
 # Codex CLI fork development
 
 Phase: **B1–B6 implemented/qualified, including bounded real GPT-5.5 pilots**.
+The owner-approved TUI creation/authorization and concept-art dashboard usability
+slice is also qualified on application source `46d999bf5b`; see status.md and layouts.md.
 Phase 0 repository baseline: `8026444c98cd9c6db9e7c953b44a20ea4f93c7b6`, from `origin/main`.
 Research recorded on 2026-10-09 (America/New_York).
 
@@ -24,6 +26,7 @@ organization is a template, not the product's fixed structure.
 B1 usage: [organization command guide](organization-commands.md).
 B3 contracts and bounds: [coordination](coordination.md).
 B4 layout usage and qualification: [layouts](layouts.md).
+Current native screenshots: `/workspace/artifacts/cli-ui-update/cli-ui-update-screenshots.zip`.
 B5 actual editor and application: [Neovim Workspace](neovim-workspace.md).
 Execution settings/prices: [resource limits](resource-limits.md).
 Release evidence/gates: [qualification](release-qualification.md).

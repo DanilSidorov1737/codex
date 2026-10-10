@@ -105,7 +105,7 @@ not optional polish.
 | Official Neovim executable                                 | Checksum-verified official v0.12.6 installed; real embedding and physical editing checks passed      |
 | Neovim MessagePack transport                               | Qualified narrow external UI adapter using MIT rmpv 1.3.1/rmp 0.8.15       |
 | Ponytail                                                   | Session skill available; standalone upstream plugin install/hooks require authorization              |
-| Provider authentication and model quota                    | No live provider test yet; select binding/model and bounded budget before the live pilot             |
+| Provider authentication and model quota                    | Real GPT-5.5 pilots qualified; retain secure OPENAI_API_KEY binding and minimal-spend evidence; new paid work needs its scope |
 | Protected service/state directories and owner vs agent IPC | Actual owner socket/state/project/native helper isolation denials passed |
 | Isolated fixture/task workspaces and Git                   | Preserve user changes; future task-workspace creation needs explicit product policy                  |
 | Process supervision                                        | Existing daemon first; reboot startup qualification is separate from TUI detach                      |

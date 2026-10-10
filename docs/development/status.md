@@ -1,11 +1,11 @@
 # Current status and resumption instructions
 
 Phase 0: **exploration and planning complete for available inputs**.
-Current work: **owner-approved TUI creation/authorization and concept-art UI slice in progress**.
+Current work: **TUI creation/authorization and concept-art dashboard slice delivered and qualified**.
 Application features: **delivered for the documented single-owner Linux envelope**.
 The MVP's release criteria are **qualified for the documented single-owner Linux/GPT-5.5 envelope**.
 
-## Approved next slice — 2026-10-10 UTC
+## Completed usability slice — 2026-10-10 UTC
 
 The owner approved TUI project/task creation and clear bounded authorization with
 “use ponytail to implement this”, periodic local commits, and visual fidelity to
@@ -15,10 +15,45 @@ using existing RPC, state, Ratatui and actual Neovim. No new dependency or provi
 calls are needed. Selective Apply, memory retrieval and recurring scheduling remain
 later slices. Preserve the completed real-GPT qualification below.
 
-Implementation is in progress; new automated and real interactive qualification
-will be recorded before this slice is marked complete. Existing Console remains
-the real Codex conversation/composer; dashboard changes must preserve its input
-and native editor focus semantics.
+Delivered native owner forms (`U` agent, `G` goal, `N` project, `T` task,
+`s` authorization), F6 exact review and explicit `y` confirmation. Definitions
+remain idle until separately authorized. Project creation links the server-returned
+identity; execution keeps the captured task revision and existing host fences.
+Dashboards now have the reference dark palette, blue selection, sidebar, cards,
+canonical counts/progress, right inspector, verified inline diff and actual Neovim
+with line numbers. No backend/protocol/dependency changes were needed.
+
+Current application source: **`46d999bf5b`**, following forms commit `05a313c3f3`.
+Formatting, production Clippy, **23 targeted tests** and full CLI/package passed.
+Two fresh physical workflows passed creation/canceled drafts, no inference before
+authorization, two exact tool approvals, native Follow/diff, detached completion,
+acceptance, explicit Completed Apply, independent immutable checks, file reopening
+and Unicode editing/save/undo. **60 layout switches per run** passed at 120×36,
+50×20 and 160×48 (120 total), with no duplicate-ID/timeout frames.
+Each run used three local deterministic Responses/45 reported fixture tokens;
+**no paid calls**. Independent read-only verification confirmed canonical links,
+immutable oracle, accepted artifact hash, Apply and all five installed package hashes.
+
+Current package: `/workspace/.onboarding/qualification/tui-creation-art-20261010/package/`.
+CLI SHA256: `3c5c1741035d8960897d369656e7840ac7aa5b2bdaeb3eb8ac2272416d4ebb05`.
+Evidence: `tui-creation-art-20261010/` and `tui-creation-art-rgb-20261010/` under
+the qualification root. Actual screenshots/archive: `/workspace/artifacts/cli-ui-update/`.
+Both owned daemons/providers and native frontends are stopped; state/evidence remain.
+Use short private homes (`ui-art-home`, `ui-rgb-home`) for Linux Unix-socket limits.
+
+Visual limits: Console retains the existing real conversation/composer; Operations
+uses an indented card tree rather than a wide connected graph. Narrow terminals
+hide the sidebar and stack panes. Unsupported CPU/cost/timeline charts are deferred.
+The first-artifact inline preview is bounded to 64 KiB UTF-8 per side; actual Neovim
+handles other files. Project creation/linking is not atomic; inspect the reported
+project ID before retrying a partial failure. Advanced role/membership editing
+remains available through the owner CLI. See layouts.md/testing.md for exact controls,
+retained setup failures and the monochrome/RGB capture distinction.
+
+Next action: present this completed slice and choose the next bounded roadmap scope
+with the owner. Preserve accepted/applied fixture tasks; do not automatically rerun
+paid pilots, start later features or push/merge/deploy. More platforms/providers,
+user Neovim plugins and selective Apply/memory/scheduling remain separate work.
 
 ## Current result and next action
 
@@ -27,7 +62,7 @@ bounded daemon work/delegation/context, all five layouts, official embedded Neov
 exact human review/Apply, owner boot limits and trusted price estimates are delivered.
 Ponytail reuse-first implementation/review and logical local commits were used.
 
-Current application source: **`6a4a9f6329`**, following request-ID fix `4a19208b2c`.
+Previous startup/workflow application source: **`6a4a9f6329`**, following request-ID fix `4a19208b2c`.
 Both bugs are fixed: unique IDs survive overlapping/canceled dashboard requests;
 refresh-triggered selection fetches execution details for newly visible tasks.
 Final checks passed **17 organization/editor tests**, production formatting/Clippy,
@@ -37,7 +72,7 @@ passed two exact approvals, actual official Neovim Follow/diff, work after TUI q
 exact acceptance, explicit Apply, independent original checks and file reopening.
 These earlier local checks used deterministic Responses and made zero paid calls;
 the separate completed live checkpoint below records real GPT usage.
-Current package: `/workspace/.onboarding/qualification/mvp-followup/package-v2/`.
+Previous package: `/workspace/.onboarding/qualification/mvp-followup/package-v2/`.
 Evidence: `mvp-followup/` under the qualification root; screenshots/archive:
 `/workspace/artifacts/cli-followup/`. Temporary services are stopped.
 
@@ -87,13 +122,12 @@ Evidence: `/workspace/.onboarding/qualification/mvp-followup/live-gpt/` contains
 pricing receipts, prepared IDs/scopes, all original failures, final result JSON,
 native terminal captures, `verification.json` and `cleanup.json`. All five private
 installed package hashes match the unchanged application source package. No
-application code or dependency changed for these live tests. Current actual
-screenshots/archive: `/workspace/artifacts/cli-live-gpt/`.
+application code or dependency changed for these live tests. Actual
+screenshots/archive from those pilots: `/workspace/artifacts/cli-live-gpt/`.
 Only the owned live daemon was stopped; no qualification service is intentionally
 running. Prepared tasks are now accepted/applied; do not rerun them automatically.
 
-**Next action:** present the completed MVP evidence and choose the next bounded
-roadmap slice with the owner. Preserve source/state/receipts, existing credentials
+**Completed live checkpoint:** preserve source/state/receipts, existing credentials
 and arbitrary role/hierarchy rules. Do not infer later-phase implementation,
 push/merge/deploy authority, repeated paid tests or Code Mode support from this
 qualification. Provider invoice validation, more platforms/providers, user editor

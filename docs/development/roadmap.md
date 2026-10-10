@@ -5,9 +5,11 @@ including real GPT-5.5 coding/delegation/document pilots. Later phases require
 the next bounded scope to be chosen with the owner. See
 [qualification evidence](qualification.md) and [status](status.md).
 
-Owner-approved next slice (2026-10-10): TUI owner creation/authorization and
-concept-art dashboard styling, implemented with existing RPC/widgets and being
-physically qualified. This is a bounded usability continuation of the MVP;
+Owner-approved usability slice (2026-10-10): TUI owner creation/authorization and
+concept-art dashboard styling are delivered and physically qualified on source
+`46d999bf5b`. Existing RPC/widgets, 23 affected tests and two fresh complete native
+workflows passed; screenshots/evidence are linked from status.md. This is a bounded
+usability continuation of the MVP;
 selective Apply, knowledge retrieval and recurring schedules remain later work.
 
 Sequence is based on technical dependencies and risk, not date estimates.
