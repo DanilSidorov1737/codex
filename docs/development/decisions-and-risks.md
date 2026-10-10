@@ -3,8 +3,10 @@
 Current approval: after M0/M1 qualification, the owner approved implementing the
 MVP with Ponytail and periodic local commits. The B1–B6 scope, single-host reuse
 architecture and isolated-editing approach are accepted for implementation.
-Production dependency choices must satisfy repository policy. Live-provider
-binding/model and numeric spending bound remain prerequisites for that pilot.
+Production dependency choices must satisfy repository policy. The owner supplied
+OPENAI_API_KEY and approved compatible-GPT pilots with minimal spending; retain
+the conservative $1 total working ceiling. Model listing authenticated and exposed
+gpt-5.5. Current official pricing verification remains blocked before inference.
 
 ## Decisions
 
@@ -56,9 +58,10 @@ clean-config qualification.
 
 Remaining decisions and qualification boundaries:
 
-1. Supply a verified live provider/model, secure credentials and a numeric test
-   spending ceiling for A05. The pending question has not been answered; local
-   implementation and deterministic qualification are authorized independently.
+1. A05's provider/key/model-list prerequisites are verified; compatible GPT and
+   minimal spending are authorized. Enable official pricing domains, verify rates
+   and check the prepared scopes against the $1 working ceiling before inference.
+   Model listing does not qualify generation, native tool compatibility or billing.
 2. User Neovim configuration/plugins and additional operating systems require
    their own compatibility matrix. Official Neovim 0.12.6 clean embedding is
    already obtained and locally qualified; no repeated installation approval.
@@ -72,9 +75,9 @@ Remaining decisions and qualification boundaries:
 There is no need to decide on Temporal, Redis, vector databases or distributed
 workers now. These remain conditional future choices.
 
-The approved scope and isolated editing semantics are implemented. Provider
-binding/model and a numeric live-test budget are needed before the paid pilot,
-not before writing this plan. Planning does not require new installations.
+The approved scope and isolated editing semantics are implemented. Live inference
+still requires current-rate verification and bounded scopes. No repeated provider,
+credential or ordinary implementation approval is required.
 
 ## Gate
 

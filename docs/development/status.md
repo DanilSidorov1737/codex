@@ -1,7 +1,7 @@
 # Current status and resumption instructions
 
 Phase 0: **exploration and planning complete for available inputs**.
-Current work: **both UI fixes and final local qualification complete; live GPT pilots blocked by API egress**.
+Current work: **both UI fixes and final local qualification complete; live GPT pilots prepared, current-rate verification blocked**.
 Application features: **delivered for the documented single-owner Linux envelope**.
 The MVP is **not fully release-qualified** until A05's bounded live-provider pilot passes.
 
@@ -48,18 +48,35 @@ hash-matched. Fixture daemon/provider are stopped; source package, state and all
 evidence remain outside Git. The container retains a stopped daemon zombie with
 zero execution; its managed PID record is removed.
 
-**Next action:** complete A05 after API egress is enabled. The owner supplied
-OPENAI_API_KEY, requested minimal spend and approved a compatible GPT instead of
-CodeModeOnly GPT-6 Luna. Use a conservative $1 total working ceiling, verified
-current prices and small scopes. Key presence is confirmed; validity is untested
-because proxy CONNECT to api.openai.com returned 403. Its allowlist addition is
-confirmed saved in the environment draft, preserving presets/bindings; the owner
-must review/save/publish in settings to apply it. Recheck supported HTTPS access,
-verify an available native-tool GPT (the current catalog lists gpt-5.5), then run
-single-agent coding, one-child delegation and fact-based document pilots with real
-owner checks, acceptance and Apply. No new routine approval or duplicate key is
-needed. Do not infer push/merge/deploy authority, redo qualified local slices,
-reinstall tools, use fixture zero-dollar quotes for real billing, or bypass Code Mode.
+**Next action:** enable access to official pricing documentation, verify current
+rates, then run the prepared A05 pilots. On 2026-10-10 UTC, supported HTTPS reached
+api.openai.com and authenticated GET /v1/models returned 200, listing gpt-5.5.
+The key works for model listing; inference/billing remain untested. Runtime policy
+metadata still omits that host and reports unknown readiness, so actual request
+results are recorded separately. The owner supplied OPENAI_API_KEY, requested
+minimal spend and approved a compatible GPT instead of CodeModeOnly GPT-6 Luna.
+Retain the conservative $1 total working ceiling; no duplicate key or model
+approval is needed.
+
+Fresh isolated live-provider home and three proposed tasks are prepared under
+`/workspace/.onboarding/qualification/mvp-followup/live-gpt/`; `prepared.json`
+holds their IDs/scopes. Low reasoning, no retries, concise owner instructions,
+immutable checks and exact review/Apply are configured. Definitions/zero usage
+and all five installed package hashes were verified. No task is authorized and
+zero paid inference requests have occurred; only the owned setup daemon was
+stopped. Preserve these IDs and projects rather than recreating them.
+
+Official pricing destinations openai.com, developers.openai.com and
+platform.openai.com returned proxy CONNECT 403. Those additions plus
+api.openai.com are saved in the environment draft, preserving package-manager
+presets and the existing credential binding. Review/save in environment settings
+and publish as required to apply configuration; saving a draft alone does not
+change runtime access. Recheck the supported route after that change, retain a
+current official pricing receipt, adjust token/request ceilings to the $1 working
+budget, then run single coding, one-child delegation and local-fact document pilots
+with real checks, physical approvals/Neovim review, acceptance and Apply.
+Do not infer push/merge/deploy authority, redo qualified local slices, reinstall
+tools, use fixture zero-dollar quotes for real billing, or bypass Code Mode.
 
 See [release matrix](release-qualification.md), [Workspace](neovim-workspace.md),
 [resource settings](resource-limits.md) and [owner commands](organization-commands.md).
@@ -232,10 +249,10 @@ authorize push/publication, outbound communications or unbounded provider spendi
 
 ## Known limitations / remaining work
 
-- A05 live-provider/model quality and compatibility is unrun: compatible GPT
-  pilots are authorized with minimal spending; key is present, but API proxy
-  egress is denied. Review/save/publish the saved api.openai.com network addition.
-  Local Responses were deterministic fixtures; no paid model was called.
+- A05 live inference remains unrun: authenticated model listing succeeds and
+  gpt-5.5 is available. Current official pricing pages remain blocked; apply the
+  saved pricing-domain additions before the bounded paid pilots. Three fresh
+  proposed tasks and a matching private package are prepared with zero usage.
 - Clean official Neovim 0.12.6 is qualified. User plugins/configs, unsaved crash
   restoration, shared-buffer merging and uncoordinated external writers are not.
   Saved files survive; clean mode disables swap. Use disjoint parallel artifacts.
@@ -260,10 +277,12 @@ authorize push/publication, outbound communications or unbounded provider spendi
 3. Activate the pinned environment with `. /workspace/.onboarding/activate.sh`.
    Final package: `/workspace/.onboarding/qualification/mvp-followup/package-v2/bin/codex`.
    Evidence root: `/workspace/.onboarding/qualification/`; fixture services are stopped.
-4. The key and compatible-model/minimal-spend authorization are present. Apply
-   the saved api.openai.com domain addition through environment settings, verify
-   normal HTTPS/model availability/prices and run the three bounded live pilots.
-   Preserve failures/usage/cost receipts; never print or persist the key value.
+4. The key and compatible-model/minimal-spend authorization are present; model
+   listing succeeded. Apply saved official-pricing domain additions through
+   environment settings, verify current rates and adjust scopes to the $1 working
+   budget. Restart only the prepared live-gpt/home daemon with the current package;
+   use prepared.json's existing task IDs. Run the three bounded real pilots and
+   preserve failures/usage/cost receipts; never print or persist the key value.
 5. Update acceptance/status/testing and make logical local commits after results.
    Do not start later roadmap phases without matching user scope, or infer push,
    merge, deploy, external messaging or financial authority.

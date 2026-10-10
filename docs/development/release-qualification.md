@@ -5,10 +5,12 @@ Heartbeat/database contention, idle editor redraw, overlapping dashboard IDs and
 refresh-triggered task inspection bugs were fixed and verified. **The MVP
 is not fully release-qualified: A05's bounded live-provider pilot is unrun.**
 The owner supplied OPENAI_API_KEY and approved compatible-GPT pilots with minimal
-spending; the conservative working ceiling is $1 total. API proxy CONNECT is denied
-(HTTP 403). The needed api.openai.com allowlist addition is saved in the environment
-draft but not applied/published; credential validity and model availability remain
-unverified. No paid model call was made.
+spending; the conservative working ceiling is $1 total. Authenticated API model
+listing now returns 200 and lists the native-tool gpt-5.5. Three isolated proposed
+tasks and a hash-matched private daemon package are prepared with zero usage.
+Official pricing pages remain blocked by proxy CONNECT 403; their domain additions
+are saved in the draft for review/save/publication. Current rates must be verified
+and scopes checked against the working budget before inference. No paid call was made.
 Deterministic Responses fixtures exercise the real packaged CLI, detached daemon,
 native sandbox, actual filesystem and independent immutable owner checks. They
 cannot establish live model quality, provider compatibility or real billing.
@@ -21,7 +23,7 @@ cannot establish live model quality, provider compatibility or real billing.
 | A02 versioned hierarchy/membership | Real stale edit/cycle denials; transactional reparent/membership/state tests passed | Moving nodes never grants execution authority |
 | A03 goals/tasks/plans | Persistent goal/project/task contracts and bounded plan/DAG/child acceptance tests; real native delegated plan ran | Owner grants constrain every child; no autonomous authority expansion |
 | A04 claim/generation fences | Concurrent claims, stale completion/settlement and reservation tests passed | Single owner host |
-| A05 useful live model workflow | Native fixture single/delegated coding and fact-based document pilots passed checks, owner acceptance and Apply | **Blocked: API egress denied; compatible GPT pilots authorized** |
+| A05 useful live model workflow | Native fixture pilots passed; live API authentication/model listing passed; three fresh real-provider tasks prepared at zero usage | **Blocked: official pricing access; paid inference/quality unrun** |
 | A06 detach/restart | Real CLI detach/reconnect and post-dispatch/pending-approval SIGKILL/restart tests passed | Interrupted work reconciles; arbitrary reboot/service supervision unqualified |
 | A07 pause/revocation | Physical pause/resume plus inherited authorization/delegation/context state gates passed | Existing native cleanup retains reservations until joined |
 | A08 exact human approvals | Actual protected owner approval/rejection; stale approval, pending crash and self-administration denial passed | Silence never approves |
@@ -125,10 +127,11 @@ Follow measured **1 frame in 3.25s**, versus
 stopped, retaining package/state/logs; `final-cleanup.json`. The container retains
 a stopped zombie (no execution), and its managed PID record was removed.
 
-A05 stays unrun until the owner supplies provider/model, secure credentials and
-numeric test-spend ceiling. This is a release blocker, not unfinished local feature
-implementation. Do not repeat approvals for already approved local slices or infer
-external operational/spending authority. Resume with the bounded live pilot and
+A05 stays unrun until current official pricing is reachable and the prepared scopes
+fit the $1 working ceiling. Credentials, compatible-GPT and minimal-spend authority
+are already present; authenticated model listing passed. This is a release blocker,
+not unfinished local feature implementation. Do not repeat those approvals or infer
+broader external authority. Resume with the bounded live pilot and
 record genuine model quality, native check results, usage and test spend. Broader
 roadmap phases remain separate scope.
 

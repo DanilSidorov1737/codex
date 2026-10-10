@@ -1,5 +1,59 @@
 # Testing procedures and evidence
 
+## Live GPT preparation checkpoint — 2026-10-10 UTC
+
+The owner's “ok begin” resumed the already authorized compatible-GPT pilots.
+No application source changed, and no previously qualified suite was rerun.
+Ponytail reused the existing complete package, private daemon, typed owner RPC,
+native-tool scope and meaningful immutable fixture checks.
+
+- Supported unauthenticated `curl https://api.openai.com/v1/models` returned 401
+  with exit 0, replacing the prior CONNECT denial. Python stdlib urllib with
+  inherited proxy/TLS trust and the existing environment key returned authenticated
+  HTTP 200; gpt-5.5 is listed. No key value was printed or written. Safe receipt:
+  `mvp-followup/live-access.json`. Metadata still reports unknown readiness and
+  omits the API host; actual operation success is not a metadata-readiness claim.
+- Official pricing checks for `https://openai.com/api/pricing/`,
+  `https://developers.openai.com/api/docs/models/gpt-5.5` and
+  `https://platform.openai.com/docs/pricing` returned CONNECT 403, curl exit 56,
+  target HTTP 000. Current rates are unverified; paid execution remains blocked.
+  Saved their domains additively alongside api.openai.com, preserving the existing
+  package-manager preset/key binding. Draft save succeeded with requires_publish;
+  it does not apply runtime configuration. Updated saved startup instructions to
+  remove stale missing-key/MVP claims and point to current status/live fixtures.
+- From `/workspace/codex`, activated `/workspace/.onboarding/activate.sh` and ran
+  the final package with CODEX_HOME and CODEX_SQLITE_HOME both set to
+  `/workspace/.onboarding/qualification/mvp-followup/live-gpt/home`:
+  `codex app-server daemon start` exited 0, installing the complete private package
+  and starting owned PID 374053. Custom provider points directly to the official
+  HTTPS Responses endpoint with env_key OPENAI_API_KEY, low reasoning, zero retries
+  and the repository's unchanged model catalog. Concise instructions use the
+  existing model_instructions_file override; host security/budget gates remain.
+- `python .../live-gpt/prepare.py` exited 0 through protected owner IPC with
+  authorized unsandboxed execution. It created two arbitrary agent names and
+  three fresh proposed projects/tasks: single addition repair/explanation, one-child
+  delegated repair and an exact-source local-fact document. Immutable checks cover
+  positive/zero/negative/fractional addition and document provenance. Every task
+  has zero attempts and zero requests; no authorization mutation was sent.
+  `prepared.json` retains task IDs, original bytes and provisional scopes. Check
+  those scopes against verified prices before authorizing; they are not a billing cap.
+- `python -m py_compile .../live-gpt/prepare.py` exited 0. This is only a harness
+  syntax check; the actual definition/zero-usage RPC assertions above validate setup.
+  Independent SHA256 comparisons matched all five final source/private installed
+  package files. `live-gpt/preparation-checkpoint.json` records their hashes and IDs.
+- Stopped only this owned daemon with its same home/current package; exit 0 and
+  stopped receipt. Existing fixture state/source/packages remain untouched. To
+  free installation space, retired one regenerable completed TUI test executable
+  after preserving its SHA256/size and successful test/build logs; receipt:
+  `live-cache-retirement.json`. No build, application source, canonical state,
+  user data, current package or test evidence was removed.
+
+**Paid inference: zero. Live generation, delegation quality, approvals/editor review
+of GPT output and Apply remain unrun.** Enable the saved official pricing domains
+through environment settings, verify current rates, adjust scopes to the conservative
+$1 total working ceiling, then restart the existing private daemon and run those
+three prepared tasks. Keep fixture and live usage/results distinct.
+
 ## B3 state and contract slice
 
 - `CARGO_INCREMENTAL=0 RUST_MIN_STACK=8388608 cargo test --locked --offline --profile dev-small -j4 -p codex-state --lib`, from `codex-rs`: **259 passed**, zero failures/ignored. Eight new coordination tests cover atomic DAG proposals, prerequisite admission, shared-root request races and token accounting, wait/capacity cleanup, real-check acceptance rules, scoped notes/inbox/deduplication/recovery, parent pause, one-shot schedules, role/policy snapshots and the four-resident-root bound. Log: `mvp-b3-state-recovery-final.log`.
