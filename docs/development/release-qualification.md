@@ -21,6 +21,19 @@ passed; the backend is unchanged from the live-qualified MVP. These new UI check
 used local deterministic Responses and zero paid calls; real-model evidence below
 remains tied to its earlier source. Current package and exact hashes are in status.md.
 
+The subsequent whole-file selective Apply slice is qualified on `9fadf32797`:
+259 state, 1 protocol, 4 schema, 25 Python, 5 native API and 25 native TUI tests
+(319 distinct), production format/Clippy and full CLI/package passed. Actual native
+selection/confirmation/cancel, persistent dirty-buffer denial, report-only Apply,
+unchanged owner notes, real Neovim diff/edit/save/undo and 60 switches passed.
+Independent verification before/after daemon restart confirms exact receipt paths,
+canonical state, immutable oracle and all five installed hashes. Three localhost
+fixture Responses/45 reported tokens, zero paid calls; this does not replace the
+earlier real-GPT evidence. The partial original intentionally fails its full-result
+oracle (expected exit 1); full isolated and independent selected checks pass.
+Exact current evidence/retained failures: [testing](testing.md),
+[selective Apply](selective-apply.md) and status.md.
+
 ## Acceptance evidence
 
 | Criterion | Local result and evidence | Remaining boundary |
@@ -36,7 +49,7 @@ remains tied to its earlier source. Current package and exact hashes are in stat
 | A09 budgets/limits | Real reported usage, exhausted request/tool gates, child shared-budget/capacity races; invalid boot limit creates no grant/attempt | Corrected four-active/default-two native checks passed; provider billing is not capped |
 | A10 uncertain effects | Native post-dispatch crash and application intent restart become reconciliation/uncertain, with no automatic replay | External financial/messaging effects excluded |
 | A11 protected authority | Nine real sandbox denial assertions cover canonical state, owner IPC/home, other roots and privileged arguments | Notes/instructions remain untrusted input |
-| A12 five layouts | Current UI: 23 targeted tests, 60 physical switches per fresh monochrome/RGB workflow across three sizes; earlier startup source passed 370 commands, 20 Console reopen cycles and 152 layout/slash/overlay checks | Linux clean-terminal envelope; Console retains existing chat, hierarchy uses indented cards |
+| A12 five layouts | Current UI: 25 targeted tests, 60 physical switches per fresh monochrome/RGB workflow across three sizes; earlier startup source passed 370 commands, 20 Console reopen cycles and 152 layout/slash/overlay checks | Linux clean-terminal envelope; Console retains existing chat, hierarchy uses indented cards |
 | A13 Operations tree | Actual selection/search/collapse/expand and pause/resume; 1,000-agent deep-node PTY benchmark passed | Frontend bounds record loading; owner CLI/API pagination extends inspection |
 | A14 official Neovim | Actual v0.12.6 modal Unicode save/paste/undo, splits/diff, focus and resize passed | Clean configuration; user plugins/configs unqualified |
 | A15 isolated editing/review | Protected read-only preview, native diff, dirty buffers/changed originals, exact hash Apply and owner oracle passed | Actual two-stage native Follow retained focus/cursor; external writers must be coordinated |

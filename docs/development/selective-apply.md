@@ -1,7 +1,7 @@
 # Whole-file selective Apply
 
 Owner-approved implementation slice, 2026-10-10 UTC. Backend and Review controls are
-implemented; complete package/physical qualification is in progress. This follows the selective acceptance,
+implemented and qualified on application source `9fadf32797`. This follows the selective acceptance,
 isolated workspace and conflict checks in `docs/Codex CLI Fork.txt`, lines 692–712.
 Ponytail reuses the existing Apply RPC, application ledger, prepared native writer
 and fixed TUI form. There is no new dependency, migration or patch framework.
@@ -48,10 +48,16 @@ Evidence root: `/workspace/.onboarding/qualification/selective-apply-20261010/`.
 Backend production Clippy, the complete state suite (259 tests) and all four schema
 comparisons and 25 Python contract/signature tests passed. Stable/experimental schema
 fixtures and Python contracts are regenerated. All five native API cases and 25
-TUI cases passed, including actual Neovim. Final protocol compatibility (one test),
-production TUI Clippy and affected formatting also passed; the 25 TUI cases were
-rerun after Clippy's iterator simplification. Complete package and physical
-CLI/Neovim workflow are being checked before release.
+TUI cases passed, including actual Neovim. Protocol compatibility (one test),
+production Clippy, affected formatting and complete CLI/package also passed.
+The final native TUI rerun includes the refresh-denial regression. Distinct automated
+total: 319. The physical two-file workflow passed selected Apply, native dirty-buffer
+refusal/correction, cancellation, real edit/save/undo and 60 layout switches.
+Independent verification before/after daemon restart confirms one Completed receipt
+with `paths=["report.txt"]`, unchanged notes and matching installed package hashes.
+Three local fixture Responses/45 reported tokens, zero paid calls. The complete
+isolated check passes; deliberately partial original composition's full check exits
+1 as expected. It is not claimed to pass. All owned services are stopped.
 See [testing](testing.md) and [status](status.md) for exact results as they complete.
 
 The initial protocol validator accidentally used a dev-only dependency and failed
@@ -67,7 +73,13 @@ confirmation remained open. The protection still rejected dispatch. Snapshot now
 preserves the captured decision's status; the actual dirty-editor regression also
 delivers a refresh and requires the denial/confirmation/no-dispatch to remain.
 Both failure captures/logs remain in the evidence root's named failure folders.
-The affected native UI checks and complete CLI are being rebuilt before resuming.
+Affected native UI checks, complete CLI and corrected physical resume passed.
+The final `package-v2/` preserves the initial package after the builder rejected
+nonempty output; all five installed files match it. See testing.md for exact commands.
+
+Local form validation text can linger after choices change. F6 validates the current
+selection and shows its exact valid payload; clearing stale local text is a cosmetic
+follow-up. No selection/security/recovery check is bypassed.
 
 Hunk selection, staged repeated Apply, selective acceptance of execution results,
 automatic checks of installed subsets, scoped-memory retrieval and recurring

@@ -15,12 +15,14 @@ External authority and live-provider spending remain separately bounded.
 The owner also approved the next usability slice: TUI project/task creation,
 explicit bounded authorization and matching the supplied concept art as closely
 as terminal behavior permits, using Ponytail and periodic local commits. Keep
-this scope/evidence current in status.md; later memory/scheduling/selective-Apply
+this scope/evidence current in status.md; later memory/scheduling
 work requires its matching scope.
 The owner approved the next slice with “continue and begin”: whole-file selective
 Apply in Review, using Ponytail and periodic commits. Preserve exact acceptance,
 owner confirmation, base/artifact checks, native dirty-buffer protection and the
 one-application-per-result recovery rule. Memory retrieval/schedules remain later scope.
+This selective Apply slice is qualified on `9fadf32797`; see
+[selective Apply](docs/development/selective-apply.md) and [testing](docs/development/testing.md).
 Record new approvals and scope in status.md; a plan alone does not authorize work.
 
 Read [docs/development/README.md](docs/development/README.md) and

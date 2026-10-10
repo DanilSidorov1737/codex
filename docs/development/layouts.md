@@ -103,7 +103,7 @@ whole accepted files, arrows/Space toggle, Tab/Enter moves, F6 freezes exact pat
 and `y` confirms. Empty selection is rejected; Esc retains a reviewed draft.
 The confirmation warns that full-result checks do not certify an installed subset,
 and that a subset consumes the result's one Apply. The existing native dirty-buffer
-fence remains. UI tests passed; complete package/physical checks are in progress in
+fence remains. All 25 UI tests, complete package and physical checks passed in
 [selective Apply](selective-apply.md).
 
 Terminal cells require adaptations: at narrow widths the sidebar disappears and

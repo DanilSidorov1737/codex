@@ -11,7 +11,8 @@ concept-art dashboard styling are delivered and physically qualified on source
 workflows passed; screenshots/evidence are linked from status.md. This is a bounded
 usability continuation of the MVP. The owner subsequently approved whole-file
 [selective Apply](selective-apply.md); backend/API checkpoint `32edc1cc71` is
-committed and native UI/package qualification is in progress. Knowledge retrieval,
+committed; Review `51f914a851` and refresh-denial fix `9fadf32797` are qualified with
+319 automated tests and real CLI/official-Neovim interaction. Knowledge retrieval,
 recurring schedules, hunks and staged repeated Apply remain later work.
 
 Sequence is based on technical dependencies and risk, not date estimates.

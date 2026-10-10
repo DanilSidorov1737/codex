@@ -1,30 +1,60 @@
 # Current status and resumption instructions
 
 Phase 0: **exploration and planning complete for available inputs**.
-Current work: **owner-approved whole-file selective Apply implementation/qualification**.
+Current work: **whole-file selective Apply completed and qualified**.
 Application features: **delivered for the documented single-owner Linux envelope**.
 The MVP's release criteria are **qualified for the documented single-owner Linux/GPT-5.5 envelope**.
 
-## Approved selective Apply slice — 2026-10-10 UTC
+## Completed selective Apply slice — 2026-10-10 UTC
 
-The owner requested “continue and begin”, Ponytail, periodic commits and the supplied
-text plan after the selective Apply recommendation. Scope: select whole accepted
-artifact files in Review, freeze the selected paths/task revision/digest in exact
-confirmation and persist exactly those paths in the existing application receipt.
-Omitted API paths preserve apply-all compatibility; explicit empty/duplicate/unknown
-paths must be rejected before an intent or write. Only selected originals/artifacts
-are checked/written, while all loaded Neovim dirty buffers still block host Apply.
-Retain one application per accepted result, including uncertain-operation no-replay.
-Partial Apply does not claim the full isolated-result checks passed in the installed
-subset. File hunks, staged repeated Apply, memory retrieval and scheduling remain later
-scope. Backend, schema and UI checks plus actual CLI/Neovim qualification are required
-before marking this slice complete. Preserve prior successful evidence below.
+The owner approved “continue and begin”, Ponytail, periodic commits and the supplied
+text plan. Whole-file selective Apply is delivered and qualified on application
+source **`9fadf32797`**, following backend/API `32edc1cc71` and Review `51f914a851`.
+Review `n` cycles verified artifact diffs and aligns real Neovim; `A` chooses files,
+Tab/Enter moves, arrows/Space toggles, F6 freezes exact paths/revision/digest and
+`y` confirms. Esc returns to the retained draft; a second Esc closes that form.
 
-Backend/API/schema checkpoint committed as `32edc1cc71`. Full state suite (259),
-schema comparisons (4), Python contracts (25), native API cases (5) and targeted
-TUI cases (25, including official Neovim) passed. Final protocol test, production
-TUI Clippy, formatting and the post-lint 25-case rerun passed. Full package and fresh
-physical workflow remain in progress; see [selective Apply](selective-apply.md).
+Omitted API paths preserve apply-all. Explicit empty/duplicate/unknown paths are
+rejected before an intent/write. Only selected bases/artifacts are checked/written;
+all loaded dirty native buffers still block host Apply. The existing receipt stores
+exact paths, with one Apply per accepted result and no uncertain-operation replay.
+Acceptance and recorded checks describe the complete isolated result, and do not
+certify a subset installed in the original. Hunks, staged repeated Apply, memory
+retrieval and recurring schedules remain later scope. There is no new dependency
+or migration. See [selective Apply](selective-apply.md) for contracts/limits.
+
+**319 relevant automated tests passed**: full state 259, protocol 1, schema comparisons
+4, Python contracts 25, native API 5 and native TUI/Neovim 25. Formatting,
+production warnings-denied Clippy and complete CLI/package passed. Physical creation,
+exact approvals, detached completion, two-artifact/native diff, acceptance, empty
+selection/dirty-buffer denial, canceled draft, report-only Apply, preserved notes,
+replay refusal, real Unicode edit/save/undo and 60 switches across three sizes passed.
+A physical rerun exposed refresh masking a blocked confirmation's explanation;
+`9fadf32797` fixes it and the actual-Neovim regression requires denial to survive
+Snapshot without dispatch. Initial failure evidence is retained.
+
+Independent verification before/after a daemon restart confirmed the single Completed
+receipt with `paths=["report.txt"]`, canonical links, immutable oracle, selected hash,
+unchanged owner notes, all five installed package hashes and native RGB palette.
+Three localhost deterministic Responses/45 fixture-reported tokens were used, with
+**zero paid calls**. The complete-result oracle intentionally exits 1 in the partial
+original composition; the isolated full-result check and independent selected-file
+check pass. This expected failure is recorded separately, not counted as passing.
+
+Current package: `/workspace/.onboarding/qualification/selective-apply-20261010/package-v2/`.
+CLI SHA256: `7da21117d388f56b0cfb4d0c4581a1ed8fbd29ec4cd2f3516ac9eddf3a43f0bb`.
+Evidence: `/workspace/.onboarding/qualification/selective-apply-20261010/`.
+Private home: `/workspace/.onboarding/qualification/select-home` (91-byte socket path).
+Current screenshot archive: `/workspace/artifacts/cli-selective-apply/cli-selective-apply-screenshots.zip`.
+Owned daemon/provider/frontends are stopped; canonical state, packages and failures
+remain. Do not blindly rerun its accepted/applied task or repeat paid pilots.
+Next bounded recommendation: scoped memory search using existing durable context,
+then recurring scheduling. Both need their matching implementation scope.
+The cloud startup guide was saved for this qualified package and resume procedure;
+installation/network/repository/credential fields were omitted and preserved.
+The tool reports `requires_publish=true`: the updated snapshot has not been published
+or verified in a fresh task. Current-instance qualification is complete; the owner
+must publish the refreshed snapshot to retain these local commits/package for later tasks.
 
 ## Completed usability slice — 2026-10-10 UTC
 
@@ -44,7 +74,7 @@ Dashboards now have the reference dark palette, blue selection, sidebar, cards,
 canonical counts/progress, right inspector, verified inline diff and actual Neovim
 with line numbers. No backend/protocol/dependency changes were needed.
 
-Current application source: **`46d999bf5b`**, following forms commit `05a313c3f3`.
+Previous usability application source: **`46d999bf5b`**, following forms commit `05a313c3f3`.
 Formatting, production Clippy, **23 targeted tests** and full CLI/package passed.
 Two fresh physical workflows passed creation/canceled drafts, no inference before
 authorization, two exact tool approvals, native Follow/diff, detached completion,
@@ -55,7 +85,7 @@ Each run used three local deterministic Responses/45 reported fixture tokens;
 **no paid calls**. Independent read-only verification confirmed canonical links,
 immutable oracle, accepted artifact hash, Apply and all five installed package hashes.
 
-Current package: `/workspace/.onboarding/qualification/tui-creation-art-20261010/package/`.
+Previous usability package: `/workspace/.onboarding/qualification/tui-creation-art-20261010/package/`.
 CLI SHA256: `3c5c1741035d8960897d369656e7840ac7aa5b2bdaeb3eb8ac2272416d4ebb05`.
 Evidence: `tui-creation-art-20261010/` and `tui-creation-art-rgb-20261010/` under
 the qualification root. Actual screenshots/archive: `/workspace/artifacts/cli-ui-update/`.
@@ -71,10 +101,10 @@ project ID before retrying a partial failure. Advanced role/membership editing
 remains available through the owner CLI. See layouts.md/testing.md for exact controls,
 retained setup failures and the monochrome/RGB capture distinction.
 
-Next action: present this completed slice and choose the next bounded roadmap scope
-with the owner. Preserve accepted/applied fixture tasks; do not automatically rerun
+That usability checkpoint is superseded by the completed selective Apply slice above.
+Choose the next bounded roadmap scope with the owner. Preserve accepted/applied fixture tasks; do not automatically rerun
 paid pilots, start later features or push/merge/deploy. More platforms/providers,
-user Neovim plugins and selective Apply/memory/scheduling remain separate work.
+user Neovim plugins, hunk review, memory retrieval and scheduling remain separate work.
 
 ## Current result and next action
 
@@ -350,7 +380,7 @@ authorize push/publication, outbound communications or unbounded provider spendi
 1. Read AGENTS.md, this status, release matrix, MVP, decisions and testing.
 2. Check Git status/log and preserve changes in the existing checkout.
 3. Activate the pinned environment with `. /workspace/.onboarding/activate.sh`.
-   Final package: `/workspace/.onboarding/qualification/mvp-followup/package-v2/bin/codex`.
+   Final package: `/workspace/.onboarding/qualification/selective-apply-20261010/package-v2/bin/codex`.
    Evidence root: `/workspace/.onboarding/qualification/`; fixture services are stopped.
 4. A05 is complete. Read live-gpt/verification.json and retained failure evidence;
    its tasks are accepted/applied and its daemon is stopped. Do not redo paid

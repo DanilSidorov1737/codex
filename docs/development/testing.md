@@ -1,79 +1,134 @@
 # Testing procedures and evidence
 
-## Selective Apply backend checkpoint — 2026-10-10 UTC
+## Completed selective Apply qualification — 2026-10-10 UTC
 
-Whole-file selection is implemented using the existing owner RPC/receipt/writer;
-native UI/package qualification is in progress. See [selective Apply](selective-apply.md).
-From `/workspace/codex/codex-rs`, after `. /workspace/.onboarding/activate.sh`, with
-`CARGO_INCREMENTAL=0 RUST_MIN_STACK=8388608`, `--locked --offline --profile dev-small -j4`:
+Application source `9fadf32797275291322fcc536376a58d27683938`, following backend/API
+`32edc1cc71` and Review `51f914a851`. Read the source/text plan/Review art and relevant
+instructions. Ponytail/correctness review reused the owner RPC, receipt, prepared
+writer, fixed Form and actual Neovim; no dependency or migration was added.
+See [selective Apply](selective-apply.md) for exact one-application/subset semantics.
 
-- `cargo test -p codex-state --lib`: **259 passed, 0 failed/ignored**. Invalid selections
-  create no receipt; exact chosen paths survive pending → uncertain reconciliation;
-  stale revision/digest and repeated Apply remain rejected.
-- `cargo clippy -p codex-protocol -p codex-state -p codex-app-server --lib -- -D warnings`: exit 0.
-- Schema writer explicitly ran with `CODEX_APP_SERVER_SCHEMA_ROOT=/workspace/codex/codex-rs/app-server-protocol/schema`
-  and `CODEX_APP_SERVER_SCHEMA_EXPERIMENTAL=0`, then `=1`, using
-  `cargo test -p codex-app-server-protocol --lib schema_fixtures_tests::write_schema_fixtures_from_env -- --exact --ignored`.
-  Both exited 0; `schema_fixtures_tests -- --skip write_schema_fixtures_from_env`:
-  **4 passed, 0 failed**, including stable and experimental compressed exports.
-- From `/workspace/codex/sdk/python`, `. .venv/bin/activate`,
-  `python scripts/update_sdk_artifacts.py generate-types --schema-dir ../../codex-rs/app-server-protocol/schema/json`: exit 0.
-  `python -m pytest tests/test_contract_generation.py tests/test_public_api_signatures.py -q`:
-  **25 passed**, exit 0. Generated Python Apply contracts include optional paths.
+### Automated checks
 
-Evidence: `/workspace/.onboarding/qualification/selective-apply-20261010/`.
-The first production state build rejected the validator's accidentally dev-only
-`anyhow` dependency; corrected to a std Result rather than adding a dependency.
-Final state/Clippy passed. An initial formatter invocation used the repository root
-instead of `codex-rs`; corrected and reran. Python generation initially used the
-system interpreter, then the venv interpreter without its installed `ruff` on PATH;
-activate `sdk/python/.venv/bin/activate` for generation/tests. Original failure logs
-remain. Pending final protocol/native/TUI/package/physical checks are not claimed here.
+From `/workspace/codex/codex-rs`, `. /workspace/.onboarding/activate.sh`, with
+`CARGO_INCREMENTAL=0 RUST_MIN_STACK=8388608` and Cargo flags
+`--locked --offline --profile dev-small -j4`:
 
-The same root's `tui-tests.log` now records **25 passed, 0 failed/ignored** from
-`cargo test -p codex-tui --lib organization -- --nocapture`, with the flags above
-and authorized native execution. New cases prove nonempty exact selection,
-Unicode/whitespace path preservation, canceled draft retention and frozen captured
-task/revision/digest despite later selection changes. Existing actual official-Neovim
-editing/diff/dirty-buffer tests passed through the new selection path; two-artifact
-inline cycling checks real verified bytes. Production TUI Clippy/build and the
-complete physical workflow remain pending.
+| Command/target | Result | Evidence log |
+| --- | --- | --- |
+| `cargo test -p codex-state --lib` | 259 passed, 0 failed/ignored | `state-tests.log` |
+| `cargo test -p codex-protocol --lib application_tests` | 1 passed; old JSON omission and exact selection validation | `protocol-tests-final.log` |
+| `cargo test -p codex-app-server-protocol --lib schema_fixtures_tests -- --skip write_schema_fixtures_from_env` | 4 passed; stable TS/JSON and both compressed exports | `schema-comparisons.log` |
+| `cargo test -p codex-app-server --test all suite::v2::organization -- --nocapture` | 5 passed, 0 failed/ignored | `native-api-tests.log` |
+| `cargo test -p codex-tui --lib organization -- --nocapture` | 25 passed, 0 failed/ignored, final refresh regression included | `tui-tests-refresh-fix.log` |
+| `cargo clippy -p codex-protocol -p codex-state -p codex-app-server --lib -- -D warnings` | Exit 0 | `backend-clippy.log` |
+| `cargo clippy -p codex-tui --lib -- -D warnings` | Exit 0 | `tui-clippy-refresh-fix.log` |
+| `cargo fmt -p codex-protocol -p codex-state -p codex-app-server -p codex-tui -- --check` | Exit 0 | `format-final.log` |
+| `cargo build -p codex-cli --bin codex` | Exit 0, final complete CLI | `cli-build-refresh-fix.log` |
 
-Native API qualification now passed **5 tests, 0 failed/ignored**:
-`cargo test -p codex-app-server --test all suite::v2::organization -- --nocapture`
-with the same flags and authorized native execution. The new report-only variant
-preserves an independently human-edited unselected file, denies selected stale bases
-and tampered artifacts before intent/write, records only `report.txt`, and rejects
-replay. Legacy apply-all, exact approvals, crash/reconnect and real delegation also
-passed. Evidence: `native-api-tests.log`; these use the existing localhost Responses
-fixture and real native commands, not paid GPT inference.
+Native API/TUI checks ran in authorized native execution: the outer sandbox masks
+owner IPC/process paths. Existing security assertions were retained. State checks
+prove invalid selections have no intent and chosen paths survive pending → uncertain;
+selected stale bases/artifacts are denied, unselected human files preserved, legacy
+apply-all, exact approvals/crash recovery/delegation and no-replay pass. TUI checks
+cover captured task/revision/digest/paths despite later selection, cancel retention,
+Unicode/whitespace paths, narrow rendering, verified cycling, actual editor behavior,
+dirty-buffer refusal and denial surviving Snapshot without dispatch.
 
-Final protocol legacy-JSON/selection validator test passed (**1 test**,
-`protocol-tests-final.log`). Production TUI Clippy initially denied
-`filter_map_bool_then`; replaced it with direct `filter`/`map`, retained the failure
-log, then warnings-denied Clippy passed (`tui-clippy-final.log`). Affected-package
-format check passed (`format-final.log`). The affected TUI tests are rerunning after
-that simplification; the complete CLI/package and physical workflow remain pending.
+The schema writer explicitly ran twice (one helper test each, exit 0) with
+`CODEX_APP_SERVER_SCHEMA_ROOT=/workspace/codex/codex-rs/app-server-protocol/schema`,
+`CODEX_APP_SERVER_SCHEMA_EXPERIMENTAL=0`, then `=1`:
+`cargo test -p codex-app-server-protocol --lib schema_fixtures_tests::write_schema_fixtures_from_env -- --exact --ignored`.
+From `/workspace/codex/sdk/python`, `. .venv/bin/activate`,
+`python scripts/update_sdk_artifacts.py generate-types --schema-dir ../../codex-rs/app-server-protocol/schema/json` exited 0;
+`python -m pytest tests/test_contract_generation.py tests/test_public_api_signatures.py -q`:
+**25 passed**, exit 0 (`sdk-contract-tests.log`). Distinct automated total: **319**;
+repeated runs and the explicitly invoked generation helper are not double-counted.
 
-That final TUI rerun passed **25 tests, 0 failed/ignored** (`tui-tests-final.log`).
-The backend and Review controls are ready as a source checkpoint; complete package
-and physical checks are still required before this slice is marked qualified.
+### Package and actual physical workflow
 
-Initial physical attempt stopped after a harness used one Esc instead of two to
-close confirmation plus retained draft (`initial-modal-navigation-failure/`).
-Canonical result stayed accepted, applications empty and original files unchanged.
-Resume then exposed an existing Snapshot refresh overwriting the native freeze
-denial (`refresh-masked-denial-failure/`). The write protection still rejected
-dispatch. Fixed by preserving status while confirmation is captured, and extended
-the actual dirty-Neovim regression to deliver Snapshot and require the denial and
-confirmation to persist without dispatch. Affected tests/Clippy/CLI are rerunning;
-no new model requests or tasks are needed to resume this accepted result safely.
+From `/workspace/codex`, the existing package builder exited 0:
+`CODEX_REPO_ROOT=/workspace/codex python scripts/build_codex_package.py --target x86_64-unknown-linux-gnu --package-dir /workspace/.onboarding/qualification/selective-apply-20261010/package-v2 --entrypoint-bin /workspace/codex/codex-rs/target/dev-small/codex --code-mode-host-bin /workspace/.onboarding/qualification/tui-creation-art-20261010/package/bin/codex-code-mode-host --bwrap-bin /workspace/.onboarding/qualification/tui-creation-art-20261010/package/codex-resources/bwrap --rg-bin /workspace/.onboarding/qualification/tui-creation-art-20261010/package/codex-path/rg --strip none`.
+Unchanged native helpers were reused. Fresh daemon start installs a full package;
+existing owned installations use `app-server daemon update --from-cli --yes`.
+All five final installed files independently match package-v2. CLI SHA256:
+`7da21117d388f56b0cfb4d0c4581a1ed8fbd29ec4cd2f3516ac9eddf3a43f0bb`.
 
-Post-refresh-fix checks passed: **25 native TUI tests, 0 failed/ignored**
-(`tui-tests-refresh-fix.log`), production warnings-denied Clippy
-(`tui-clippy-refresh-fix.log`) and affected formatting. Final CLI rebuild and the
-same accepted-result physical resume are pending. No backend/schema/state contract
-changed in this correction; their already-passing checks remain applicable.
+Evidence root `/workspace/.onboarding/qualification/selective-apply-20261010/`;
+private home `/workspace/.onboarding/qualification/select-home` (91-byte socket).
+Set both CODEX_HOME and CODEX_SQLITE_HOME to that home for lifecycle commands.
+`run.py` physically created two arbitrarily named related agents, goal/project/task,
+retained canceled drafts, proved zero inference before explicit bounded authorization,
+approved two exact native tool actions, used official Neovim v0.12.6 Follow/diff,
+physically `/quit`, and reopened after detached completion. Complete isolated
+report/notes checks passed, originals stayed unchanged, and exact result was accepted.
+
+After the recorded corrections below, `resume.py` verified the same task was accepted
+with **no application intent** and original files unchanged before interacting.
+Final package-v2 physically cycled both verified artifacts, opened native notes diff,
+made an unsaved Unicode edit, refused selected Apply and kept that denial visible
+through three seconds of live refresh. Two Escapes closed confirmation/draft; actual
+Neovim undo/save restored the original. Empty selection was rejected, report-only
+choice reviewed, canceled/retained and confirmed. Completed receipt records only
+`report.txt`; owner `notes.md` stayed byte-identical. Replay was refused. Reopened
+report in real Neovim, physically edited/saved Unicode, undid/saved again, then passed
+**60 rapid layout commands at 120×36, 50×20 and 160×48**, with zero duplicate-ID/timeout
+frames. Final log: `physical-resume-final.log`.
+
+Independent `verify.py <evidence root>` exited 0 before and after an actual daemon
+stop/start. It confirms canonical links/accepted result/checks, one completed receipt
+with exact selected paths, immutable oracle hashes, selected artifact SHA256,
+unchanged owner notes, all five source/installed package hashes and native RGB palette.
+Three localhost deterministic Responses/45 fixture-reported tokens, **zero paid calls**;
+`gpt-5.5` is a fixture catalog label, not live GPT qualification. Existing real-GPT
+evidence remains separate below. The partial original composition intentionally
+fails the complete two-file oracle (expected exit 1); the isolated complete check
+and independent selected-file check pass. `expected-full-check-after-subset.json`
+records this expected failure, which is not counted as passing.
+
+All owned services/frontends stopped (`cleanup.json`): successful native stop,
+actual daemon PID record removed and known provider/daemon absent/zombie, no execution.
+Do not broadly kill other processes or rerun the accepted/applied task. State, private
+scope, originals, scripts and every failure remain. Downloadable archive contains
+26 actual native RGB captures and verification/cleanup; earlier creation captures
+use `51f914a851`, final selector/editor/layout captures use `9fadf32797`.
+`/workspace/artifacts/cli-selective-apply/cli-selective-apply-screenshots.zip`.
+
+### Failures, corrections and limits
+
+- Initial production build rejected accidentally dev-only `anyhow` in the protocol
+  helper; corrected to std Result without adding a dependency. Full state/Clippy
+  passed. Initial formatter cwd was the repo root; reran correctly in `codex-rs`.
+- SDK generation first used system Python, then a venv interpreter without installed
+  `ruff` on PATH. Activating the existing venv fixed generation and 25 tests.
+- TUI Clippy denied `filter_map_bool_then`; direct filter/map fixed it, followed by
+  successful tests/Clippy. Initial failure logs were retained.
+- `initial-modal-navigation-failure/`: harness used one Escape for confirmation and
+  retained draft. No intent/write occurred. Preserve accepted result, close both
+  layers and do not rerun inference. Owned unsaved test buffer was lost when the
+  failed frontend closed; clean Neovim's documented unsaved-crash limit remains.
+- `refresh-masked-denial-failure/`: Snapshot overwrote the dirty-buffer rejection
+  status while confirmation stayed captured. Protection still blocked dispatch.
+  `9fadf32797` preserves that status; the actual dirty-editor regression and final
+  live-refresh physical check passed. No retry layer or weakened guard was added.
+- Package builder refused nonempty initial `package/` output. An unnecessary update
+  selected that unchanged initial package; then built fresh `package-v2/`, updated
+  and independently matched every installed hash before final interaction. Both
+  packages and failure/update logs are retained. No state/task was reset.
+- The daemon has no CLI `status` subcommand (safe inspection exit 2 retained);
+  cleanup uses its successful stop, known PID state and actual PID-record removal.
+- Full-repository/Bazel/other-platform suites, user Neovim plugins, hunks/staged Apply
+  and new real-provider runs are unrun. A draft can retain its previous validation
+  text after choices change; F6 validates current choices and displays the exact
+  valid payload. This cosmetic polish item does not affect selection enforcement.
+
+Final evidence checks: 126 local links across 23 Markdown files resolved; archive
+CRC passed; a heuristic credential-pattern scan flagged no intended changed text
+files. This is not a security audit. No application/SDK diff remains after the
+qualified `9fadf32797` source. Cloud `start_skill` was saved with the tested final
+package/lifecycle/resume instructions; other config fields were preserved. The tool
+requires publication for a refreshed snapshot; new publication/fresh-task restoration
+were not claimed. Receipt: `cloud-config-receipt.json`.
 
 ## Completed TUI creation and concept-art qualification — 2026-10-10 UTC
 

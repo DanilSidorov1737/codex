@@ -3,6 +3,8 @@
 Phase: **B1–B6 implemented/qualified, including bounded real GPT-5.5 pilots**.
 The owner-approved TUI creation/authorization and concept-art dashboard usability
 slice is also qualified on application source `46d999bf5b`; see status.md and layouts.md.
+The subsequent whole-file selective Apply slice is qualified on `9fadf32797`, with
+319 automated tests and actual CLI/official-Neovim evidence; see selective-apply.md.
 Phase 0 repository baseline: `8026444c98cd9c6db9e7c953b44a20ea4f93c7b6`, from `origin/main`.
 Research recorded on 2026-10-09 (America/New_York).
 
@@ -26,7 +28,8 @@ organization is a template, not the product's fixed structure.
 B1 usage: [organization command guide](organization-commands.md).
 B3 contracts and bounds: [coordination](coordination.md).
 B4 layout usage and qualification: [layouts](layouts.md).
-Current native screenshots: `/workspace/artifacts/cli-ui-update/cli-ui-update-screenshots.zip`.
+Current native screenshots: `/workspace/artifacts/cli-selective-apply/cli-selective-apply-screenshots.zip`.
+Previous UI captures: `/workspace/artifacts/cli-ui-update/cli-ui-update-screenshots.zip`.
 B5 actual editor and application: [Neovim Workspace](neovim-workspace.md).
 Approved follow-up: [whole-file selective Apply](selective-apply.md).
 Execution settings/prices: [resource limits](resource-limits.md).
