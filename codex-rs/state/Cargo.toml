@@ -16,6 +16,7 @@ libsqlite3-sys = { workspace = true }
 log = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
+sha2 = { workspace = true }
 sqlx = { workspace = true }
 sqlx-macros = { workspace = true }
 sqlx-sqlite = { workspace = true }

@@ -311,6 +311,31 @@ impl OrganizationStore {
         Ok(record)
     }
 
+    pub async fn read_definition(
+        &self,
+        kind: OrganizationRecordKind,
+        id: &str,
+    ) -> Result<OrganizationRecord> {
+        text(id, 256)?;
+        let query = match kind {
+            OrganizationRecordKind::Nodes => "SELECT data FROM organization_nodes WHERE id=?",
+            OrganizationRecordKind::Roles => {
+                "SELECT data FROM organization_role_versions WHERE id=?"
+            }
+            OrganizationRecordKind::Goals => "SELECT data FROM organization_goals WHERE id=?",
+            OrganizationRecordKind::Projects => "SELECT data FROM organization_projects WHERE id=?",
+            OrganizationRecordKind::Tasks => "SELECT data FROM organization_tasks WHERE id=?",
+            OrganizationRecordKind::Memberships => {
+                "SELECT data FROM organization_memberships WHERE id=?"
+            }
+        };
+        let data: String = sqlx::query_scalar(query)
+            .bind(id)
+            .fetch_one(&self.pool)
+            .await?;
+        Ok(serde_json::from_str(&data)?)
+    }
+
     pub async fn list_definitions(
         &self,
         kind: OrganizationRecordKind,

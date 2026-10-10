@@ -1,8 +1,8 @@
 # Current status and resumption instructions
 
 Phase 0: **exploration and planning complete for available inputs**.
-Current work: **approved MVP implementation; B1 qualified, B2 ledger in progress**.
-Application feature implementation: **B1 complete; B2 state library being developed; complete MVP outstanding**.
+Current work: **approved MVP implementation; B1 qualified, B2 ledger qualified; runtime integration in progress**.
+Application feature implementation: **B1 complete; B2 ledger implemented; runtime integration being qualified; complete MVP outstanding**.
 
 ## Current authorization
 
@@ -48,18 +48,14 @@ authorize push/publication, outbound communications or unbounded provider spendi
 
 ## B2 ledger progress
 
-- Added a candidate migration and typed scope/attempt records. Owner authorization,
-  atomic active-capacity claims, lease/role/project/subtree fencing, idempotent
-  token accounting, model-request ceilings and startup reconciliation are in the
-  storage library. All 241 state tests passed (13 organization tests), including four new cases.
-  State Clippy with warnings denied and state/protocol formatting passed.
-- Missing prior usage blocks further inference admission. Late provider usage may
-  update accounting after pause; it cannot restore execution authority.
-- Interrupted attempts become `needsReconciliation`; no work is automatically
-  replayed. This is a ledger library, not a working background task feature.
-- Durable tool approvals/action receipts and runtime coupling are not wired yet.
-  Complete their tests, protected task sandboxes, bounded model preflight and
-  physical daemon interaction before qualifying B2.
+- `b308b3f1f7` added durable authorization, atomic claims, attempts/leases, model-request ceilings, usage accounting and fail-closed startup reconciliation.
+- The current storage slice adds exact-argument approvals, single-dispatch action intents/receipts, protected execution-owner locking, owner pause/cancel/review, frozen artifact bases, aggregate usage views and runtime reservations retained until native cleanup is joined.
+- A waiting approval yields its inference reservation only after the current model request's usage is recorded. Pause alone does not free a running process's slot.
+- All **250 state library tests passed**, including **22 organization tests**. State Clippy with warnings denied passed. These are ledger tests; constructed artifact hashes do not prove filesystem/editor behavior.
+- Interrupted work becomes `needsReconciliation`; pending approvals remain recorded and cannot be accepted against an interrupted attempt. No uncertain native action is automatically replayed.
+- The working tree contains candidate model/tool admission gates, a bounded isolated-thread adapter, explicit workspace snapshots, host checks and owner execution RPC/CLI commands. The integrated B2 feature is **not qualified**: no current CLI build, actual background task or agent sandbox denial has been exercised yet.
+- The broader core test build initially raced cache cleanup; rerun uses `CARGO_INCREMENTAL=0`. Core integration also aborted without the repository CI's `RUST_MIN_STACK=8388608`; the CI-configured rerun is pending. Preserve failure logs.
+- Next: finish the serial core gate and application checks, repair any failures, run exact approval/artifact/recovery tests against the actual daemon, regenerate protocol fixtures and commit each qualified slice. Then continue B3–B6. No additional implementation approval is required.
 
 ## MVP planning completed before implementation
 

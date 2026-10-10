@@ -36,6 +36,9 @@ mod definitions;
 #[path = "organization_execution.rs"]
 mod execution;
 
+#[path = "organization_actions.rs"]
+mod actions;
+
 #[derive(Clone, Debug)]
 pub struct OrganizationStore {
     pool: SqlitePool,
@@ -43,6 +46,21 @@ pub struct OrganizationStore {
 }
 
 impl OrganizationStore {
+    /// One execution owner per canonical store, including embedded app-servers
+    /// using different Codex homes. Definitions remain ordinary transactional writes.
+    /// Keep this file open for the service lifetime; never unlink a live lock.
+    pub fn acquire_execution_owner(&self) -> Result<File> {
+        let path = self.directory.join("execution.lock");
+        let file = match private_file(&path, true) {
+            Ok(file) => file,
+            Err(error) if path.exists() => private_file(&path, false).map_err(|_| error)?,
+            Err(error) => return Err(error),
+        };
+        file.try_lock()
+            .context("another service owns organization execution")?;
+        Ok(file)
+    }
+
     pub async fn open(sqlite_home: &Path) -> Result<Self> {
         tokio::fs::create_dir_all(sqlite_home).await?;
         let directory = sqlite_home.join(DIRECTORY);

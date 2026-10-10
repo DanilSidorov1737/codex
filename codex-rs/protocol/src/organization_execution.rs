@@ -89,6 +89,10 @@ pub struct OrganizationTaskAttempt {
     pub thread_id: String,
     pub turn_id: Option<String>,
     pub workspace: Option<String>,
+    #[serde(default)]
+    pub artifact_bases: Vec<OrganizationArtifactBase>,
+    #[serde(default)]
+    pub runtime_active: bool,
     pub state: OrganizationTaskState,
     #[ts(type = "number")]
     pub started_at: i64,
@@ -124,6 +128,44 @@ pub struct OrganizationActionApproval {
     pub expires_at: i64,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
+#[serde(rename_all = "camelCase")]
+pub enum OrganizationActionState {
+    Pending,
+    Dispatched,
+    Completed,
+    Failed,
+    Uncertain,
+    Rejected,
+}
+
+impl OrganizationActionState {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Pending => "pending",
+            Self::Dispatched => "dispatched",
+            Self::Completed => "completed",
+            Self::Failed => "failed",
+            Self::Uncertain => "uncertain",
+            Self::Rejected => "rejected",
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct OrganizationActionIntent {
+    pub id: String,
+    pub attempt_id: String,
+    pub call_id: String,
+    pub action_hash: String,
+    pub tool: String,
+    pub arguments: String,
+    pub approval_id: Option<String>,
+    pub state: OrganizationActionState,
+    pub receipt: Option<String>,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct OrganizationArtifactEvidence {
@@ -131,6 +173,21 @@ pub struct OrganizationArtifactEvidence {
     pub sha256: String,
     #[ts(type = "number")]
     pub bytes: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct OrganizationArtifactBase {
+    pub path: String,
+    /// None means the file did not exist when the isolated attempt was prepared.
+    pub sha256: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct OrganizationRuntimeBinding {
+    pub workspace: String,
+    pub turn_id: Option<String>,
+    pub artifact_bases: Vec<OrganizationArtifactBase>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
@@ -147,7 +204,75 @@ pub struct OrganizationCheckEvidence {
 pub struct OrganizationTaskResult {
     pub attempt_id: String,
     pub artifacts: Vec<OrganizationArtifactEvidence>,
+    pub artifact_bases: Vec<OrganizationArtifactBase>,
     pub checks: Vec<OrganizationCheckEvidence>,
     pub digest: String,
     pub accepted: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct OrganizationExecutionView {
+    pub task: super::organization::OrganizationTask,
+    pub authorization: Option<OrganizationTaskAuthorization>,
+    #[ts(type = "number")]
+    pub authorization_used_tokens: i64,
+    pub authorization_model_requests: u32,
+    /// Recent attempts, newest first; each authorization permits at most three.
+    pub attempts: Vec<OrganizationTaskAttempt>,
+    pub actions: Vec<OrganizationActionIntent>,
+    pub approvals: Vec<OrganizationActionApproval>,
+    pub result: Option<OrganizationTaskResult>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
+#[serde(tag = "type", rename_all = "camelCase", deny_unknown_fields)]
+pub enum OrganizationExecutionMutation {
+    #[serde(rename_all = "camelCase")]
+    Authorize {
+        task_id: String,
+        #[ts(type = "number")]
+        expected_revision: i64,
+        scope: OrganizationExecutionScope,
+    },
+    #[serde(rename_all = "camelCase")]
+    Stop {
+        task_id: String,
+        #[ts(type = "number")]
+        expected_revision: i64,
+        cancel: bool,
+    },
+    #[serde(rename_all = "camelCase")]
+    DecideApproval {
+        task_id: String,
+        approval_id: String,
+        expected_hash: String,
+        approve: bool,
+    },
+    #[serde(rename_all = "camelCase")]
+    Accept {
+        task_id: String,
+        #[ts(type = "number")]
+        expected_revision: i64,
+        digest: String,
+    },
+    #[serde(rename_all = "camelCase")]
+    RequestChanges {
+        task_id: String,
+        #[ts(type = "number")]
+        expected_revision: i64,
+        instructions: String,
+    },
+}
+
+impl OrganizationExecutionMutation {
+    pub fn task_id(&self) -> &str {
+        match self {
+            Self::Authorize { task_id, .. }
+            | Self::Stop { task_id, .. }
+            | Self::DecideApproval { task_id, .. }
+            | Self::Accept { task_id, .. }
+            | Self::RequestChanges { task_id, .. } => task_id,
+        }
+    }
 }

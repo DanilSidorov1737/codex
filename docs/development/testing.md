@@ -1,3 +1,25 @@
+## B2 approval, evidence and reservation ledger
+
+From `codex-rs`, with the documented activation:
+
+- `CARGO_INCREMENTAL=0 RUST_MIN_STACK=8388608 cargo test --locked --offline --profile dev-small -p codex-state --lib -j4`: exit 0, **250 passed**, zero failed/ignored. Twenty-two organization tests cover real SQLite approval/claim/dispatch races, token accounting, slot retention until cleanup, streamed inference completion before waiting-capacity release, owner locking, immutable runtime/artifact-base identity and restart/backup/restore.
+- `CARGO_INCREMENTAL=0 cargo clippy --locked --offline --profile dev-small -p codex-state --lib -j4 -- -Dwarnings`: exit 0.
+- Logs: `mvp-b2-ledger-current-tests.log`, `mvp-b2-ledger-current-clippy.log` in the established local qualification directory.
+
+Evidence hashes/check outputs in ledger tests are constructed trusted-host inputs.
+They verify transitions and review binding, not actual sandboxed artifacts/check execution.
+The background runtime and owner execution commands require application-level verification.
+
+Earlier runs passed 246 then 247 state tests while this slice was developed.
+A core build failed when concurrent cache cleanup removed a compiler's incremental
+working directory. Source/data were preserved; stopped-build caches were removed,
+and subsequent builds disable incremental compilation. Three core model-request
+unit tests then passed, but the broad integration filter aborted on stack overflow
+in an existing pending-input test. Repository Rust CI explicitly sets
+`RUST_MIN_STACK=8388608` (`.github/workflows/rust-ci.yml`); the rerun follows that setting.
+One preliminary application/CLI check passed, but source changed afterward, so it
+is not qualification of the current artifact. Current serial gate/build checks are pending.
+
 ## B2 ledger verification
 
 From `codex-rs`, with the documented activation:

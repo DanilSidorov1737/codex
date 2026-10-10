@@ -25,6 +25,16 @@ impl OrganizationStore {
         let mut tx = self.pool.begin_with("BEGIN IMMEDIATE").await?;
         let mut task = read_task(&mut tx, task_id).await?;
         ensure!(task.revision == expected_revision, "task revision conflict");
+        let occupied: i64 = sqlx::query_scalar(
+            "SELECT count(*) FROM organization_attempts WHERE task_id=? AND occupied=1",
+        )
+        .bind(task_id)
+        .fetch_one(&mut *tx)
+        .await?;
+        ensure!(
+            occupied == 0,
+            "previous task runtime has not stopped; wait for cleanup or reconcile after restart"
+        );
         ensure!(
             matches!(
                 task.state.as_str(),
@@ -104,7 +114,7 @@ impl OrganizationStore {
             .execute(&mut *tx)
             .await?;
         set_task_state(&mut tx, &mut task, OrganizationTaskState::Queued).await?;
-        event(&mut tx, "task/authorize", &authorization.id).await?;
+        owner_event(&mut tx, "task/authorize", &authorization.id).await?;
         tx.commit().await?;
         Ok(authorization)
     }
@@ -125,11 +135,10 @@ impl OrganizationStore {
             "active execution limit must be 1–4"
         );
         let mut tx = self.pool.begin_with("BEGIN IMMEDIATE").await?;
-        let active: i64 = sqlx::query_scalar(
-            "SELECT count(*) FROM organization_attempts WHERE state = 'running'",
-        )
-        .fetch_one(&mut *tx)
-        .await?;
+        let active: i64 =
+            sqlx::query_scalar("SELECT count(*) FROM organization_attempts WHERE occupied=1")
+                .fetch_one(&mut *tx)
+                .await?;
         if active >= i64::from(max_active) {
             return Ok(None);
         }
@@ -175,6 +184,8 @@ impl OrganizationStore {
                 thread_id: thread_id.to_owned(),
                 turn_id: None,
                 workspace: None,
+                artifact_bases: Vec::new(),
+                runtime_active: true,
                 state: OrganizationTaskState::Running,
                 started_at: now,
                 lease_until: now
@@ -202,7 +213,7 @@ impl OrganizationStore {
         attempt_id: &str,
         worker_id: &str,
         now: i64,
-    ) -> Result<u32> {
+    ) -> Result<(u32, i64)> {
         let mut tx = self.pool.begin_with("BEGIN IMMEDIATE").await?;
         let (mut attempt, authorization) = check_fence(&mut tx, attempt_id, worker_id, now).await?;
         ensure!(
@@ -233,7 +244,9 @@ impl OrganizationStore {
         write_attempt(&mut tx, &attempt).await?;
         event(&mut tx, "model/admitted", attempt_id).await?;
         tx.commit().await?;
-        Ok(attempt.model_requests)
+        // Capture this request's baseline in the admission transaction, so a
+        // late prior usage checkpoint cannot race an independent read.
+        Ok((attempt.model_requests, attempt.reported_tokens))
     }
 
     pub async fn checkpoint_usage(
@@ -281,6 +294,9 @@ impl OrganizationStore {
             .await?;
         attempt.reported_tokens = reported_tokens;
         attempt.reported_model_requests = request_sequence;
+        if attempt.state == OrganizationTaskState::WaitingApproval {
+            attempt.runtime_active = false;
+        }
         write_attempt(&mut tx, &attempt).await?;
         event(&mut tx, "usage/checkpoint", attempt_id).await?;
         tx.commit().await?;
@@ -290,21 +306,43 @@ impl OrganizationStore {
     /// Startup reconciliation never dispatches an uncertain action or accepts an approval.
     pub async fn reconcile_interrupted_attempts(&self) -> Result<u64> {
         let mut tx = self.pool.begin_with("BEGIN IMMEDIATE").await?;
-        let data: Vec<String> = sqlx::query_scalar("SELECT data FROM organization_attempts WHERE state IN ('running','waitingApproval','waitingDependency')").fetch_all(&mut *tx).await?;
-        let count = data.len() as u64;
+        let data: Vec<String> = sqlx::query_scalar("SELECT data FROM organization_attempts WHERE occupied=1 OR state IN ('running','waitingApproval','waitingDependency')").fetch_all(&mut *tx).await?;
+        let mut count = 0;
         for data in data {
             let mut attempt: OrganizationTaskAttempt = serde_json::from_str(&data)?;
-            attempt.state = OrganizationTaskState::NeedsReconciliation;
+            let interrupted = matches!(
+                attempt.state,
+                OrganizationTaskState::Running
+                    | OrganizationTaskState::WaitingApproval
+                    | OrganizationTaskState::WaitingDependency
+            );
+            if interrupted {
+                attempt.state = OrganizationTaskState::NeedsReconciliation;
+                count += 1;
+            }
+            attempt.runtime_active = false;
             attempt.lease_until = 0;
             write_attempt(&mut tx, &attempt).await?;
             let mut task = read_task(&mut tx, &attempt.task_id).await?;
-            set_task_state(
-                &mut tx,
-                &mut task,
-                OrganizationTaskState::NeedsReconciliation,
+            if interrupted {
+                set_task_state(
+                    &mut tx,
+                    &mut task,
+                    OrganizationTaskState::NeedsReconciliation,
+                )
+                .await?;
+            }
+            let actions: Vec<String> = sqlx::query_scalar(
+                "SELECT data FROM organization_actions WHERE attempt_id=? AND state='dispatched'",
             )
+            .bind(&attempt.id)
+            .fetch_all(&mut *tx)
             .await?;
-            sqlx::query("UPDATE organization_actions SET state = 'uncertain' WHERE attempt_id = ? AND state = 'dispatched'").bind(&attempt.id).execute(&mut *tx).await?;
+            for data in actions {
+                let mut action: OrganizationActionIntent = serde_json::from_str(&data)?;
+                action.state = OrganizationActionState::Uncertain;
+                super::actions::write_action(&mut tx, &action).await?;
+            }
             event(&mut tx, "attempt/reconcile", &attempt.id).await?;
         }
         tx.commit().await?;
@@ -372,7 +410,10 @@ fn validate_scope(scope: &OrganizationExecutionScope) -> Result<()> {
     Ok(())
 }
 
-async fn read_task(tx: &mut Transaction<'_, Sqlite>, id: &str) -> Result<OrganizationTask> {
+pub(super) async fn read_task(
+    tx: &mut Transaction<'_, Sqlite>,
+    id: &str,
+) -> Result<OrganizationTask> {
     let data: String = sqlx::query_scalar("SELECT data FROM organization_tasks WHERE id = ?")
         .bind(id)
         .fetch_one(&mut **tx)
@@ -409,10 +450,10 @@ async fn read_project(
 }
 
 async fn ancestors_enabled(tx: &mut Transaction<'_, Sqlite>, id: &str) -> Result<bool> {
-    Ok(sqlx::query_scalar::<_, i64>("WITH RECURSIVE ancestors(id,parent_id,data) AS (SELECT id,parent_id,data FROM organization_nodes WHERE id=? UNION ALL SELECT n.id,n.parent_id,n.data FROM organization_nodes n JOIN ancestors a ON n.id=a.parent_id) SELECT count(*)=0 FROM ancestors WHERE json_extract(data,'$.data.enabled')<>1").bind(id).fetch_one(&mut **tx).await? != 0)
+    Ok(sqlx::query_scalar::<_, i64>("WITH RECURSIVE ancestors(id,parent_id,data) AS (SELECT id,parent_id,data FROM organization_nodes WHERE id=? UNION SELECT n.id,n.parent_id,n.data FROM organization_nodes n JOIN ancestors a ON n.id=a.parent_id) SELECT count(*)=0 FROM ancestors WHERE json_extract(data,'$.data.enabled')<>1").bind(id).fetch_one(&mut **tx).await? != 0)
 }
 
-async fn set_task_state(
+pub(super) async fn set_task_state(
     tx: &mut Transaction<'_, Sqlite>,
     task: &mut OrganizationTask,
     state: OrganizationTaskState,
@@ -434,27 +475,44 @@ async fn set_task_state(
     Ok(())
 }
 
-async fn write_attempt(
+pub(super) async fn write_attempt(
     tx: &mut Transaction<'_, Sqlite>,
     attempt: &OrganizationTaskAttempt,
 ) -> Result<()> {
-    sqlx::query("UPDATE organization_attempts SET state=?,lease_until=?,data=? WHERE id=?")
-        .bind(attempt.state.as_str())
-        .bind(attempt.lease_until)
-        .bind(serde_json::to_string(attempt)?)
-        .bind(&attempt.id)
-        .execute(&mut **tx)
-        .await?;
+    sqlx::query(
+        "UPDATE organization_attempts SET state=?,lease_until=?,occupied=?,data=? WHERE id=?",
+    )
+    .bind(attempt.state.as_str())
+    .bind(attempt.lease_until)
+    .bind(attempt.runtime_active)
+    .bind(serde_json::to_string(attempt)?)
+    .bind(&attempt.id)
+    .execute(&mut **tx)
+    .await?;
     Ok(())
 }
 
-async fn check_fence(
+pub(super) async fn check_fence(
     tx: &mut Transaction<'_, Sqlite>,
     id: &str,
     worker: &str,
     now: i64,
 ) -> Result<(OrganizationTaskAttempt, OrganizationTaskAuthorization)> {
-    let (data, authorization_data): (String, String) = sqlx::query_as("SELECT p.data,a.data FROM organization_attempts p JOIN organization_authorizations a ON a.id=p.authorization_id JOIN organization_tasks t ON t.id=p.task_id WHERE p.id=? AND p.worker_id=? AND p.lease_until>? AND p.state='running' AND a.revoked=0 AND a.expires_at>? AND t.authorization_id=a.id AND t.state='running'").bind(id).bind(worker).bind(now).bind(now).fetch_one(&mut **tx).await.context("stale, paused, revoked or expired attempt")?;
+    let result = check_live_fence(tx, id, worker, now).await?;
+    ensure!(
+        result.0.state == OrganizationTaskState::Running,
+        "attempt is waiting"
+    );
+    Ok(result)
+}
+
+pub(super) async fn check_live_fence(
+    tx: &mut Transaction<'_, Sqlite>,
+    id: &str,
+    worker: &str,
+    now: i64,
+) -> Result<(OrganizationTaskAttempt, OrganizationTaskAuthorization)> {
+    let (data, authorization_data): (String, String) = sqlx::query_as("SELECT p.data,a.data FROM organization_attempts p JOIN organization_authorizations a ON a.id=p.authorization_id JOIN organization_tasks t ON t.id=p.task_id WHERE p.id=? AND p.worker_id=? AND p.lease_until>? AND p.state IN ('running','waitingApproval') AND a.revoked=0 AND a.expires_at>? AND t.authorization_id=a.id AND t.state=p.state").bind(id).bind(worker).bind(now).bind(now).fetch_one(&mut **tx).await.context("stale, paused, revoked or expired attempt")?;
     let attempt: OrganizationTaskAttempt = serde_json::from_str(&data)?;
     let authorization: OrganizationTaskAuthorization = serde_json::from_str(&authorization_data)?;
     ensure!(
@@ -477,13 +535,35 @@ async fn check_fence(
     Ok((attempt, authorization))
 }
 
-async fn event(tx: &mut Transaction<'_, Sqlite>, kind: &str, reference: &str) -> Result<()> {
+pub(super) async fn event(
+    tx: &mut Transaction<'_, Sqlite>,
+    kind: &str,
+    reference: &str,
+) -> Result<()> {
+    event_as(tx, "host", kind, reference).await
+}
+
+pub(super) async fn owner_event(
+    tx: &mut Transaction<'_, Sqlite>,
+    kind: &str,
+    reference: &str,
+) -> Result<()> {
+    event_as(tx, "owner", kind, reference).await
+}
+
+async fn event_as(
+    tx: &mut Transaction<'_, Sqlite>,
+    actor: &str,
+    kind: &str,
+    reference: &str,
+) -> Result<()> {
     sqlx::query("INSERT INTO organization_outbox(kind,reference) VALUES (?,?)")
         .bind(kind)
         .bind(reference)
         .execute(&mut **tx)
         .await?;
-    sqlx::query("INSERT INTO organization_audit(actor,operation,payload) VALUES ('host',?,?)")
+    sqlx::query("INSERT INTO organization_audit(actor,operation,payload) VALUES (?,?,?)")
+        .bind(actor)
         .bind(kind)
         .bind(serde_json::to_string(&serde_json::json!({"id":reference}))?)
         .execute(&mut **tx)
