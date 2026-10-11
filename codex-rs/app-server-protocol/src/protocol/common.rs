@@ -811,6 +811,24 @@ client_request_definitions! {
         serialization: global("organization"),
         response: v2::OrganizationScheduleMutateResponse,
     },
+    #[experimental("organization/workflow/list")]
+    OrganizationWorkflowList => "organization/workflow/list" {
+        params: v2::OrganizationWorkflowListParams,
+        serialization: global_shared_read("organization"),
+        response: v2::OrganizationWorkflowListResponse,
+    },
+    #[experimental("organization/workflow/preview")]
+    OrganizationWorkflowPreview => "organization/workflow/preview" {
+        params: v2::OrganizationWorkflowPreviewParams,
+        serialization: global_shared_read("organization"),
+        response: v2::OrganizationWorkflowPreviewResponse,
+    },
+    #[experimental("organization/workflow/mutate")]
+    OrganizationWorkflowMutate => "organization/workflow/mutate" {
+        params: v2::OrganizationWorkflowMutateParams,
+        serialization: global("organization"),
+        response: v2::OrganizationWorkflowMutateResponse,
+    },
     #[experimental("organization/execution/read")]
     OrganizationExecutionRead => "organization/execution/read" {
         params: v2::OrganizationExecutionReadParams,

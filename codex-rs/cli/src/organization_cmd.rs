@@ -11,6 +11,10 @@ use codex_app_server_protocol::OrganizationScheduleListParams;
 use codex_app_server_protocol::OrganizationScheduleMutateParams;
 use codex_app_server_protocol::ProjectCreateParams;
 use codex_app_server_protocol::ProjectRoot;
+use codex_app_server_protocol::{
+    OrganizationWorkflowKind, OrganizationWorkflowListParams, OrganizationWorkflowMutateParams,
+    OrganizationWorkflowPreviewParams,
+};
 use codex_arg0::Arg0DispatchPaths;
 use codex_tui::Cli as TuiCli;
 use codex_tui::OrganizationCommandAction;
@@ -29,6 +33,21 @@ pub(crate) struct OrganizationCommand {
 
 #[derive(Debug, clap::Subcommand)]
 enum Action {
+    /// List saved workflow templates or invocations and canonical task states.
+    WorkflowList {
+        #[arg(default_value = "templates")]
+        kind: String,
+        #[arg(long)]
+        project_id: Option<String>,
+        #[arg(long)]
+        cursor: Option<String>,
+        #[arg(long, default_value_t = 100)]
+        limit: u32,
+    },
+    /// Validate scopes and capture the exact template/project/agent run preview.
+    WorkflowPreview { file: PathBuf },
+    /// Save a template or explicitly authorize an immutable run preview from JSON.
+    WorkflowMutate { file: PathBuf },
     /// List finite recurring schedules, usage and recent occurrence task IDs.
     ScheduleList {
         #[arg(long)]
@@ -103,6 +122,34 @@ pub(crate) async fn run(
         return Ok(output);
     }
     let action = match command.command {
+        Action::WorkflowList {
+            kind,
+            project_id,
+            cursor,
+            limit,
+        } => {
+            let kind: OrganizationWorkflowKind = serde_json::from_value(kind.into())?;
+            OrganizationCommandAction::WorkflowList(OrganizationWorkflowListParams {
+                kind,
+                project_id,
+                cursor,
+                limit: Some(limit),
+            })
+        }
+        Action::WorkflowPreview { file } => {
+            OrganizationCommandAction::WorkflowPreview(OrganizationWorkflowPreviewParams {
+                request: serde_json::from_slice(&read_mutation(file).await?)?,
+            })
+        }
+        Action::WorkflowMutate { file } => {
+            anyhow::ensure!(
+                !interactive.no_daemon,
+                "workflow mutations require the detached local daemon; remove --no-daemon"
+            );
+            OrganizationCommandAction::WorkflowMutate(OrganizationWorkflowMutateParams {
+                mutation: serde_json::from_slice(&read_mutation(file).await?)?,
+            })
+        }
         Action::ScheduleList {
             project_id,
             cursor,

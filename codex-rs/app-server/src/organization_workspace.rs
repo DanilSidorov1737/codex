@@ -193,6 +193,7 @@ impl TaskWorkspace {
         project: &Path,
         attempt_id: &str,
         scope: &OrganizationExecutionScope,
+        deferred_inputs: &[OrganizationArtifactEvidence],
     ) -> Result<Self> {
         ensure!(
             cfg!(target_os = "linux"),
@@ -210,8 +211,23 @@ impl TaskWorkspace {
         let root = parent.join(attempt_id);
         private_directory(&root, true)?;
         let root = AbsolutePathBuf::try_from(root)?;
-        let mut total = 0u64;
+        let mut total = deferred_inputs.iter().try_fold(0u64, |total, artifact| {
+            total
+                .checked_add(artifact.bytes)
+                .context("workflow input size overflow")
+        })?;
+        ensure!(total <= MAX_INPUT_BYTES, "workflow inputs exceed 64 MiB");
         for relative in &scope.input_files {
+            if deferred_inputs
+                .iter()
+                .any(|artifact| &artifact.path == relative)
+            {
+                ensure!(
+                    !scope.immutable_files.contains(relative),
+                    "workflow cannot replace immutable input"
+                );
+                continue;
+            }
             let path = regular_path(&project, relative)?;
             ensure!(
                 !protected.iter().any(|root| path.starts_with(root)),

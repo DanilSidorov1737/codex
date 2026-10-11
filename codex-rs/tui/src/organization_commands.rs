@@ -12,6 +12,10 @@ use codex_app_server_protocol::OrganizationMutateParams;
 use codex_app_server_protocol::OrganizationScheduleListParams;
 use codex_app_server_protocol::OrganizationScheduleMutateParams;
 use codex_app_server_protocol::ProjectCreateParams;
+use codex_app_server_protocol::{
+    OrganizationWorkflowListParams, OrganizationWorkflowMutateParams,
+    OrganizationWorkflowPreviewParams,
+};
 use codex_utils_home_dir::find_codex_home;
 use color_eyre::eyre::Result;
 use color_eyre::eyre::eyre;
@@ -26,6 +30,9 @@ pub enum OrganizationCommandAction {
     ExecutionMutate(OrganizationExecutionMutateParams),
     ScheduleList(OrganizationScheduleListParams),
     ScheduleMutate(OrganizationScheduleMutateParams),
+    WorkflowList(OrganizationWorkflowListParams),
+    WorkflowPreview(OrganizationWorkflowPreviewParams),
+    WorkflowMutate(OrganizationWorkflowMutateParams),
 }
 
 pub async fn run_organization_command(
@@ -44,6 +51,7 @@ pub async fn run_organization_command(
         &action,
         OrganizationCommandAction::ExecutionMutate(_)
             | OrganizationCommandAction::ScheduleMutate(_)
+            | OrganizationCommandAction::WorkflowMutate(_)
     ) && app_server.uses_embedded_app_server()
     {
         return Err(eyre!(
@@ -73,6 +81,15 @@ pub async fn run_organization_command(
         }
         OrganizationCommandAction::ExecutionMutate(params) => {
             ClientRequest::OrganizationExecutionMutate { request_id, params }
+        }
+        OrganizationCommandAction::WorkflowList(params) => {
+            ClientRequest::OrganizationWorkflowList { request_id, params }
+        }
+        OrganizationCommandAction::WorkflowPreview(params) => {
+            ClientRequest::OrganizationWorkflowPreview { request_id, params }
+        }
+        OrganizationCommandAction::WorkflowMutate(params) => {
+            ClientRequest::OrganizationWorkflowMutate { request_id, params }
         }
         OrganizationCommandAction::ScheduleList(params) => {
             ClientRequest::OrganizationScheduleList { request_id, params }

@@ -24,6 +24,11 @@ use codex_app_server_protocol::OrganizationScheduleListParams;
 use codex_app_server_protocol::OrganizationScheduleListResponse;
 use codex_app_server_protocol::OrganizationScheduleMutateParams;
 use codex_app_server_protocol::OrganizationScheduleMutateResponse;
+use codex_app_server_protocol::{
+    OrganizationWorkflowListParams, OrganizationWorkflowListResponse,
+    OrganizationWorkflowMutateParams, OrganizationWorkflowMutateResponse,
+    OrganizationWorkflowPreviewParams, OrganizationWorkflowPreviewResponse,
+};
 use codex_core::ThreadManager;
 use codex_core::config::Config;
 use codex_protocol::organization::OrganizationMutation;
@@ -233,6 +238,67 @@ impl OrganizationRequestProcessor {
             .map_err(|error| invalid_params(format!("schedule mutation rejected: {error:#}")))?;
         self.runtime.wake();
         Ok(Some(OrganizationScheduleMutateResponse { view }.into()))
+    }
+
+    pub(crate) async fn workflow_list(
+        &self,
+        params: OrganizationWorkflowListParams,
+        origin: ConnectionOrigin,
+    ) -> Result<Option<ClientResponsePayload>, JSONRPCErrorError> {
+        require_owner(origin)?;
+        self.runtime
+            .ensure_execution_owner()
+            .await
+            .map_err(|error| internal_error(format!("execution owner unavailable: {error:#}")))?;
+        let (data, next_cursor) = self
+            .store()
+            .await?
+            .list_workflows(
+                params.kind,
+                params.project_id.as_deref(),
+                params.cursor.as_deref(),
+                params.limit.unwrap_or(100),
+            )
+            .await
+            .map_err(|error| invalid_params(format!("workflow list rejected: {error:#}")))?;
+        Ok(Some(
+            OrganizationWorkflowListResponse { data, next_cursor }.into(),
+        ))
+    }
+
+    pub(crate) async fn workflow_preview(
+        &self,
+        params: OrganizationWorkflowPreviewParams,
+        origin: ConnectionOrigin,
+    ) -> Result<Option<ClientResponsePayload>, JSONRPCErrorError> {
+        require_owner(origin)?;
+        let preview = self
+            .store()
+            .await?
+            .preview_workflow(params.request)
+            .await
+            .map_err(|error| invalid_params(format!("workflow preview rejected: {error:#}")))?;
+        Ok(Some(OrganizationWorkflowPreviewResponse { preview }.into()))
+    }
+
+    pub(crate) async fn workflow_mutate(
+        &self,
+        params: OrganizationWorkflowMutateParams,
+        origin: ConnectionOrigin,
+    ) -> Result<Option<ClientResponsePayload>, JSONRPCErrorError> {
+        require_owner(origin)?;
+        self.runtime
+            .ensure_execution_owner()
+            .await
+            .map_err(|error| internal_error(format!("execution owner unavailable: {error:#}")))?;
+        let view = self
+            .store()
+            .await?
+            .mutate_workflow(params.mutation, crate::organization_runtime::now())
+            .await
+            .map_err(|error| invalid_params(format!("workflow mutation rejected: {error:#}")))?;
+        self.runtime.wake();
+        Ok(Some(OrganizationWorkflowMutateResponse { view }.into()))
     }
 
     pub(crate) async fn execution_mutate(

@@ -3294,6 +3294,18 @@ class OrganizationNoteScope(Enum):
     agent = "agent"
 
 
+class OrganizationPlanItem(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    criteria: list[str]
+    instructions: str
+    key: str
+    owner_id: Annotated[str, Field(alias="ownerId")]
+    prerequisites: list[str]
+
+
 class OrganizationProjectPlan(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
@@ -3482,6 +3494,53 @@ class OrganizationTaskState(Enum):
     failed = "failed"
     cancelled = "cancelled"
     accepted = "accepted"
+
+
+class OrganizationWorkflowKind(Enum):
+    templates = "templates"
+    runs = "runs"
+
+
+class PutOrganizationWorkflowMutation(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    expected_revision: Annotated[int | None, Field(alias="expectedRevision")] = None
+    id: str
+    items: list[OrganizationPlanItem]
+    label: str
+    project_id: Annotated[str, Field(alias="projectId")]
+    type: Annotated[Literal["put"], Field(title="PutOrganizationWorkflowMutationType")]
+
+
+class OrganizationWorkflowScope(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    key: str
+    scope: OrganizationExecutionScope
+
+
+class OrganizationWorkflowTemplate(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    id: str
+    items: list[OrganizationPlanItem]
+    label: str
+    project_id: Annotated[str, Field(alias="projectId")]
+    revision: int
+
+
+class TemplateOrganizationWorkflowView(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    template: OrganizationWorkflowTemplate
+    type: Annotated[Literal["template"], Field(title="TemplateOrganizationWorkflowViewType")]
 
 
 class PatchApplyStatus(Enum):
@@ -9659,6 +9718,60 @@ class OrganizationTaskAttempt(BaseModel):
     workspace: str | None = None
 
 
+class OrganizationWorkflowPreview(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    id: str
+    max_model_requests: Annotated[int, Field(alias="maxModelRequests", ge=0)]
+    max_tokens: Annotated[int, Field(alias="maxTokens")]
+    node_revisions: Annotated[dict[str, int], Field(alias="nodeRevisions")]
+    policy_version: Annotated[int, Field(alias="policyVersion", ge=0)]
+    project_revision: Annotated[int, Field(alias="projectRevision")]
+    scopes: list[OrganizationWorkflowScope]
+    template: OrganizationWorkflowTemplate
+
+
+class OrganizationWorkflowPreviewRequest(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    expected_revision: Annotated[int, Field(alias="expectedRevision")]
+    id: str
+    scopes: list[OrganizationWorkflowScope]
+    template_id: Annotated[str, Field(alias="templateId")]
+
+
+class OrganizationWorkflowRun(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    created_at: Annotated[int, Field(alias="createdAt")]
+    id: str
+    preview: OrganizationWorkflowPreview
+    task_ids: Annotated[dict[str, str], Field(alias="taskIds")]
+
+
+class RunOrganizationWorkflowView(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    run: OrganizationWorkflowRun
+    tasks: list[OrganizationTask]
+    type: Annotated[Literal["run"], Field(title="RunOrganizationWorkflowViewType")]
+
+
+class OrganizationWorkflowView(
+    RootModel[TemplateOrganizationWorkflowView | RunOrganizationWorkflowView]
+):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    root: TemplateOrganizationWorkflowView | RunOrganizationWorkflowView
+
+
 class OverriddenMetadata(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
@@ -11896,6 +12009,24 @@ class OrganizationExecutionView(BaseModel):
     authorization_used_tokens: Annotated[int, Field(alias="authorizationUsedTokens")]
     result: OrganizationTaskResult | None = None
     task: OrganizationTask
+
+
+class RunOrganizationWorkflowMutation(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    preview: OrganizationWorkflowPreview
+    type: Annotated[Literal["run"], Field(title="RunOrganizationWorkflowMutationType")]
+
+
+class OrganizationWorkflowMutation(
+    RootModel[PutOrganizationWorkflowMutation | RunOrganizationWorkflowMutation]
+):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    root: PutOrganizationWorkflowMutation | RunOrganizationWorkflowMutation
 
 
 class PluginShareContext(BaseModel):

@@ -235,12 +235,29 @@ impl OrganizationRuntime {
                 .eq(project.roots.iter()),
             "linked project roots changed"
         );
+        let workflow_inputs = store.workflow_inputs(&attempt.task_id).await?;
+        let deferred_inputs: Vec<_> = workflow_inputs
+            .iter()
+            .flat_map(|(result, _)| result.artifacts.iter().cloned())
+            .collect();
         let mut workspace = TaskWorkspace::create(
             &self.config,
             std::path::Path::new(&project.roots[0]),
             &attempt.id,
             &authorization.scope,
+            &deferred_inputs,
         )?;
+        for (result, source) in workflow_inputs {
+            workspace.import_result(
+                std::path::Path::new(
+                    source
+                        .workspace
+                        .as_deref()
+                        .context("workflow prerequisite workspace missing")?,
+                ),
+                &result,
+            )?;
+        }
         if let Some(parent_id) = &authorization.parent_attempt_id {
             let parent = store.attempt_snapshot(parent_id).await?;
             workspace.inherit_inputs(

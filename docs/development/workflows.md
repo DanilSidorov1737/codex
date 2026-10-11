@@ -62,3 +62,15 @@ versions 6/7. Native runtime/API/UI and physical qualification are in progress.
 Evidence: `/workspace/.onboarding/qualification/workflows-n3/state-protocol-tests.log`.
 Initial fixture failures are preserved in the qualification parent directory;
 no production migration checksum, integrity or artifact-base check was weakened.
+
+Owner API/CLI checkpoint: experimental `organization/workflow/list`, `/preview`
+and `/mutate`, protected local-owner origin checks, and `workflow-list`,
+`workflow-preview FILE`, `workflow-mutate FILE` are implemented. Template mutations
+and run authorization use the detached daemon. Existing artifact import now accepts
+same-invocation, explicitly declared prerequisite inputs, with one combined 64 MiB
+input ceiling and existing acceptance/hash/immutable protection. Seven native owner
+API tests, four schema comparisons and 25 Python contract/signature tests passed;
+all generated JSON/TypeScript/precomputed/SDK contracts were refreshed. An initial
+negative test used the success-only client helper: the server correctly denied the
+request; the test now reads and asserts the actual JSON-RPC error (-32602).
+Full CLI/UI build and physical workflow qualification remain in progress.

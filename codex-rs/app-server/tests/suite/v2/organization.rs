@@ -30,6 +30,9 @@ mod delegation;
 #[path = "organization_schedules.rs"]
 mod schedules;
 
+#[path = "organization_workflows.rs"]
+mod workflows;
+
 async fn definition(
     server: &mut TestAppServer,
     mutation: OrganizationMutation,
