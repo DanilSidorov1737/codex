@@ -248,6 +248,24 @@ const ACTIONS: &[Action] = &[
         code: KeyCode::Char('0'),
         context: "local preferences",
     },
+    Action {
+        title: "Organization presets",
+        shortcut: "F9",
+        code: KeyCode::F(9),
+        context: "view; captured definition subtrees",
+    },
+    Action {
+        title: "Save organization preset",
+        shortcut: "D",
+        code: KeyCode::Char('D'),
+        context: "select node; definitions only",
+    },
+    Action {
+        title: "Clone organization preset",
+        shortcut: "V",
+        code: KeyCode::Char('V'),
+        context: "select preset; fresh identities; exact owner confirmation",
+    },
 ];
 
 impl Palette {

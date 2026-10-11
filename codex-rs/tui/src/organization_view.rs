@@ -129,7 +129,7 @@ impl Dashboard {
             lines.push(Line::default());
             lines.push(Line::styled(
                 " w  Templates / runs",
-                if self.workflow_view {
+                if self.projection == Projection::Workflows {
                     Style::default()
                         .fg(foreground(BLUE))
                         .bg(background(SELECTED))
@@ -285,11 +285,13 @@ impl Dashboard {
 
     fn rows_view(&self, area: Rect, buffer: &mut Buffer, cards: bool) {
         let pane = &self.preferences.panes[self.preferences.preset.index()];
-        let title = if self.goal_view {
+        let title = if self.projection == Projection::Presets {
+            "Organization presets · D save node subtree · V clone"
+        } else if self.projection == Projection::Goals {
             "Goal tree / milestones"
-        } else if self.workflow_view {
+        } else if self.projection == Projection::Workflows {
             "Workflows · w returns to default view"
-        } else if self.schedule_view {
+        } else if self.projection == Projection::Schedules {
             "Schedules · S returns to default view"
         } else if self.preferences.preset == Preset::Review {
             "Action inbox · z summary · C capabilities"
@@ -583,7 +585,7 @@ impl Dashboard {
                 .render(body, buffer);
         } else {
             let central = areas[0];
-            let subtitle = if self.goal_view {
+            let subtitle = if self.projection == Projection::Goals {
                 "Goal tree · accepted task evidence; success criteria still need owner review"
             } else {
                 match self.preferences.preset {
@@ -633,7 +635,7 @@ impl Dashboard {
                     ])
                     .split(sections[1]);
                     self.summary(parts[0], buffer);
-                    self.rows_view(parts[1], buffer, !self.schedule_view);
+                    self.rows_view(parts[1], buffer, self.projection != Projection::Schedules);
                     let bottom = Layout::horizontal([
                         Constraint::Percentage(50),
                         Constraint::Percentage(50),
@@ -679,7 +681,9 @@ impl Dashboard {
                     self.project_summary(parts[0], buffer);
                     self.rows_view(parts[1], buffer, false);
                 }
-                Preset::Workspace if self.editor.is_some() && !self.goal_view => {
+                Preset::Workspace
+                    if self.editor.is_some() && self.projection == Projection::Default =>
+                {
                     let Some(editor) = &self.editor else {
                         return None;
                     };
@@ -703,7 +707,7 @@ impl Dashboard {
                     }
                 }
                 Preset::Review
-                    if !self.goal_view
+                    if self.projection == Projection::Default
                         && self
                             .review_diff
                             .as_ref()

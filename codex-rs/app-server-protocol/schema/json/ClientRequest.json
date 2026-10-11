@@ -2716,6 +2716,72 @@
         {
           "additionalProperties": false,
           "properties": {
+            "expectedRootRevision": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "label": {
+              "type": "string"
+            },
+            "rootId": {
+              "type": "string"
+            },
+            "type": {
+              "enum": [
+                "savePreset"
+              ],
+              "title": "SavePresetOrganizationMutationType",
+              "type": "string"
+            }
+          },
+          "required": [
+            "expectedRootRevision",
+            "label",
+            "rootId",
+            "type"
+          ],
+          "title": "SavePresetOrganizationMutation",
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "expectedRevision": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "id": {
+              "type": "string"
+            },
+            "label": {
+              "type": "string"
+            },
+            "parentId": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "type": {
+              "enum": [
+                "clonePreset"
+              ],
+              "title": "ClonePresetOrganizationMutationType",
+              "type": "string"
+            }
+          },
+          "required": [
+            "expectedRevision",
+            "id",
+            "label",
+            "type"
+          ],
+          "title": "ClonePresetOrganizationMutation",
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
             "body": {
               "type": "string"
             },
@@ -3085,7 +3151,8 @@
         "goals",
         "projects",
         "tasks",
-        "memberships"
+        "memberships",
+        "presets"
       ],
       "type": "string"
     },

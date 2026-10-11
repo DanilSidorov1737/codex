@@ -33,6 +33,9 @@ const MARKER: &str = "initialized";
 #[path = "organization_definitions.rs"]
 mod definitions;
 
+#[path = "organization_presets.rs"]
+mod presets;
+
 #[path = "organization_execution.rs"]
 mod execution;
 

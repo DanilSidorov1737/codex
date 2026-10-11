@@ -29,6 +29,32 @@ impl OrganizationStore {
         };
         let mut tx = self.pool.begin_with("BEGIN IMMEDIATE").await?;
         let (operation, record) = match mutation {
+            OrganizationMutation::SavePreset {
+                root_id,
+                expected_root_revision,
+                label,
+            } => {
+                let preset =
+                    super::presets::save(&mut tx, &root_id, expected_root_revision, label).await?;
+                (
+                    "preset/save",
+                    Some(OrganizationRecord::Preset(Box::new(preset))),
+                )
+            }
+            OrganizationMutation::ClonePreset {
+                id,
+                expected_revision,
+                label,
+                parent_id,
+            } => {
+                let preset =
+                    super::presets::clone(&mut tx, &id, expected_revision, label, parent_id)
+                        .await?;
+                (
+                    "preset/clone",
+                    Some(OrganizationRecord::Preset(Box::new(preset))),
+                )
+            }
             OrganizationMutation::PromoteNote {
                 source_id,
                 group_id,
@@ -336,6 +362,7 @@ impl OrganizationStore {
             OrganizationRecordKind::Memberships => {
                 "SELECT data FROM organization_memberships WHERE id=?"
             }
+            OrganizationRecordKind::Presets => "SELECT data FROM organization_presets WHERE id=?",
         };
         let data: String = sqlx::query_scalar(query)
             .bind(id)
@@ -376,6 +403,9 @@ impl OrganizationStore {
             OrganizationRecordKind::Memberships => {
                 "SELECT data FROM organization_memberships WHERE id > ? ORDER BY id LIMIT ?"
             }
+            OrganizationRecordKind::Presets => {
+                "SELECT data FROM organization_presets WHERE id > ? ORDER BY id LIMIT ?"
+            }
         };
         let rows: Vec<String> = sqlx::query_scalar(query)
             .bind(cursor.unwrap_or_default())
@@ -405,6 +435,7 @@ pub(super) fn record_id(record: &OrganizationRecord) -> &str {
         OrganizationRecord::Project(record) => &record.id,
         OrganizationRecord::Task(record) => &record.id,
         OrganizationRecord::Membership(record) => &record.id,
+        OrganizationRecord::Preset(record) => &record.id,
     }
 }
 

@@ -15,6 +15,9 @@ mod handoff;
 #[path = "organization_report_tests.rs"]
 mod report;
 
+#[path = "organization_preset_tests.rs"]
+mod presets;
+
 async fn authorized_attempt(
     store: &OrganizationStore,
     approval: bool,

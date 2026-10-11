@@ -10,6 +10,8 @@ pub(super) enum Kind {
     NodeEdit(OrganizationNode),
     Role(Option<OrganizationRoleVersion>),
     Membership(OrganizationNode),
+    PresetSave(OrganizationNode),
+    PresetClone(Box<OrganizationPreset>),
     Goal,
     GoalEdit(OrganizationGoal),
     Project,
@@ -1028,6 +1030,11 @@ impl Form {
             .or_else(|| project.and_then(|p| p.goal_id.as_deref()));
         let owner = project.and_then(|p| p.owner_id.as_deref());
         let mut fields = match &kind {
+            Kind::PresetSave(node) => vec![Field::text("Preset name", "Definition subtree only; at most 128 nodes", &node.label)],
+            Kind::PresetClone(preset) => vec![
+                Field::text("Clone group name", "Fresh identities; grants/tasks/private knowledge stay separate", &format!("{} copy", preset.label)),
+                Field::select("Parent group / node", optional(nodes), None),
+            ],
             Kind::PromoteNote(note) => vec![Field::select("Visibility",optional(records.iter().filter_map(|record|match record {OrganizationRecord::Node(node) if node.kind==OrganizationNodeKind::Group && node.enabled=>Some((node.id.clone(),node.label.clone())),_=>None}).collect()),note.group_id.as_deref()),Field::text("Owner-reviewed knowledge", "Blank team selects project visibility; source/task/attempt provenance is retained", &note.body)],
             Kind::Handoff {
                 task, receivers, ..
@@ -1327,6 +1334,8 @@ impl Form {
             Kind::NodeEdit(_) => "Edit node / hierarchy / state",
             Kind::Role(_) => "Create immutable role version",
             Kind::Membership(_) => "Edit group membership",
+            Kind::PresetSave(_) => "Save organization preset · definition subtree",
+            Kind::PresetClone(_) => "Clone organization preset · fresh identities",
             Kind::Goal => "New goal",
             Kind::GoalEdit(_) => "Edit goal / parent / success criteria",
             Kind::Project => "New project",
@@ -1572,6 +1581,17 @@ impl Form {
             Ok(lines(i))
         };
         Ok(match &self.kind {
+            Kind::PresetSave(node) => Command::Definition(OrganizationMutation::SavePreset {
+                root_id: node.id.clone(),
+                expected_root_revision: node.revision,
+                label: required(0)?,
+            }),
+            Kind::PresetClone(preset) => Command::Definition(OrganizationMutation::ClonePreset {
+                id: preset.id.clone(),
+                expected_revision: preset.revision,
+                label: required(0)?,
+                parent_id: optional(1),
+            }),
             Kind::PromoteNote(note) => Command::Definition(OrganizationMutation::PromoteNote {
                 source_id: note.id.clone(),
                 group_id: optional(0),

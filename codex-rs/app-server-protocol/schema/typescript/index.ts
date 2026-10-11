@@ -81,6 +81,8 @@ export type { OrganizationNote } from "./OrganizationNote";
 export type { OrganizationNoteScope } from "./OrganizationNoteScope";
 export type { OrganizationNoteSearchResult } from "./OrganizationNoteSearchResult";
 export type { OrganizationPlanItem } from "./OrganizationPlanItem";
+export type { OrganizationPreset } from "./OrganizationPreset";
+export type { OrganizationPresetClone } from "./OrganizationPresetClone";
 export type { OrganizationProjectPlan } from "./OrganizationProjectPlan";
 export type { OrganizationProviderCapability } from "./OrganizationProviderCapability";
 export type { OrganizationProviderEvidence } from "./OrganizationProviderEvidence";

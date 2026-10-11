@@ -85,6 +85,28 @@ pub struct OrganizationMembership {
     pub group_id: String,
 }
 
+/// Definition-only snapshot. No task, grant, memory or runtime identity is copied.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct OrganizationPreset {
+    pub id: String,
+    pub label: String,
+    #[ts(type = "number")]
+    pub revision: i64,
+    pub nodes: Vec<OrganizationNode>,
+    pub roles: Vec<OrganizationRoleVersion>,
+    pub memberships: Vec<OrganizationMembership>,
+    pub last_clone: Option<OrganizationPresetClone>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct OrganizationPresetClone {
+    pub root_id: String,
+    pub node_ids: std::collections::BTreeMap<String, String>,
+    pub role_ids: std::collections::BTreeMap<String, String>,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
 #[serde(rename_all = "camelCase")]
 pub enum OrganizationRecordKind {
@@ -94,6 +116,7 @@ pub enum OrganizationRecordKind {
     Projects,
     Tasks,
     Memberships,
+    Presets,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
@@ -105,11 +128,27 @@ pub enum OrganizationRecord {
     Project(OrganizationProjectPlan),
     Task(OrganizationTask),
     Membership(OrganizationMembership),
+    Preset(Box<OrganizationPreset>),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
 #[serde(tag = "type", rename_all = "camelCase", deny_unknown_fields)]
 pub enum OrganizationMutation {
+    #[serde(rename_all = "camelCase")]
+    SavePreset {
+        root_id: String,
+        #[ts(type = "number")]
+        expected_root_revision: i64,
+        label: String,
+    },
+    #[serde(rename_all = "camelCase")]
+    ClonePreset {
+        id: String,
+        #[ts(type = "number")]
+        expected_revision: i64,
+        label: String,
+        parent_id: Option<String>,
+    },
     #[serde(rename_all = "camelCase")]
     PromoteNote {
         source_id: String,
@@ -184,6 +223,8 @@ mod tests {
     fn mutation_schema_matches_actual_json_field_names() {
         let schema = serde_json::to_value(schemars::schema_for!(OrganizationMutation)).unwrap();
         let examples = [
+            json!({"type":"savePreset","rootId":"root","expectedRootRevision":1,"label":"Team"}),
+            json!({"type":"clonePreset","id":"preset","expectedRevision":1,"label":"Team copy","parentId":null}),
             json!({"type":"putNode","kind":"agent","label":"One","enabled":true}),
             json!({"type":"createRoleVersion","name":"Researcher","instructions":"Read sources"}),
             json!({"type":"putGoal","objective":"Report","criteria":["Cited"]}),

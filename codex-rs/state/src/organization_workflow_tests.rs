@@ -1452,6 +1452,9 @@ async fn workflow_migration_from_seven_preserves_existing_tasks_and_crash_blocks
     let store = OrganizationStore::open(&home.0).await?;
     let template = fixture(&store).await?;
     let old = execution_task(&store, &template.items[0].owner_id, &template.project_id).await?;
+    sqlx::query("DROP TABLE organization_presets")
+        .execute(&store.pool)
+        .await?;
     sqlx::query("DROP VIEW organization_shared_usage")
         .execute(&store.pool)
         .await?;

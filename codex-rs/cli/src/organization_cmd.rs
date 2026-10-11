@@ -96,7 +96,7 @@ enum Action {
         #[arg(long, requires = "agent_id")]
         team: bool,
     },
-    /// List nodes, roles, goals, projects, tasks or memberships as JSON.
+    /// List nodes, roles, goals, projects, tasks, memberships or presets as JSON.
     List {
         kind: String,
         #[arg(long)]

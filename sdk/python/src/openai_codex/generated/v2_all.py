@@ -3269,6 +3269,29 @@ class OrganizationMembership(BaseModel):
     node_id: Annotated[str, Field(alias="nodeId")]
 
 
+class SavePresetOrganizationMutation(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    expected_root_revision: Annotated[int, Field(alias="expectedRootRevision")]
+    label: str
+    root_id: Annotated[str, Field(alias="rootId")]
+    type: Annotated[Literal["savePreset"], Field(title="SavePresetOrganizationMutationType")]
+
+
+class ClonePresetOrganizationMutation(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    expected_revision: Annotated[int, Field(alias="expectedRevision")]
+    id: str
+    label: str
+    parent_id: Annotated[str | None, Field(alias="parentId")] = None
+    type: Annotated[Literal["clonePreset"], Field(title="ClonePresetOrganizationMutationType")]
+
+
 class PromoteNoteOrganizationMutation(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
@@ -3370,6 +3393,15 @@ class OrganizationPlanItem(BaseModel):
     prerequisites: list[str]
 
 
+class OrganizationPresetClone(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    node_ids: Annotated[dict[str, str], Field(alias="nodeIds")]
+    role_ids: Annotated[dict[str, str], Field(alias="roleIds")]
+    root_id: Annotated[str, Field(alias="rootId")]
+
+
 class OrganizationProjectPlan(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
@@ -3451,6 +3483,7 @@ class OrganizationRecordKind(Enum):
     projects = "projects"
     tasks = "tasks"
     memberships = "memberships"
+    presets = "presets"
 
 
 class OrganizationReportTotals(BaseModel):
@@ -9912,7 +9945,9 @@ class PutNodeOrganizationMutation(BaseModel):
 
 class OrganizationMutation(
     RootModel[
-        PromoteNoteOrganizationMutation
+        SavePresetOrganizationMutation
+        | ClonePresetOrganizationMutation
+        | PromoteNoteOrganizationMutation
         | PutNodeOrganizationMutation
         | CreateRoleVersionOrganizationMutation
         | PutGoalOrganizationMutation
@@ -9925,7 +9960,9 @@ class OrganizationMutation(
         populate_by_name=True,
     )
     root: (
-        PromoteNoteOrganizationMutation
+        SavePresetOrganizationMutation
+        | ClonePresetOrganizationMutation
+        | PromoteNoteOrganizationMutation
         | PutNodeOrganizationMutation
         | CreateRoleVersionOrganizationMutation
         | PutGoalOrganizationMutation
@@ -9974,6 +10011,19 @@ class OrganizationNoteSearchResult(BaseModel):
     notes: list[OrganizationNote]
 
 
+class OrganizationPreset(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    id: str
+    label: str
+    last_clone: Annotated[OrganizationPresetClone | None, Field(alias="lastClone")] = None
+    memberships: list[OrganizationMembership]
+    nodes: list[OrganizationNode]
+    revision: int
+    roles: list[OrganizationRoleVersion]
+
+
 class OrganizationProviderCapability(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
@@ -10010,6 +10060,14 @@ class TaskOrganizationRecord(BaseModel):
     type: Annotated[Literal["task"], Field(title="TaskOrganizationRecordType")]
 
 
+class PresetOrganizationRecord(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    data: OrganizationPreset
+    type: Annotated[Literal["preset"], Field(title="PresetOrganizationRecordType")]
+
+
 class OrganizationRecord(
     RootModel[
         NodeOrganizationRecord
@@ -10018,6 +10076,7 @@ class OrganizationRecord(
         | ProjectOrganizationRecord
         | TaskOrganizationRecord
         | MembershipOrganizationRecord
+        | PresetOrganizationRecord
     ]
 ):
     model_config = ConfigDict(
@@ -10030,6 +10089,7 @@ class OrganizationRecord(
         | ProjectOrganizationRecord
         | TaskOrganizationRecord
         | MembershipOrganizationRecord
+        | PresetOrganizationRecord
     )
 
 

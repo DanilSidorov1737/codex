@@ -436,6 +436,9 @@ async fn recurring_migration_validation_and_pagination_preserve_existing_state()
             .await?,
     );
     // Simulate a genuine version-6 store: later schemas must also be absent.
+    sqlx::query("DROP TABLE organization_presets")
+        .execute(&store.pool)
+        .await?;
     sqlx::query("DROP VIEW organization_shared_usage")
         .execute(&store.pool)
         .await?;

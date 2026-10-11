@@ -304,9 +304,7 @@ fn dashboard() -> Dashboard {
     Dashboard {
         preferences: Preferences::default(),
         path: PathBuf::from("unused"),
-        schedule_view: false,
-        workflow_view: false,
-        goal_view: false,
+        projection: Projection::Default,
         snapshot: Snapshot {
             report: Some(report_for_tasks(&["one", "two"])),
             schedules: vec![],
@@ -354,6 +352,42 @@ fn dashboard() -> Dashboard {
         prices: None,
         frame: FrameRequester::test_dummy(),
         is_done: false,
+    }
+}
+
+#[tokio::test]
+async fn presets_are_discoverable_and_forms_pin_revisions_without_sending_authority() {
+    let mut d = dashboard();
+    let (tx, mut rx) = mpsc::channel(8);
+    d.commands = tx;
+    d.preferences.preset = Preset::Operations;
+    d.selected = Some("owner".into());
+    d.key(KeyCode::Char('D').into());
+    assert!(matches!(d.form.as_ref().unwrap().command(),
+        Ok(Command::Definition(OrganizationMutation::SavePreset { root_id, expected_root_revision: 1, .. })) if root_id == "owner"));
+    assert!(rx.try_recv().is_err());
+    d.key(KeyCode::Esc.into());
+    let preset = OrganizationPreset { id: "preset".into(), label: "Arbitrary organization".into(),
+        revision: 7, nodes: vec![node("owner",None)], roles: vec![], memberships: vec![], last_clone: None };
+    d.snapshot.records.push(OrganizationRecord::Preset(Box::new(preset)));
+    d.key(KeyCode::F(9).into());
+    assert_eq!(d.projection,Projection::Presets);
+    assert_eq!(d.rows.len(),1);
+    d.key(KeyCode::Char('V').into());
+    d.key(KeyCode::F(6).into());
+    assert!(matches!(d.confirmation,
+        Some(Command::Definition(OrganizationMutation::ClonePreset { ref id, expected_revision: 7, ref label, parent_id: None })) if id=="preset" && label=="Arbitrary organization copy"));
+    assert!(rx.try_recv().is_err());
+    for (width,height) in [(160,48),(50,20)] {
+        let area=Rect::new(0,0,width,height);
+        d.render(area,&mut Buffer::empty(area));
+    }
+    d.key(KeyCode::Esc.into());
+    d.key(KeyCode::Esc.into());
+    for (code,expected) in [(KeyCode::Char('g'),Projection::Goals),(KeyCode::Char('S'),Projection::Schedules),
+        (KeyCode::Char('w'),Projection::Workflows),(KeyCode::F(9),Projection::Presets),(KeyCode::F(9),Projection::Default)] {
+        d.key(code.into());
+        assert_eq!(d.projection,expected);
     }
 }
 
@@ -612,7 +646,7 @@ async fn workflow_views_save_prerequisite_closure_and_freeze_preview_confirmatio
         .push(OrganizationWorkflowView::Template {
             template: template.clone(),
         });
-    d.workflow_view = true;
+    d.projection = Projection::Workflows;
     d.selected = Some("workflow:template".into());
     d.rebuild();
     assert!(d.rows.iter().any(|row| row.id == "workflow:template"));
@@ -710,7 +744,7 @@ async fn workflow_controls_capture_run_revision_and_need_explicit_confirmation()
     d.snapshot
         .workflows
         .push(OrganizationWorkflowView::Run { run, tasks: vec![] });
-    d.workflow_view = true;
+    d.projection = Projection::Workflows;
     d.selected = Some("run:run-id".into());
     d.decision('u');
     assert!(
@@ -857,7 +891,7 @@ async fn schedule_views_capture_controls_and_keep_tree_and_selection_stable() {
     d.rebuild();
     assert!(d.rows.iter().all(|r| !r.id.starts_with("schedule:"))); // Operations defaults to tree
     d.key(key(KeyCode::Char('S')));
-    assert!(d.schedule_view);
+    assert_eq!(d.projection, Projection::Schedules);
     assert_eq!(d.selected.as_deref(), Some("schedule:series"));
     let text = d.details();
     for evidence in [

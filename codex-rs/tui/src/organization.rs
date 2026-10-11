@@ -241,6 +241,7 @@ async fn load(handle: &AppServerRequestHandle) -> anyhow::Result<Snapshot> {
         OrganizationRecordKind::Projects,
         OrganizationRecordKind::Tasks,
         OrganizationRecordKind::Memberships,
+        OrganizationRecordKind::Presets,
     ] {
         let mut cursor = None;
         for page in 0..10 {
@@ -596,6 +597,16 @@ struct Row {
     label: String,
 }
 
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+enum Projection {
+    #[default]
+    Default,
+    Goals,
+    Schedules,
+    Workflows,
+    Presets,
+}
+
 /// Iterative traversal keeps deep user-defined hierarchies off the call stack.
 fn tree(nodes: &[OrganizationNode], collapsed: &BTreeSet<String>, search: &str) -> Vec<Row> {
     let entries: Vec<_> = nodes
@@ -728,9 +739,7 @@ pub(crate) struct Dashboard {
     preferences: Preferences,
     path: PathBuf,
     snapshot: Snapshot,
-    schedule_view: bool,
-    workflow_view: bool,
-    goal_view: bool,
+    projection: Projection,
     rows: Vec<Row>,
     selected: Option<String>,
     collapsed: BTreeSet<String>,
@@ -827,9 +836,7 @@ impl Dashboard {
             preferences,
             path,
             snapshot: Snapshot::default(),
-            schedule_view: false,
-            workflow_view: false,
-            goal_view: false,
+            projection: Projection::Default,
             rows: Vec::new(),
             selected: None,
             collapsed: BTreeSet::new(),
@@ -894,9 +901,7 @@ impl Dashboard {
             editor.focused = false;
         }
         self.preferences.preset = preset;
-        self.schedule_view = false;
-        self.workflow_view = false;
-        self.goal_view = false;
+        self.projection = Projection::Default;
         self.search.clear();
         self.selected = None;
         self.rebuild();
@@ -905,7 +910,30 @@ impl Dashboard {
     }
     fn rebuild(&mut self) {
         let search = self.search.to_lowercase();
-        self.rows = if self.goal_view {
+        self.rows = if self.projection == Projection::Presets {
+            self.snapshot
+                .records
+                .iter()
+                .filter_map(|record| match record {
+                    OrganizationRecord::Preset(preset) => {
+                        let label = format!(
+                            "Preset: {} · {} nodes · revision {}",
+                            preset.label,
+                            preset.nodes.len(),
+                            preset.revision
+                        );
+                        (search.is_empty()
+                            || label.to_lowercase().contains(&search)
+                            || preset.id.contains(&search))
+                        .then(|| Row {
+                            id: preset.id.clone(),
+                            label,
+                        })
+                    }
+                    _ => None,
+                })
+                .collect()
+        } else if self.projection == Projection::Goals {
             goal_tree(&self.snapshot.records, &self.collapsed, &search)
         } else if self.preferences.preset == Preset::Review {
             self.snapshot
@@ -925,8 +953,8 @@ impl Dashboard {
                 })
                 .unwrap_or_default()
         } else if self.preferences.preset == Preset::Operations
-            && !self.schedule_view
-            && !self.workflow_view
+            && self.projection != Projection::Schedules
+            && self.projection != Projection::Workflows
         {
             let nodes: Vec<_> = self
                 .snapshot
@@ -1001,11 +1029,13 @@ impl Dashboard {
                         || r.id.contains(&search)
                 })
                 .collect();
-            if self.schedule_view || self.workflow_view {
+            if self.projection == Projection::Schedules || self.projection == Projection::Workflows
+            {
                 rows.clear();
             }
-            if self.schedule_view
-                || (self.preferences.preset == Preset::Projects && !self.workflow_view)
+            if self.projection == Projection::Schedules
+                || (self.preferences.preset == Preset::Projects
+                    && self.projection != Projection::Workflows)
             {
                 rows.extend(self.snapshot.schedules.iter().filter_map(|v| {
                     let s = &v.schedule;
@@ -1026,8 +1056,9 @@ impl Dashboard {
                     })
                 }));
             }
-            if self.workflow_view
-                || (self.preferences.preset == Preset::Projects && !self.schedule_view)
+            if self.projection == Projection::Workflows
+                || (self.preferences.preset == Preset::Projects
+                    && self.projection != Projection::Schedules)
             {
                 rows.extend(self.snapshot.workflows.iter().filter_map(|view| {
                     let (id, label) = match view {
@@ -1085,7 +1116,7 @@ impl Dashboard {
                     .then_some(Row { id, label })
                 }));
             }
-            if self.workflow_view {
+            if self.projection == Projection::Workflows {
                 for view in &self.snapshot.workflows {
                     if let OrganizationWorkflowView::Run { run, tasks } = view {
                         for item in &run.preview.template.items {
@@ -1143,6 +1174,7 @@ impl Dashboard {
             OrganizationRecord::Task(t) => Some(&t.id) == self.selected.as_ref(),
             OrganizationRecord::Goal(g) => Some(&g.id) == self.selected.as_ref(),
             OrganizationRecord::Project(p) => Some(&p.id) == self.selected.as_ref(),
+            OrganizationRecord::Preset(p) => Some(&p.id) == self.selected.as_ref(),
             _ => false,
         })
     }
@@ -1472,6 +1504,20 @@ impl Dashboard {
                 }
             }
             'B' => form::Kind::Group,
+            'D' => match self.record() {
+                Some(OrganizationRecord::Node(node)) => form::Kind::PresetSave(node.clone()),
+                _ => {
+                    self.message = "Select a node whose definition subtree should be saved.".into();
+                    return;
+                }
+            },
+            'V' => match self.record() {
+                Some(OrganizationRecord::Preset(preset)) => form::Kind::PresetClone(preset.clone()),
+                _ => {
+                    self.message = "F9 shows organization presets; select one to clone.".into();
+                    return;
+                }
+            },
             'E' if self.selected_template().is_some() => {
                 let Some(template) = self.selected_template().cloned() else {
                     return;
@@ -2207,9 +2253,9 @@ impl Dashboard {
             KeyCode::PageDown => self.scroll = self.scroll.saturating_add(10),
             KeyCode::PageUp => self.scroll = self.scroll.saturating_sub(10),
             KeyCode::Left | KeyCode::Right | KeyCode::Enter
-                if (self.preferences.preset == Preset::Operations || self.goal_view)
-                    && !self.schedule_view
-                    && !self.workflow_view =>
+                if (self.preferences.preset == Preset::Operations
+                    || self.projection == Projection::Goals)
+                    && matches!(self.projection, Projection::Default | Projection::Goals) =>
             {
                 if let Some(id) = &self.selected {
                     if key.code == KeyCode::Left
@@ -2227,19 +2273,34 @@ impl Dashboard {
                 self.changes = false;
             }
             KeyCode::Char('f') => self.send(Command::Refresh),
+            KeyCode::F(9) => {
+                self.projection = if self.projection == Projection::Presets {
+                    Projection::Default
+                } else {
+                    Projection::Presets
+                };
+                self.search.clear();
+                self.selected = None;
+                self.rebuild();
+                self.inspect();
+            }
             KeyCode::Char('g') if key.modifiers.is_empty() => {
-                self.goal_view = !self.goal_view;
-                self.schedule_view = false;
-                self.workflow_view = false;
+                self.projection = if self.projection == Projection::Goals {
+                    Projection::Default
+                } else {
+                    Projection::Goals
+                };
                 self.search.clear();
                 self.selected = None;
                 self.rebuild();
                 self.inspect();
             }
             KeyCode::Char('w') => {
-                self.goal_view = false;
-                self.workflow_view = !self.workflow_view;
-                self.schedule_view = false;
+                self.projection = if self.projection == Projection::Workflows {
+                    Projection::Default
+                } else {
+                    Projection::Workflows
+                };
                 self.selected = None;
                 self.search.clear();
                 self.rebuild();
@@ -2248,9 +2309,11 @@ impl Dashboard {
                     "Workflows · W saves selected task chain · s previews selected template".into();
             }
             KeyCode::Char('S') => {
-                self.goal_view = false;
-                self.schedule_view = !self.schedule_view;
-                self.workflow_view = false;
+                self.projection = if self.projection == Projection::Schedules {
+                    Projection::Default
+                } else {
+                    Projection::Schedules
+                };
                 self.search.clear();
                 self.selected = None;
                 self.rebuild();
@@ -2289,7 +2352,7 @@ impl Dashboard {
             }
             KeyCode::Char(
                 c @ ('U' | 'G' | 'N' | 'T' | 's' | 'A' | 'R' | 'W' | 'H' | 'B' | 'E' | 'L' | 'I'
-                | 'Y'),
+                | 'Y' | 'D' | 'V'),
             ) => self.open_form(c),
             KeyCode::Char('n') if self.preferences.preset == Preset::Review => {
                 if let Some(result) = self
@@ -2380,6 +2443,9 @@ impl Dashboard {
                     self.send(Command::Refresh);
                 }
                 Update::Saved(record) => {
+                    if matches!(record, OrganizationRecord::Preset(_)) {
+                        self.projection = Projection::Presets;
+                    }
                     let id = record_id(&record).map(str::to_string);
                     if let Some(id) = &id {
                         self.snapshot
@@ -2416,8 +2482,7 @@ impl Dashboard {
                     self.snapshot.workflows.retain(|v| workflow_id(v) != id);
                     self.snapshot.workflows.push(*view);
                     self.selected = Some(id);
-                    self.workflow_view = true;
-                    self.schedule_view = false;
+                    self.projection = Projection::Workflows;
                     self.search.clear();
                     self.rebuild();
                     self.inspect();
@@ -2431,8 +2496,7 @@ impl Dashboard {
                         .retain(|v| v.schedule.id != view.schedule.id);
                     self.snapshot.schedules.push(*view);
                     if created {
-                        self.schedule_view = true;
-                        self.workflow_view = false;
+                        self.projection = Projection::Schedules;
                         self.search.clear();
                     }
                     self.rebuild();
@@ -2498,6 +2562,18 @@ impl Dashboard {
         }
         if let Some(record) = self.record() {
             match record {
+                OrganizationRecord::Preset(preset) => {
+                    text = format!(
+                        "Organization preset · {}\n{}\nRevision: {}\n{} captured nodes · {} roles · {} internal memberships\nV clones fresh definitions beneath a named group; no grants/tasks/private knowledge are copied.\n\n{}",
+                        preset.label,
+                        preset.id,
+                        preset.revision,
+                        preset.nodes.len(),
+                        preset.roles.len(),
+                        preset.memberships.len(),
+                        serde_json::to_string_pretty(preset).unwrap_or_default()
+                    );
+                }
                 OrganizationRecord::Node(n) => {
                     text = format!(
                         "{}\n{} · {}\nModel: {}\n\n",
@@ -2925,6 +3001,7 @@ fn record_id(record: &OrganizationRecord) -> Option<&str> {
         OrganizationRecord::Goal(g) => Some(&g.id),
         OrganizationRecord::Project(p) => Some(&p.id),
         OrganizationRecord::Task(t) => Some(&t.id),
+        OrganizationRecord::Preset(p) => Some(&p.id),
         _ => None,
     }
 }

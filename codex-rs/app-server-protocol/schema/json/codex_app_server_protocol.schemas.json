@@ -17027,6 +17027,72 @@
           {
             "additionalProperties": false,
             "properties": {
+              "expectedRootRevision": {
+                "format": "int64",
+                "type": "integer"
+              },
+              "label": {
+                "type": "string"
+              },
+              "rootId": {
+                "type": "string"
+              },
+              "type": {
+                "enum": [
+                  "savePreset"
+                ],
+                "title": "SavePresetOrganizationMutationType",
+                "type": "string"
+              }
+            },
+            "required": [
+              "expectedRootRevision",
+              "label",
+              "rootId",
+              "type"
+            ],
+            "title": "SavePresetOrganizationMutation",
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "expectedRevision": {
+                "format": "int64",
+                "type": "integer"
+              },
+              "id": {
+                "type": "string"
+              },
+              "label": {
+                "type": "string"
+              },
+              "parentId": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "type": {
+                "enum": [
+                  "clonePreset"
+                ],
+                "title": "ClonePresetOrganizationMutationType",
+                "type": "string"
+              }
+            },
+            "required": [
+              "expectedRevision",
+              "id",
+              "label",
+              "type"
+            ],
+            "title": "ClonePresetOrganizationMutation",
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
               "body": {
                 "type": "string"
               },
@@ -17513,6 +17579,83 @@
         ],
         "type": "object"
       },
+      "OrganizationPreset": {
+        "description": "Definition-only snapshot. No task, grant, memory or runtime identity is copied.",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "lastClone": {
+            "anyOf": [
+              {
+                "$ref": "#/definitions/v2/OrganizationPresetClone"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "memberships": {
+            "items": {
+              "$ref": "#/definitions/v2/OrganizationMembership"
+            },
+            "type": "array"
+          },
+          "nodes": {
+            "items": {
+              "$ref": "#/definitions/v2/OrganizationNode"
+            },
+            "type": "array"
+          },
+          "revision": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "roles": {
+            "items": {
+              "$ref": "#/definitions/v2/OrganizationRoleVersion"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "memberships",
+          "nodes",
+          "revision",
+          "roles"
+        ],
+        "type": "object"
+      },
+      "OrganizationPresetClone": {
+        "properties": {
+          "nodeIds": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "roleIds": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "rootId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "nodeIds",
+          "roleIds",
+          "rootId"
+        ],
+        "type": "object"
+      },
       "OrganizationProjectPlan": {
         "properties": {
           "criteria": {
@@ -17778,6 +17921,26 @@
             ],
             "title": "MembershipOrganizationRecord",
             "type": "object"
+          },
+          {
+            "properties": {
+              "data": {
+                "$ref": "#/definitions/v2/OrganizationPreset"
+              },
+              "type": {
+                "enum": [
+                  "preset"
+                ],
+                "title": "PresetOrganizationRecordType",
+                "type": "string"
+              }
+            },
+            "required": [
+              "data",
+              "type"
+            ],
+            "title": "PresetOrganizationRecord",
+            "type": "object"
           }
         ]
       },
@@ -17788,7 +17951,8 @@
           "goals",
           "projects",
           "tasks",
-          "memberships"
+          "memberships",
+          "presets"
         ],
         "type": "string"
       },
