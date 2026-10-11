@@ -18164,6 +18164,97 @@
         ],
         "type": "object"
       },
+      "OrganizationSharedCeilings": {
+        "additionalProperties": false,
+        "properties": {
+          "maxActive": {
+            "format": "uint32",
+            "minimum": 0.0,
+            "type": "integer"
+          },
+          "maxModelRequests": {
+            "format": "uint32",
+            "minimum": 0.0,
+            "type": "integer"
+          },
+          "maxTokens": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "maxActive",
+          "maxModelRequests",
+          "maxTokens"
+        ],
+        "type": "object"
+      },
+      "OrganizationSharedLimit": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "maxActive": {
+            "format": "uint32",
+            "minimum": 0.0,
+            "type": "integer"
+          },
+          "maxModelRequests": {
+            "format": "uint32",
+            "minimum": 0.0,
+            "type": "integer"
+          },
+          "maxTokens": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "projectId": {
+            "type": "string"
+          },
+          "revision": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "runId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "maxActive",
+          "maxModelRequests",
+          "maxTokens",
+          "projectId",
+          "revision"
+        ],
+        "type": "object"
+      },
+      "OrganizationSharedUsage": {
+        "properties": {
+          "active": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "modelRequests": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "reportedTokens": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "active",
+          "modelRequests",
+          "reportedTokens"
+        ],
+        "type": "object"
+      },
       "OrganizationTask": {
         "properties": {
           "criteria": {
@@ -18778,10 +18869,19 @@
         ],
         "type": "object"
       },
+      "OrganizationWorkflowControl": {
+        "enum": [
+          "pause",
+          "resume",
+          "cancel"
+        ],
+        "type": "string"
+      },
       "OrganizationWorkflowKind": {
         "enum": [
           "templates",
-          "runs"
+          "runs",
+          "limits"
         ],
         "type": "string"
       },
@@ -18850,6 +18950,87 @@
             ],
             "title": "RunOrganizationWorkflowMutation",
             "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "action": {
+                "$ref": "#/definitions/v2/OrganizationWorkflowControl"
+              },
+              "expectedRevision": {
+                "format": "int64",
+                "type": "integer"
+              },
+              "id": {
+                "type": "string"
+              },
+              "type": {
+                "enum": [
+                  "control"
+                ],
+                "title": "ControlOrganizationWorkflowMutationType",
+                "type": "string"
+              }
+            },
+            "required": [
+              "action",
+              "expectedRevision",
+              "id",
+              "type"
+            ],
+            "title": "ControlOrganizationWorkflowMutation",
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "expectedRevision": {
+                "format": "int64",
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "maxActive": {
+                "format": "uint32",
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              "maxModelRequests": {
+                "format": "uint32",
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              "maxTokens": {
+                "format": "int64",
+                "type": "integer"
+              },
+              "projectId": {
+                "type": "string"
+              },
+              "runId": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "type": {
+                "enum": [
+                  "setLimits"
+                ],
+                "title": "SetLimitsOrganizationWorkflowMutationType",
+                "type": "string"
+              }
+            },
+            "required": [
+              "maxActive",
+              "maxModelRequests",
+              "maxTokens",
+              "projectId",
+              "type"
+            ],
+            "title": "SetLimitsOrganizationWorkflowMutation",
+            "type": "object"
           }
         ]
       },
@@ -18890,6 +19071,17 @@
             },
             "type": "array"
           },
+          "sharedLimits": {
+            "anyOf": [
+              {
+                "$ref": "#/definitions/v2/OrganizationSharedCeilings"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
           "template": {
             "$ref": "#/definitions/v2/OrganizationWorkflowTemplate"
           }
@@ -18922,6 +19114,17 @@
             },
             "type": "array"
           },
+          "sharedLimits": {
+            "anyOf": [
+              {
+                "$ref": "#/definitions/v2/OrganizationSharedCeilings"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
           "templateId": {
             "type": "string"
           }
@@ -18945,6 +19148,19 @@
           },
           "preview": {
             "$ref": "#/definitions/v2/OrganizationWorkflowPreview"
+          },
+          "revision": {
+            "default": 1,
+            "format": "int64",
+            "type": "integer"
+          },
+          "state": {
+            "allOf": [
+              {
+                "$ref": "#/definitions/v2/OrganizationWorkflowState"
+              }
+            ],
+            "default": "active"
           },
           "taskIds": {
             "additionalProperties": {
@@ -18976,6 +19192,14 @@
           "scope"
         ],
         "type": "object"
+      },
+      "OrganizationWorkflowState": {
+        "enum": [
+          "active",
+          "paused",
+          "cancelled"
+        ],
+        "type": "string"
       },
       "OrganizationWorkflowTemplate": {
         "additionalProperties": false,
@@ -19056,6 +19280,30 @@
               "type"
             ],
             "title": "RunOrganizationWorkflowView",
+            "type": "object"
+          },
+          {
+            "properties": {
+              "limit": {
+                "$ref": "#/definitions/v2/OrganizationSharedLimit"
+              },
+              "type": {
+                "enum": [
+                  "limit"
+                ],
+                "title": "LimitOrganizationWorkflowViewType",
+                "type": "string"
+              },
+              "usage": {
+                "$ref": "#/definitions/v2/OrganizationSharedUsage"
+              }
+            },
+            "required": [
+              "limit",
+              "type",
+              "usage"
+            ],
+            "title": "LimitOrganizationWorkflowView",
             "type": "object"
           }
         ]

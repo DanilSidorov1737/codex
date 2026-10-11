@@ -3544,6 +3544,39 @@ class OrganizationScheduleState(Enum):
     blocked = "blocked"
 
 
+class OrganizationSharedCeilings(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    max_active: Annotated[int, Field(alias="maxActive", ge=0)]
+    max_model_requests: Annotated[int, Field(alias="maxModelRequests", ge=0)]
+    max_tokens: Annotated[int, Field(alias="maxTokens")]
+
+
+class OrganizationSharedLimit(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    id: str
+    max_active: Annotated[int, Field(alias="maxActive", ge=0)]
+    max_model_requests: Annotated[int, Field(alias="maxModelRequests", ge=0)]
+    max_tokens: Annotated[int, Field(alias="maxTokens")]
+    project_id: Annotated[str, Field(alias="projectId")]
+    revision: int
+    run_id: Annotated[str | None, Field(alias="runId")] = None
+
+
+class OrganizationSharedUsage(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    active: int
+    model_requests: Annotated[int, Field(alias="modelRequests")]
+    reported_tokens: Annotated[int, Field(alias="reportedTokens")]
+
+
 class OrganizationTask(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
@@ -3716,9 +3749,16 @@ class OrganizationUsageReport(BaseModel):
     workflow_run_id: Annotated[str | None, Field(alias="workflowRunId")] = None
 
 
+class OrganizationWorkflowControl(Enum):
+    pause = "pause"
+    resume = "resume"
+    cancel = "cancel"
+
+
 class OrganizationWorkflowKind(Enum):
     templates = "templates"
     runs = "runs"
+    limits = "limits"
 
 
 class PutOrganizationWorkflowMutation(BaseModel):
@@ -3734,6 +3774,31 @@ class PutOrganizationWorkflowMutation(BaseModel):
     type: Annotated[Literal["put"], Field(title="PutOrganizationWorkflowMutationType")]
 
 
+class ControlOrganizationWorkflowMutation(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    action: OrganizationWorkflowControl
+    expected_revision: Annotated[int, Field(alias="expectedRevision")]
+    id: str
+    type: Annotated[Literal["control"], Field(title="ControlOrganizationWorkflowMutationType")]
+
+
+class SetLimitsOrganizationWorkflowMutation(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    expected_revision: Annotated[int | None, Field(alias="expectedRevision")] = None
+    max_active: Annotated[int, Field(alias="maxActive", ge=0)]
+    max_model_requests: Annotated[int, Field(alias="maxModelRequests", ge=0)]
+    max_tokens: Annotated[int, Field(alias="maxTokens")]
+    project_id: Annotated[str, Field(alias="projectId")]
+    run_id: Annotated[str | None, Field(alias="runId")] = None
+    type: Annotated[Literal["setLimits"], Field(title="SetLimitsOrganizationWorkflowMutationType")]
+
+
 class OrganizationWorkflowScope(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
@@ -3741,6 +3806,12 @@ class OrganizationWorkflowScope(BaseModel):
     )
     key: str
     scope: OrganizationExecutionScope
+
+
+class OrganizationWorkflowState(Enum):
+    active = "active"
+    paused = "paused"
+    cancelled = "cancelled"
 
 
 class OrganizationWorkflowTemplate(BaseModel):
@@ -3761,6 +3832,15 @@ class TemplateOrganizationWorkflowView(BaseModel):
     )
     template: OrganizationWorkflowTemplate
     type: Annotated[Literal["template"], Field(title="TemplateOrganizationWorkflowViewType")]
+
+
+class LimitOrganizationWorkflowView(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    limit: OrganizationSharedLimit
+    type: Annotated[Literal["limit"], Field(title="LimitOrganizationWorkflowViewType")]
+    usage: OrganizationSharedUsage
 
 
 class PatchApplyStatus(Enum):
@@ -9994,6 +10074,7 @@ class OrganizationWorkflowPreview(BaseModel):
     policy_version: Annotated[int, Field(alias="policyVersion", ge=0)]
     project_revision: Annotated[int, Field(alias="projectRevision")]
     scopes: list[OrganizationWorkflowScope]
+    shared_limits: Annotated[OrganizationSharedCeilings | None, Field(alias="sharedLimits")] = None
     template: OrganizationWorkflowTemplate
 
 
@@ -10005,6 +10086,7 @@ class OrganizationWorkflowPreviewRequest(BaseModel):
     expected_revision: Annotated[int, Field(alias="expectedRevision")]
     id: str
     scopes: list[OrganizationWorkflowScope]
+    shared_limits: Annotated[OrganizationSharedCeilings | None, Field(alias="sharedLimits")] = None
     template_id: Annotated[str, Field(alias="templateId")]
 
 
@@ -10015,6 +10097,8 @@ class OrganizationWorkflowRun(BaseModel):
     created_at: Annotated[int, Field(alias="createdAt")]
     id: str
     preview: OrganizationWorkflowPreview
+    revision: int | None = 1
+    state: OrganizationWorkflowState | None = "active"
     task_ids: Annotated[dict[str, str], Field(alias="taskIds")]
 
 
@@ -10028,12 +10112,20 @@ class RunOrganizationWorkflowView(BaseModel):
 
 
 class OrganizationWorkflowView(
-    RootModel[TemplateOrganizationWorkflowView | RunOrganizationWorkflowView]
+    RootModel[
+        TemplateOrganizationWorkflowView
+        | RunOrganizationWorkflowView
+        | LimitOrganizationWorkflowView
+    ]
 ):
     model_config = ConfigDict(
         populate_by_name=True,
     )
-    root: TemplateOrganizationWorkflowView | RunOrganizationWorkflowView
+    root: (
+        TemplateOrganizationWorkflowView
+        | RunOrganizationWorkflowView
+        | LimitOrganizationWorkflowView
+    )
 
 
 class OverriddenMetadata(BaseModel):
@@ -12297,12 +12389,22 @@ class RunOrganizationWorkflowMutation(BaseModel):
 
 
 class OrganizationWorkflowMutation(
-    RootModel[PutOrganizationWorkflowMutation | RunOrganizationWorkflowMutation]
+    RootModel[
+        PutOrganizationWorkflowMutation
+        | RunOrganizationWorkflowMutation
+        | ControlOrganizationWorkflowMutation
+        | SetLimitsOrganizationWorkflowMutation
+    ]
 ):
     model_config = ConfigDict(
         populate_by_name=True,
     )
-    root: PutOrganizationWorkflowMutation | RunOrganizationWorkflowMutation
+    root: (
+        PutOrganizationWorkflowMutation
+        | RunOrganizationWorkflowMutation
+        | ControlOrganizationWorkflowMutation
+        | SetLimitsOrganizationWorkflowMutation
+    )
 
 
 class PluginShareContext(BaseModel):

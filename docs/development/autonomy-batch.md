@@ -40,6 +40,20 @@ including concurrent reservation and 32-item paused/exhausted queue fairness;
 12 runtime, 47 TUI/official-Neovim and 8 native API checks pass. Production CLI
 Clippy passes with warnings denied. Extra form assertions, schema regeneration
 and physical qualification continue before release.
+
+Items 3/5 now pass 373 protocol, 285 state, 2 wire-contract, 12 runtime,
+48 TUI/official-Neovim, 8 native API, 4 schema comparisons and 25 SDK checks.
+Generated JSON/TypeScript/precomputed exports and Python types are refreshed.
+The fresh actual CLI/TUI/official-Neovim receipt `physical-v3.json` passes pause,
+refused paused approval, same-grant/attempt continuation, two exact approvals,
+accepted prerequisite fencing, immutable subprocess checks, actual editor diff,
+one explicit Apply, failed-run cancellation and 36 switches at three sizes.
+The successful run consumed four localhost responses/60 fixture tokens; no paid
+calls. Two earlier runs are retained: provider startup ordering left one unknown
+request; fixture command quoting consumed two responses before failing. No limits
+were reset and no failed grant was replayed. The first physical helper failed
+before a mutation due to a missing helper name; corrected evidence is retained.
+This is qualification of these slices, not completion of all twelve items.
 Fresh evidence: `/workspace/.onboarding/qualification/autonomy-batch/`.
 Preserve all historical fixtures/evidence/packages; never replay grants/Apply.
 Missing provider access, local LSP binary or service manager is a prerequisite to
