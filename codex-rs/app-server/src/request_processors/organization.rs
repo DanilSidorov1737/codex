@@ -20,6 +20,10 @@ use codex_app_server_protocol::OrganizationMemorySearchParams;
 use codex_app_server_protocol::OrganizationMemorySearchResponse;
 use codex_app_server_protocol::OrganizationMutateParams;
 use codex_app_server_protocol::OrganizationMutateResponse;
+use codex_app_server_protocol::OrganizationScheduleListParams;
+use codex_app_server_protocol::OrganizationScheduleListResponse;
+use codex_app_server_protocol::OrganizationScheduleMutateParams;
+use codex_app_server_protocol::OrganizationScheduleMutateResponse;
 use codex_core::ThreadManager;
 use codex_core::config::Config;
 use codex_protocol::organization::OrganizationMutation;
@@ -177,6 +181,58 @@ impl OrganizationRequestProcessor {
             .await
             .map_err(|error| invalid_params(format!("execution read rejected: {error:#}")))?;
         Ok(Some(OrganizationExecutionReadResponse { view }.into()))
+    }
+
+    pub(crate) async fn schedule_list(
+        &self,
+        params: OrganizationScheduleListParams,
+        origin: ConnectionOrigin,
+    ) -> Result<Option<ClientResponsePayload>, JSONRPCErrorError> {
+        require_owner(origin)?;
+        self.runtime
+            .ensure_execution_owner()
+            .await
+            .map_err(|error| internal_error(format!("execution owner unavailable: {error:#}")))?;
+        let (data, next_cursor) = self
+            .store()
+            .await?
+            .list_schedules(
+                params.project_id.as_deref(),
+                params.cursor.as_deref(),
+                params.limit.unwrap_or(100),
+            )
+            .await
+            .map_err(|error| invalid_params(format!("schedule list rejected: {error:#}")))?;
+        Ok(Some(
+            OrganizationScheduleListResponse { data, next_cursor }.into(),
+        ))
+    }
+
+    pub(crate) async fn schedule_mutate(
+        &self,
+        params: OrganizationScheduleMutateParams,
+        origin: ConnectionOrigin,
+    ) -> Result<Option<ClientResponsePayload>, JSONRPCErrorError> {
+        require_owner(origin)?;
+        if serde_json::to_vec(&params)
+            .map_err(|_| invalid_params("invalid schedule mutation"))?
+            .len()
+            > 128 * 1024
+        {
+            return Err(invalid_params("schedule mutation exceeds 128 KiB"));
+        }
+        self.runtime
+            .ensure_execution_owner()
+            .await
+            .map_err(|error| internal_error(format!("execution owner unavailable: {error:#}")))?;
+        let view = self
+            .store()
+            .await?
+            .mutate_schedule(params.mutation, crate::organization_runtime::now())
+            .await
+            .map_err(|error| invalid_params(format!("schedule mutation rejected: {error:#}")))?;
+        self.runtime.wake();
+        Ok(Some(OrganizationScheduleMutateResponse { view }.into()))
     }
 
     pub(crate) async fn execution_mutate(

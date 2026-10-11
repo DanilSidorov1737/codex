@@ -27,6 +27,9 @@ use test_case::test_case;
 #[path = "organization_delegation.rs"]
 mod delegation;
 
+#[path = "organization_schedules.rs"]
+mod schedules;
+
 async fn definition(
     server: &mut TestAppServer,
     mutation: OrganizationMutation,

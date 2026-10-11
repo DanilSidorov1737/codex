@@ -13426,6 +13426,269 @@
       ],
       "type": "object"
     },
+    "OrganizationSchedule": {
+      "properties": {
+        "config": {
+          "$ref": "#/definitions/OrganizationScheduleConfig"
+        },
+        "id": {
+          "type": "string"
+        },
+        "issuedRuns": {
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "nextRunAt": {
+          "format": "int64",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "nodeRevision": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "policyVersion": {
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "projectRevision": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "revision": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "scope": {
+          "$ref": "#/definitions/OrganizationExecutionScope"
+        },
+        "skippedRuns": {
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "state": {
+          "$ref": "#/definitions/OrganizationScheduleState"
+        },
+        "template": {
+          "$ref": "#/definitions/OrganizationTask"
+        }
+      },
+      "required": [
+        "config",
+        "id",
+        "issuedRuns",
+        "nodeRevision",
+        "policyVersion",
+        "projectRevision",
+        "revision",
+        "scope",
+        "skippedRuns",
+        "state",
+        "template"
+      ],
+      "type": "object"
+    },
+    "OrganizationScheduleConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "endsAt": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "firstRunAt": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "intervalSeconds": {
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "label": {
+          "type": "string"
+        },
+        "maxModelRequests": {
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "maxRuns": {
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "maxTokens": {
+          "format": "int64",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "endsAt",
+        "firstRunAt",
+        "intervalSeconds",
+        "label",
+        "maxModelRequests",
+        "maxRuns",
+        "maxTokens"
+      ],
+      "type": "object"
+    },
+    "OrganizationScheduleControl": {
+      "enum": [
+        "pause",
+        "resume",
+        "cancel"
+      ],
+      "type": "string"
+    },
+    "OrganizationScheduleMutation": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "config": {
+              "$ref": "#/definitions/OrganizationScheduleConfig"
+            },
+            "expectedRevision": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "id": {
+              "description": "Owner-selected UUID prevents an unknown RPC outcome creating a second series.",
+              "type": "string"
+            },
+            "scope": {
+              "$ref": "#/definitions/OrganizationExecutionScope"
+            },
+            "taskId": {
+              "type": "string"
+            },
+            "type": {
+              "enum": [
+                "create"
+              ],
+              "title": "CreateOrganizationScheduleMutationType",
+              "type": "string"
+            }
+          },
+          "required": [
+            "config",
+            "expectedRevision",
+            "id",
+            "scope",
+            "taskId",
+            "type"
+          ],
+          "title": "CreateOrganizationScheduleMutation",
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "action": {
+              "$ref": "#/definitions/OrganizationScheduleControl"
+            },
+            "expectedRevision": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "id": {
+              "type": "string"
+            },
+            "type": {
+              "enum": [
+                "control"
+              ],
+              "title": "ControlOrganizationScheduleMutationType",
+              "type": "string"
+            }
+          },
+          "required": [
+            "action",
+            "expectedRevision",
+            "id",
+            "type"
+          ],
+          "title": "ControlOrganizationScheduleMutation",
+          "type": "object"
+        }
+      ]
+    },
+    "OrganizationScheduleOccurrence": {
+      "properties": {
+        "authorizationId": {
+          "type": "string"
+        },
+        "dueAt": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "taskId": {
+          "type": "string"
+        },
+        "taskState": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "authorizationId",
+        "dueAt",
+        "taskId",
+        "taskState"
+      ],
+      "type": "object"
+    },
+    "OrganizationScheduleState": {
+      "enum": [
+        "active",
+        "paused",
+        "cancelled",
+        "completed",
+        "blocked"
+      ],
+      "type": "string"
+    },
+    "OrganizationScheduleView": {
+      "properties": {
+        "modelRequests": {
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "occurrences": {
+          "description": "Newest 16 issued occurrences; older task evidence remains in the task store.",
+          "items": {
+            "$ref": "#/definitions/OrganizationScheduleOccurrence"
+          },
+          "type": "array"
+        },
+        "schedule": {
+          "$ref": "#/definitions/OrganizationSchedule"
+        },
+        "usedTokens": {
+          "format": "int64",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "modelRequests",
+        "occurrences",
+        "schedule",
+        "usedTokens"
+      ],
+      "type": "object"
+    },
     "OrganizationTask": {
       "properties": {
         "criteria": {

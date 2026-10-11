@@ -73,7 +73,79 @@ passed 371 tests after adding the wire-contract scenario. Production-library
 Clippy passed with warnings denied after boxing the large create-scope payload;
 affected format checks and final-source qualification remain in progress.
 Initial compile/fixture errors are retained under the qualification directory.
-API/CLI/TUI integration and physical qualification are not yet complete.
+The protected owner API, thin schedule CLI commands, runtime polling/reconciliation,
+generated TypeScript/JSON/SDK contracts and native API test are implemented.
+All six organization API tests, four schema comparisons and 25 Python contracts
+passed. Dashboard integration and final-source/physical qualification remain in
+progress; do not treat this checkpoint as an end-to-end schedule release.
+
+## Owner usage
+
+Use the complete N2 package when available, including its installed daemon.
+An existing daemon still uses its previously installed API: inspect active/queued
+work before updating it with the new package's
+`codex app-server daemon update --from-cli --yes`. Preserve canonical state and
+old qualification homes. Use a fresh private home for deterministic checks.
+
+```sh
+codex organization schedule-list --project-id PROJECT_ID --limit 100
+codex organization schedule-list --cursor LAST_ID --limit 100
+codex organization schedule-mutate recurring.json
+```
+
+The experimental RPCs are `organization/schedule/list` and
+`organization/schedule/mutate`. List takes optional `projectId`, `cursor` and
+`limit` (1–200); it returns `data` and `nextCursor`. Each view includes the
+immutable schedule, aggregate reported tokens/admitted requests, and the newest
+16 occurrence task IDs, due times and task states. Older evidence stays in the
+ordinary task store. Owner-origin checks precede reads/writes; agents have no
+schedule administration tool. Mutations require the detached daemon in the CLI.
+
+To build a concrete creation file, save the proposed task's CLI mutation response
+as `template-record.json` and prepare an explicit ordinary `authorize.json` scope
+as documented in the command guide. This script only writes the reviewed JSON:
+
+```sh
+python3 - <<'PY'
+import json, time, uuid
+task = json.load(open('template-record.json'))['record']['data']
+scope = json.load(open('authorize.json'))['scope']
+scope['notBefore'] = None
+now = int(time.time())
+series = {
+    'type': 'create', 'id': str(uuid.uuid4()),
+    'taskId': task['id'], 'expectedRevision': task['revision'], 'scope': scope,
+    'config': {
+        'label': 'Hourly local report', 'intervalSeconds': 3600,
+        'firstRunAt': now + 3600, 'endsAt': now + 86400,
+        'maxRuns': 3, 'maxTokens': 30000, 'maxModelRequests': 15,
+    },
+}
+with open('recurring.json', 'x') as out:
+    json.dump(series, out, indent=2)
+PY
+```
+
+Review paths, checks, provider/model, approval choice, per-run and aggregate
+limits before executing `schedule-mutate`. Creating a series authorizes future
+model work; the source task itself is not authorized by this command. The stable
+UUID makes duplicate creation fail rather than creating a second series. After
+an uncertain RPC outcome, list state by that UUID before any retry.
+
+Control JSON is `{"type":"control","id":"SCHEDULE_ID","expectedRevision":7,"action":"pause"}`;
+`action` also accepts `resume` or `cancel`. Supply the actual freshly listed
+revision. Polling advances revisions; stale confirmations fail and require a
+refresh. Pause revokes existing run grants and supersedes pending approvals.
+Resume skips overdue times and never reauthorizes a stopped occurrence. Cancel
+is final. A completed series can still be cancelled to stop its last live run.
+
+In Projects, select a task and press `R`; the recurring form reuses authorization
+fields and adds finite interval/count/aggregate bounds. F6 reviews and `y`
+confirms; Esc cancels. `S` toggles schedule inspection; `p/u/x` control the
+selected series with confirmation. The Operations hierarchy remains the default
+view, with an upcoming-runs panel. Inspector times are explicitly UTC, not local
+wall-clock calendar rules. Select a recent occurrence task for approval/review;
+no result is automatically accepted or applied to original files.
 
 Calendar/cron/timezone rules, infinite schedules, automatic original-workspace
 Apply, external effects, distributed workers and workflow templates remain later

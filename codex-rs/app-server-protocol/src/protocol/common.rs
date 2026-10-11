@@ -799,6 +799,18 @@ client_request_definitions! {
         serialization: global_shared_read("organization"),
         response: v2::OrganizationMemorySearchResponse,
     },
+    #[experimental("organization/schedule/list")]
+    OrganizationScheduleList => "organization/schedule/list" {
+        params: v2::OrganizationScheduleListParams,
+        serialization: global_shared_read("organization"),
+        response: v2::OrganizationScheduleListResponse,
+    },
+    #[experimental("organization/schedule/mutate")]
+    OrganizationScheduleMutate => "organization/schedule/mutate" {
+        params: v2::OrganizationScheduleMutateParams,
+        serialization: global("organization"),
+        response: v2::OrganizationScheduleMutateResponse,
+    },
     #[experimental("organization/execution/read")]
     OrganizationExecutionRead => "organization/execution/read" {
         params: v2::OrganizationExecutionReadParams,

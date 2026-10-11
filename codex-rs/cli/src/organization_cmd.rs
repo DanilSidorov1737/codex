@@ -7,6 +7,8 @@ use codex_app_server_protocol::OrganizationListParams;
 use codex_app_server_protocol::OrganizationMemorySearchParams;
 use codex_app_server_protocol::OrganizationMutateParams;
 use codex_app_server_protocol::OrganizationNoteScope;
+use codex_app_server_protocol::OrganizationScheduleListParams;
+use codex_app_server_protocol::OrganizationScheduleMutateParams;
 use codex_app_server_protocol::ProjectCreateParams;
 use codex_app_server_protocol::ProjectRoot;
 use codex_arg0::Arg0DispatchPaths;
@@ -27,6 +29,17 @@ pub(crate) struct OrganizationCommand {
 
 #[derive(Debug, clap::Subcommand)]
 enum Action {
+    /// List finite recurring schedules, usage and recent occurrence task IDs.
+    ScheduleList {
+        #[arg(long)]
+        project_id: Option<String>,
+        #[arg(long)]
+        cursor: Option<String>,
+        #[arg(long, default_value_t = 100)]
+        limit: u32,
+    },
+    /// Create or pause/resume/cancel a bounded recurring schedule from owner JSON.
+    ScheduleMutate { file: PathBuf },
     /// Search scoped durable notes with a literal Unicode-aware query (empty lists recent notes).
     MemorySearch {
         project_id: String,
@@ -90,6 +103,25 @@ pub(crate) async fn run(
         return Ok(output);
     }
     let action = match command.command {
+        Action::ScheduleList {
+            project_id,
+            cursor,
+            limit,
+        } => OrganizationCommandAction::ScheduleList(OrganizationScheduleListParams {
+            project_id,
+            cursor,
+            limit: Some(limit),
+        }),
+        Action::ScheduleMutate { file } => {
+            anyhow::ensure!(
+                !interactive.no_daemon,
+                "recurring schedules require the detached local daemon; remove --no-daemon"
+            );
+            let bytes = read_mutation(file).await?;
+            OrganizationCommandAction::ScheduleMutate(OrganizationScheduleMutateParams {
+                mutation: serde_json::from_slice(&bytes)?,
+            })
+        }
         Action::MemorySearch {
             project_id,
             query,

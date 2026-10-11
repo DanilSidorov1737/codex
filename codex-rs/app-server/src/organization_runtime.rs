@@ -132,6 +132,7 @@ impl OrganizationRuntime {
                 let store = self.store().await?;
                 let owner = Arc::new(store.acquire_execution_owner()?);
                 store.reconcile_interrupted_attempts().await?;
+                store.reconcile_schedules(now()).await?;
                 Ok::<_, anyhow::Error>(owner)
             })
             .await?
@@ -148,6 +149,7 @@ impl OrganizationRuntime {
 
     async fn dispatch_queued(self: &Arc<Self>) -> Result<()> {
         self.ensure_execution_owner().await?;
+        self.store().await?.materialize_schedules(now()).await?;
         let manager = self.manager.upgrade().context("thread manager stopped")?;
         while self.workers.len() < MAX_LIVE_ATTEMPTS {
             let thread_id = manager.reserve_thread_id();

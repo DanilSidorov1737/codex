@@ -6,6 +6,7 @@ pub use codex_protocol::organization_coordination::{
     OrganizationNote, OrganizationNoteScope, OrganizationNoteSearchResult,
 };
 pub use codex_protocol::organization_execution::*;
+pub use codex_protocol::organization_schedule::*;
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -95,4 +96,35 @@ pub struct OrganizationExecutionMutateParams {
 #[ts(export_to = "v2/")]
 pub struct OrganizationExecutionMutateResponse {
     pub view: OrganizationExecutionView,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS, ExperimentalApi)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[ts(export_to = "v2/")]
+pub struct OrganizationScheduleListParams {
+    pub project_id: Option<String>,
+    pub cursor: Option<String>,
+    pub limit: Option<u32>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export_to = "v2/")]
+pub struct OrganizationScheduleListResponse {
+    pub data: Vec<OrganizationScheduleView>,
+    pub next_cursor: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS, ExperimentalApi)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[ts(export_to = "v2/")]
+pub struct OrganizationScheduleMutateParams {
+    pub mutation: OrganizationScheduleMutation,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export_to = "v2/")]
+pub struct OrganizationScheduleMutateResponse {
+    pub view: OrganizationScheduleView,
 }

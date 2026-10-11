@@ -11,6 +11,8 @@ codex organization mutate agent.json
 codex organization project-create "My project" --root ./project --idempotency-key my-project-1
 codex organization memory-search PROJECT_ID 'SQLite'
 codex organization memory-search PROJECT_ID 'decision' --agent-id AGENT_ID
+codex organization schedule-list --project-id PROJECT_ID
+codex organization schedule-mutate recurring.json
 codex organization backup
 codex organization restore --backup /absolute/path/snapshot.sqlite --destination /fresh/sqlite-home
 ```

@@ -3351,6 +3351,82 @@ class OrganizationRoleVersion(BaseModel):
     version: int
 
 
+class OrganizationScheduleConfig(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    ends_at: Annotated[int, Field(alias="endsAt")]
+    first_run_at: Annotated[int, Field(alias="firstRunAt")]
+    interval_seconds: Annotated[int, Field(alias="intervalSeconds", ge=0)]
+    label: str
+    max_model_requests: Annotated[int, Field(alias="maxModelRequests", ge=0)]
+    max_runs: Annotated[int, Field(alias="maxRuns", ge=0)]
+    max_tokens: Annotated[int, Field(alias="maxTokens")]
+
+
+class OrganizationScheduleControl(Enum):
+    pause = "pause"
+    resume = "resume"
+    cancel = "cancel"
+
+
+class CreateOrganizationScheduleMutation(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    config: OrganizationScheduleConfig
+    expected_revision: Annotated[int, Field(alias="expectedRevision")]
+    id: Annotated[
+        str,
+        Field(
+            description="Owner-selected UUID prevents an unknown RPC outcome creating a second series."
+        ),
+    ]
+    scope: OrganizationExecutionScope
+    task_id: Annotated[str, Field(alias="taskId")]
+    type: Annotated[Literal["create"], Field(title="CreateOrganizationScheduleMutationType")]
+
+
+class ControlOrganizationScheduleMutation(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    action: OrganizationScheduleControl
+    expected_revision: Annotated[int, Field(alias="expectedRevision")]
+    id: str
+    type: Annotated[Literal["control"], Field(title="ControlOrganizationScheduleMutationType")]
+
+
+class OrganizationScheduleMutation(
+    RootModel[CreateOrganizationScheduleMutation | ControlOrganizationScheduleMutation]
+):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    root: CreateOrganizationScheduleMutation | ControlOrganizationScheduleMutation
+
+
+class OrganizationScheduleOccurrence(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    authorization_id: Annotated[str, Field(alias="authorizationId")]
+    due_at: Annotated[int, Field(alias="dueAt")]
+    task_id: Annotated[str, Field(alias="taskId")]
+    task_state: Annotated[str, Field(alias="taskState")]
+
+
+class OrganizationScheduleState(Enum):
+    active = "active"
+    paused = "paused"
+    cancelled = "cancelled"
+    completed = "completed"
+    blocked = "blocked"
+
+
 class OrganizationTask(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
@@ -9523,6 +9599,40 @@ class OrganizationRecord(
         | TaskOrganizationRecord
         | MembershipOrganizationRecord
     )
+
+
+class OrganizationSchedule(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    config: OrganizationScheduleConfig
+    id: str
+    issued_runs: Annotated[int, Field(alias="issuedRuns", ge=0)]
+    next_run_at: Annotated[int | None, Field(alias="nextRunAt")] = None
+    node_revision: Annotated[int, Field(alias="nodeRevision")]
+    policy_version: Annotated[int, Field(alias="policyVersion", ge=0)]
+    project_revision: Annotated[int, Field(alias="projectRevision")]
+    reason: str | None = None
+    revision: int
+    scope: OrganizationExecutionScope
+    skipped_runs: Annotated[int, Field(alias="skippedRuns", ge=0)]
+    state: OrganizationScheduleState
+    template: OrganizationTask
+
+
+class OrganizationScheduleView(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    model_requests: Annotated[int, Field(alias="modelRequests", ge=0)]
+    occurrences: Annotated[
+        list[OrganizationScheduleOccurrence],
+        Field(
+            description="Newest 16 issued occurrences; older task evidence remains in the task store."
+        ),
+    ]
+    schedule: OrganizationSchedule
+    used_tokens: Annotated[int, Field(alias="usedTokens")]
 
 
 class OrganizationTaskAttempt(BaseModel):

@@ -1517,6 +1517,16 @@ impl MessageProcessor {
                     .execution_read(params, session.origin)
                     .await
             }
+            ClientRequest::OrganizationScheduleList { params, .. } => {
+                self.organization_processor
+                    .schedule_list(params, session.origin)
+                    .await
+            }
+            ClientRequest::OrganizationScheduleMutate { params, .. } => {
+                self.organization_processor
+                    .schedule_mutate(params, session.origin)
+                    .await
+            }
             ClientRequest::OrganizationExecutionMutate { params, .. } => {
                 self.organization_processor
                     .execution_mutate(params, session.origin)

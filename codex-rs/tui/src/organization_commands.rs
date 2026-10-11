@@ -9,6 +9,8 @@ use codex_app_server_protocol::OrganizationExecutionReadParams;
 use codex_app_server_protocol::OrganizationListParams;
 use codex_app_server_protocol::OrganizationMemorySearchParams;
 use codex_app_server_protocol::OrganizationMutateParams;
+use codex_app_server_protocol::OrganizationScheduleListParams;
+use codex_app_server_protocol::OrganizationScheduleMutateParams;
 use codex_app_server_protocol::ProjectCreateParams;
 use codex_utils_home_dir::find_codex_home;
 use color_eyre::eyre::Result;
@@ -22,6 +24,8 @@ pub enum OrganizationCommandAction {
     CreateProject(ProjectCreateParams),
     ExecutionRead(OrganizationExecutionReadParams),
     ExecutionMutate(OrganizationExecutionMutateParams),
+    ScheduleList(OrganizationScheduleListParams),
+    ScheduleMutate(OrganizationScheduleMutateParams),
 }
 
 pub async fn run_organization_command(
@@ -36,8 +40,11 @@ pub async fn run_organization_command(
     let codex_home = find_codex_home()?;
     let mut app_server =
         start_app_server_for_session_command(options, codex_home.to_path_buf()).await?;
-    if matches!(&action, OrganizationCommandAction::ExecutionMutate(_))
-        && app_server.uses_embedded_app_server()
+    if matches!(
+        &action,
+        OrganizationCommandAction::ExecutionMutate(_)
+            | OrganizationCommandAction::ScheduleMutate(_)
+    ) && app_server.uses_embedded_app_server()
     {
         return Err(eyre!(
             "organization execution requires the detached local daemon; start `codex app-server daemon start` with this configuration first"
@@ -66,6 +73,12 @@ pub async fn run_organization_command(
         }
         OrganizationCommandAction::ExecutionMutate(params) => {
             ClientRequest::OrganizationExecutionMutate { request_id, params }
+        }
+        OrganizationCommandAction::ScheduleList(params) => {
+            ClientRequest::OrganizationScheduleList { request_id, params }
+        }
+        OrganizationCommandAction::ScheduleMutate(params) => {
+            ClientRequest::OrganizationScheduleMutate { request_id, params }
         }
     };
     app_server
