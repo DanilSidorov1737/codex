@@ -1,11 +1,21 @@
 # Current status and resumption instructions
 
 Phase 0: **exploration and planning complete for available inputs**.
-Current work: **N1/N2/N3 complete; expanded recovery/handoff/UI batch proposed**.
+Current work: **N1/N2/N3 complete; expanded recovery/handoff/UI batch approved and in progress**.
 Application features: **delivered for the documented single-owner Linux envelope**.
 The MVP's release criteria are **qualified for the documented single-owner Linux/GPT-5.5 envelope**.
 
-## Expanded next batch proposal — 2026-10-11 UTC
+## Expanded next batch approval — 2026-10-11 UTC
+
+The owner subsequently approved the entire 12-item bounded list with “ok lets
+do this”. Implementation starts with Apply recovery, then checkpoints, fenced
+reassignment/blockers and the listed UI/editor/visibility additions. Use Ponytail,
+meaningful automated checks, actual CLI/TUI/official-Neovim interaction and logical
+local commits. No new external integration, paid probe, installation, push or
+automatic Apply is authorized by this batch. Fresh qualification artifacts go in
+`/workspace/.onboarding/qualification/expanded-batch/`; preserve all historical
+N1–N3 evidence and state. Application qualification is still the N3 baseline until
+new checks are recorded.
 
 The owner asked to add more items to the next list. The
 [expanded batch](roadmap.md#expanded-next-batch) retains Apply recovery,
@@ -13,11 +23,9 @@ checkpoints, safe reassignment, blockers and physical qualification, and adds
 Operations organization editing, fuller workflow UI, a Review action inbox,
 evidence-linked summaries, recorded resource visibility, Neovim selection
 requests and a configured-versus-qualified tool/provider inventory.
-It refines proposed N4 and bounded parts of N5–N8. This is a documentation-only
-planning update; implementation has not started and the existing N3 source/test
-qualification remains unchanged.
-The next proposed implementation starts with confirmed-rejection Apply recovery,
-then task continuity and safe handoffs, followed by the added controls.
+The planning checkpoint was documentation-only and did not change N3's source/test
+qualification. The newly approved implementation starts with confirmed-rejection
+Apply recovery, then task continuity and safe handoffs, followed by added controls.
 
 Documentation checks: `python3
 /workspace/.onboarding/qualification/workflows-n3/check-docs.py` resolved 107 local

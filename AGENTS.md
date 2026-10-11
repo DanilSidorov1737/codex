@@ -49,6 +49,15 @@ tests and actual CLI/TUI/official-Neovim dependency/restart/approval/conflict-de
 Apply evidence. Preserve all three invocations/eight tasks; services are stopped.
 Never rerun N3 fixture setup/authorization/lifecycle/Apply or reset its limits.
 N4–N8 remain later scope. See workflows.md, testing.md and current status.
+The owner approved the 12-item expanded batch with “ok lets do this” on
+2026-10-11: Apply recovery, checkpoints, fenced reassignment/blockers, Operations
+editing, fuller workflow UI, Review action inbox, evidence summaries, recorded
+resource visibility, actual-Neovim selection requests, capability inventory and
+complete physical/automated qualification. Follow the bounded
+[expanded batch](docs/development/roadmap.md#expanded-next-batch) in order with
+Ponytail and logical local commits; no repeated approval is needed for its slices.
+External integration qualification, paid provider pilots, automatic Apply,
+whole-workflow recurrence, plugins/LSP and distributed workers remain separate.
 Preserve N1's accepted writer
 and three needsReview reader fixtures; never blindly rerun authorization scripts.
 

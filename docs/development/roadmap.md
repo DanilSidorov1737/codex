@@ -57,9 +57,9 @@ automation and protected self-improvement remain in their later roadmap phases.
 
 ## Expanded next batch
 
-**Proposed on 2026-10-11; implementation has not started.** The owner asked to
-expand the next list so the batch accomplishes more. This refines N4 and draws
-bounded additions from N5–N8; it does not authorize those implementations.
+**Approved on 2026-10-11; implementation in progress.** The owner asked to
+expand the next list so the batch accomplishes more, then approved it with
+“ok lets do this”. This refines N4 and draws bounded additions from N5–N8.
 N1–N3 remain complete. Start with recovery and handoffs, then add the owner
 controls and visibility below. Qualify each coherent slice as it is delivered.
 
