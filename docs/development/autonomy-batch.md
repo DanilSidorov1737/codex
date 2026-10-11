@@ -28,9 +28,31 @@ Start with whole-workflow controls and shared limits before more automatic work.
 ## Progress and resumption
 
 Initial source: `db0c2161e93a5bfee345fec8894e067b900ee384`; worktree clean.
-Status: **in progress; no new batch behavior qualified yet**. Trace run/task
-controls, admission/reservations and reporting; implement item 5 then item 3.
+Status: **in progress**. Item 5 implementation checkpoint adds versioned run
+pause/resume/cancel through existing owner RPC/CLI and confirmed TUI decisions.
+Seven workflow state tests pass; the production CLI check passes. Native API/TUI
+and physical qualification are in progress; this is not release qualification.
+Evidence logs: `autonomy-workflow-controls.log` and `autonomy-workflow-check.log`
+in the existing qualification parent. Item 3 shared limits is next.
 Fresh evidence: `/workspace/.onboarding/qualification/autonomy-batch/`.
 Preserve all historical fixtures/evidence/packages; never replay grants/Apply.
 Missing provider access, local LSP binary or service manager is a prerequisite to
 diagnose while independent work continues, not a reason to claim fixtures are live.
+
+## Whole-run control contract
+
+`workflow-mutate` accepts `control` with run `id`, `expectedRevision` and
+`action` (`pause`, `resume`, `cancel`). In Projects/Operations, select a run and
+press p/u/x, then confirm the exact displayed owner decision. Legacy runs load as
+active revision 1. New controls increment the run revision and audit history.
+
+Pause stops new model/native-tool/coordination admissions. Previously admitted
+requests/effects may finish and record receipts/results; pause is not rollback.
+Exact approvals cannot be approved while paused. Quiescent paused runtimes release
+active capacity and reacquire it before continuing. The existing four resident
+root ceiling remains; deadline/expiry clocks keep advancing while paused.
+Resume keeps task/grant/attempt identities, counters, expiry and completed work.
+Stale controls, cancelled runs, expired/changed live scopes and uncertain or
+restart-interrupted work refuse resume. Owner checkpoint resolution is separate.
+Cancel atomically fences unfinished roots/descendants; completed results and
+reconciliation evidence remain. No automatic acceptance, Apply or new grants.

@@ -62,6 +62,216 @@ fn request(template: &OrganizationWorkflowTemplate) -> OrganizationWorkflowPrevi
     }
 }
 
+async fn control(
+    store: &OrganizationStore,
+    run: &OrganizationWorkflowRun,
+    action: OrganizationWorkflowControl,
+) -> Result<OrganizationWorkflowRun> {
+    let OrganizationWorkflowView::Run { run, .. } = store
+        .mutate_workflow(
+            OrganizationWorkflowMutation::Control {
+                id: run.id.clone(),
+                expected_revision: run.revision,
+                action,
+            },
+            1002,
+        )
+        .await?
+    else {
+        panic!("expected run")
+    };
+    Ok(run)
+}
+
+#[tokio::test]
+async fn whole_run_controls_persist_reject_stale_versions_and_never_reset_grants() -> Result<()> {
+    let home = Fixture::new();
+    let store = OrganizationStore::open(&home.0).await?;
+    let template = fixture(&store).await?;
+    let preview = store.preview_workflow(request(&template)).await?;
+    let OrganizationWorkflowView::Run { run, tasks } = store
+        .mutate_workflow(
+            OrganizationWorkflowMutation::Run {
+                preview: Box::new(preview),
+            },
+            1000,
+        )
+        .await?
+    else {
+        panic!("expected run")
+    };
+    let mut grants = Vec::new();
+    for task in &tasks {
+        grants.push(store.execution_view(&task.id).await?);
+    }
+    let paused = control(&store, &run, OrganizationWorkflowControl::Pause).await?;
+    assert_eq!(paused.state, OrganizationWorkflowState::Paused);
+    assert!(
+        control(&store, &run, OrganizationWorkflowControl::Resume)
+            .await
+            .is_err()
+    );
+    let worker = Uuid::now_v7().to_string();
+    assert!(
+        store
+            .claim_task(&worker, &Uuid::now_v7().to_string(), 1003, 2)
+            .await?
+            .is_none()
+    );
+    store.close().await;
+    let store = OrganizationStore::open(&home.0).await?;
+    let (views, _) = store
+        .list_workflows(OrganizationWorkflowKind::Runs, None, None, 100)
+        .await?;
+    let OrganizationWorkflowView::Run { run: persisted, .. } = &views[0] else {
+        panic!("expected run")
+    };
+    assert_eq!(persisted, &paused);
+    let resumed = control(&store, persisted, OrganizationWorkflowControl::Resume).await?;
+    for (task, before) in tasks.iter().zip(&grants) {
+        let after = store.execution_view(&task.id).await?;
+        assert_eq!(after.authorization, before.authorization);
+        assert_eq!(after.task, before.task);
+    }
+    let cancelled = control(&store, &resumed, OrganizationWorkflowControl::Cancel).await?;
+    assert_eq!(cancelled.state, OrganizationWorkflowState::Cancelled);
+    assert!(
+        control(&store, &cancelled, OrganizationWorkflowControl::Resume)
+            .await
+            .is_err()
+    );
+    for task in &tasks {
+        assert_eq!(
+            store.execution_view(&task.id).await?.task.state,
+            "cancelled"
+        );
+    }
+    assert!(
+        store
+            .claim_task(&worker, &Uuid::now_v7().to_string(), 1003, 2)
+            .await?
+            .is_none()
+    );
+    Ok(())
+}
+
+#[tokio::test]
+async fn paused_running_work_drains_usage_releases_capacity_and_resumes_the_same_attempt()
+-> Result<()> {
+    let home = Fixture::new();
+    let store = OrganizationStore::open(&home.0).await?;
+    let template = fixture(&store).await?;
+    let preview = store.preview_workflow(request(&template)).await?;
+    let OrganizationWorkflowView::Run { run, .. } = store
+        .mutate_workflow(
+            OrganizationWorkflowMutation::Run {
+                preview: Box::new(preview),
+            },
+            1000,
+        )
+        .await?
+    else {
+        panic!("expected run")
+    };
+    let worker = Uuid::now_v7().to_string();
+    let attempt = store
+        .claim_task(&worker, &Uuid::now_v7().to_string(), 1000, 1)
+        .await?
+        .unwrap();
+    store
+        .admit_model_request(&attempt.id, &worker, 1001)
+        .await?;
+    let paused = control(&store, &run, OrganizationWorkflowControl::Pause).await?;
+    assert!(
+        !store
+            .workflow_dispatch_ready(&attempt.id, &worker, 1002, 1)
+            .await?
+    );
+    assert!(
+        store.execution_view(&attempt.task_id).await?.attempts[0].runtime_active,
+        "in-flight usage still reserves capacity"
+    );
+    store.checkpoint_usage(&attempt.id, &worker, 1, 15).await?;
+    assert!(
+        !store
+            .workflow_dispatch_ready(&attempt.id, &worker, 1002, 1)
+            .await?
+    );
+    assert!(!store.execution_view(&attempt.task_id).await?.attempts[0].runtime_active);
+    assert!(
+        store
+            .admit_model_request(&attempt.id, &worker, 1002)
+            .await
+            .unwrap_err()
+            .is::<crate::organization::WorkflowPaused>()
+    );
+    assert!(
+        store
+            .prepare_action(&attempt.id, &worker, "paused", "exec_command", "{}", 1002)
+            .await
+            .is_err()
+    );
+    store.heartbeat_attempt(&attempt.id, &worker, 1002).await?;
+    let other = execution_task(&store, &template.items[0].owner_id, &template.project_id).await?;
+    store
+        .authorize_task(&other.id, other.revision, execution_scope(), 1002)
+        .await?;
+    let unrelated = store
+        .claim_task(&worker, &Uuid::now_v7().to_string(), 1002, 1)
+        .await?
+        .unwrap();
+    assert_eq!(unrelated.task_id, other.id);
+    let resumed = control(&store, &paused, OrganizationWorkflowControl::Resume).await?;
+    assert!(
+        !store
+            .workflow_dispatch_ready(&attempt.id, &worker, 1002, 1)
+            .await?,
+        "resume must reacquire capacity"
+    );
+    assert!(
+        store
+            .admit_model_request(&attempt.id, &worker, 1002)
+            .await
+            .is_err()
+    );
+    let current = store.execution_view(&other.id).await?;
+    store
+        .stop_task(&other.id, current.task.revision, true)
+        .await?;
+    store
+        .release_attempt_capacity(&unrelated.id, &worker)
+        .await?;
+    assert!(
+        store
+            .workflow_dispatch_ready(&attempt.id, &worker, 1002, 1)
+            .await?
+    );
+    assert_eq!(
+        store
+            .admit_model_request(&attempt.id, &worker, 1002)
+            .await?,
+        (2, 15)
+    );
+    store.checkpoint_usage(&attempt.id, &worker, 2, 20).await?;
+    let view = store.execution_view(&attempt.task_id).await?;
+    assert_eq!(
+        view.authorization.as_ref().unwrap().id,
+        attempt.authorization_id
+    );
+    assert_eq!(view.authorization_used_tokens, 20);
+    let paused = control(&store, &resumed, OrganizationWorkflowControl::Pause).await?;
+    store.close().await;
+    let store = OrganizationStore::open(&home.0).await?;
+    assert_eq!(store.reconcile_interrupted_attempts().await?, 1);
+    assert!(
+        control(&store, &paused, OrganizationWorkflowControl::Resume)
+            .await
+            .is_err(),
+        "restart must not replay the interrupted attempt"
+    );
+    Ok(())
+}
+
 #[tokio::test]
 async fn workflow_graph_validation_and_late_authorization_failure_roll_back() -> Result<()> {
     let home = Fixture::new();

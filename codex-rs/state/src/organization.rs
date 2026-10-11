@@ -60,6 +60,18 @@ pub struct OrganizationStore {
     directory: PathBuf,
 }
 
+/// Only admission before an effect can be retried when the owner resumes a run.
+#[derive(Debug)]
+pub struct WorkflowPaused;
+
+impl std::fmt::Display for WorkflowPaused {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("workflow is paused")
+    }
+}
+
+impl std::error::Error for WorkflowPaused {}
+
 impl OrganizationStore {
     /// One execution owner per canonical store, including embedded app-servers
     /// using different Codex homes. Definitions remain ordinary transactional writes.

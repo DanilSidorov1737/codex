@@ -776,6 +776,28 @@ struct AttemptGuard {
     _execution_owner: Arc<File>,
 }
 
+impl AttemptGuard {
+    async fn wait_workflow_dispatch(&self) -> Result<()> {
+        loop {
+            ensure!(
+                !self.stop.is_cancelled() && !self.failed.is_cancelled(),
+                "managed task stopped"
+            );
+            if self
+                .store
+                .workflow_dispatch_ready(&self.attempt_id, &self.worker_id, now(), self.max_active)
+                .await?
+            {
+                return Ok(());
+            }
+            tokio::select! {
+                _ = self.stop.cancelled() => anyhow::bail!("managed task stopped"),
+                _ = tokio::time::sleep(Duration::from_millis(250)) => {}
+            }
+        }
+    }
+}
+
 impl ModelRequestContributor for AttemptGuard {
     fn request_guarded<'a>(
         &'a self,
@@ -793,11 +815,24 @@ impl ModelRequestContributor for AttemptGuard {
             {
                 return Err("managed model request identity or authority changed".into());
             }
-            let (sequence, prior) = self
-                .store
-                .admit_model_request(&self.attempt_id, &self.worker_id, now())
-                .await
-                .map_err(|error| format!("managed inference admission denied: {error:#}"))?;
+            let (sequence, prior) = loop {
+                self.wait_workflow_dispatch()
+                    .await
+                    .map_err(|error| format!("managed inference admission denied: {error:#}"))?;
+                match self
+                    .store
+                    .admit_model_request(&self.attempt_id, &self.worker_id, now())
+                    .await
+                {
+                    Ok(receipt) => break receipt,
+                    Err(error) if error.is::<codex_state::organization::WorkflowPaused>() => {
+                        continue;
+                    }
+                    Err(error) => {
+                        return Err(format!("managed inference admission denied: {error:#}"));
+                    }
+                }
+            };
             Ok(Some(Box::new(UsageReceipt {
                 store: self.store.clone(),
                 attempt_id: self.attempt_id.clone(),
@@ -875,6 +910,9 @@ impl ToolLifecycleContributor for AttemptGuard {
                 {
                     return Err("managed coordination stopped or arguments too large".into());
                 }
+                self.wait_workflow_dispatch()
+                    .await
+                    .map_err(|error| format!("managed coordination denied: {error:#}"))?;
                 return self
                     .store
                     .heartbeat_attempt(&self.attempt_id, &self.worker_id, now())
@@ -884,22 +922,36 @@ impl ToolLifecycleContributor for AttemptGuard {
             validate_native_arguments(&input.tool_name.name, &arguments)
                 .map_err(|error| format!("managed tool arguments denied: {error:#}"))?;
             let permit = self.serial.clone().lock_owned().await;
-            let action = self
-                .store
-                .prepare_action(
-                    &self.attempt_id,
-                    &self.worker_id,
-                    input.call_id,
-                    &input.tool_name.name,
-                    &arguments,
-                    now(),
-                )
-                .await
-                .map_err(|error| format!("managed tool admission denied: {error:#}"))?;
+            let action = loop {
+                self.wait_workflow_dispatch()
+                    .await
+                    .map_err(|error| format!("managed tool admission denied: {error:#}"))?;
+                match self
+                    .store
+                    .prepare_action(
+                        &self.attempt_id,
+                        &self.worker_id,
+                        input.call_id,
+                        &input.tool_name.name,
+                        &arguments,
+                        now(),
+                    )
+                    .await
+                {
+                    Ok(action) => break action,
+                    Err(error) if error.is::<codex_state::organization::WorkflowPaused>() => {
+                        continue;
+                    }
+                    Err(error) => return Err(format!("managed tool admission denied: {error:#}")),
+                }
+            };
             loop {
                 if self.stop.is_cancelled() || self.failed.is_cancelled() {
                     return Err("managed task stopped".into());
                 }
+                self.wait_workflow_dispatch()
+                    .await
+                    .map_err(|error| format!("managed tool dispatch denied: {error:#}"))?;
                 if self
                     .store
                     .dispatch_action(&action.id, &self.worker_id, now(), self.max_active)

@@ -899,8 +899,9 @@ impl Dashboard {
                         OrganizationWorkflowView::Run { run, tasks } => (
                             format!("run:{}", run.id),
                             format!(
-                                "Run: {} · {}/{} accepted · {} blocked",
+                                "Run: {} · {:?} · {}/{} accepted · {} blocked",
                                 run.preview.template.label,
+                                run.state,
                                 tasks.iter().filter(|task| task.state == "accepted").count(),
                                 tasks.len(),
                                 tasks
@@ -1136,6 +1137,20 @@ impl Dashboard {
                 Command::Schedule(OrganizationScheduleMutation::Control {
                     id: view.schedule.id.clone(),
                     expected_revision: view.schedule.revision,
+                    action,
+                })
+            })
+        } else if let Some(OrganizationWorkflowView::Run { run, .. }) = self.selected_workflow() {
+            let action = match key {
+                'p' => Some(OrganizationWorkflowControl::Pause),
+                'u' => Some(OrganizationWorkflowControl::Resume),
+                'x' => Some(OrganizationWorkflowControl::Cancel),
+                _ => None,
+            };
+            action.map(|action| {
+                Command::Workflow(OrganizationWorkflowMutation::Control {
+                    id: run.id.clone(),
+                    expected_revision: run.revision,
                     action,
                 })
             })

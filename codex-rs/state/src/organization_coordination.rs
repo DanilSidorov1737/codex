@@ -67,6 +67,7 @@ impl OrganizationStore {
         ensure!(arguments.len() <= 128 * 1024, "coordination call too large");
         let mut tx = self.pool.begin_with("BEGIN IMMEDIATE").await?;
         let (attempt, authorization) = check_fence(&mut tx, attempt_id, worker, now).await?;
+        super::workflow::check_workflow_dispatch(&mut tx, &authorization).await?;
         let checkpoint_identity: i64 = sqlx::query_scalar(
             "SELECT count(*) FROM organization_checkpoints WHERE attempt_id=? AND call_id=?",
         )
@@ -343,7 +344,13 @@ impl OrganizationStore {
             "active execution limit must be 1–4"
         );
         let mut tx = self.pool.begin_with("BEGIN IMMEDIATE").await?;
-        let (mut attempt, _) = check_live_fence(&mut tx, attempt_id, worker, now).await?;
+        let (mut attempt, grant) = check_live_fence(&mut tx, attempt_id, worker, now).await?;
+        if let Err(error) = super::workflow::check_workflow_dispatch(&mut tx, &grant).await {
+            if error.is::<super::WorkflowPaused>() {
+                return Ok(None);
+            }
+            return Err(error);
+        }
         ensure!(
             attempt.state == OrganizationTaskState::WaitingDependency,
             "attempt is not waiting on children"

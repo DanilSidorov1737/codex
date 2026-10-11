@@ -117,6 +117,8 @@ impl OrganizationStore {
                     preview: *preview,
                     task_ids: BTreeMap::new(),
                     created_at: now,
+                    revision: 1,
+                    state: OrganizationWorkflowState::Active,
                 };
                 // FK parent precedes tasks; all rows are invisible until this transaction commits.
                 sqlx::query("INSERT INTO organization_workflow_runs(id,template_id,project_id,data) VALUES (?,?,?,?)")
@@ -160,9 +162,138 @@ impl OrganizationStore {
                 owner_event(&mut tx, "workflow/run", &run.id).await?;
                 OrganizationWorkflowView::Run { run, tasks }
             }
+            OrganizationWorkflowMutation::Control {
+                id,
+                expected_revision,
+                action,
+            } => {
+                let data: String =
+                    sqlx::query_scalar("SELECT data FROM organization_workflow_runs WHERE id=?")
+                        .bind(&id)
+                        .fetch_one(&mut *tx)
+                        .await?;
+                let mut run: OrganizationWorkflowRun = serde_json::from_str(&data)?;
+                ensure!(
+                    run.revision == expected_revision,
+                    "workflow run revision conflict"
+                );
+                ensure!(
+                    run.state != OrganizationWorkflowState::Cancelled,
+                    "workflow is cancelled"
+                );
+                match action {
+                    OrganizationWorkflowControl::Pause => {
+                        ensure!(
+                            run.state == OrganizationWorkflowState::Active,
+                            "workflow is already paused"
+                        );
+                        run.state = OrganizationWorkflowState::Paused;
+                    }
+                    OrganizationWorkflowControl::Resume => {
+                        ensure!(
+                            run.state == OrganizationWorkflowState::Paused,
+                            "workflow is not paused"
+                        );
+                        let uncertain: i64 = sqlx::query_scalar("SELECT count(*) FROM organization_tasks t JOIN organization_authorizations a ON a.id=t.authorization_id JOIN organization_workflow_tasks w ON w.authorization_id=a.root_id WHERE w.run_id=? AND (t.state='needsReconciliation' OR EXISTS(SELECT 1 FROM organization_attempts p JOIN organization_actions x ON x.attempt_id=p.id WHERE p.task_id=t.id AND x.state='uncertain'))")
+                            .bind(&id).fetch_one(&mut *tx).await?;
+                        ensure!(
+                            uncertain == 0,
+                            "workflow requires reconciliation; resume cannot replay uncertain work"
+                        );
+                        for task_id in run.task_ids.values() {
+                            let task = read_task(&mut tx, task_id).await?;
+                            if matches!(
+                                task.state.as_str(),
+                                "queued" | "running" | "waitingApproval" | "waitingDependency"
+                            ) {
+                                let data: String = sqlx::query_scalar("SELECT a.data FROM organization_tasks t JOIN organization_authorizations a ON a.id=t.authorization_id WHERE t.id=? AND a.revoked=0 AND a.expires_at>?")
+                                    .bind(task_id).bind(now).fetch_one(&mut *tx).await.context("workflow grant expired or revoked")?;
+                                let grant: OrganizationTaskAuthorization =
+                                    serde_json::from_str(&data)?;
+                                let (node, project) =
+                                    scope_definitions(&mut tx, &task, &grant.scope).await?;
+                                ensure!(
+                                    node.revision == grant.node_revision
+                                        && project.revision == grant.project_revision
+                                        && grant.policy_version == ORGANIZATION_POLICY_VERSION,
+                                    "workflow scope changed"
+                                );
+                            }
+                        }
+                        run.state = OrganizationWorkflowState::Active;
+                    }
+                    OrganizationWorkflowControl::Cancel => {
+                        let tasks: Vec<String> = sqlx::query_scalar("SELECT t.id FROM organization_tasks t JOIN organization_authorizations a ON a.id=t.authorization_id JOIN organization_workflow_tasks w ON w.authorization_id=a.root_id WHERE w.run_id=? AND t.state IN ('queued','running','waitingApproval','waitingDependency','paused','blocked')")
+                            .bind(&id).fetch_all(&mut *tx).await?;
+                        for task_id in tasks {
+                            let task = read_task(&mut tx, &task_id).await?;
+                            super::actions::stop_task_in(&mut tx, &task_id, task.revision, true)
+                                .await?;
+                        }
+                        run.state = OrganizationWorkflowState::Cancelled;
+                    }
+                }
+                run.revision = run
+                    .revision
+                    .checked_add(1)
+                    .context("workflow revision exhausted")?;
+                sqlx::query("UPDATE organization_workflow_runs SET data=? WHERE id=?")
+                    .bind(serde_json::to_string(&run)?)
+                    .bind(&id)
+                    .execute(&mut *tx)
+                    .await?;
+                owner_event(&mut tx, "workflow/control", &id).await?;
+                let mut tasks = Vec::new();
+                for task_id in run.task_ids.values() {
+                    tasks.push(read_task(&mut tx, task_id).await?);
+                }
+                OrganizationWorkflowView::Run { run, tasks }
+            }
         };
         tx.commit().await?;
         Ok(view)
+    }
+
+    /// Park quiescent runtimes without consuming active capacity. Deadline and
+    /// grant expiry clocks keep advancing; this never reauthorizes a task.
+    pub async fn workflow_dispatch_ready(
+        &self,
+        attempt_id: &str,
+        worker: &str,
+        now: i64,
+        max_active: u32,
+    ) -> Result<bool> {
+        ensure!(
+            (1..=4).contains(&max_active),
+            "active execution limit must be 1–4"
+        );
+        let mut tx = self.pool.begin_with("BEGIN IMMEDIATE").await?;
+        let (mut attempt, grant) = check_live_fence(&mut tx, attempt_id, worker, now).await?;
+        let paused = match check_workflow_dispatch(&mut tx, &grant).await {
+            Ok(()) => false,
+            Err(error) if error.is::<super::WorkflowPaused>() => true,
+            Err(error) => return Err(error),
+        };
+        if paused {
+            let dispatched: i64 = sqlx::query_scalar("SELECT count(*) FROM organization_actions WHERE attempt_id=? AND state='dispatched'")
+                .bind(attempt_id).fetch_one(&mut *tx).await?;
+            if attempt.model_requests == attempt.reported_model_requests && dispatched == 0 {
+                attempt.runtime_active = false;
+                write_attempt(&mut tx, &attempt).await?;
+            }
+        } else if attempt.state == OrganizationTaskState::Running && !attempt.runtime_active {
+            let active: i64 =
+                sqlx::query_scalar("SELECT count(*) FROM organization_attempts WHERE occupied=1")
+                    .fetch_one(&mut *tx)
+                    .await?;
+            if active >= i64::from(max_active) {
+                return Ok(false);
+            }
+            attempt.runtime_active = true;
+            write_attempt(&mut tx, &attempt).await?;
+        }
+        tx.commit().await?;
+        Ok(!paused)
     }
 
     pub async fn list_workflows(
@@ -269,6 +400,23 @@ impl OrganizationStore {
         }
         Ok(inputs)
     }
+}
+
+pub(super) async fn check_workflow_dispatch(
+    tx: &mut Transaction<'_, Sqlite>,
+    grant: &OrganizationTaskAuthorization,
+) -> Result<()> {
+    let data: Option<String> = sqlx::query_scalar("SELECT r.data FROM organization_workflow_tasks w JOIN organization_workflow_runs r ON r.id=w.run_id WHERE w.authorization_id=?")
+        .bind(grant.root_authorization_id.as_ref().unwrap_or(&grant.id)).fetch_optional(&mut **tx).await?;
+    if let Some(data) = data {
+        let run: OrganizationWorkflowRun = serde_json::from_str(&data)?;
+        match run.state {
+            OrganizationWorkflowState::Active => {}
+            OrganizationWorkflowState::Paused => return Err(super::WorkflowPaused.into()),
+            OrganizationWorkflowState::Cancelled => anyhow::bail!("workflow is cancelled"),
+        }
+    }
+    Ok(())
 }
 
 async fn preview_in(

@@ -199,6 +199,26 @@ async fn owner_workflow_api_previews_exact_grants_and_persists_fresh_runs() -> R
             .all(|id| !run.task_ids.values().any(|prior| prior == id))
     );
     assert!(tasks.iter().all(|task| task.state == "queued"));
+    let paused = mutate(&mut server, OrganizationWorkflowMutation::Control {
+        id: other.id.clone(), expected_revision: other.revision, action: OrganizationWorkflowControl::Pause,
+    }).await?;
+    let OrganizationWorkflowView::Run { run: paused, tasks: paused_tasks } = paused else { unreachable!() };
+    assert_eq!(paused.state, OrganizationWorkflowState::Paused);
+    assert!(paused_tasks.iter().all(|task| task.state == "queued"));
+    denied(&mut server, OrganizationWorkflowMutation::Control {
+        id: paused.id.clone(), expected_revision: 1, action: OrganizationWorkflowControl::Resume,
+    }).await?;
+    let resumed = mutate(&mut server, OrganizationWorkflowMutation::Control {
+        id: paused.id.clone(), expected_revision: paused.revision, action: OrganizationWorkflowControl::Resume,
+    }).await?;
+    let OrganizationWorkflowView::Run { run: resumed, .. } = resumed else { unreachable!() };
+    let cancelled = mutate(&mut server, OrganizationWorkflowMutation::Control {
+        id: resumed.id.clone(), expected_revision: resumed.revision, action: OrganizationWorkflowControl::Cancel,
+    }).await?;
+    let OrganizationWorkflowView::Run { run: cancelled, tasks: cancelled_tasks } = cancelled else { unreachable!() };
+    assert_eq!(cancelled.state, OrganizationWorkflowState::Cancelled);
+    assert_eq!(cancelled.task_ids, other.task_ids);
+    assert!(cancelled_tasks.iter().all(|task| task.state == "cancelled"));
     let OrganizationWorkflowView::Template { template: updated } = mutate(
         &mut server,
         OrganizationWorkflowMutation::Put {
@@ -240,6 +260,7 @@ async fn owner_workflow_api_previews_exact_grants_and_persists_fresh_runs() -> R
         .await?;
     assert_eq!(listed.data.len(), 2);
     assert!(listed.data.contains(&first));
+    assert!(listed.data.iter().any(|view| matches!(view, OrganizationWorkflowView::Run { run, .. } if run == &cancelled)));
     let templates: OrganizationWorkflowListResponse = server
         .request(|request_id| ClientRequest::OrganizationWorkflowList {
             request_id,

@@ -67,6 +67,32 @@ pub struct OrganizationWorkflowRun {
     pub task_ids: BTreeMap<String, String>,
     #[ts(type = "number")]
     pub created_at: i64,
+    #[serde(default = "initial_revision")]
+    #[ts(type = "number")]
+    pub revision: i64,
+    #[serde(default)]
+    pub state: OrganizationWorkflowState,
+}
+
+fn initial_revision() -> i64 {
+    1
+}
+
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
+#[serde(rename_all = "camelCase")]
+pub enum OrganizationWorkflowState {
+    #[default]
+    Active,
+    Paused,
+    Cancelled,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
+#[serde(rename_all = "camelCase")]
+pub enum OrganizationWorkflowControl {
+    Pause,
+    Resume,
+    Cancel,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
@@ -95,6 +121,13 @@ pub enum OrganizationWorkflowMutation {
     },
     Run {
         preview: Box<OrganizationWorkflowPreview>,
+    },
+    #[serde(rename_all = "camelCase")]
+    Control {
+        id: String,
+        #[ts(type = "number")]
+        expected_revision: i64,
+        action: OrganizationWorkflowControl,
     },
 }
 

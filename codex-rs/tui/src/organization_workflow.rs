@@ -83,8 +83,10 @@ impl Dashboard {
         );
         if let Some((run, _)) = run {
             text.push_str(&format!(
-                "Run: {}\nCreated: {}\nFixed grant ceilings: {} tokens / {} requests\n\n",
+                "Run: {}\nState: {:?} · revision {}\np pause · u continue · x cancel (explicit confirmation)\nCreated: {}\nFixed grant ceilings: {} tokens / {} requests\n\n",
                 run.id,
+                run.state,
+                run.revision,
                 utc_time(run.created_at),
                 run.preview.max_tokens,
                 run.preview.max_model_requests

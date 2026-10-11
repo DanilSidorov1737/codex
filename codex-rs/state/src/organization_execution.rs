@@ -80,6 +80,12 @@ impl OrganizationStore {
                 event(&mut tx, "task/scopeChanged", &task_id).await?;
                 continue;
             }
+            if super::workflow::check_workflow_dispatch(&mut tx, &authorization)
+                .await
+                .is_err()
+            {
+                continue;
+            }
             let attempts: i64 = sqlx::query_scalar(
                 "SELECT count(*) FROM organization_attempts WHERE authorization_id = ?",
             )
@@ -142,6 +148,11 @@ impl OrganizationStore {
     ) -> Result<(u32, i64)> {
         let mut tx = self.pool.begin_with("BEGIN IMMEDIATE").await?;
         let (mut attempt, authorization) = check_fence(&mut tx, attempt_id, worker_id, now).await?;
+        super::workflow::check_workflow_dispatch(&mut tx, &authorization).await?;
+        ensure!(
+            attempt.runtime_active,
+            "inference requires reserved active capacity"
+        );
         super::schedule::check_schedule_fence(&mut tx, &authorization, now, true).await?;
         ensure!(
             attempt.model_requests == attempt.reported_model_requests,

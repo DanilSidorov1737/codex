@@ -470,6 +470,27 @@ async fn workflow_views_save_prerequisite_closure_and_freeze_preview_confirmatio
 }
 
 #[tokio::test]
+async fn workflow_controls_capture_run_revision_and_need_explicit_confirmation() {
+    let mut d = dashboard();
+    let (commands, mut rx) = mpsc::channel(16);
+    d.commands = commands;
+    let run: OrganizationWorkflowRun = serde_json::from_value(serde_json::json!({
+        "id":"run-id", "revision":7, "state":"paused", "createdAt":1000,
+        "taskIds":{}, "preview":{"id":"run-id", "template":{"id":"template", "projectId":"project", "revision":1, "label":"Workflow", "items":[]},
+            "projectRevision":1, "nodeRevisions":{}, "policyVersion":2, "scopes":[], "maxTokens":100, "maxModelRequests":2}
+    })).unwrap();
+    d.snapshot.workflows.push(OrganizationWorkflowView::Run { run, tasks: vec![] });
+    d.workflow_view = true;
+    d.selected = Some("run:run-id".into());
+    d.decision('u');
+    assert!(rx.try_recv().is_err(), "opening confirmation cannot authorize work");
+    assert!(matches!(d.confirmation.as_ref(), Some(Command::Workflow(OrganizationWorkflowMutation::Control { id, expected_revision:7, action:OrganizationWorkflowControl::Resume })) if id == "run-id"));
+    assert!(d.confirmation_text.contains("Paused"));
+    d.key(KeyEvent::new(KeyCode::Char('y'), crossterm::event::KeyModifiers::NONE));
+    assert!(matches!(rx.try_recv().unwrap(), Command::Workflow(OrganizationWorkflowMutation::Control { expected_revision:7, action:OrganizationWorkflowControl::Resume, .. })));
+}
+
+#[tokio::test]
 async fn operations_edits_freeze_node_revision_and_latest_role_version() {
     let mut d = dashboard();
     let first = OrganizationRoleVersion {

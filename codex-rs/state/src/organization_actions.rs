@@ -45,6 +45,7 @@ impl OrganizationStore {
         let mut tx = self.pool.begin_with("BEGIN IMMEDIATE").await?;
         let (mut attempt, authorization) =
             check_live_fence(&mut tx, attempt_id, worker, now).await?;
+        super::workflow::check_workflow_dispatch(&mut tx, &authorization).await?;
         ensure!(
             attempt.state != OrganizationTaskState::WaitingDependency,
             "native tool cannot start while waiting for children"
@@ -163,6 +164,13 @@ impl OrganizationStore {
                 .fetch_one(&mut *tx)
                 .await?;
         let (attempt, _) = check_live_fence(&mut tx, &approval.attempt_id, &worker, now).await?;
+        let grant = sqlx::query_scalar::<_, String>(
+            "SELECT data FROM organization_authorizations WHERE id=?",
+        )
+        .bind(&attempt.authorization_id)
+        .fetch_one(&mut *tx)
+        .await?;
+        super::workflow::check_workflow_dispatch(&mut tx, &serde_json::from_str(&grant)?).await?;
         ensure!(
             attempt.state == OrganizationTaskState::WaitingApproval,
             "approval does not belong to a waiting attempt"
@@ -204,6 +212,13 @@ impl OrganizationStore {
         let mut action = read_action(&mut tx, action_id).await?;
         let (mut attempt, authorization) =
             check_live_fence(&mut tx, &action.attempt_id, worker, now).await?;
+        if let Err(error) = super::workflow::check_workflow_dispatch(&mut tx, &authorization).await
+        {
+            if error.is::<super::WorkflowPaused>() {
+                return Ok(false);
+            }
+            return Err(error);
+        }
         let used_tokens: i64 =
             sqlx::query_scalar("SELECT used_tokens FROM organization_authorizations WHERE id=?")
                 .bind(
@@ -234,7 +249,7 @@ impl OrganizationStore {
                 _ => anyhow::bail!("action approval rejected or superseded"),
             }
         }
-        if attempt.state == OrganizationTaskState::WaitingApproval {
+        if attempt.state == OrganizationTaskState::WaitingApproval || !attempt.runtime_active {
             let active: i64 =
                 sqlx::query_scalar("SELECT count(*) FROM organization_attempts WHERE occupied=1")
                     .fetch_one(&mut *tx)
