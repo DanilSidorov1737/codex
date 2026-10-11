@@ -58,6 +58,13 @@ complete physical/automated qualification. Follow the bounded
 Ponytail and logical local commits; no repeated approval is needed for its slices.
 External integration qualification, paid provider pilots, automatic Apply,
 whole-workflow recurrence, plugins/LSP and distributed workers remain separate.
+Expanded-batch items 1–4 are qualified: Apply recovery on `f0175b9076` and
+checkpoints/blocked owner handoffs on `dcf53641b8`, with 731 selected automated
+tests and actual CLI/TUI/official-Neovim restart, unrelated work, same-grant
+transfer, checks, acceptance and one Apply. Items 5–12 remain approved work.
+Preserve `continuity-home` and its two historical tasks; never rerun the
+continuity setup/authorization/handoff/Apply scripts or reset limits. See status
+and testing for all failures, corrected evidence and exact resume instructions.
 Preserve N1's accepted writer
 and three needsReview reader fixtures; never blindly rerun authorization scripts.
 

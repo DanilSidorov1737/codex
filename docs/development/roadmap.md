@@ -51,7 +51,8 @@ approval, pause/restart/resume, cancellation, budgets, crash/remote denial and
 native TUI/official-Neovim evidence. N3 reusable workflows is complete on
 `2bd752a3d1`: 712 automated tests and actual dependency/restart/approval/Neovim/
 conflict-denial/Apply checks; see [workflow evidence](workflows.md). N4 structured
-handoffs/blockers is the next proposal, requiring matching owner scope.
+handoffs/blockers was subsequently approved and qualified in expanded-batch
+items 2–4; the remaining bounded owner controls are approved below.
 Distributed workers, multimodal production, meetings, full-environment backup
 automation and protected self-improvement remain in their later roadmap phases.
 
@@ -65,7 +66,11 @@ controls and visibility below. Qualify each coherent slice as it is delivered.
 Item 1 is delivered and qualified with 39 targeted automated tests and actual
 same-frontend CLI/official-Neovim rejection/input/reconfirmation/Apply plus rapid
 layout switching; see [evidence](testing.md#apply-recovery-qualification).
-Items 2–12 remain approved work in progress.
+Items 2–4 are delivered/qualified on `dcf53641b8`: 731 automated tests and actual
+CLI/TUI/official-Neovim blocked checkpoint, unrelated work, restart, same-grant
+handoff, retained limits, checked receiver result and one explicit Apply. See
+[continuity evidence](testing.md#checkpoint-and-handoff-qualification). Items 5–12
+remain approved work in progress; proceed to Operations editing and workflow UI.
 
 | Order | Capability and practical scope | Reuse and acceptance gate |
 | --- | --- | --- |

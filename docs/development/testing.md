@@ -1,9 +1,10 @@
 # Testing procedures and evidence
 
-## Checkpoint and handoff automated checks — physical pilot pending
+## Checkpoint and handoff qualification
 
-2026-10-11 UTC, approved expanded-batch items 2–4. This source checkpoint passes
-the automated matrix; physical qualification remains pending. Logs are in
+2026-10-11 UTC, approved expanded-batch items 2–4, qualified on application source
+`dcf53641b85dc299e5b1f0f1318d433be86ec74e`. Automated and physical checks pass.
+Logs are in
 `/workspace/.onboarding/qualification/expanded-batch/`. Activate
 `. /workspace/.onboarding/activate.sh` from `codex-rs`, with
 `CARGO_INCREMENTAL=0 RUST_MIN_STACK=8388608` and
@@ -25,8 +26,8 @@ writers are not added to that total. This is the selected organization qualifica
 matrix, not the entire repository test suite. Native tests use localhost synthetic
 Responses with real tools, filesystem checks and isolation; they do not qualify
 additional real model reasoning or incur paid requests. Physical CLI/TUI/editor
-qualification uses a new `continuity/` fixture and `continuity-home`; do not run its
-mutation scripts again if canonical records/receipts already exist.
+qualification used a new `continuity/` fixture and `continuity-home`; canonical
+records/receipts now exist, so never rerun its mutation scripts or reset limits.
 
 Coverage includes immutable progress/action provenance, original grant/counter/
 expiry/base retention, old-worker denial, busy cleanup, unresolved usage/effects,
@@ -47,8 +48,44 @@ were regenerated and all four comparisons passed, removing unrelated formatting.
 The wire test exposed an older assumption that optional Apply `paths` must always
 be serialized; it now verifies required fields, the exact optional omission and
 both all-file/selected-file variants. Both wire tests pass. Production library
-Clippy (`-D warnings`) passed (`handoff-clippy.log`). Final CLI build/package and
-physical qualification remain pending.
+and full CLI Clippy (`-D warnings`), formatting and the full CLI build pass
+(`handoff-{clippy,cli-clippy,format-check,cli-build}.log`). The complete package
+uses the current CLI plus already verified helpers; all five installed/source
+hashes match (`continuity/preflight.json`). CLI SHA256:
+`ded3972c27cfcbb70d3ba35cc8c79e9da4d44d85b9ffd5d18d8a658b4cc20905`.
+
+The actual CLI/TUI pilot physically approved a native partial report, observed its
+host checkpoint/blocker, then approved and completed unrelated native work while
+the first task stayed blocked. Both frontend and owned daemon were restarted;
+checkpoint, task, original grant and limits reloaded unchanged. After an intentional
+test-owned original input edit, the owner chose the second permitted arbitrary
+agent through `H`, reviewed the exact frozen payload and confirmed once. A fresh
+generation imported the hash-verified checkpoint input/partial report, not the
+changed original input, and retained all original Apply bases. A separately
+approved receiver action passed its real immutable oracle. Official Neovim showed
+the actual diff, followed by exact acceptance and one whole-file Apply. Thirty-six
+rapid switches at 120×36, 50×20 and 160×48 passed; both normal frontend exits were 0.
+Thirteen actual PNG/text pairs are retained.
+
+Independent source/package/file/hash/oracle/accounting/application checks passed,
+including SQLite `quick_check=ok` and no foreign-key failures. The transferred task
+has one original grant, two attempts, one checkpoint/handoff and one completed
+application; source/receiver each report two requests/30 fixture tokens. Total
+pilot: **6 localhost Responses / 90 fixture tokens / 0 paid requests**. The unrelated
+task remains needsReview. Owned daemon/provider were stopped; both tasks/state are
+preserved (`continuity/{physical,verification,cleanup}.json`).
+
+Additional setup/oracle failures remain. The package helper first required
+`CODEX_REPO_ROOT`; its default musl manifest then refused the GNU build before
+daemon/tasks/grants/inference. The corrected command explicitly supplied
+`--target x86_64-unknown-linux-gnu`. `continuity/resume-guard.json` proves no database,
+actors, grant payload or requests existed before continuing the unchanged
+remaining setup once, without recreating the home or resetting state. The first
+read-only verifier compared the stored `OrganizationRecord::Task` envelope directly
+to the unwrapped API task; it now checks the record type and complete `data`, and
+all independent assertions pass. No application-code change or assertion bypass
+was needed for these setup/oracle corrections. Preserve all failed logs/manifests
+and corrected receipts.
 
 ## Apply recovery qualification
 

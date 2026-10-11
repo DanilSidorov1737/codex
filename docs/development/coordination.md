@@ -98,10 +98,10 @@ Apply bases. Handoff is not result acceptance and cannot unlock prerequisites.
 Required evidence: checkpoint/reassignment restart persistence, stale-worker and
 changed-checkpoint denial, no limit reset, uncertain-effect denial, independent
 work continuing, scoped artifact continuity, actual CLI/TUI/official-Neovim review
-and a separately confirmed Apply. This contract is approved but not yet delivered;
-update this section with the concrete API and measured limits after qualification.
+and a separately confirmed Apply. This contract is delivered/qualified on
+`dcf53641b8`; see [testing](testing.md#checkpoint-and-handoff-qualification).
 
-Implementation in progress: `checkpoint` supplies only `content` with
+`checkpoint` supplies only `content` with
 `completedSteps`, `remainingSteps` and optional `blocker`. The host captures all
 granted inputs and existing outputs (combined 64 MiB), all original output bases
 and completed-action IDs. It records at most 32 checkpoints per task and shares
@@ -119,8 +119,10 @@ node revision; grant identity, scope, root accounting and expiry stay unchanged.
 Host file hashes are rechecked before committing and before receiver import.
 Neither private agent notes nor newly edited project inputs are imported.
 
-The state/protocol contract has passed 646 tests; daemon/TUI/physical qualification
-is still pending. See [current status](status.md).
+The selected full matrix passed 731 distinct tests and actual CLI/TUI/official-
+Neovim continuation/restart/review/Apply. Same-grant recurring accounting and
+workflow dependency/fixed-grant checks passed. Native physical evidence uses
+localhost synthetic responses, not a new paid provider pilot. See [current status](status.md).
 
 Parents wait only for direct delegated children, yielding an acyclic wait tree.
 A waiting parent releases its active slot after any streamed provider request's

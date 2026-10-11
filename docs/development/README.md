@@ -14,8 +14,9 @@ N3 reusable workflows is qualified on `2bd752a3d1`: 712 automated tests and actu
 dependency/restart/approval/Neovim/conflict-denial/Apply checks. See
 [workflow evidence](workflows.md). N4–N8 remain proposed later scope.
 The 12-item expanded batch was subsequently approved on 2026-10-11. Item 1 Apply
-recovery is delivered/qualified; checkpoints and safe handoffs are next approved
-work. See the current status and expanded roadmap; later items are not delivered yet.
+recovery and items 2–4 checkpoints/blocked handoffs are delivered/qualified on
+`dcf53641b8`. Operations editing and fuller workflow UI are next approved work.
+See the current status and expanded roadmap; later items are not delivered yet.
 Phase 0 repository baseline: `8026444c98cd9c6db9e7c953b44a20ea4f93c7b6`, from `origin/main`.
 Research recorded on 2026-10-09 (America/New_York).
 

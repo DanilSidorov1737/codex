@@ -5,7 +5,7 @@ Current work: **N1/N2/N3 complete; expanded recovery/handoff/UI batch approved a
 Application features: **delivered for the documented single-owner Linux envelope**.
 The MVP's release criteria are **qualified for the documented single-owner Linux/GPT-5.5 envelope**.
 
-## Expanded batch checkpoint: Apply recovery complete
+## Expanded batch checkpoint: items 1–4 complete
 
 Item 1 is delivered and physically qualified: a server-confirmed pre-intent
 rejection now restores actual Neovim input without frontend restart, with the
@@ -21,32 +21,32 @@ test fixtures and wrong CLI-subcommand setup failure remain alongside corrected
 passes. Preserve this accepted/applied task and do not rerun its setup/authorization
 or Apply scripts.
 
-Items 2–4 are now in progress: the append-only checkpoint/handoff state contract
-passes **373 protocol + 273 state tests**. New cases exercise retained budgets,
-stale workers/revisions, unresolved effects/usage, blocked runtime occupancy,
-deduplication, unrelated work and genuine v8 migration/restart. The daemon file
-snapshot/import and owner handoff path are being connected and checked; this is
-not yet a qualified CLI/TUI feature. Evidence:
-`expanded-batch/handoff-state-protocol-final.log`; the initial test helper compile
-failure remains in `handoff-state-protocol-tests.log`.
-The daemon/native-file checks now pass **11** tests, the actual sandboxed API
-workflow suite **8**, and TUI/official-Neovim checks **34**. These include tampered
-checkpoint refusal, pinned input import after an original edit, one unchanged
-grant/four total requests, completed-action provenance and frozen handoff forms.
-Raw-generator contract comparisons and SDK checks now pass; **731 distinct
-automated tests** and production library Clippy pass. Recurring/workflow
-accounting coverage also passes. Preserve failed schema/wire runs alongside the
-corrected checks, as described in [testing](testing.md#checkpoint-and-handoff-automated-checks--physical-pilot-pending).
-Build the full current CLI/package, then run the fresh `continuity/` physical pilot
-and its independent verifier; these are still pending. Its source checkpoint is
-an implementation commit, not a claim of completed physical qualification.
+Items 2–4 are delivered and physically qualified on application source
+**`dcf53641b85dc299e5b1f0f1318d433be86ec74e`**: immutable structured checkpoints,
+explicit blockers and fenced owner handoffs under the original grant. **731
+distinct automated tests**, production/CLI Clippy, formatting, complete CLI and
+package pass. Actual native partial report/checkpoint, unrelated work while
+blocked, daemon restart, exact TUI reassignment, pinned file import after an
+original input edit, receiver approval/immutable oracle, official Neovim diff,
+acceptance and one Apply all pass. Thirty-six switches at three sizes and both
+normal frontend exits pass. Independent package/hash/oracle/counter/receipt/
+SQLite quick/FK proof passes. **6 localhost requests / 90 fixture tokens / 0 paid**.
+Thirteen actual PNG/text pairs are retained; owned daemon/provider are stopped.
+See [testing](testing.md#checkpoint-and-handoff-qualification) and
+`expanded-batch/continuity/{verification,cleanup}.json`.
 
-Continue approved work: items 2–4, structured checkpoints, owner-controlled fenced
-reassignment and blocker escalation. The [continuity contract](coordination.md#approved-checkpoint-and-handoff-continuation)
-preserves original grants/counters/expiry, requires stopped old runtimes and
-reconciled effects/usage, and imports only hash-verified permitted checkpoint
-artifacts. Remaining batch items are approved, not yet delivered; no new scope
-question is needed to continue them.
+Preserve `continuity-home`: task `01a12948-e65c-7c41-b5d6-ecc70027787a` is accepted
+with one completed report application; task `01a12948-e693-77d0-bbe0-7c57562a20cb`
+is needsReview. Never rerun their setup/authorization/handoff/Apply scripts or
+reset their budgets. The initial failed schema/wire helpers, package environment/
+target refusals and verifier envelope error remain alongside corrected evidence;
+the guarded package continuation proved no canonical records or inference existed
+before starting once. These failures did not require an application-code change.
+
+Continue approved work: item 5 Operations editing, then item 6 fuller workflow UI,
+followed by Review inbox, summaries/resources, Neovim selection and inventory.
+Use fresh fixtures and the same Ponytail/testing/commit process. Remaining items
+are already approved; no new scope question is needed for these slices.
 
 ## Expanded next batch approval — 2026-10-11 UTC
 

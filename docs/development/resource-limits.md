@@ -16,9 +16,9 @@ execution. Use a model supporting direct native tools; gpt-5.5 is qualified agai
 the deterministic fixture and the real OpenAI HTTPS Responses provider through
 three bounded pilots. No automatic model routing or Code Mode bypass is implemented.
 
-## Continuation limits (qualification in progress)
+## Continuation limits (qualified)
 
-Expanded-batch continuation (qualification in progress) keeps the original grant's
+Expanded-batch continuation keeps the original grant's
 token/request counters, attempt ceiling and expiry. Every stopped source and fresh
 receiver attempt consumes that same attempt allowance; handoff never creates a
 replacement grant. Time ceilings remain per attempt, as in the existing runtime;

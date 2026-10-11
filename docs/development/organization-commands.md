@@ -21,7 +21,7 @@ codex organization restore --backup /absolute/path/snapshot.sqlite --destination
 Follow `nextCursor` using `--cursor`; page limits are 1–200. Output is JSON.
 `--no-daemon` uses the existing embedded server for isolated qualification.
 
-## Checkpoints and blocked handoffs (qualification in progress)
+## Checkpoints and blocked handoffs (qualified)
 
 `codex organization execution-read TASK_ID` returns canonical checkpoints and
 handoffs with the normal task/grant/result evidence. In the TUI, select a blocked
