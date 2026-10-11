@@ -45,6 +45,9 @@ mod coordination;
 #[path = "organization_schedule.rs"]
 mod schedule;
 
+#[path = "organization_workflow.rs"]
+mod workflow;
+
 #[derive(Clone, Debug)]
 pub struct OrganizationStore {
     pool: SqlitePool,

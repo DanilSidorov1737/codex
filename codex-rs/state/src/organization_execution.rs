@@ -22,6 +22,7 @@ impl OrganizationStore {
     ) -> Result<OrganizationTaskAuthorization> {
         let mut tx = self.pool.begin_with("BEGIN IMMEDIATE").await?;
         super::schedule::reject_occurrence_reauthorization(&mut tx, task_id).await?;
+        super::workflow::reject_workflow_reauthorization(&mut tx, task_id).await?;
         let authorization =
             authorize_task_in(&mut tx, task_id, expected_revision, scope, now).await?;
         tx.commit().await?;

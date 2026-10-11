@@ -50,3 +50,15 @@ Calendar triggers and recurrent whole-workflow runs, structured handoff/reassign
 parallel shared-buffer editing, distributed execution and automatic Apply are
 later scope. Existing N1 memory remains available within each grant; N2 continues
 to schedule its existing prerequisite-free task templates.
+
+## Implementation checkpoints
+
+Storage/protocol checkpoint: migration 8, revisioned templates, immutable previews,
+atomic fresh task/grant creation, canonical run pagination and host-only scoped
+artifact selection are implemented. Agent-plan graph validation is shared. Ordinary
+reauthorization is refused for workflow roots/descendants. 372 protocol and 269
+state tests passed, including four new workflow scenarios and migration from
+versions 6/7. Native runtime/API/UI and physical qualification are in progress.
+Evidence: `/workspace/.onboarding/qualification/workflows-n3/state-protocol-tests.log`.
+Initial fixture failures are preserved in the qualification parent directory;
+no production migration checksum, integrity or artifact-base check was weakened.

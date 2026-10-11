@@ -443,38 +443,21 @@ async fn propose(
         proposed + i64::try_from(items.len())? <= i64::from(authorization.scope.max_children),
         "root proposed-task ceiling exhausted"
     );
-    let mut remaining = BTreeMap::new();
-    for item in items {
-        text(&item.key, 128)?;
-        text(&item.instructions, 64 * 1024)?;
-        validate_criteria(&item.criteria)?;
-        ensure!(
-            item.prerequisites.len() <= 32
-                && item.prerequisites.iter().collect::<HashSet<_>>().len()
-                    == item.prerequisites.len(),
-            "invalid plan prerequisites"
-        );
+    let items = validate_plan_items(items)?;
+    for item in &items {
         ensure!(
             authorization.scope.delegates.contains(&item.owner_id),
             "plan owner outside authorized roster"
         );
-        let node = read_node(tx, &item.owner_id).await?;
         ensure!(
-            node.kind == OrganizationNodeKind::Agent,
+            read_node(tx, &item.owner_id).await?.kind == OrganizationNodeKind::Agent,
             "plan owner is not an agent"
         );
-        ensure!(!remaining.contains_key(&item.key), "duplicate plan key");
-        remaining.insert(item.key.clone(), item);
     }
     let mut ids: BTreeMap<String, String> = BTreeMap::new();
     let mut tasks = Vec::new();
-    while !remaining.is_empty() {
-        let key = remaining
-            .iter()
-            .find(|(_, item)| item.prerequisites.iter().all(|id| ids.contains_key(id)))
-            .map(|(key, _)| key.clone())
-            .context("cyclic plan or unknown prerequisite key")?;
-        let item = remaining.remove(&key).context("missing plan item")?;
+    for item in items {
+        let key = item.key.clone();
         let task = OrganizationTask {
             id: Uuid::now_v7().to_string(),
             project_id: parent.project_id.clone(),
@@ -507,6 +490,44 @@ async fn propose(
         tasks.push(task);
     }
     Ok(tasks)
+}
+
+/// Shared owner-template/agent-plan validation. Keys never refer to existing tasks.
+pub(super) fn validate_plan_items(
+    items: Vec<OrganizationPlanItem>,
+) -> Result<Vec<OrganizationPlanItem>> {
+    ensure!(
+        (1..=32).contains(&items.len()),
+        "plan must contain 1–32 tasks"
+    );
+    let mut remaining = BTreeMap::new();
+    for item in items {
+        text(&item.key, 128)?;
+        text(&item.owner_id, 256)?;
+        text(&item.instructions, 64 * 1024)?;
+        validate_criteria(&item.criteria)?;
+        ensure!(
+            item.prerequisites.len() <= 32
+                && item.prerequisites.iter().collect::<HashSet<_>>().len()
+                    == item.prerequisites.len(),
+            "invalid plan prerequisites"
+        );
+        ensure!(!remaining.contains_key(&item.key), "duplicate plan key");
+        remaining.insert(item.key.clone(), item);
+    }
+    let mut ordered = Vec::new();
+    let mut keys = HashSet::new();
+    // ponytail: quadratic topological scan is bounded to 32 steps; use a queue only if that ceiling changes.
+    while !remaining.is_empty() {
+        let key = remaining
+            .iter()
+            .find(|(_, item)| item.prerequisites.iter().all(|key| keys.contains(key)))
+            .map(|(key, _)| key.clone())
+            .context("cyclic plan or unknown prerequisite key")?;
+        ordered.push(remaining.remove(&key).context("missing plan item")?);
+        keys.insert(key);
+    }
+    Ok(ordered)
 }
 
 /// Follow host-created parent grants, never arbitrary model-supplied IDs. The

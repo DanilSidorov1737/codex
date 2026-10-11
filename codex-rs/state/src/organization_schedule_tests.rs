@@ -435,13 +435,23 @@ async fn recurring_migration_validation_and_pagination_preserve_existing_state()
             )
             .await?,
     );
+    // Simulate a genuine version-6 store: later schemas must also be absent.
+    sqlx::query("DROP TABLE organization_workflow_tasks")
+        .execute(&store.pool)
+        .await?;
+    sqlx::query("DROP TABLE organization_workflow_runs")
+        .execute(&store.pool)
+        .await?;
+    sqlx::query("DROP TABLE organization_workflow_templates")
+        .execute(&store.pool)
+        .await?;
     sqlx::query("DROP TABLE organization_schedule_occurrences")
         .execute(&store.pool)
         .await?;
     sqlx::query("DROP TABLE organization_schedules")
         .execute(&store.pool)
         .await?;
-    sqlx::query("DELETE FROM _sqlx_migrations WHERE version=7")
+    sqlx::query("DELETE FROM _sqlx_migrations WHERE version>=7")
         .execute(&store.pool)
         .await?;
     store.close().await;

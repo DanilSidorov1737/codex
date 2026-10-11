@@ -5,6 +5,9 @@ use codex_protocol::organization_execution::*;
 #[path = "organization_coordination_tests.rs"]
 mod coordination;
 
+#[path = "organization_workflow_tests.rs"]
+mod workflow;
+
 async fn authorized_attempt(
     store: &OrganizationStore,
     approval: bool,
