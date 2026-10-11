@@ -1,9 +1,28 @@
 # Current status and resumption instructions
 
 Phase 0: **exploration and planning complete for available inputs**.
-Current work: **N1/N2/N3 complete; N4 handoffs/blockers proposed**.
+Current work: **N1/N2/N3 complete; expanded recovery/handoff/UI batch proposed**.
 Application features: **delivered for the documented single-owner Linux envelope**.
 The MVP's release criteria are **qualified for the documented single-owner Linux/GPT-5.5 envelope**.
+
+## Expanded next batch proposal — 2026-10-11 UTC
+
+The owner asked to add more items to the next list. The
+[expanded batch](roadmap.md#expanded-next-batch) retains Apply recovery,
+checkpoints, safe reassignment, blockers and physical qualification, and adds
+Operations organization editing, fuller workflow UI, a Review action inbox,
+evidence-linked summaries, recorded resource visibility, Neovim selection
+requests and a configured-versus-qualified tool/provider inventory.
+It refines proposed N4 and bounded parts of N5–N8. This is a documentation-only
+planning update; implementation has not started and the existing N3 source/test
+qualification remains unchanged.
+The next proposed implementation starts with confirmed-rejection Apply recovery,
+then task continuity and safe handoffs, followed by the added controls.
+
+Documentation checks: `python3
+/workspace/.onboarding/qualification/workflows-n3/check-docs.py` resolved 107 local
+links/referenced heading anchors across 11 documents (exit 0); `git diff --check`
+passed (exit 0). Application tests were not rerun for this planning-only change.
 
 ## Completed reusable workflow slice — 2026-10-11 UTC
 
@@ -354,7 +373,9 @@ Persistent configurable agents/roles/goals/projects/tasks, protected canonical s
 bounded daemon work/delegation/context, all five layouts, official embedded Neovim,
 exact human review/Apply, owner boot limits, trusted price estimates, N1 scoped
 memory search, N2 recurring schedules and N3 reusable workflows are delivered.
-Next recommendation: N4 structured handoffs/blockers after matching scope; preserve current fixture state and do not repeat paid pilots.
+Next recommendation: the [expanded batch](roadmap.md#expanded-next-batch), starting
+with Apply recovery and N4 handoffs/blockers after matching scope; preserve
+current fixture state and do not repeat paid pilots.
 Ponytail reuse-first implementation/review and logical local commits were used.
 
 Previous startup/workflow application source: **`6a4a9f6329`**, following request-ID fix `4a19208b2c`.
@@ -632,8 +653,9 @@ authorize push/publication, outbound communications or unbounded provider spendi
    Preserve all historical tasks/results/series and failures; owned services are
    stopped. Never rerun qualification setup/authorization/crash scripts, replay
    authorization/Apply, redo paid pilots or create automatic inference loops.
-   Next recommendation: N4 handoffs/blockers after matching scope; use fresh
-   scoped projects/grants for new approved tests.
+   Next recommendation: the expanded batch above, starting with Apply recovery
+   and N4 handoffs/blockers after matching scope; use fresh scoped projects/grants
+   for new approved tests.
 5. Update acceptance/status/testing and make logical local commits after results.
    Do not start later roadmap phases without matching user scope, or infer push,
    merge, deploy, external messaging or financial authority.

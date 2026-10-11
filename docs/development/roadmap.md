@@ -55,6 +55,35 @@ handoffs/blockers is the next proposal, requiring matching owner scope.
 Distributed workers, multimodal production, meetings, full-environment backup
 automation and protected self-improvement remain in their later roadmap phases.
 
+## Expanded next batch
+
+**Proposed on 2026-10-11; implementation has not started.** The owner asked to
+expand the next list so the batch accomplishes more. This refines N4 and draws
+bounded additions from N5–N8; it does not authorize those implementations.
+N1–N3 remain complete. Start with recovery and handoffs, then add the owner
+controls and visibility below. Qualify each coherent slice as it is delivered.
+
+| Order | Capability and practical scope | Reuse and acceptance gate |
+| --- | --- | --- |
+| 1 | Fix Apply recovery: restore editor interaction and retain the error after a confirmed rejection before an application intent exists. | Reuse canonical application receipts and dashboard state. Test that a confirmed rejection permits a fresh explicit confirmation; a timeout, disconnect or uncertain intent cannot cause automatic replay or a duplicate write. |
+| 2 | Durable task checkpoints: record verified completed work, artifact references, remaining steps and blockers. | Reuse task/attempt records, scoped notes and artifact hashes. Reload permitted context after daemon restart; checkpoint text cannot substitute for acceptance or authorize effects. |
+| 3 | Safe reassignment: let the owner transfer unfinished work to another configured agent with an explicit ownership transition. | Reuse grants, leases and attempts. Fence the old worker; preserve consumed/remaining root and schedule/workflow accounting rather than resetting limits. Validate the receiver's scope and reconcile uncertain effects before continuing. |
+| 4 | Blocker handling and escalation: show why work stopped and which owner decision is needed. | Reuse canonical task state and inbox records. Test resolution/reassignment without widening authority, restart persistence and unrelated work continuing while a decision is pending. |
+| 5 | Organization editing in Operations: edit role instructions, memberships, hierarchy and enabled/retired state from the tree. | Expose existing versioned owner CLI/RPC edits through native forms. Physically create/edit/reparent/retire; reject cycles/stale changes and retain active attempts' captured policy. Arbitrary names and levels remain supported. |
+| 6 | Fuller workflow UI: edit templates, assignments, prerequisites and success criteria, and review distinct per-step scopes. | Reuse N3's existing CLI/RPC template revisions and canonical previews; the current UI uses a common scope. Reject invalid graphs/stale edits and preserve atomic authorization, fixed step budgets and explicit prerequisite acceptance. |
+| 7 | Review action inbox: bring pending approvals, blocked decisions, requested changes and results needing review into one navigable list. | Derive entries from canonical records, with links to exact tasks/actions/results. Counts match after reconnect/restart; resolving one item cannot approve a different or changed action. |
+| 8 | Operational summaries: show project progress, upcoming runs, blockers, recorded checks and failures, with evidence links. | Start with on-demand local reports using existing state, audit and schedule projections. Verify counts/drill-downs and project scope; do not invent tests or deliver reports externally. |
+| 9 | Resource visibility: show recorded requests/tokens, remaining configured limits and clearly labeled cost estimates by task, agent, project and workflow run. | Reuse authoritative usage/budget records and trusted rate configuration. Preserve descendant attribution and distinguish fixed step limits from a pooled budget; unknown measurements remain unavailable and estimates are not monetary hard caps. |
+| 10 | Neovim selection-to-task requests: select real code and propose explain/refactor/debug/test work from its file, range and captured buffer revision. | Reuse official Neovim, task forms and isolated execution. Physically test Unicode selection, cancellation, exact authorization and review; dirty/stale original buffers still block Apply. Captured context grants no extra paths/tools. |
+| 11 | Tool/provider inventory: show configured capabilities, required permissions and separately recorded qualification status. | Reuse MCP/plugin/provider configuration; configuration alone does not establish compatibility. Verify secret redaction and accurate unknown/failed states without installs, paid probes or automatic model fallback. Selecting/qualifying an additional external integration remains N8's separate bounded scope. |
+| 12 | Complete qualification throughout the batch: meaningful automated checks and actual CLI/TUI/official-Neovim workflows, with evidence and logical commits. | Use Ponytail during implementation/review. Exercise checkpoint → blocker → owner reassignment → remaining work → recorded checks → review → explicit Apply, including restart, stale-worker denial, retained budgets and recovery failures. Use fresh authorized fixtures and preserve historical runs. |
+
+Keep the five layouts and existing concept-art palette/panels as these controls
+are added. This batch does not introduce a new orchestration service, workflow
+language or dependency by default. Automatic Apply, whole-workflow recurrence,
+shared-buffer merging, user plugin/LSP qualification, additional paid provider
+pilots and distributed workers retain their separate scope and acceptance gates.
+
 Sequence is based on technical dependencies and risk, not date estimates.
 Implementation proceeds within the approved scope and records evidence at each gate.
 Approval of the complete MVP covers ordinary slices/commits; do not request it
