@@ -76,6 +76,7 @@ async fn background_requests_survive_startup_overlap_and_cancelled_dashboard() {
                             "organization/execution/read" | "organization/execution/mutate" => {
                                 json!({"view": view("one")})
                             }
+                            "organization/schedule/list" => json!({"data":[],"nextCursor":null}),
                             "project/create" => {
                                 let params = request.params.as_ref().unwrap();
                                 assert_eq!(params["name"], "Native project");
@@ -294,7 +295,9 @@ fn dashboard() -> Dashboard {
     Dashboard {
         preferences: Preferences::default(),
         path: PathBuf::from("unused"),
+        schedule_view: false,
         snapshot: Snapshot {
+            schedules: vec![],
             records: vec![
                 OrganizationRecord::Node(node("owner", None)),
                 OrganizationRecord::Task(task("one")),
@@ -334,6 +337,126 @@ fn dashboard() -> Dashboard {
         frame: FrameRequester::test_dummy(),
         is_done: false,
     }
+}
+
+#[tokio::test]
+async fn schedule_views_capture_controls_and_keep_tree_and_selection_stable() {
+    let key = |code| KeyEvent::new(code, crossterm::event::KeyModifiers::NONE);
+    let mut d = dashboard();
+    let preferences = tempfile::tempdir().unwrap();
+    d.path = preferences.path().join("layouts.json");
+    let (commands, mut rx) = mpsc::channel(16);
+    d.commands = commands;
+    let (updates, receiver) = mpsc::channel(16);
+    d.updates = receiver;
+    let sample = OrganizationScheduleView {
+        schedule: OrganizationSchedule {
+            id: "series".into(),
+            template: task("template"),
+            scope: OrganizationExecutionScope {
+                input_files: vec![],
+                immutable_files: vec![],
+                artifacts: vec!["report.txt".into()],
+                checks: vec![],
+                model: "fixture".into(),
+                max_tokens: 1000,
+                max_seconds: 120,
+                max_model_requests: 2,
+                max_attempts: 1,
+                require_tool_approval: true,
+                delegates: vec![],
+                max_children: 0,
+                auto_accept_children: false,
+                not_before: None,
+            },
+            config: OrganizationScheduleConfig {
+                label: "Unicode café routine".into(),
+                interval_seconds: 60,
+                first_run_at: 1010,
+                ends_at: 2010,
+                max_runs: 3,
+                max_tokens: 1000,
+                max_model_requests: 6,
+            },
+            node_revision: 1,
+            project_revision: 1,
+            policy_version: 2,
+            state: OrganizationScheduleState::Active,
+            revision: 7,
+            next_run_at: Some(1070),
+            issued_runs: 1,
+            skipped_runs: 2,
+            reason: None,
+        },
+        used_tokens: 10,
+        model_requests: 2,
+        occurrences: vec![OrganizationScheduleOccurrence {
+            task_id: "source-task".into(),
+            authorization_id: "source-grant".into(),
+            due_at: 1010,
+            task_state: "needsReview".into(),
+        }],
+    };
+    d.snapshot.schedules = vec![sample.clone()];
+    d.rebuild();
+    assert!(d.rows.iter().all(|r| !r.id.starts_with("schedule:"))); // Operations defaults to tree
+    d.key(key(KeyCode::Char('S')));
+    assert!(d.schedule_view);
+    assert_eq!(d.selected.as_deref(), Some("schedule:series"));
+    let text = d.details();
+    for evidence in [
+        "Unicode café routine",
+        "Next start (UTC)",
+        "1970-01-01",
+        "Issued: 1 / 3",
+        "skipped: 2",
+        "Reported tokens: 10 / 1000",
+        "source-task",
+    ] {
+        assert!(text.contains(evidence), "missing {evidence}");
+    }
+    d.key(key(KeyCode::Char('p')));
+    d.snapshot.schedules[0].schedule.revision = 8;
+    d.key(key(KeyCode::Char('y')));
+    let Command::Schedule(OrganizationScheduleMutation::Control {
+        id,
+        expected_revision,
+        action,
+    }) = rx.try_recv().unwrap()
+    else {
+        panic!("missing pause")
+    };
+    assert_eq!(id, "series");
+    assert_eq!(expected_revision, 7);
+    assert_eq!(action, OrganizationScheduleControl::Pause);
+    d.switch(Preset::Projects);
+    d.selected = Some("one".into());
+    updates
+        .send(Update::ScheduleSaved(Box::new(sample), false))
+        .await
+        .unwrap();
+    d.update();
+    assert_eq!(d.selected.as_deref(), Some("one"));
+    d.key(key(KeyCode::Char('R')));
+    assert!(d.form.is_some());
+    d.key(key(KeyCode::Esc));
+    d.key(key(KeyCode::Char('S')));
+    for (w, h) in [(160, 48), (120, 36), (50, 20), (1, 1)] {
+        let area = Rect::new(0, 0, w, h);
+        d.render(area, &mut Buffer::empty(area));
+    }
+    d.key(key(KeyCode::Char('u')));
+    assert!(matches!(
+        d.confirmation,
+        Some(Command::Schedule(OrganizationScheduleMutation::Control {
+            action: OrganizationScheduleControl::Resume,
+            ..
+        }))
+    ));
+    d.key(key(KeyCode::Esc));
+    d.key(key(KeyCode::Char('x')));
+    d.key(key(KeyCode::Esc));
+    assert!(d.confirmation.is_none());
 }
 
 #[tokio::test]
@@ -584,6 +707,7 @@ async fn refreshed_snapshot_preserves_selection_but_removes_deleted_selection() 
     assert_eq!(d.selected.as_deref(), Some("two"));
     updates
         .send(Update::Snapshot(Snapshot {
+            schedules: vec![],
             records: vec![OrganizationRecord::Task(task("one"))],
         }))
         .await
@@ -593,6 +717,7 @@ async fn refreshed_snapshot_preserves_selection_but_removes_deleted_selection() 
     assert!(matches!(command_rx.try_recv(), Ok(Command::Inspect(id)) if id == "one"));
     updates
         .send(Update::Snapshot(Snapshot {
+            schedules: vec![],
             records: vec![OrganizationRecord::Task(task("one"))],
         }))
         .await
@@ -608,6 +733,7 @@ async fn refreshed_snapshot_preserves_selection_but_removes_deleted_selection() 
     assert!(d.selected.is_none());
     updates
         .send(Update::Snapshot(Snapshot {
+            schedules: vec![],
             records: vec![OrganizationRecord::Task(task("new"))],
         }))
         .await
@@ -797,6 +923,7 @@ async fn actual_dirty_editor_blocks_host_exit_and_owner_apply_dispatch() {
     d.updates = incoming;
     updates
         .send(Update::Snapshot(Snapshot {
+            schedules: vec![],
             records: d.snapshot.records.clone(),
         }))
         .await

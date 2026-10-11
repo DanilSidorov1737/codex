@@ -33,6 +33,17 @@ launches report the requirement rather than silently taking terminal ownership.
   See [memory search](memory-search.md) for the literal query contract and evidence.
 - `p` toggles a selected node's enabled flag through revision-checked owner
   mutation, or pauses a selected task. `x` cancels a task.
+- Select a task without prerequisites and press `R` for a finite recurring
+  schedule. The existing authorization fields specify each run's explicit scope;
+  loaded grants prefill these fields. Add interval, first/end UTC epoch times,
+  run count and aggregate limits, then F6 reviews and `y` confirms. `S` shows
+  schedules inside the existing layouts; Operations defaults to its hierarchy
+  tree and displays upcoming UTC starts below it. Projects also lists schedules.
+  A selected schedule exposes `p` pause, `u` resume and `x` cancel, each with
+  exact revision/confirmation. Its inspector shows next time, usage, skips and
+  recent task IDs; select those tasks for their approvals, checks and review.
+  With actual Neovim focused, use Ctrl-G before host controls. See
+  [recurring schedules](recurring-schedules.md) for bounds and recovery behavior.
 - Review/task inspection: `a` approves the first pending exact action, `r` rejects
   it, `v` accepts the exact current result digest, and `c` requests changes with
   entered instructions. Decisions require an explicit `y` against the displayed

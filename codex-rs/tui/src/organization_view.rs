@@ -265,7 +265,9 @@ impl Dashboard {
 
     fn rows_view(&self, area: Rect, buffer: &mut Buffer, cards: bool) {
         let pane = &self.preferences.panes[self.preferences.preset.index()];
-        let title = if cards {
+        let title = if self.schedule_view {
+            "Schedules · S returns to default view"
+        } else if cards {
             "Hierarchy tree"
         } else {
             "Tasks / goals / projects"
@@ -544,8 +546,42 @@ impl Dashboard {
                     ])
                     .split(sections[1]);
                     self.summary(parts[0], buffer);
-                    self.rows_view(parts[1], buffer, true);
-                    self.activity(parts[2], buffer);
+                    self.rows_view(parts[1], buffer, !self.schedule_view);
+                    let bottom = Layout::horizontal([
+                        Constraint::Percentage(50),
+                        Constraint::Percentage(50),
+                    ])
+                    .split(parts[2]);
+                    let mut upcoming: Vec<_> = self
+                        .snapshot
+                        .schedules
+                        .iter()
+                        .filter(|v| v.schedule.state == OrganizationScheduleState::Active)
+                        .collect();
+                    upcoming.sort_by_key(|v| v.schedule.next_run_at);
+                    let lines: Vec<_> = upcoming
+                        .iter()
+                        .take(4)
+                        .map(|v| {
+                            Line::from(clean(&format!(
+                                "{} · {}",
+                                v.schedule.config.label,
+                                v.schedule
+                                    .next_run_at
+                                    .map(utc_time)
+                                    .unwrap_or_else(|| "None".into())
+                            )))
+                        })
+                        .collect();
+                    Paragraph::new(if lines.is_empty() {
+                        vec![Line::from("No active schedules · R create / S inspect")]
+                    } else {
+                        lines
+                    })
+                    .style(Style::default().fg(foreground(MUTED)))
+                    .block(panel("Upcoming schedules · UTC", false))
+                    .render(bottom[0], buffer);
+                    self.activity(bottom[1], buffer);
                 }
                 Preset::Projects => {
                     let parts = Layout::vertical([
@@ -627,12 +663,16 @@ impl Dashboard {
                 _ => self.rows_view(sections[1], buffer, false),
             }
             if pane.inspector {
-                let title = match self.preferences.preset {
-                    Preset::Operations => "Node Inspector",
-                    Preset::Workspace => "AI Collaboration",
-                    Preset::Projects => "Task Details",
-                    Preset::Review => "Change Inspector",
-                    Preset::Console => "Task Inspector",
+                let title = if self.selected_schedule().is_some() {
+                    "Schedule Inspector"
+                } else {
+                    match self.preferences.preset {
+                        Preset::Operations => "Node Inspector",
+                        Preset::Workspace => "AI Collaboration",
+                        Preset::Projects => "Task Details",
+                        Preset::Review => "Change Inspector",
+                        Preset::Console => "Task Inspector",
+                    }
                 };
                 let right = Layout::vertical([
                     Constraint::Min(1),
@@ -655,7 +695,9 @@ impl Dashboard {
                         pane.inspector_focus,
                     ))
                     .render(right[0], buffer);
-                let actions = if self.preferences.preset == Preset::Workspace {
+                let actions = if self.selected_schedule().is_some() {
+                    "[p] Pause       [u] Resume\n[x] Cancel      [f] Refresh\n[S] Schedules / default view\nRun approvals and results: select task"
+                } else if self.preferences.preset == Preset::Workspace {
                     "[t] Follow AI   [d] Live Diff\n[o] Independent Editing\n[e] Editor focus   [n] Next file\nCtrl-G returns host focus"
                 } else {
                     "[s] Authorize   [a] Approve\n[v] Accept      [c] Changes\n[A] Select files to Apply\n[p] Pause       [x] Cancel"
@@ -691,7 +733,7 @@ impl Dashboard {
         } else {
             [
                 "N project · T task · G goal · U agent · s authorize · ↑↓ select · Tab focus · / search · f refresh",
-                "m project memory · M agent memory · i inspector · a approve · v accept · A Apply · q Console",
+                "R recurring · S schedules · p pause · u resume · x cancel · m/M memory · v accept · A Apply · q Console",
             ]
         };
         Paragraph::new(vec![

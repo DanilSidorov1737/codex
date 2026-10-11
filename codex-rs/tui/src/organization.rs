@@ -150,6 +150,7 @@ impl Preferences {
 #[derive(Default)]
 struct Snapshot {
     records: Vec<OrganizationRecord>,
+    schedules: Vec<OrganizationScheduleView>,
 }
 enum Command {
     Refresh,
@@ -157,6 +158,7 @@ enum Command {
     MemorySearch(OrganizationMemorySearchParams),
     Definition(OrganizationMutation),
     Execution(OrganizationExecutionMutation),
+    Schedule(OrganizationScheduleMutation),
     Project {
         params: ProjectCreateParams,
         goal_id: Option<String>,
@@ -174,11 +176,18 @@ enum Update {
     Error(String),
     Changed,
     Saved(OrganizationRecord),
+    ScheduleSaved(Box<OrganizationScheduleView>, bool),
 }
 
 fn request_id() -> RequestId {
     // Background requests share the startup transport and can outlive a closed dashboard.
     RequestId::String(format!("organization-{}", uuid::Uuid::new_v4()))
+}
+
+fn utc_time(seconds: i64) -> String {
+    chrono::DateTime::from_timestamp(seconds, 0)
+        .map(|time| time.format("%Y-%m-%d %H:%M:%S UTC").to_string())
+        .unwrap_or_else(|| format!("{seconds} UTC epoch"))
 }
 
 async fn load(handle: &AppServerRequestHandle) -> anyhow::Result<Snapshot> {
@@ -213,7 +222,30 @@ async fn load(handle: &AppServerRequestHandle) -> anyhow::Result<Snapshot> {
             cursor = response.next_cursor;
         }
     }
-    Ok(Snapshot { records })
+    let mut schedules = Vec::new();
+    let mut cursor = None;
+    for page in 0..10 {
+        let response: OrganizationScheduleListResponse = handle
+            .request_typed(ClientRequest::OrganizationScheduleList {
+                request_id: request_id(),
+                params: OrganizationScheduleListParams {
+                    project_id: None,
+                    cursor: cursor.clone(),
+                    limit: Some(200),
+                },
+            })
+            .await?;
+        schedules.extend(response.data);
+        if response.next_cursor.is_none() {
+            break;
+        }
+        anyhow::ensure!(
+            page < 9 && response.next_cursor != cursor,
+            "layout schedule limit reached (2,000); use paginated CLI inspection"
+        );
+        cursor = response.next_cursor;
+    }
+    Ok(Snapshot { records, schedules })
 }
 
 async fn worker(
@@ -322,6 +354,19 @@ async fn worker(
                         .await?;
                     updates.send(Update::Changed).await?;
                 }
+                Command::Schedule(mutation) => {
+                    let created = matches!(&mutation, OrganizationScheduleMutation::Create { .. });
+                    let response: OrganizationScheduleMutateResponse = handle
+                        .request_typed(ClientRequest::OrganizationScheduleMutate {
+                            request_id: request_id(),
+                            params: OrganizationScheduleMutateParams { mutation },
+                        })
+                        .await?;
+                    updates
+                        .send(Update::ScheduleSaved(Box::new(response.view), created))
+                        .await?;
+                    updates.send(Update::Changed).await?;
+                }
             }
             anyhow::Ok(())
         };
@@ -416,6 +461,7 @@ pub(crate) struct Dashboard {
     preferences: Preferences,
     path: PathBuf,
     snapshot: Snapshot,
+    schedule_view: bool,
     rows: Vec<Row>,
     selected: Option<String>,
     collapsed: BTreeSet<String>,
@@ -502,6 +548,7 @@ impl Dashboard {
             preferences,
             path,
             snapshot: Snapshot::default(),
+            schedule_view: false,
             rows: Vec::new(),
             selected: None,
             collapsed: BTreeSet::new(),
@@ -557,6 +604,7 @@ impl Dashboard {
             editor.focused = false;
         }
         self.preferences.preset = preset;
+        self.schedule_view = false;
         self.search.clear();
         self.selected = None;
         self.rebuild();
@@ -565,7 +613,7 @@ impl Dashboard {
     }
     fn rebuild(&mut self) {
         let search = self.search.to_lowercase();
-        self.rows = if self.preferences.preset == Preset::Operations {
+        self.rows = if self.preferences.preset == Preset::Operations && !self.schedule_view {
             let nodes: Vec<_> = self
                 .snapshot
                 .records
@@ -603,7 +651,8 @@ impl Dashboard {
             }
             rows
         } else {
-            self.snapshot
+            let mut rows: Vec<_> = self
+                .snapshot
                 .records
                 .iter()
                 .filter_map(|record| match record {
@@ -637,7 +686,31 @@ impl Dashboard {
                         || r.label.to_lowercase().contains(&search)
                         || r.id.contains(&search)
                 })
-                .collect()
+                .collect();
+            if self.schedule_view {
+                rows.clear();
+            }
+            if self.schedule_view || self.preferences.preset == Preset::Projects {
+                rows.extend(self.snapshot.schedules.iter().filter_map(|v| {
+                    let s = &v.schedule;
+                    let label = format!(
+                        "[{}] Schedule: {} · every {}s · {}/{} runs",
+                        s.state.as_str(),
+                        s.config.label,
+                        s.config.interval_seconds,
+                        s.issued_runs,
+                        s.config.max_runs
+                    );
+                    (search.is_empty()
+                        || label.to_lowercase().contains(&search)
+                        || s.id.contains(&search))
+                    .then(|| Row {
+                        id: format!("schedule:{}", s.id),
+                        label,
+                    })
+                }));
+            }
+            rows
         };
         if !self
             .rows
@@ -672,6 +745,10 @@ impl Dashboard {
             OrganizationRecord::Project(p) => Some(&p.id) == self.selected.as_ref(),
             _ => false,
         })
+    }
+    fn selected_schedule(&self) -> Option<&OrganizationScheduleView> {
+        let id = self.selected.as_deref()?.strip_prefix("schedule:")?;
+        self.snapshot.schedules.iter().find(|v| v.schedule.id == id)
     }
     fn editor_open(&mut self, key: KeyCode) {
         if self.applying {
@@ -815,7 +892,21 @@ impl Dashboard {
         }
     }
     fn decision(&mut self, key: char) {
-        let command = if let Some(view) = self
+        let command = if let Some(view) = self.selected_schedule() {
+            let action = match key {
+                'p' => Some(OrganizationScheduleControl::Pause),
+                'u' => Some(OrganizationScheduleControl::Resume),
+                'x' => Some(OrganizationScheduleControl::Cancel),
+                _ => None,
+            };
+            action.map(|action| {
+                Command::Schedule(OrganizationScheduleMutation::Control {
+                    id: view.schedule.id.clone(),
+                    expected_revision: view.schedule.revision,
+                    action,
+                })
+            })
+        } else if let Some(view) = self
             .detail
             .as_ref()
             .filter(|v| Some(&v.task.id) == self.selected.as_ref())
@@ -889,6 +980,17 @@ impl Dashboard {
     }
     fn open_form(&mut self, key: char) {
         let kind = match key {
+            'R' => match self.record() {
+                Some(OrganizationRecord::Task(task)) if task.prerequisites.is_empty() => {
+                    form::Kind::Schedule(task.clone())
+                }
+                _ => {
+                    self.message =
+                        "Select a task without prerequisites to create a recurring schedule."
+                            .into();
+                    return;
+                }
+            },
             'A' => {
                 let Some(view) = self
                     .detail
@@ -944,6 +1046,17 @@ impl Dashboard {
             self.record(),
             &self.model,
         ));
+        if key == 'R'
+            && let Some(scope) = self
+                .detail
+                .as_ref()
+                .filter(|v| Some(&v.task.id) == self.selected.as_ref())
+                .and_then(|v| v.authorization.as_ref())
+                .map(|a| &a.scope)
+            && let Some(form) = &mut self.form
+        {
+            form.prefill_scope(scope);
+        }
     }
     fn open_memory(&mut self, private: bool) {
         let (project_id, agent_id) = match self.record() {
@@ -1293,7 +1406,7 @@ impl Dashboard {
             KeyCode::PageDown => self.scroll = self.scroll.saturating_add(10),
             KeyCode::PageUp => self.scroll = self.scroll.saturating_sub(10),
             KeyCode::Left | KeyCode::Right | KeyCode::Enter
-                if self.preferences.preset == Preset::Operations =>
+                if self.preferences.preset == Preset::Operations && !self.schedule_view =>
             {
                 if let Some(id) = &self.selected {
                     if key.code == KeyCode::Left
@@ -1311,9 +1424,16 @@ impl Dashboard {
                 self.changes = false;
             }
             KeyCode::Char('f') => self.send(Command::Refresh),
+            KeyCode::Char('S') => {
+                self.schedule_view = !self.schedule_view;
+                self.search.clear();
+                self.selected = None;
+                self.rebuild();
+                self.inspect();
+            }
             KeyCode::Char('m') => self.open_memory(false),
             KeyCode::Char('M') => self.open_memory(true),
-            KeyCode::Char(c @ ('U' | 'G' | 'N' | 'T' | 's' | 'A')) => self.open_form(c),
+            KeyCode::Char(c @ ('U' | 'G' | 'N' | 'T' | 's' | 'A' | 'R')) => self.open_form(c),
             KeyCode::Char('n') if self.preferences.preset == Preset::Review => {
                 if let Some(result) = self
                     .detail
@@ -1328,7 +1448,7 @@ impl Dashboard {
                     self.scroll = 0;
                 }
             }
-            KeyCode::Char(c @ ('a' | 'r' | 'v' | 'c' | 'p' | 'x')) => self.decision(c),
+            KeyCode::Char(c @ ('a' | 'r' | 'v' | 'c' | 'p' | 'x' | 'u')) => self.decision(c),
             _ => {}
         }
     }
@@ -1390,11 +1510,59 @@ impl Dashboard {
                     self.rebuild();
                     self.inspect();
                 }
+                Update::ScheduleSaved(view, created) => {
+                    if created {
+                        self.selected = Some(format!("schedule:{}", view.schedule.id));
+                    }
+                    self.snapshot
+                        .schedules
+                        .retain(|v| v.schedule.id != view.schedule.id);
+                    self.snapshot.schedules.push(*view);
+                    if created {
+                        self.schedule_view = true;
+                        self.search.clear();
+                    }
+                    self.rebuild();
+                    self.inspect();
+                }
             }
         }
     }
     fn details(&self) -> String {
         let mut text = String::new();
+        if let Some(view) = self.selected_schedule() {
+            let s = &view.schedule;
+            text = format!(
+                "Schedule: {}\n{}\nState: {} · revision {}\nProject: {}\nOwner: {}\nTemplate: {} · revision {}\nEvery {} seconds\nNext start (UTC): {}\nEnd (UTC): {}\nIssued: {} / {} · skipped: {}\nReported tokens: {} / {}\nModel requests: {} / {}\n{}\n\nMissed runs are skipped; executions never overlap.\nPause/cancel revoke current grants; resume starts future runs.\nAcceptance and Apply remain separate owner decisions.\n\nRecent occurrences (newest 16):\n",
+                s.config.label,
+                s.id,
+                s.state.as_str(),
+                s.revision,
+                s.template.project_id,
+                s.template.owner_id,
+                s.template.id,
+                s.template.revision,
+                s.config.interval_seconds,
+                s.next_run_at.map(utc_time).unwrap_or_else(|| "None".into()),
+                utc_time(s.config.ends_at),
+                s.issued_runs,
+                s.config.max_runs,
+                s.skipped_runs,
+                view.used_tokens,
+                s.config.max_tokens,
+                view.model_requests,
+                s.config.max_model_requests,
+                s.reason.as_deref().unwrap_or("Ready for future runs")
+            );
+            for o in &view.occurrences {
+                text.push_str(&format!(
+                    "{} · [{}]\nTask: {}\n",
+                    utc_time(o.due_at),
+                    o.task_state,
+                    o.task_id
+                ));
+            }
+        }
         if let Some(record) = self.record() {
             match record {
                 OrganizationRecord::Node(n) => {
@@ -1585,6 +1753,7 @@ impl Dashboard {
             let value = match command {
                 Command::Execution(m) => serde_json::to_string_pretty(m),
                 Command::Definition(m) => serde_json::to_string_pretty(m),
+                Command::Schedule(m) => serde_json::to_string_pretty(m),
                 Command::Project {
                     params,
                     goal_id,
@@ -1614,6 +1783,19 @@ impl Dashboard {
                 // The form's payload is frozen independently of later selection.
                 text.clear();
                 text.push_str("\nOnly the selected whole files will be replaced; unselected files remain unchanged.\nOne Apply per accepted result, including uncertain outcomes; inspect the receipt before reconciliation.\nRecorded checks describe the full isolated result, not the installed subset.\n");
+            }
+            if let Command::Schedule(OrganizationScheduleMutation::Create {
+                scope, config, ..
+            }) = command
+            {
+                text.push_str("\nCreates finite recurring background model work in isolated workspaces.\nMissed runs are skipped; each native action retains the chosen approval policy.\nAggregate token limits permit already-admitted usage. Acceptance and Apply remain owner-only.\n");
+                if let Some(estimate) = self.prices.as_ref().and_then(|prices| {
+                    prices.estimate(&self.provider, &scope.model, 0, config.max_tokens)
+                }) {
+                    text.push_str(&estimate);
+                } else {
+                    text.push_str("Cost estimate unavailable: no matching owner price quote.\n");
+                }
             }
             text = format!(
                 "EXACT OWNER DECISION (y confirms)\n{}\n\n{text}",

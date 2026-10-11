@@ -76,8 +76,12 @@ Initial compile/fixture errors are retained under the qualification directory.
 The protected owner API, thin schedule CLI commands, runtime polling/reconciliation,
 generated TypeScript/JSON/SDK contracts and native API test are implemented.
 All six organization API tests, four schema comparisons and 25 Python contracts
-passed. Dashboard integration and final-source/physical qualification remain in
-progress; do not treat this checkpoint as an end-to-end schedule release.
+passed; API/CLI checkpoint `d5f2115211` is committed. Dashboard creation, exact
+controls, canonical inspectors and Operations upcoming panel are implemented.
+The current native TUI/official-Neovim suite passed 28 tests; default first start
+is one hour ahead so reviewing the full form does not exhaust a one-minute window.
+Final lint/build and physical qualification remain in progress; this checkpoint
+is not an end-to-end schedule release.
 
 ## Owner usage
 

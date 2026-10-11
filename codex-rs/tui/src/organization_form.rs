@@ -10,6 +10,7 @@ pub(super) enum Kind {
     Project,
     Task,
     Authorize(OrganizationTask),
+    Schedule(OrganizationTask),
     Apply {
         task: OrganizationTask,
         result: OrganizationTaskResult,
@@ -97,6 +98,73 @@ mod tests {
         assert_eq!(first.roots[0].path.as_path(), root.path());
         set(&mut form, 1, root.path().join("missing").to_str().unwrap());
         assert!(form.command().is_err());
+    }
+
+    #[test]
+    fn recurring_form_freezes_template_identity_scope_and_finite_limits() {
+        let mut form = Form::new(Kind::Schedule(task()), &[], None, "native-model");
+        let scope = OrganizationExecutionScope {
+            input_files: vec!["oracle.py".into()],
+            immutable_files: vec!["oracle.py".into()],
+            artifacts: vec!["report.txt".into()],
+            checks: vec![vec!["python3".into(), "oracle.py".into()]],
+            model: "native-model".into(),
+            max_tokens: 1000,
+            max_seconds: 120,
+            max_model_requests: 2,
+            max_attempts: 1,
+            require_tool_approval: true,
+            delegates: vec![],
+            max_children: 0,
+            auto_accept_children: false,
+            not_before: Some(1),
+        };
+        form.prefill_scope(&scope);
+        let Command::Schedule(first) = form.command().unwrap() else {
+            panic!("missing schedule")
+        };
+        assert_eq!(
+            serde_json::to_value(&first).unwrap(),
+            serde_json::to_value(match form.command().unwrap() {
+                Command::Schedule(m) => m,
+                _ => panic!("missing schedule"),
+            })
+            .unwrap()
+        );
+        let OrganizationScheduleMutation::Create {
+            id,
+            task_id,
+            expected_revision,
+            scope: captured,
+            config,
+        } = first
+        else {
+            panic!("missing create")
+        };
+        assert!(!id.is_empty());
+        assert_eq!(task_id, "original-task");
+        assert_eq!(expected_revision, 7);
+        assert_eq!(captured.not_before, None);
+        assert!(captured.require_tool_approval);
+        assert_eq!(captured.checks, scope.checks);
+        assert_eq!(
+            (
+                config.max_runs,
+                config.max_tokens,
+                config.max_model_requests
+            ),
+            (3, 30000, 15)
+        );
+        for (index, value) in [(15, "0"), (16, "1"), (17, "1001"), (18, "0"), (19, "0")] {
+            let old = form.fields[index].value().to_string();
+            set(&mut form, index, value);
+            assert!(form.command().is_err());
+            set(&mut form, index, &old);
+        }
+        for (w, h) in [(1, 1), (50, 20), (160, 48)] {
+            let area = Rect::new(0, 0, w, h);
+            form.render(area, &mut Buffer::empty(area));
+        }
     }
 
     #[test]
@@ -285,7 +353,7 @@ impl Form {
             })
             .or_else(|| project.and_then(|p| p.goal_id.as_deref()));
         let owner = project.and_then(|p| p.owner_id.as_deref());
-        let fields = match &kind {
+        let mut fields = match &kind {
             Kind::Apply { result, .. } => result
                 .artifacts
                 .iter()
@@ -362,7 +430,7 @@ impl Form {
                 Field::text("Acceptance criteria", "One criterion per line", ""),
                 Field::text("Prerequisites", "Optional task IDs, one per line", ""),
             ],
-            Kind::Authorize(task) => {
+            Kind::Authorize(task) | Kind::Schedule(task) => {
                 let model = records
                     .iter()
                     .find_map(|r| match r {
@@ -433,6 +501,46 @@ impl Form {
                 ]
             }
         };
+        if matches!(&kind, Kind::Schedule(_)) {
+            let now = chrono::Utc::now().timestamp();
+            fields[13] = Field::text(
+                "First run (UTC epoch)",
+                "Required future time; missed intervals are skipped",
+                &(now + 3600).to_string(),
+            );
+            fields.extend([
+                Field::text(
+                    "Schedule label",
+                    "Name for this finite series",
+                    "Recurring task",
+                ),
+                Field::text(
+                    "Interval (seconds)",
+                    "10–2678400; daemon polls about every 5 seconds",
+                    "3600",
+                ),
+                Field::text(
+                    "End time (UTC epoch)",
+                    "Required end within 31 days",
+                    &(now + 86400).to_string(),
+                ),
+                Field::text(
+                    "Total runs",
+                    "1–1000; skipped times do not consume runs",
+                    "3",
+                ),
+                Field::text(
+                    "Total reported tokens",
+                    "1–10000000 across all runs and children",
+                    "30000",
+                ),
+                Field::text(
+                    "Total model requests",
+                    "1–100000 across all runs and children",
+                    "15",
+                ),
+            ]);
+        }
         Self {
             kind,
             fields,
@@ -448,8 +556,36 @@ impl Form {
             Kind::Project => "New project",
             Kind::Task => "New task",
             Kind::Authorize(_) => "Authorize task",
+            Kind::Schedule(_) => "Create recurring schedule",
             Kind::Apply { .. } => "Select files to Apply",
         }
+    }
+    pub(super) fn prefill_scope(&mut self, scope: &OrganizationExecutionScope) {
+        if !matches!(&self.kind, Kind::Schedule(_)) {
+            return;
+        }
+        let values = [
+            scope.input_files.join("\n"),
+            scope.immutable_files.join("\n"),
+            scope.artifacts.join("\n"),
+            serde_json::json!(scope.checks).to_string(),
+            scope.model.clone(),
+            scope.max_tokens.to_string(),
+            scope.max_seconds.to_string(),
+            scope.max_model_requests.to_string(),
+            scope.max_attempts.to_string(),
+        ];
+        for (field, value) in self.fields.iter_mut().zip(values) {
+            field.input.set_text_clearing_elements(&value);
+        }
+        self.fields[9].choice = usize::from(!scope.require_tool_approval);
+        self.fields[10]
+            .input
+            .set_text_clearing_elements(&scope.delegates.join("\n"));
+        self.fields[11]
+            .input
+            .set_text_clearing_elements(&scope.max_children.to_string());
+        self.fields[12].choice = usize::from(scope.auto_accept_children);
     }
     pub(super) fn key(&mut self, key: KeyEvent) {
         match key.code {
@@ -589,13 +725,13 @@ impl Form {
                 criteria: criteria(4)?,
                 prerequisites: lines(5),
             }),
-            Kind::Authorize(task) => {
+            Kind::Authorize(task) | Kind::Schedule(task) => {
                 let number = |i: usize| -> anyhow::Result<u32> {
                     value(i).parse().map_err(|_| {
                         anyhow::anyhow!("{} must be a positive integer", self.fields[i].label)
                     })
                 };
-                let scope = OrganizationExecutionScope {
+                let mut scope = OrganizationExecutionScope {
                     input_files: lines(0),
                     immutable_files: lines(1),
                     artifacts: criteria(2)?,
@@ -645,11 +781,34 @@ impl Form {
                     !scope.auto_accept_children || !scope.checks.is_empty(),
                     "Checked child acceptance requires declared checks"
                 );
-                Command::Execution(OrganizationExecutionMutation::Authorize {
-                    task_id: task.id.clone(),
-                    expected_revision: task.revision,
-                    scope,
-                })
+                if matches!(&self.kind, Kind::Schedule(_)) {
+                    let config = OrganizationScheduleConfig {
+                        label: required(14)?,
+                        interval_seconds: number(15)?,
+                        first_run_at: required(13)?.parse()?,
+                        ends_at: required(16)?.parse()?,
+                        max_runs: number(17)?,
+                        max_tokens: i64::from(number(18)?),
+                        max_model_requests: number(19)?,
+                    };
+                    config
+                        .validate(chrono::Utc::now().timestamp())
+                        .map_err(anyhow::Error::msg)?;
+                    scope.not_before = None;
+                    Command::Schedule(OrganizationScheduleMutation::Create {
+                        id: self.project_key.clone(),
+                        task_id: task.id.clone(),
+                        expected_revision: task.revision,
+                        scope: Box::new(scope),
+                        config,
+                    })
+                } else {
+                    Command::Execution(OrganizationExecutionMutation::Authorize {
+                        task_id: task.id.clone(),
+                        expected_revision: task.revision,
+                        scope,
+                    })
+                }
             }
         })
     }
