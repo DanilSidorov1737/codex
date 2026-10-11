@@ -10,7 +10,8 @@ The owner-approved N1 memory search slice is qualified on `d6d049cc49`, with
 Neovim interaction. N2 recurring schedules is qualified on `e06def499e`: 700
 automated tests, real background/approval/pause/restart/resume/cancel/budget/crash
 and native CLI/TUI/official-Neovim checks. See recurring-schedules.md and status.md;
-N3 reusable workflow templates is the next proposal, requiring matching scope.
+N3 reusable workflow templates is approved and undergoing final native qualification;
+see [workflow contract](workflows.md). N4–N8 remain proposed later scope.
 Phase 0 repository baseline: `8026444c98cd9c6db9e7c953b44a20ea4f93c7b6`, from `origin/main`.
 Research recorded on 2026-10-09 (America/New_York).
 
@@ -42,6 +43,7 @@ B5 actual editor and application: [Neovim Workspace](neovim-workspace.md).
 Approved follow-up: [whole-file selective Apply](selective-apply.md).
 Owner-approved N1: [scoped persistent memory search](memory-search.md).
 Owner-approved N2: [bounded recurring schedules](recurring-schedules.md).
+Owner-approved N3: [reusable bounded workflows](workflows.md).
 Execution settings/prices: [resource limits](resource-limits.md).
 Release evidence/gates: [qualification](release-qualification.md).
 

@@ -247,3 +247,71 @@ block replay. Close or explicitly coordinate other editors/writers first: a CLI
 client cannot inspect the TUI's dirty buffers. The embedded Workspace also fences
 its native Neovim buffers before dispatch. See neovim-workspace.md for conflicts,
 partial-batch/unknown-outcome recovery and the actual editor keyboard controls.
+
+## Reusable workflows (N3)
+
+```bash
+codex organization workflow-list templates --project-id PROJECT_ID
+codex organization workflow-list runs --project-id PROJECT_ID
+codex organization workflow-mutate template.json
+codex organization workflow-preview preview-request.json
+codex organization workflow-mutate exact-run.json
+```
+
+Lists accept `--cursor` and `--limit` (1–200), with `data` and `nextCursor`.
+Mutations require the detached local owner daemon; `--no-daemon` is refused.
+Saving content authorizes no execution. Example `template.json`:
+
+```json
+{
+  "type": "put",
+  "id": "OWNER_GENERATED_UUID",
+  "expectedRevision": null,
+  "projectId": "PROJECT_ID",
+  "label": "Inspect and implement",
+  "items": [
+    {"key": "inspect", "ownerId": "AGENT_ID", "instructions": "Inspect the supplied bug and save a plan.", "criteria": ["Plan explains the bug."], "prerequisites": []},
+    {"key": "implement", "ownerId": "OTHER_AGENT_ID", "instructions": "Implement the accepted plan.", "criteria": ["Immutable native checks pass."], "prerequisites": ["inspect"]}
+  ]
+}
+```
+
+Keys, instructions, criteria, configured agent assignments and dependencies are
+editable content, without predefined roles. Templates contain 1–32 steps in one
+project; update using the same ID and exact current `expectedRevision`.
+The daemon rejects unknown/duplicate prerequisites and cycles atomically.
+
+`preview-request.json` contains a fresh owner UUID `id`, the saved `templateId`,
+its exact `expectedRevision`, and `scopes`: one `{"key":"inspect","scope":{...}}`
+entry per step. Each scope uses the existing bounded authorization contract:
+model, input/immutable/artifact paths, native checks, tool-approval policy,
+request/token/time/attempt limits and optional permitted delegates. Explicitly
+include a prerequisite artifact in the receiving step's `inputFiles` to import
+its accepted bytes. Imports cannot replace immutable inputs; ambiguous producers
+are rejected. No other run's workspace is imported.
+
+Read the returned `preview` before authorizing. Write `exact-run.json` as
+`{"type":"run","preview":THE_EXACT_RETURNED_PREVIEW}`. Confirmation pins the
+template/project/agent revisions, policy, assignments, criteria, scopes and
+summed limits. Fresh tasks, grants and dependency links commit together. A stale
+or altered preview fails; request a fresh preview before confirming. A duplicate
+run ID fails: after an uncertain RPC outcome, inspect that ID instead of silently
+creating another invocation. Editing a template does not retarget old runs.
+
+The sums describe fixed per-step grants, including descendant accounting; they
+are not pooled token credits or a monetary hard cap. An admitted request may
+overshoot its token ceiling. Every prerequisite requires explicit owner acceptance
+before dependent dispatch. Failed, interrupted, expired or cancelled steps block
+their dependents; ordinary reauthorization cannot reset workflow limits. Use
+existing per-task pause/cancel, inspect uncertain effects and explicitly preview
+a fresh invocation when appropriate. No automatic acceptance, Apply or replay.
+
+In Projects, select a final task and `W` saves its loaded prerequisite closure.
+Select a template and `s` opens a common per-step scope form; F6 obtains a read-only
+canonical preview and `y` confirms that exact payload. CLI permits different
+scopes per step. `w` browses templates/runs and their tasks in Projects/Operations;
+Operations still opens its hierarchy tree by default. Select run tasks to use
+existing approvals, checks, actual Neovim Follow/diff, acceptance and selective
+whole-file Apply. Later edits to imported files carry the producer's original
+base, so a user edit between steps still prevents Apply. See
+[workflow contract and evidence](workflows.md).

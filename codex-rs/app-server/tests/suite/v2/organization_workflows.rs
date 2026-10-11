@@ -21,8 +21,17 @@ async fn mutate(
 }
 
 async fn denied(server: &mut TestAppServer, mutation: OrganizationWorkflowMutation) -> Result<()> {
-    let request = server.send_request("organization/workflow/mutate", Some(serde_json::to_value(OrganizationWorkflowMutateParams { mutation })?)).await?;
-    let error = server.read_stream_until_error_message(RequestId::Integer(request)).await?;
+    let request = server
+        .send_request(
+            "organization/workflow/mutate",
+            Some(serde_json::to_value(OrganizationWorkflowMutateParams {
+                mutation,
+            })?),
+        )
+        .await?;
+    let error = server
+        .read_stream_until_error_message(RequestId::Integer(request))
+        .await?;
     assert_eq!(error.error.code, -32602);
     Ok(())
 }
@@ -160,7 +169,13 @@ async fn owner_workflow_api_previews_exact_grants_and_persists_fresh_runs() -> R
         },
     )
     .await?;
-    denied(&mut server, OrganizationWorkflowMutation::Run { preview: Box::new(response.preview.clone()) }).await?;
+    denied(
+        &mut server,
+        OrganizationWorkflowMutation::Run {
+            preview: Box::new(response.preview.clone()),
+        },
+    )
+    .await?;
     let mut second = response.preview.clone();
     second.id = uuid::Uuid::now_v7().to_string();
     let other = mutate(
@@ -200,7 +215,13 @@ async fn owner_workflow_api_previews_exact_grants_and_persists_fresh_runs() -> R
     };
     let mut stale = response.preview;
     stale.id = uuid::Uuid::now_v7().to_string();
-    denied(&mut server, OrganizationWorkflowMutation::Run { preview: Box::new(stale) }).await?;
+    denied(
+        &mut server,
+        OrganizationWorkflowMutation::Run {
+            preview: Box::new(stale),
+        },
+    )
+    .await?;
     assert!(server.shutdown_gracefully().await?.success());
     let mut server = TestAppServer::builder()
         .with_codex_home(home.path())
