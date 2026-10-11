@@ -228,3 +228,34 @@ progress. A series's completed state means its finite invocations have been
 issued; issued tasks still require their own checks/review/acceptance. Creation
 uses explicit owner CLI JSON, with canonical series visibility and confirmed
 p/u/x controls in the dashboard. No external integration is enabled.
+
+Final automated baseline: **770 distinct selected checks pass** (373 protocol,
+293 state, 2 wire, 4 schema, 52 TUI/official-Neovim, 12 runtime/workspace/inventory,
+8 native API, 1 service-unit and 25 SDK). Full CLI/package and workspace formatting
+pass. Final application SHA256:
+`1505455e2a0ea73250d5c4b3eab10b3390c3c762e72b700dba9eb6eb7bf4ca80`.
+
+Fresh native automation receipt `final/physical-resume-v2.json` passes five
+immutable checked/accepted tasks, exact follow-up source pinning and newer
+prerequisite bytes, actual owner team promotion/correction, stale correction
+refusal, live membership grant/revocation, two finite recurring workflow
+invocations, physical p/u/x controls, 25 skipped overlapping/missed intervals,
+canonical silent-stream stall, 36 switches at three sizes and normal CLI exit 0.
+Series creation remains explicit CLI JSON. The initial foreground harness exited
+and its child was terminated: preserve that separate home's interrupted task,
+private note and two consumed responses/30 tokens. The corrected foreground runs
+in its own retained execution session. A UUID search selected a related limit
+row, and an intermediate-state assertion missed immediate final issuance; both
+failed drivers are retained. Only still-pending occurrences were continued.
+
+Actual foreground SIGKILL/restart and complete bundle/fresh restore pass in
+`final/recovery-resume.json`: seven tasks/grants/workspaces, five accepted results,
+three notes, two series and 121 audit events retain canonical values; one crashed
+unknown request remains needsReconciliation without replay. All seven old workspace
+paths are quarantined (bytes/mapping retained), so relocated review is independent.
+The bundle contains 30 files/2,005,973 bytes, including business/runtime databases,
+JSONLs and workspaces. Live service backup and hash-corrupted restore are refused.
+The initial report equality check compared volatile generatedAt timestamps; every
+other report field and full canonical table match passes. No original writes or
+new inference occurred. Restored native Neovim review/Apply is the final pending
+qualification step; do not replay prior authority or reset counters.

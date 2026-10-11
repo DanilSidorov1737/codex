@@ -1,9 +1,12 @@
 # Current status and resumption instructions
 
 The owner approved the revised [autonomy/usability batch](autonomy-batch.md).
-Implementation is in progress, starting with whole-workflow controls and shared
-limits. External integrations are deferred. Previous qualification below remains
-historical evidence; no new batch behavior is qualified yet.
+Implementation is in progress. Whole-run controls/shared limits, goal planning,
+saved panes, actual Neovim configuration/LSP and bounded mixed-model pilots are
+qualified. Finite workflow automation, team knowledge, background health and full
+recovery have passing state/contract baselines; final native qualification is
+running. External integrations are deferred. Earlier sections below are historical
+evidence; read the latest autonomy checkpoint before resuming.
 
 Phase 0: **exploration and planning complete for available inputs**.
 Current work: **N1/N2/N3 and all 12 expanded-batch items complete and qualified**.

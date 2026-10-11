@@ -97,3 +97,9 @@ Destinations must be fresh; existing data is never replaced. A failure after
 creating a private directory leaves it for inspection without a completed
 manifest/receipt. Do not start a partial recovered home or remove it to conceal
 an error. Validate on a fresh distinct destination after fixing the cause.
+
+Historical rollout event contents keep their original context/permission evidence;
+restore relocates the native indexes and protected business workspace binding.
+Managed interrupted tasks continue only through the existing owner checkpoint
+recovery, which creates a new guarded runtime/workspace. Do not use a generic
+Console resume to replay restored managed-task work or bypass its uncertainty.
