@@ -5,4 +5,8 @@ import type { OrganizationArtifactBase } from "./OrganizationArtifactBase";
 import type { OrganizationProviderEvidence } from "./OrganizationProviderEvidence";
 import type { OrganizationTaskState } from "./OrganizationTaskState";
 
-export type OrganizationTaskAttempt = { id: string, taskId: string, authorizationId: string, ownerId: string | null, provider: OrganizationProviderEvidence | null, roleVersionId: string | null, generation: number, threadId: string, turnId: string | null, workspace: string | null, artifactBases: Array<OrganizationArtifactBase>, runtimeActive: boolean, state: OrganizationTaskState, startedAt: number, leaseUntil: number, reportedTokens: number, modelRequests: number, reportedModelRequests: number, };
+export type OrganizationTaskAttempt = { id: string, taskId: string, authorizationId: string, ownerId: string | null, provider: OrganizationProviderEvidence | null, roleVersionId: string | null, generation: number, threadId: string, turnId: string | null, workspace: string | null, artifactBases: Array<OrganizationArtifactBase>, runtimeActive: boolean, state: OrganizationTaskState, startedAt: number, leaseUntil: number, reportedTokens: number, modelRequests: number, reportedModelRequests: number,
+/**
+ * Actual model/tool activity; lease renewals are not progress.
+ */
+lastProgressAt: number | null, stallSeconds: number | null, stopReason: string | null, };

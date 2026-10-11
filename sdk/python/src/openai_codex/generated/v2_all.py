@@ -3269,6 +3269,17 @@ class OrganizationMembership(BaseModel):
     node_id: Annotated[str, Field(alias="nodeId")]
 
 
+class PromoteNoteOrganizationMutation(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    body: str
+    group_id: Annotated[str | None, Field(alias="groupId")] = None
+    source_id: Annotated[str, Field(alias="sourceId")]
+    type: Annotated[Literal["promoteNote"], Field(title="PromoteNoteOrganizationMutationType")]
+
+
 class CreateRoleVersionOrganizationMutation(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
@@ -3344,6 +3355,7 @@ class OrganizationNodeKind(Enum):
 class OrganizationNoteScope(Enum):
     project = "project"
     agent = "agent"
+    team = "team"
 
 
 class OrganizationPlanItem(BaseModel):
@@ -3566,6 +3578,7 @@ class OrganizationSharedLimit(BaseModel):
     project_id: Annotated[str, Field(alias="projectId")]
     revision: int
     run_id: Annotated[str | None, Field(alias="runId")] = None
+    series_id: Annotated[str | None, Field(alias="seriesId")] = None
 
 
 class OrganizationSharedUsage(BaseModel):
@@ -3759,6 +3772,20 @@ class OrganizationWorkflowKind(Enum):
     templates = "templates"
     runs = "runs"
     limits = "limits"
+    series = "series"
+
+
+class ControlSeriesOrganizationWorkflowMutation(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    action: OrganizationWorkflowControl
+    expected_revision: Annotated[int, Field(alias="expectedRevision")]
+    id: str
+    type: Annotated[
+        Literal["controlSeries"], Field(title="ControlSeriesOrganizationWorkflowMutationType")
+    ]
 
 
 class PutOrganizationWorkflowMutation(BaseModel):
@@ -3824,6 +3851,33 @@ class OrganizationWorkflowTemplate(BaseModel):
     label: str
     project_id: Annotated[str, Field(alias="projectId")]
     revision: int
+
+
+class IntervalOrganizationWorkflowTrigger(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    type: Annotated[Literal["interval"], Field(title="IntervalOrganizationWorkflowTriggerType")]
+
+
+class AcceptedOrganizationWorkflowTrigger(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    authorization_id: Annotated[str, Field(alias="authorizationId")]
+    task_id: Annotated[str, Field(alias="taskId")]
+    type: Annotated[Literal["accepted"], Field(title="AcceptedOrganizationWorkflowTriggerType")]
+
+
+class OrganizationWorkflowTrigger(
+    RootModel[IntervalOrganizationWorkflowTrigger | AcceptedOrganizationWorkflowTrigger]
+):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    root: IntervalOrganizationWorkflowTrigger | AcceptedOrganizationWorkflowTrigger
 
 
 class TemplateOrganizationWorkflowView(BaseModel):
@@ -9858,7 +9912,8 @@ class PutNodeOrganizationMutation(BaseModel):
 
 class OrganizationMutation(
     RootModel[
-        PutNodeOrganizationMutation
+        PromoteNoteOrganizationMutation
+        | PutNodeOrganizationMutation
         | CreateRoleVersionOrganizationMutation
         | PutGoalOrganizationMutation
         | LinkProjectOrganizationMutation
@@ -9870,7 +9925,8 @@ class OrganizationMutation(
         populate_by_name=True,
     )
     root: (
-        PutNodeOrganizationMutation
+        PromoteNoteOrganizationMutation
+        | PutNodeOrganizationMutation
         | CreateRoleVersionOrganizationMutation
         | PutGoalOrganizationMutation
         | LinkProjectOrganizationMutation
@@ -9901,9 +9957,12 @@ class OrganizationNote(BaseModel):
     author_id: Annotated[str, Field(alias="authorId")]
     body: str
     created_at: Annotated[int, Field(alias="createdAt")]
+    group_id: Annotated[str | None, Field(alias="groupId")] = None
     id: str
+    owner_reviewed: Annotated[bool | None, Field(alias="ownerReviewed")] = False
     project_id: Annotated[str, Field(alias="projectId")]
     scope: OrganizationNoteScope
+    source_note_id: Annotated[str | None, Field(alias="sourceNoteId")] = None
     task_id: Annotated[str, Field(alias="taskId")]
 
 
@@ -10046,6 +10105,13 @@ class OrganizationTaskAttempt(BaseModel):
     authorization_id: Annotated[str, Field(alias="authorizationId")]
     generation: int
     id: str
+    last_progress_at: Annotated[
+        int | None,
+        Field(
+            alias="lastProgressAt",
+            description="Actual model/tool activity; lease renewals are not progress.",
+        ),
+    ] = None
     lease_until: Annotated[int, Field(alias="leaseUntil")]
     model_requests: Annotated[int, Field(alias="modelRequests", ge=0)]
     owner_id: Annotated[str | None, Field(alias="ownerId")] = None
@@ -10054,8 +10120,10 @@ class OrganizationTaskAttempt(BaseModel):
     reported_tokens: Annotated[int, Field(alias="reportedTokens")]
     role_version_id: Annotated[str | None, Field(alias="roleVersionId")] = None
     runtime_active: Annotated[bool | None, Field(alias="runtimeActive")] = False
+    stall_seconds: Annotated[int | None, Field(alias="stallSeconds", ge=0)] = None
     started_at: Annotated[int, Field(alias="startedAt")]
     state: OrganizationTaskState
+    stop_reason: Annotated[str | None, Field(alias="stopReason")] = None
     task_id: Annotated[str, Field(alias="taskId")]
     thread_id: Annotated[str, Field(alias="threadId")]
     turn_id: Annotated[str | None, Field(alias="turnId")] = None
@@ -10102,6 +10170,32 @@ class OrganizationWorkflowRun(BaseModel):
     task_ids: Annotated[dict[str, str], Field(alias="taskIds")]
 
 
+class OrganizationWorkflowSeries(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    config: OrganizationScheduleConfig
+    id: str
+    issued_runs: Annotated[int, Field(alias="issuedRuns", ge=0)]
+    next_run_at: Annotated[int | None, Field(alias="nextRunAt")] = None
+    preview: OrganizationWorkflowPreview
+    reason: str | None = None
+    revision: int
+    skipped_runs: Annotated[int, Field(alias="skippedRuns", ge=0)]
+    source_result_digest: Annotated[str | None, Field(alias="sourceResultDigest")] = None
+    state: OrganizationScheduleState
+    trigger: OrganizationWorkflowTrigger
+
+
+class SeriesOrganizationWorkflowView(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    series: OrganizationWorkflowSeries
+    type: Annotated[Literal["series"], Field(title="SeriesOrganizationWorkflowViewType")]
+    usage: OrganizationSharedUsage
+
+
 class RunOrganizationWorkflowView(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
@@ -10113,7 +10207,8 @@ class RunOrganizationWorkflowView(BaseModel):
 
 class OrganizationWorkflowView(
     RootModel[
-        TemplateOrganizationWorkflowView
+        SeriesOrganizationWorkflowView
+        | TemplateOrganizationWorkflowView
         | RunOrganizationWorkflowView
         | LimitOrganizationWorkflowView
     ]
@@ -10122,7 +10217,8 @@ class OrganizationWorkflowView(
         populate_by_name=True,
     )
     root: (
-        TemplateOrganizationWorkflowView
+        SeriesOrganizationWorkflowView
+        | TemplateOrganizationWorkflowView
         | RunOrganizationWorkflowView
         | LimitOrganizationWorkflowView
     )
@@ -12379,6 +12475,20 @@ class OrganizationInventory(BaseModel):
     tools: list[OrganizationToolCapability]
 
 
+class CreateSeriesOrganizationWorkflowMutation(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    config: OrganizationScheduleConfig
+    id: str
+    preview: OrganizationWorkflowPreview
+    trigger: OrganizationWorkflowTrigger
+    type: Annotated[
+        Literal["createSeries"], Field(title="CreateSeriesOrganizationWorkflowMutationType")
+    ]
+
+
 class RunOrganizationWorkflowMutation(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
@@ -12390,7 +12500,9 @@ class RunOrganizationWorkflowMutation(BaseModel):
 
 class OrganizationWorkflowMutation(
     RootModel[
-        PutOrganizationWorkflowMutation
+        CreateSeriesOrganizationWorkflowMutation
+        | ControlSeriesOrganizationWorkflowMutation
+        | PutOrganizationWorkflowMutation
         | RunOrganizationWorkflowMutation
         | ControlOrganizationWorkflowMutation
         | SetLimitsOrganizationWorkflowMutation
@@ -12400,7 +12512,9 @@ class OrganizationWorkflowMutation(
         populate_by_name=True,
     )
     root: (
-        PutOrganizationWorkflowMutation
+        CreateSeriesOrganizationWorkflowMutation
+        | ControlSeriesOrganizationWorkflowMutation
+        | PutOrganizationWorkflowMutation
         | RunOrganizationWorkflowMutation
         | ControlOrganizationWorkflowMutation
         | SetLimitsOrganizationWorkflowMutation

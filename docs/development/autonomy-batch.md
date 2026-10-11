@@ -221,3 +221,10 @@ before destination creation and symlink refusal. Initial compile failures
 (unimported test trait/incorrect view field/dynamic SQL) and a real trailing-slash
 runtime relocation mismatch were corrected; logs are preserved. Native service,
 new-package UI and complete recovery/Apply qualification remain pending.
+
+Final contract baseline now passes 373 protocol, 293 state, 2 wire, 4 schema and
+25 SDK checks; production CLI Clippy passes. Native final qualification is in
+progress. A series's completed state means its finite invocations have been
+issued; issued tasks still require their own checks/review/acceptance. Creation
+uses explicit owner CLI JSON, with canonical series visibility and confirmed
+p/u/x controls in the dashboard. No external integration is enabled.

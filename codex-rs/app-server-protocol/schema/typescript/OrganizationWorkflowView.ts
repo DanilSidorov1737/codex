@@ -5,6 +5,7 @@ import type { OrganizationSharedLimit } from "./OrganizationSharedLimit";
 import type { OrganizationSharedUsage } from "./OrganizationSharedUsage";
 import type { OrganizationTask } from "./OrganizationTask";
 import type { OrganizationWorkflowRun } from "./OrganizationWorkflowRun";
+import type { OrganizationWorkflowSeries } from "./OrganizationWorkflowSeries";
 import type { OrganizationWorkflowTemplate } from "./OrganizationWorkflowTemplate";
 
-export type OrganizationWorkflowView = { "type": "template", template: OrganizationWorkflowTemplate, } | { "type": "run", run: OrganizationWorkflowRun, tasks: Array<OrganizationTask>, } | { "type": "limit", limit: OrganizationSharedLimit, usage: OrganizationSharedUsage, };
+export type OrganizationWorkflowView = { "type": "series", series: OrganizationWorkflowSeries, usage: OrganizationSharedUsage, } | { "type": "template", template: OrganizationWorkflowTemplate, } | { "type": "run", run: OrganizationWorkflowRun, tasks: Array<OrganizationTask>, } | { "type": "limit", limit: OrganizationSharedLimit, usage: OrganizationSharedUsage, };

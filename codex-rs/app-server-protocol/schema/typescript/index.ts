@@ -118,8 +118,10 @@ export type { OrganizationWorkflowPreview } from "./OrganizationWorkflowPreview"
 export type { OrganizationWorkflowPreviewRequest } from "./OrganizationWorkflowPreviewRequest";
 export type { OrganizationWorkflowRun } from "./OrganizationWorkflowRun";
 export type { OrganizationWorkflowScope } from "./OrganizationWorkflowScope";
+export type { OrganizationWorkflowSeries } from "./OrganizationWorkflowSeries";
 export type { OrganizationWorkflowState } from "./OrganizationWorkflowState";
 export type { OrganizationWorkflowTemplate } from "./OrganizationWorkflowTemplate";
+export type { OrganizationWorkflowTrigger } from "./OrganizationWorkflowTrigger";
 export type { OrganizationWorkflowView } from "./OrganizationWorkflowView";
 export type { ParsedCommand } from "./ParsedCommand";
 export type { PathUri } from "./PathUri";

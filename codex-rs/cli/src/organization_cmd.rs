@@ -155,7 +155,7 @@ pub(crate) async fn run(
             );
             let sqlite_home = std::env::var_os("CODEX_SQLITE_HOME")
                 .map(PathBuf::from)
-                .unwrap_or_else(|| home.clone());
+                .unwrap_or_else(|| home.to_path_buf());
             let store = codex_state::organization::OrganizationStore::open(&sqlite_home).await?;
             let result = store.backup_bundle(&home, destination).await;
             store.close().await;

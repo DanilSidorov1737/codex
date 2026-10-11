@@ -2219,3 +2219,32 @@ F8 regression, stale-package preflight are retained alongside corrected passes.
 The first normal exit is established by `stop_normally()` returning before the
 v4 NameError; the second exit is recorded directly in the successful continuation.
 All owned services stopped (`cleanup-resume-v6.json`). Never replay these scripts.
+
+## Autonomy batch contracts and recovery baseline
+
+Current implementation source: `912fe220c9` plus CLI path-type correction and
+regenerated native contracts. Full protocol **373**, full state **293** (including
+**65 organization**), wire-contract **2**, schema-comparison **4** and Python
+SDK contract/signature **25** checks pass. Both schema writers were run explicitly;
+the comparison's ignored writer helper is not a skipped qualification test.
+Production CLI Clippy passes with warnings denied (`autonomy-recovery-clippy-v4.log`).
+The full new CLI build and native/API/TUI/service qualification are in progress.
+Logs are in `/workspace/.onboarding/qualification/autonomy-final-*`.
+
+Preserved failures: dynamic SQL/unimported test Write trait/wrong view field,
+a trailing-slash runtime CWD relocation mismatch, production unwrap/expect lints
+and CLI AbsolutePathBuf/PathBuf mismatches. Fixes use literal SQL, proper types,
+canonical relocation and existing JSON values; no assertion/lint was disabled.
+One schema writer used optional Prettier, which reformatted unrelated exports;
+raw canonical writers regenerated the expected format, and all four comparisons
+pass. Unrelated formatting is absent from the final diff.
+
+Actual earlier native planner/config/LSP receipt `planning-final-readonly.json`
+passes saved preferences across restart, accepted planner → editable idle workflow,
+official Neovim/rust-analyzer diagnostics/definition/native completion/fix/save,
+bundled matchit behavior and normal CLI exit 0. Preserve its initial harness
+failures (insert/command timing, invalid completion position, dirty scratch close)
+as well as corrected receipts. Its owned daemon is stopped and its future fixture
+grant must not be replayed. Mixed GPT-5.4 Mini/GPT-5.5 live pilot receipt is passed:
+four requests, new estimated spend $0.0198223, combined historical estimate
+$0.3652553; no more paid inference is planned. These are estimates, not invoices.

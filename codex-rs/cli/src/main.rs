@@ -1314,7 +1314,7 @@ async fn cli_main(
                         environment_file,
                         stall_seconds,
                     } => {
-                        let home = home.unwrap_or(find_codex_home()?);
+                        let home = home.unwrap_or(find_codex_home()?.to_path_buf());
                         print!(
                             "{}",
                             organization_service::unit(

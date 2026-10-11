@@ -2716,6 +2716,37 @@
         {
           "additionalProperties": false,
           "properties": {
+            "body": {
+              "type": "string"
+            },
+            "groupId": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "sourceId": {
+              "type": "string"
+            },
+            "type": {
+              "enum": [
+                "promoteNote"
+              ],
+              "title": "PromoteNoteOrganizationMutationType",
+              "type": "string"
+            }
+          },
+          "required": [
+            "body",
+            "sourceId",
+            "type"
+          ],
+          "title": "PromoteNoteOrganizationMutation",
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
             "enabled": {
               "type": "boolean"
             },
@@ -3008,7 +3039,8 @@
     "OrganizationNoteScope": {
       "enum": [
         "project",
-        "agent"
+        "agent",
+        "team"
       ],
       "type": "string"
     },
@@ -3220,12 +3252,76 @@
       "enum": [
         "templates",
         "runs",
-        "limits"
+        "limits",
+        "series"
       ],
       "type": "string"
     },
     "OrganizationWorkflowMutation": {
       "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "config": {
+              "$ref": "#/definitions/OrganizationScheduleConfig"
+            },
+            "id": {
+              "type": "string"
+            },
+            "preview": {
+              "$ref": "#/definitions/OrganizationWorkflowPreview"
+            },
+            "trigger": {
+              "$ref": "#/definitions/OrganizationWorkflowTrigger"
+            },
+            "type": {
+              "enum": [
+                "createSeries"
+              ],
+              "title": "CreateSeriesOrganizationWorkflowMutationType",
+              "type": "string"
+            }
+          },
+          "required": [
+            "config",
+            "id",
+            "preview",
+            "trigger",
+            "type"
+          ],
+          "title": "CreateSeriesOrganizationWorkflowMutation",
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "action": {
+              "$ref": "#/definitions/OrganizationWorkflowControl"
+            },
+            "expectedRevision": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "id": {
+              "type": "string"
+            },
+            "type": {
+              "enum": [
+                "controlSeries"
+              ],
+              "title": "ControlSeriesOrganizationWorkflowMutationType",
+              "type": "string"
+            }
+          },
+          "required": [
+            "action",
+            "expectedRevision",
+            "id",
+            "type"
+          ],
+          "title": "ControlSeriesOrganizationWorkflowMutation",
+          "type": "object"
+        },
         {
           "additionalProperties": false,
           "properties": {
@@ -3523,6 +3619,52 @@
         "revision"
       ],
       "type": "object"
+    },
+    "OrganizationWorkflowTrigger": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "enum": [
+                "interval"
+              ],
+              "title": "IntervalOrganizationWorkflowTriggerType",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "title": "IntervalOrganizationWorkflowTrigger",
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "authorizationId": {
+              "type": "string"
+            },
+            "taskId": {
+              "type": "string"
+            },
+            "type": {
+              "enum": [
+                "accepted"
+              ],
+              "title": "AcceptedOrganizationWorkflowTriggerType",
+              "type": "string"
+            }
+          },
+          "required": [
+            "authorizationId",
+            "taskId",
+            "type"
+          ],
+          "title": "AcceptedOrganizationWorkflowTrigger",
+          "type": "object"
+        }
+      ]
     },
     "PermissionProfileListParams": {
       "properties": {

@@ -13019,6 +13019,37 @@
         {
           "additionalProperties": false,
           "properties": {
+            "body": {
+              "type": "string"
+            },
+            "groupId": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "sourceId": {
+              "type": "string"
+            },
+            "type": {
+              "enum": [
+                "promoteNote"
+              ],
+              "title": "PromoteNoteOrganizationMutationType",
+              "type": "string"
+            }
+          },
+          "required": [
+            "body",
+            "sourceId",
+            "type"
+          ],
+          "title": "PromoteNoteOrganizationMutation",
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
             "enabled": {
               "type": "boolean"
             },
@@ -13369,14 +13400,32 @@
           "format": "int64",
           "type": "integer"
         },
+        "groupId": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "id": {
           "type": "string"
+        },
+        "ownerReviewed": {
+          "default": false,
+          "type": "boolean"
         },
         "projectId": {
           "type": "string"
         },
         "scope": {
           "$ref": "#/definitions/OrganizationNoteScope"
+        },
+        "sourceNoteId": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "taskId": {
           "type": "string"
@@ -13397,7 +13446,8 @@
     "OrganizationNoteScope": {
       "enum": [
         "project",
-        "agent"
+        "agent",
+        "team"
       ],
       "type": "string"
     },
@@ -14213,6 +14263,13 @@
             "string",
             "null"
           ]
+        },
+        "seriesId": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
         }
       },
       "required": [
@@ -14318,6 +14375,15 @@
         "id": {
           "type": "string"
         },
+        "lastProgressAt": {
+          "default": null,
+          "description": "Actual model/tool activity; lease renewals are not progress.",
+          "format": "int64",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
         "leaseUntil": {
           "format": "int64",
           "type": "integer"
@@ -14365,12 +14431,28 @@
           "default": false,
           "type": "boolean"
         },
+        "stallSeconds": {
+          "default": null,
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
         "startedAt": {
           "format": "int64",
           "type": "integer"
         },
         "state": {
           "$ref": "#/definitions/OrganizationTaskState"
+        },
+        "stopReason": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "taskId": {
           "type": "string"
@@ -14873,12 +14955,76 @@
       "enum": [
         "templates",
         "runs",
-        "limits"
+        "limits",
+        "series"
       ],
       "type": "string"
     },
     "OrganizationWorkflowMutation": {
       "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "config": {
+              "$ref": "#/definitions/OrganizationScheduleConfig"
+            },
+            "id": {
+              "type": "string"
+            },
+            "preview": {
+              "$ref": "#/definitions/OrganizationWorkflowPreview"
+            },
+            "trigger": {
+              "$ref": "#/definitions/OrganizationWorkflowTrigger"
+            },
+            "type": {
+              "enum": [
+                "createSeries"
+              ],
+              "title": "CreateSeriesOrganizationWorkflowMutationType",
+              "type": "string"
+            }
+          },
+          "required": [
+            "config",
+            "id",
+            "preview",
+            "trigger",
+            "type"
+          ],
+          "title": "CreateSeriesOrganizationWorkflowMutation",
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "action": {
+              "$ref": "#/definitions/OrganizationWorkflowControl"
+            },
+            "expectedRevision": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "id": {
+              "type": "string"
+            },
+            "type": {
+              "enum": [
+                "controlSeries"
+              ],
+              "title": "ControlSeriesOrganizationWorkflowMutationType",
+              "type": "string"
+            }
+          },
+          "required": [
+            "action",
+            "expectedRevision",
+            "id",
+            "type"
+          ],
+          "title": "ControlSeriesOrganizationWorkflowMutation",
+          "type": "object"
+        },
         {
           "additionalProperties": false,
           "properties": {
@@ -15185,6 +15331,70 @@
       ],
       "type": "object"
     },
+    "OrganizationWorkflowSeries": {
+      "properties": {
+        "config": {
+          "$ref": "#/definitions/OrganizationScheduleConfig"
+        },
+        "id": {
+          "type": "string"
+        },
+        "issuedRuns": {
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "nextRunAt": {
+          "format": "int64",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "preview": {
+          "$ref": "#/definitions/OrganizationWorkflowPreview"
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "revision": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "skippedRuns": {
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "sourceResultDigest": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "state": {
+          "$ref": "#/definitions/OrganizationScheduleState"
+        },
+        "trigger": {
+          "$ref": "#/definitions/OrganizationWorkflowTrigger"
+        }
+      },
+      "required": [
+        "config",
+        "id",
+        "issuedRuns",
+        "preview",
+        "revision",
+        "skippedRuns",
+        "state",
+        "trigger"
+      ],
+      "type": "object"
+    },
     "OrganizationWorkflowState": {
       "enum": [
         "active",
@@ -15225,8 +15435,78 @@
       ],
       "type": "object"
     },
+    "OrganizationWorkflowTrigger": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "enum": [
+                "interval"
+              ],
+              "title": "IntervalOrganizationWorkflowTriggerType",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "title": "IntervalOrganizationWorkflowTrigger",
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "authorizationId": {
+              "type": "string"
+            },
+            "taskId": {
+              "type": "string"
+            },
+            "type": {
+              "enum": [
+                "accepted"
+              ],
+              "title": "AcceptedOrganizationWorkflowTriggerType",
+              "type": "string"
+            }
+          },
+          "required": [
+            "authorizationId",
+            "taskId",
+            "type"
+          ],
+          "title": "AcceptedOrganizationWorkflowTrigger",
+          "type": "object"
+        }
+      ]
+    },
     "OrganizationWorkflowView": {
       "oneOf": [
+        {
+          "properties": {
+            "series": {
+              "$ref": "#/definitions/OrganizationWorkflowSeries"
+            },
+            "type": {
+              "enum": [
+                "series"
+              ],
+              "title": "SeriesOrganizationWorkflowViewType",
+              "type": "string"
+            },
+            "usage": {
+              "$ref": "#/definitions/OrganizationSharedUsage"
+            }
+          },
+          "required": [
+            "series",
+            "type",
+            "usage"
+          ],
+          "title": "SeriesOrganizationWorkflowView",
+          "type": "object"
+        },
         {
           "properties": {
             "template": {
