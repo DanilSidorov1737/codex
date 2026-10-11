@@ -26,7 +26,7 @@ The owner requested an expanded plan based on `docs/Codex CLI Fork.txt` on
 2026-10-10. The sequence below is proposed work after the qualified selective
 Apply slice, not implementation authorization or a claim of delivered features.
 The owner subsequently approved N1 with “Ok do this” and N2 with “ok lets do this”;
-N3–N8 remain proposals.
+N3 reusable bounded workflows was approved with “ok do this”; N4–N8 remain proposals.
 Memory and recurring schedules are the first two steps. The added
 steps cover practical portions of the text's workflow, continuity, organization,
 visibility, editor and capability requirements.
@@ -49,7 +49,7 @@ and logical local commits for each approved slice. N1 qualification is complete;
 N2 recurring schedules is complete: 700 automated tests and actual background,
 approval, pause/restart/resume, cancellation, budgets, crash/remote denial and
 native TUI/official-Neovim evidence. N3 reusable workflow templates is next
-proposed scope; do not begin it without matching owner instructions.
+approved scope, now in progress; see [workflow contract](workflows.md).
 Distributed workers, multimodal production, meetings, full-environment backup
 automation and protected self-improvement remain in their later roadmap phases.
 

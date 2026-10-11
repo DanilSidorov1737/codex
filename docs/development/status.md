@@ -1,7 +1,7 @@
 # Current status and resumption instructions
 
 Phase 0: **exploration and planning complete for available inputs**.
-Current work: **N1 memory search and N2 recurring schedules complete; N3 workflows proposed**.
+Current work: **N1/N2 complete; owner-approved N3 workflows in progress**.
 Application features: **delivered for the documented single-owner Linux envelope**.
 The MVP's release criteria are **qualified for the documented single-owner Linux/GPT-5.5 envelope**.
 

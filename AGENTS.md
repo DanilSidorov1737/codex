@@ -39,8 +39,12 @@ local commits. N2 is qualified on `e06def499e`: 700 automated tests and actual
 background/approval/pause/restart/resume/cancel/budget/crash/remote-denial/TUI/
 official-Neovim evidence. Five bounded series/seven occurrences and all failures
 are preserved; owned services are stopped. Never blindly rerun N2 fixture scripts
-or reauthorize its historical occurrences. N3–N8 remain later scope; see
+or reauthorize its historical occurrences. N4–N8 remain later scope; see
 recurring-schedules.md, testing.md and status.md.
+The owner approved N3 with “ok do this”: reusable bounded workflow templates,
+explicit run previews/scopes, fresh task identities, existing dependency/approval
+enforcement, Projects/Operations UI, actual CLI/TUI/official-Neovim qualification,
+Ponytail and periodic local commits. See workflows.md and current status.
 Preserve N1's accepted writer
 and three needsReview reader fixtures; never blindly rerun authorization scripts.
 
