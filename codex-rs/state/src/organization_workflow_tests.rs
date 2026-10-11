@@ -152,6 +152,41 @@ async fn workflow_preview_pins_scope_and_revisions_without_creating_authority() 
         }
         assert!(store.preview_workflow(input).await.is_err(), "{invalid}");
     }
+    let mut items = template.items.clone();
+    let mut parallel = items[0].clone();
+    parallel.key = "parallel".into();
+    items[1].prerequisites.push(parallel.key.clone());
+    items.push(parallel);
+    let OrganizationWorkflowView::Template {
+        template: ambiguous,
+    } = store
+        .mutate_workflow(
+            OrganizationWorkflowMutation::Put {
+                id: Uuid::now_v7().to_string(),
+                expected_revision: None,
+                project_id: template.project_id.clone(),
+                label: "Ambiguous producers".into(),
+                items,
+            },
+            1000,
+        )
+        .await?
+    else {
+        panic!("expected template")
+    };
+    let mut ambiguous_input = request(&ambiguous);
+    ambiguous_input
+        .scopes
+        .iter_mut()
+        .find(|step| step.key == "check")
+        .unwrap()
+        .scope
+        .input_files
+        .push("report.txt".into());
+    assert!(
+        store.preview_workflow(ambiguous_input).await.is_err(),
+        "multiple producers cannot overwrite the same imported input"
+    );
     let preview = store.preview_workflow(input).await?;
     assert_eq!((preview.max_tokens, preview.max_model_requests), (200, 4));
     assert_eq!(
@@ -277,9 +312,17 @@ async fn workflow_runs_are_distinct_restart_durable_and_wait_for_exact_acceptanc
         .await?;
     for _ in 0..2 {
         let (sequence, _) = store.admit_model_request(&first.id, &worker, 1001).await?;
-        store.checkpoint_usage(&first.id, &worker, sequence, 1).await?;
+        store
+            .checkpoint_usage(&first.id, &worker, sequence, 1)
+            .await?;
     }
-    assert!(store.admit_model_request(&first.id, &worker, 1001).await.is_err(), "workflow grants retain request ceilings");
+    assert!(
+        store
+            .admit_model_request(&first.id, &worker, 1001)
+            .await
+            .is_err(),
+        "workflow grants retain request ceilings"
+    );
     let result = store
         .record_result(
             &first.id,
@@ -381,30 +424,70 @@ async fn workflow_runs_are_distinct_restart_durable_and_wait_for_exact_acceptanc
 }
 
 #[tokio::test]
-async fn workflow_migration_from_seven_preserves_existing_tasks_and_crash_blocks_dependents() -> Result<()> {
+async fn workflow_migration_from_seven_preserves_existing_tasks_and_crash_blocks_dependents()
+-> Result<()> {
     let home = Fixture::new();
     let store = OrganizationStore::open(&home.0).await?;
     let template = fixture(&store).await?;
     let old = execution_task(&store, &template.items[0].owner_id, &template.project_id).await?;
-    sqlx::query("DROP TABLE organization_workflow_tasks").execute(&store.pool).await?;
-    sqlx::query("DROP TABLE organization_workflow_runs").execute(&store.pool).await?;
-    sqlx::query("DROP TABLE organization_workflow_templates").execute(&store.pool).await?;
-    sqlx::query("DELETE FROM _sqlx_migrations WHERE version=8").execute(&store.pool).await?;
+    sqlx::query("DROP TABLE organization_workflow_tasks")
+        .execute(&store.pool)
+        .await?;
+    sqlx::query("DROP TABLE organization_workflow_runs")
+        .execute(&store.pool)
+        .await?;
+    sqlx::query("DROP TABLE organization_workflow_templates")
+        .execute(&store.pool)
+        .await?;
+    sqlx::query("DELETE FROM _sqlx_migrations WHERE version=8")
+        .execute(&store.pool)
+        .await?;
     store.close().await;
     let store = OrganizationStore::open(&home.0).await?;
     assert_eq!(store.execution_view(&old.id).await?.task, old);
     let template = fixture(&store).await?;
     let preview = store.preview_workflow(request(&template)).await?;
-    let OrganizationWorkflowView::Run { tasks, .. } = store.mutate_workflow(OrganizationWorkflowMutation::Run { preview: Box::new(preview) }, 1000).await? else { panic!("expected run") };
+    let OrganizationWorkflowView::Run { tasks, .. } = store
+        .mutate_workflow(
+            OrganizationWorkflowMutation::Run {
+                preview: Box::new(preview),
+            },
+            1000,
+        )
+        .await?
+    else {
+        panic!("expected run")
+    };
     let worker = Uuid::now_v7().to_string();
-    let attempt = store.claim_task(&worker, &Uuid::now_v7().to_string(), 1000, 4).await?.unwrap();
+    let attempt = store
+        .claim_task(&worker, &Uuid::now_v7().to_string(), 1000, 4)
+        .await?
+        .unwrap();
     assert_eq!(attempt.task_id, tasks[0].id);
     store.close().await;
     let store = OrganizationStore::open(&home.0).await?;
     assert_eq!(store.reconcile_interrupted_attempts().await?, 1);
-    assert_eq!(store.execution_view(&tasks[0].id).await?.task.state, "needsReconciliation");
-    assert!(store.claim_task(&worker, &Uuid::now_v7().to_string(), 1002, 4).await?.is_none());
+    assert_eq!(
+        store.execution_view(&tasks[0].id).await?.task.state,
+        "needsReconciliation"
+    );
+    assert!(
+        store
+            .claim_task(&worker, &Uuid::now_v7().to_string(), 1002, 4)
+            .await?
+            .is_none()
+    );
     assert!(store.workflow_inputs(&tasks[1].id).await.is_err());
-    assert!(store.authorize_task(&tasks[0].id, store.execution_view(&tasks[0].id).await?.task.revision, execution_scope(), 1002).await.is_err());
+    assert!(
+        store
+            .authorize_task(
+                &tasks[0].id,
+                store.execution_view(&tasks[0].id).await?.task.revision,
+                execution_scope(),
+                1002
+            )
+            .await
+            .is_err()
+    );
     Ok(())
 }

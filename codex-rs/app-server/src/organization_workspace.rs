@@ -188,6 +188,31 @@ impl TaskWorkspace {
         Ok(())
     }
 
+    /// A later workflow step edits accepted bytes against the producer's original
+    /// base, not a fresh hash that could hide an intervening owner edit.
+    pub(crate) fn import_workflow_result(
+        &mut self,
+        source: &Path,
+        result: &codex_protocol::organization_execution::OrganizationTaskResult,
+    ) -> Result<()> {
+        self.import_result(source, result)?;
+        for base in &mut self.artifact_bases {
+            if result
+                .artifacts
+                .iter()
+                .any(|artifact| artifact.path == base.path)
+            {
+                *base = result
+                    .artifact_bases
+                    .iter()
+                    .find(|original| original.path == base.path)
+                    .context("workflow prerequisite original base missing")?
+                    .clone();
+            }
+        }
+        Ok(())
+    }
+
     pub(crate) fn create(
         config: &Config,
         project: &Path,
@@ -719,6 +744,71 @@ fn current_uid() -> u32 {
 mod tests {
     use super::*;
 
+    #[test]
+    fn workflow_import_preserves_first_original_base_and_rechecks_accepted_bytes() -> Result<()> {
+        let source = tempfile::tempdir()?;
+        let destination = tempfile::tempdir()?;
+        let original = tempfile::tempdir()?;
+        write_relative(original.path(), "report.txt", b"owner edit between steps")?;
+        write_relative(source.path(), "report.txt", b"accepted first step")?;
+        let first_base = OrganizationArtifactBase {
+            path: "report.txt".into(),
+            sha256: Some(format!("{:x}", Sha256::digest(b"initial original"))),
+        };
+        let result = codex_protocol::organization_execution::OrganizationTaskResult {
+            attempt_id: "source".into(),
+            digest: "recorded".into(),
+            accepted: true,
+            artifacts: vec![OrganizationArtifactEvidence {
+                path: "report.txt".into(),
+                bytes: 19,
+                sha256: format!("{:x}", Sha256::digest(b"accepted first step")),
+            }],
+            artifact_bases: vec![first_base.clone()],
+            checks: vec![],
+        };
+        let mut workspace = TaskWorkspace {
+            root: AbsolutePathBuf::try_from(destination.path())?,
+            profile: PermissionProfile::default(),
+            artifact_bases: vec![OrganizationArtifactBase {
+                path: "report.txt".into(),
+                sha256: Some(format!("{:x}", Sha256::digest(b"owner edit between steps"))),
+            }],
+        };
+        workspace.import_workflow_result(source.path(), &result)?;
+        assert_eq!(workspace.artifact_bases, vec![first_base.clone()]);
+        assert_eq!(
+            read_relative(destination.path(), "report.txt")?,
+            b"accepted first step"
+        );
+        assert!(
+            write_relative_checked(
+                original.path(),
+                "report.txt",
+                b"second step",
+                Some(first_base.sha256.as_deref())
+            )
+            .is_err()
+        );
+        assert_eq!(
+            read_relative(original.path(), "report.txt")?,
+            b"owner edit between steps"
+        );
+        write_relative(source.path(), "report.txt", b"tampered after acceptance")?;
+        assert!(
+            workspace
+                .import_workflow_result(source.path(), &result)
+                .is_err()
+        );
+        let mut unaccepted = result;
+        unaccepted.accepted = false;
+        assert!(
+            workspace
+                .import_workflow_result(source.path(), &unaccepted)
+                .is_err()
+        );
+        Ok(())
+    }
     #[cfg(unix)]
     #[test]
     fn checked_replacement_preserves_changed_bases_and_rejects_aliases() -> Result<()> {

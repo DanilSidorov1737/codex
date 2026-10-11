@@ -248,7 +248,7 @@ impl OrganizationRuntime {
             &deferred_inputs,
         )?;
         for (result, source) in workflow_inputs {
-            workspace.import_result(
+            workspace.import_workflow_result(
                 std::path::Path::new(
                     source
                         .workspace

@@ -27,8 +27,9 @@ Prerequisites must be accepted by the owner before dispatch, not merely finish
 model execution. Accepted artifacts may be copied into the dependent isolated
 workspace only when explicitly declared as its inputs, from the same run, with
 recorded hashes rechecked. Immutable inputs cannot be replaced by workflow outputs;
-ambiguous overlapping producers are rejected. Original project files remain
-protected by existing Review/Apply checks. Acceptance and Apply are separate.
+ambiguous overlapping producers are rejected. If an imported file is edited again, its producer's original base is carried
+forward; a new project hash must not hide an intervening owner edit. Original
+project files remain protected by existing Review/Apply checks. Acceptance and Apply are separate.
 Failed/cancelled/interrupted prerequisites block dependents without automatic
 retry, acceptance, Apply or authority expansion. Ordinary task reauthorization
 must not reset an invocation's fixed limits.
@@ -85,3 +86,10 @@ run tasks use existing approval/review/Neovim controls. The Operations hierarchy
 remains the default. Thirty native TUI/official-Neovim tests passed, including
 save/preview/frozen identity, late response and narrow/untrusted-content checks.
 Physical interaction and package qualification are still pending.
+
+Correctness checkpoint: prerequisite handoff now carries the producer's original
+artifact base for every imported file edited again. Four native workspace tests
+passed, including accepted-byte revalidation and preservation/refusal of an
+intervening owner edit. The preview regression also rejects overlapping direct
+producers; all four workflow state scenarios passed again. Physical conflict
+qualification and the final package rebuild remain in progress.
