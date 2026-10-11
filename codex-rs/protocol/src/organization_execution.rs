@@ -132,6 +132,14 @@ pub struct OrganizationTaskAttempt {
     pub reported_tokens: i64,
     pub model_requests: u32,
     pub reported_model_requests: u32,
+    /// Actual model/tool activity; lease renewals are not progress.
+    #[serde(default)]
+    #[ts(type = "number | null")]
+    pub last_progress_at: Option<i64>,
+    #[serde(default)]
+    pub stall_seconds: Option<u32>,
+    #[serde(default)]
+    pub stop_reason: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]

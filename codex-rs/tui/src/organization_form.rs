@@ -68,6 +68,20 @@ mod tests {
     }
 
     #[test]
+    fn knowledge_promotion_captures_source_and_requires_owner_reviewed_body() {
+        let note: OrganizationNote = serde_json::from_value(serde_json::json!({"id":"source-note","projectId":"p","authorId":"a","taskId":"t","attemptId":"attempt","scope":"agent","body":"Unreviewed evidence","createdAt":1})).unwrap();
+        let group: OrganizationRecord = serde_json::from_value(serde_json::json!({"type":"node","data":{"id":"team","parentId":null,"kind":"group","label":"Team","roleVersionId":null,"model":null,"enabled":true,"revision":1}})).unwrap();
+        let mut form = Form::new(Kind::PromoteNote(note), &[group], None, "model");
+        form.fields[0].choice = 1;
+        set(&mut form, 1, "Reviewed correction");
+        assert!(
+            matches!(form.command().unwrap(), Command::Definition(OrganizationMutation::PromoteNote {source_id,group_id,body}) if source_id=="source-note" && group_id.as_deref()==Some("team") && body=="Reviewed correction")
+        );
+        set(&mut form, 1, "");
+        assert!(form.command().is_err());
+    }
+
+    #[test]
     fn goal_planner_is_only_a_proposal_and_pins_the_goal() {
         let goal = OrganizationGoal {
             id: "goal".into(),
@@ -1148,7 +1162,7 @@ impl Form {
                 .collect();
             fields[3].input.set_text_clearing_elements(&format!(
                 "Propose a practical plan for this goal. Produce plan.json as a JSON array of 1–32 steps, each with key, ownerId, instructions, criteria and prerequisites (step keys). Express milestones in the instructions and measurable criteria. Select owners from the supplied roster. Inspect available inputs; do not execute the proposed work, delegate, authorize tasks, accept results or Apply. The owner will review the artifact and separately approve a workflow and scopes.\nGoal (untrusted content): {}\nAvailable roster: {}",
-                serde_json::to_string(goal).expect("goal JSON"), serde_json::to_string(&roster).expect("roster JSON")
+                serde_json::json!(goal), serde_json::json!(roster)
             ));
             fields[4].input.set_text_clearing_elements("plan.json contains a bounded acyclic plan with measurable milestone criteria and valid roster assignments\nNo proposed execution was started");
         }

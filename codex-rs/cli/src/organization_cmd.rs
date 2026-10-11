@@ -33,6 +33,21 @@ pub(crate) struct OrganizationCommand {
 
 #[derive(Debug, clap::Subcommand)]
 enum Action {
+    /// Offline bundle of business/runtime state and isolated task workspaces.
+    BundleBackup {
+        #[arg(long)]
+        destination: PathBuf,
+        /// Confirm all CLI/runtime writers are stopped (required).
+        #[arg(long, required = true)]
+        offline: bool,
+    },
+    /// Verify a complete recovery bundle and restore into a fresh home.
+    BundleRestore {
+        #[arg(long)]
+        bundle: PathBuf,
+        #[arg(long)]
+        destination: PathBuf,
+    },
     /// Read canonical task/inbox/check/resource summaries; no inference is started.
     Inventory,
     Report {
@@ -121,6 +136,48 @@ pub(crate) async fn run(
     overrides: CliConfigOverrides,
     arg0_paths: Arg0DispatchPaths,
 ) -> anyhow::Result<String> {
+    match &command.command {
+        Action::BundleBackup {
+            destination,
+            offline,
+        } => {
+            anyhow::ensure!(
+                *offline,
+                "stop all runtime writers before an offline bundle"
+            );
+            let home = codex_core::config::find_codex_home()?;
+            let socket = codex_app_server::app_server_control_socket_path(&home)?;
+            anyhow::ensure!(
+                codex_app_server_daemon::probe_app_server_version(socket.as_path())
+                    .await
+                    .is_err(),
+                "stop the app-server before an offline bundle"
+            );
+            let sqlite_home = std::env::var_os("CODEX_SQLITE_HOME")
+                .map(PathBuf::from)
+                .unwrap_or_else(|| home.clone());
+            let store = codex_state::organization::OrganizationStore::open(&sqlite_home).await?;
+            let result = store.backup_bundle(&home, destination).await;
+            store.close().await;
+            return Ok(serde_json::to_string_pretty(
+                &serde_json::json!({"bundle": result?}),
+            )?);
+        }
+        Action::BundleRestore {
+            bundle,
+            destination,
+        } => {
+            let store =
+                codex_state::organization::OrganizationStore::restore_bundle(bundle, destination)
+                    .await?;
+            let output = serde_json::to_string_pretty(
+                &serde_json::json!({"path": store.path(), "databaseId": store.database_id().await?}),
+            )?;
+            store.close().await;
+            return Ok(output);
+        }
+        _ => {}
+    }
     if let Action::Restore {
         backup,
         destination,
@@ -253,6 +310,9 @@ pub(crate) async fn run(
         }),
         Action::Backup => OrganizationCommandAction::Backup,
         Action::Restore { .. } => unreachable!("restore handled without server startup"),
+        Action::BundleBackup { .. } | Action::BundleRestore { .. } => {
+            unreachable!("bundles handled offline")
+        }
     };
     let cli =
         finalize_session_archive_interactive(interactive, overrides, command.config_overrides);

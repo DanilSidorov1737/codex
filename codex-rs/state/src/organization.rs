@@ -60,6 +60,9 @@ mod report;
 #[path = "organization_resource.rs"]
 mod resource;
 
+#[path = "organization_bundle.rs"]
+mod bundle;
+
 #[derive(Clone, Debug)]
 pub struct OrganizationStore {
     pool: SqlitePool,

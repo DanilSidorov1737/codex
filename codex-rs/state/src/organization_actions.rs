@@ -359,11 +359,21 @@ impl OrganizationStore {
     /// A stale callback cannot overwrite an owner's pause or startup reconciliation.
     pub async fn fail_attempt(&self, attempt_id: &str, worker: &str) -> Result<()> {
         let mut tx = self.pool.begin_with("BEGIN IMMEDIATE").await?;
+        Self::fail_attempt_in(&mut tx, attempt_id, worker).await?;
+        tx.commit().await?;
+        Ok(())
+    }
+
+    async fn fail_attempt_in(
+        tx: &mut Transaction<'_, Sqlite>,
+        attempt_id: &str,
+        worker: &str,
+    ) -> Result<()> {
         let data: String =
             sqlx::query_scalar("SELECT data FROM organization_attempts WHERE id=? AND worker_id=?")
                 .bind(attempt_id)
                 .bind(worker)
-                .fetch_one(&mut *tx)
+                .fetch_one(&mut **tx)
                 .await?;
         let mut attempt: OrganizationTaskAttempt = serde_json::from_str(&data)?;
         ensure!(
@@ -375,30 +385,77 @@ impl OrganizationStore {
             ),
             "attempt already stopped or reconciled"
         );
-        let mut task = read_task(&mut tx, &attempt.task_id).await?;
+        let mut task = read_task(tx, &attempt.task_id).await?;
         ensure!(
             task.state == attempt.state.as_str(),
             "task no longer belongs to this live attempt"
         );
         attempt.state = OrganizationTaskState::Failed;
         attempt.lease_until = 0;
-        write_attempt(&mut tx, &attempt).await?;
-        set_task_state(&mut tx, &mut task, OrganizationTaskState::Failed).await?;
-        supersede_approvals(&mut tx, attempt_id).await?;
+        write_attempt(tx, &attempt).await?;
+        set_task_state(tx, &mut task, OrganizationTaskState::Failed).await?;
+        supersede_approvals(tx, attempt_id).await?;
         let data: Vec<String> = sqlx::query_scalar(
             "SELECT data FROM organization_actions WHERE attempt_id=? AND state='dispatched'",
         )
         .bind(attempt_id)
-        .fetch_all(&mut *tx)
+        .fetch_all(&mut **tx)
         .await?;
         for data in data {
             let mut action: OrganizationActionIntent = serde_json::from_str(&data)?;
             action.state = OrganizationActionState::Uncertain;
-            write_action(&mut tx, &action).await?;
+            write_action(tx, &action).await?;
         }
-        event(&mut tx, "attempt/failed", attempt_id).await?;
-        tx.commit().await?;
+        event(tx, "attempt/failed", attempt_id).await?;
         Ok(())
+    }
+
+    /// Host-only observations. Heartbeat renewals never count as progress. A
+    /// stalled admitted effect remains uncertain and consumed usage is retained.
+    pub async fn observe_attempt_health(
+        &self,
+        attempt_id: &str,
+        worker: &str,
+        progress_at: Option<i64>,
+        stall_seconds: Option<u32>,
+        inactive_seconds: u64,
+        now: i64,
+    ) -> Result<bool> {
+        ensure!(
+            stall_seconds.is_none_or(|seconds| (10..=3600).contains(&seconds)),
+            "invalid stall threshold"
+        );
+        ensure!(
+            progress_at.is_none_or(|at| at <= now),
+            "progress timestamp is in the future"
+        );
+        let mut tx = self.pool.begin_with("BEGIN IMMEDIATE").await?;
+        let (mut attempt, authorization) =
+            check_live_fence(&mut tx, attempt_id, worker, now).await?;
+        let paused = match super::workflow::check_workflow_dispatch(&mut tx, &authorization).await {
+            Ok(()) => false,
+            Err(error) if error.is::<super::WorkflowPaused>() => true,
+            Err(error) => return Err(error),
+        };
+        let active =
+            attempt.state == OrganizationTaskState::Running && attempt.runtime_active && !paused;
+        attempt.last_progress_at = attempt.last_progress_at.max(progress_at);
+        attempt.stall_seconds = stall_seconds;
+        let stalled =
+            active && stall_seconds.is_some_and(|seconds| inactive_seconds >= u64::from(seconds));
+        if stalled {
+            attempt.stop_reason = Some("No model/tool progress before the owner-configured stall threshold; inspect uncertain requests/effects before recovery".into());
+        }
+        write_attempt(&mut tx, &attempt).await?;
+        if stalled {
+            Self::fail_attempt_in(&mut tx, attempt_id, worker).await?;
+        }
+        tx.commit().await?;
+        ensure!(
+            !stalled,
+            "managed task stalled; uncertain work was fenced without replay"
+        );
+        Ok(active)
     }
 
     pub async fn bind_attempt_runtime(

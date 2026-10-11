@@ -1322,7 +1322,9 @@ impl Dashboard {
                 };
                 let previous = self.snapshot.workflows.iter().find_map(|view| match view {
                     OrganizationWorkflowView::Limit { limit, .. }
-                        if limit.project_id == project_id && limit.run_id == run_id =>
+                        if limit.project_id == project_id
+                            && limit.run_id == run_id
+                            && limit.series_id.is_none() =>
                     {
                         Some(limit.clone())
                     }
@@ -2469,6 +2471,18 @@ impl Dashboard {
                     attempt.runtime_active,
                     attempt.workspace.as_deref().unwrap_or("Not prepared"),
                     attempt.thread_id
+                ));
+                text.push_str(&format!(
+                    "Last model/tool progress: {}\nStall threshold: {}\nStop reason: {}\n",
+                    attempt
+                        .last_progress_at
+                        .map(utc_time)
+                        .unwrap_or_else(|| "No activity recorded".into()),
+                    attempt
+                        .stall_seconds
+                        .map(|seconds| format!("{seconds} seconds"))
+                        .unwrap_or_else(|| "Disabled (task deadline still applies)".into()),
+                    attempt.stop_reason.as_deref().unwrap_or("None")
                 ));
             }
             for checkpoint in &view.checkpoints {

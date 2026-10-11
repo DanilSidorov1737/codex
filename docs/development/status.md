@@ -787,3 +787,17 @@ authorize push/publication, outbound communications or unbounded provider spendi
 5. Update acceptance/status/testing and make logical local commits after results.
    Do not start later roadmap phases without matching user scope, or infer push,
    merge, deploy, external messaging or financial authority.
+
+## Revised autonomy batch reliability/recovery checkpoint
+
+Implementation of all twelve bounded items is now present; final qualification is
+in progress. Latest finite series/team-knowledge source is `75a22f1d72`.
+Recovery/health code passes 65 organization state tests; native service/bundle/UI
+qualification and generated-contract refresh are next. Actual goal-planner,
+persisted panes and official-Neovim config/matchit/diagnostics/definition/completion/
+saved edits are qualified by `planning-final-readonly.json` (normal CLI exit 0).
+Preserve failed harness receipts and the accepted planner/template; do not replay.
+Owned planning daemon is stopped, so its deliberately deferred Rust task cannot
+execute. Mixed-model pilot passed with four live calls and new estimated spend
+$0.0198223, combined pilot estimate $0.3652553 under the conservative $1 ceiling.
+No more paid calls are planned. See autonomy-batch.md for contracts and limits.

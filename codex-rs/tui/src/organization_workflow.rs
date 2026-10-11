@@ -149,7 +149,11 @@ impl Dashboard {
                     "Shared resource limits: {}\nProject: {}\nWorkflow run: {}\nRevision: {}\n\nReported tokens: {} / {}\nAdmitted model requests: {} / {}\nActive executions: {} / {}\n\nb edits these exact limits. Consumed usage includes historical root grants and is never reset by pause, handoff or reauthorization. A token ceiling stops new admission after reported usage; in-flight requests may exceed it. Cost estimates are not monetary caps.\n",
                     limit.id,
                     limit.project_id,
-                    limit.run_id.as_deref().unwrap_or("Entire project"),
+                    limit
+                        .run_id
+                        .as_deref()
+                        .or(limit.series_id.as_deref())
+                        .unwrap_or("Entire project"),
                     limit.revision,
                     usage.reported_tokens,
                     limit.max_tokens,

@@ -202,6 +202,7 @@ async fn accepted_trigger_waits_for_exact_acceptance_deduplicates_and_imports_on
         .await?;
     let mut q = request(&template);
     q.scopes[0].scope.input_files.push("report.txt".into());
+    q.scopes[1].scope.input_files.push("report.txt".into());
     let preview = store.preview_workflow(q).await?;
     let id = Uuid::now_v7().to_string();
     store
@@ -267,6 +268,35 @@ async fn accepted_trigger_waits_for_exact_acceptance_deduplicates_and_imports_on
     assert_eq!(inputs.len(), 1);
     assert_eq!(inputs[0].0.digest, result.digest);
     assert_eq!(inputs[0].0.artifacts, result.artifacts);
+    let next = store
+        .claim_task(&worker, &Uuid::now_v7().to_string(), 1012, 2)
+        .await?
+        .unwrap();
+    assert_eq!(next.task_id, run.task_ids["write"]);
+    let newer = store
+        .record_result(
+            &next.id,
+            &worker,
+            vec![OrganizationArtifactEvidence {
+                path: "report.txt".into(),
+                sha256: "b".repeat(64),
+                bytes: 4,
+            }],
+            result.checks.clone(),
+            1013,
+        )
+        .await?;
+    let v = store.execution_view(&next.task_id).await?;
+    store
+        .accept_result(&next.task_id, v.task.revision, &newer.digest)
+        .await?;
+    let inputs = store.workflow_inputs(&run.task_ids["check"]).await?;
+    assert_eq!(
+        inputs.len(),
+        1,
+        "a trigger must not overwrite newer workflow evidence"
+    );
+    assert_eq!(inputs[0].0.digest, newer.digest);
     let (series, _) = store
         .list_workflows(OrganizationWorkflowKind::Series, None, None, 10)
         .await?;

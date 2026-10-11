@@ -72,6 +72,7 @@ mod mcp_cmd;
 mod mcp_login;
 mod migrate_rollouts;
 mod organization_cmd;
+mod organization_service;
 mod plugin_cmd;
 mod queue_cmd;
 mod remote_control_cmd;
@@ -654,6 +655,15 @@ struct AppServerDaemonCommand {
 
 #[derive(Debug, clap::Subcommand)]
 enum AppServerDaemonSubcommand {
+    /// Print a Linux user service unit for review; does not install or enable it.
+    ServiceUnit {
+        #[arg(long)]
+        home: Option<PathBuf>,
+        #[arg(long)]
+        environment_file: Option<PathBuf>,
+        #[arg(long)]
+        stall_seconds: Option<u32>,
+    },
     /// Install durable local app-server management for SSH-driven use.
     Bootstrap(AppServerBootstrapCommand),
 
@@ -1299,6 +1309,22 @@ async fn cli_main(
                     }
                 }
                 Some(AppServerSubcommand::Daemon(daemon_cli)) => match daemon_cli.subcommand {
+                    AppServerDaemonSubcommand::ServiceUnit {
+                        home,
+                        environment_file,
+                        stall_seconds,
+                    } => {
+                        let home = home.unwrap_or(find_codex_home()?);
+                        print!(
+                            "{}",
+                            organization_service::unit(
+                                &std::env::current_exe()?,
+                                &home,
+                                environment_file.as_deref(),
+                                stall_seconds
+                            )?
+                        );
+                    }
                     AppServerDaemonSubcommand::Start => {
                         print_app_server_daemon_output(AppServerLifecycleCommand::Start).await?;
                     }
@@ -2348,6 +2374,7 @@ fn app_server_subcommand_name(subcommand: Option<&AppServerSubcommand>) -> &'sta
     match subcommand {
         None => "app-server",
         Some(AppServerSubcommand::Daemon(daemon)) => match daemon.subcommand {
+            AppServerDaemonSubcommand::ServiceUnit { .. } => "app-server daemon service-unit",
             AppServerDaemonSubcommand::Bootstrap(_) => "app-server daemon bootstrap",
             AppServerDaemonSubcommand::Start => "app-server daemon start",
             AppServerDaemonSubcommand::Restart => "app-server daemon restart",

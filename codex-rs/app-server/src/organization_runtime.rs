@@ -49,6 +49,7 @@ pub(crate) struct OrganizationRuntime {
     execution_owner: OnceCell<Arc<File>>,
     worker_id: String,
     max_active: u32,
+    stall_seconds: Option<u32>,
     shutdown: CancellationToken,
     wake: Arc<Notify>,
     workers: TaskTracker,
@@ -71,6 +72,15 @@ impl OrganizationRuntime {
                 Ok(value) => parse_active_limit(Some(&value)).unwrap_or(0),
                 Err(std::env::VarError::NotPresent) => 2,
                 Err(std::env::VarError::NotUnicode(_)) => 0,
+            },
+            stall_seconds: match std::env::var("CODEX_ORGANIZATION_STALL_SECONDS") {
+                Ok(value) => value
+                    .parse()
+                    .ok()
+                    .filter(|seconds| (10..=3600).contains(seconds))
+                    .or(Some(0)),
+                Err(std::env::VarError::NotPresent) => None,
+                Err(std::env::VarError::NotUnicode(_)) => Some(0),
             },
             shutdown: CancellationToken::new(),
             wake: Arc::new(Notify::new()),
@@ -109,6 +119,10 @@ impl OrganizationRuntime {
     }
 
     pub(crate) async fn ensure_execution_owner(&self) -> Result<Arc<File>> {
+        ensure!(
+            self.stall_seconds != Some(0),
+            "CODEX_ORGANIZATION_STALL_SECONDS must be 10..3600; correct the setting and restart"
+        );
         ensure!(
             (1..=4).contains(&self.max_active),
             "CODEX_ORGANIZATION_MAX_ACTIVE must be an integer from 1 to 4; organization execution is disabled until the owner corrects the setting and restarts"
@@ -377,6 +391,10 @@ impl OrganizationRuntime {
             stop: stop.clone(),
             serial: Arc::new(tokio::sync::Mutex::new(())),
             dispatched: Mutex::new(HashMap::new()),
+            progress: Arc::new(Mutex::new(Progress {
+                since: std::time::Instant::now(),
+                at: None,
+            })),
             _execution_owner: owner,
         });
         let _stop_on_exit = stop.clone().drop_guard();
@@ -468,6 +486,26 @@ impl OrganizationRuntime {
                 .checks(&self.config, &authorization.scope, stop.clone())
                 .await?;
             let artifacts = workspace.artifacts(&authorization.scope)?;
+            guard
+                .progress
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner)
+                .record();
+            let at = guard
+                .progress
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner)
+                .at;
+            store
+                .observe_attempt_health(
+                    &attempt.id,
+                    &self.worker_id,
+                    at,
+                    self.stall_seconds,
+                    0,
+                    now(),
+                )
+                .await?;
             store
                 .record_result(&attempt.id, &self.worker_id, artifacts, checks, now())
                 .await?;
@@ -480,6 +518,30 @@ impl OrganizationRuntime {
                 store
                     .heartbeat_attempt(&attempt.id, &self.worker_id, now())
                     .await?;
+                let (at, inactive) = {
+                    let progress = guard
+                        .progress
+                        .lock()
+                        .unwrap_or_else(std::sync::PoisonError::into_inner);
+                    (progress.at, progress.since.elapsed().as_secs())
+                };
+                if !store
+                    .observe_attempt_health(
+                        &attempt.id,
+                        &self.worker_id,
+                        at,
+                        self.stall_seconds,
+                        inactive,
+                        now(),
+                    )
+                    .await?
+                {
+                    guard
+                        .progress
+                        .lock()
+                        .unwrap_or_else(std::sync::PoisonError::into_inner)
+                        .since = std::time::Instant::now();
+                }
             }
         };
         drive_attempt(
@@ -778,7 +840,21 @@ struct AttemptGuard {
     stop: CancellationToken,
     serial: Arc<tokio::sync::Mutex<()>>,
     dispatched: Mutex<HashMap<String, OwnedMutexGuard<()>>>,
+    progress: Arc<Mutex<Progress>>,
     _execution_owner: Arc<File>,
+}
+
+#[derive(Debug)]
+struct Progress {
+    since: std::time::Instant,
+    at: Option<i64>,
+}
+
+impl Progress {
+    fn record(&mut self) {
+        self.since = std::time::Instant::now();
+        self.at = Some(now());
+    }
 }
 
 impl AttemptGuard {
@@ -844,6 +920,7 @@ impl ModelRequestContributor for AttemptGuard {
                 worker_id: self.worker_id.clone(),
                 sequence,
                 prior,
+                progress: self.progress.clone(),
             }) as Box<dyn ModelResponseInterceptor>))
         })
     }
@@ -855,6 +932,7 @@ struct UsageReceipt {
     worker_id: String,
     sequence: u32,
     prior: i64,
+    progress: Arc<Mutex<Progress>>,
 }
 impl ModelResponseInterceptor for UsageReceipt {
     fn intercept(self: Box<Self>, stream: ModelResponseStream) -> ModelResponseStream {
@@ -864,7 +942,23 @@ impl ModelResponseInterceptor for UsageReceipt {
             let worker = self.worker_id.clone();
             let sequence = self.sequence;
             let prior = self.prior;
+            let progress = self.progress.clone();
             async move {
+                if matches!(
+                    &event,
+                    Ok(ResponseEvent::OutputItemDone(_)
+                        | ResponseEvent::OutputItemAdded(_)
+                        | ResponseEvent::OutputTextDelta(_)
+                        | ResponseEvent::ToolCallInputDelta { .. }
+                        | ResponseEvent::ReasoningSummaryDelta { .. }
+                        | ResponseEvent::ReasoningContentDelta { .. }
+                        | ResponseEvent::Completed { .. })
+                ) {
+                    progress
+                        .lock()
+                        .unwrap_or_else(std::sync::PoisonError::into_inner)
+                        .record();
+                }
                 if let Ok(ResponseEvent::Completed { token_usage, .. }) = &event {
                     let Some(usage) = token_usage else {
                         return Err(ModelResponseError::Stream(
@@ -977,6 +1071,10 @@ impl ToolLifecycleContributor for AttemptGuard {
 
     fn on_tool_finish<'a>(&'a self, input: ToolFinishInput<'a>) -> ToolLifecycleFuture<'a> {
         Box::pin(async move {
+            self.progress
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner)
+                .record();
             let permit = self
                 .dispatched
                 .lock()

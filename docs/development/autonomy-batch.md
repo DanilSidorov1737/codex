@@ -192,3 +192,32 @@ match reuse existing owner API/forms. Notes stay untrusted context and grant no
 permissions. **61 organization state tests pass**, including agent-write denial,
 project/outsider isolation, exact provenance, corrections and revoked membership
 across restart. New UI and physical qualification remain pending.
+
+Items 10/11 implementation checkpoint: optional host stall threshold
+`CODEX_ORGANIZATION_STALL_SECONDS=10..3600`, actual model/tool progress and a
+canonical stop reason in execution views/inspector. Waiting approvals,
+dependencies and paused runs are exempt; existing task deadlines still advance.
+Stalls atomically fail/fence uncertain effects, preserving accounting. A reviewable
+Linux `daemon service-unit` renders the existing foreground managed app-server;
+no supervisor, automatic service activation or new dependency. Native clients
+already attach to a ready foreground control socket.
+
+Offline `organization bundle-backup --destination PATH --offline` and
+`bundle-restore --bundle PATH --destination FRESH_HOME` reuse native SQLite
+snapshots and verified business restoration. A private directory manifest hashes
+business/runtime databases, session JSONLs and complete isolated workspaces;
+IDs/grants/usage/receipts are retained and native indexes/workspace paths relocated.
+Credentials, configuration and owner original projects are excluded. Owner
+quiescence is required across all runtime writers; execution ownership and live
+control-socket checks also refuse a running organization service. Limits are
+10,000 files, 64 MiB/file, 512 MiB total and 32 directory levels; unsafe files,
+links, path aliases, corruption and existing restore homes are refused. A failed
+private partial directory remains for inspection and is not a completed bundle.
+
+**65 organization state tests pass**, including trigger evidence precedence,
+health/approval-wait/restart uncertainty, full workspace/runtime/session restore,
+credential exclusion, live-owner lock refusal, corrupt/path-injected manifests
+before destination creation and symlink refusal. Initial compile failures
+(unimported test trait/incorrect view field/dynamic SQL) and a real trailing-slash
+runtime relocation mismatch were corrected; logs are preserved. Native service,
+new-package UI and complete recovery/Apply qualification remain pending.

@@ -1,6 +1,7 @@
 use super::*;
 use codex_protocol::organization::*;
 use codex_protocol::organization_execution::*;
+use std::io::Write;
 
 #[path = "organization_coordination_tests.rs"]
 mod coordination;
@@ -1539,3 +1540,295 @@ async fn goal_project_task_graph_validation_is_atomic_and_durable() -> Result<()
 }
 #[path = "organization_schedule_tests.rs"]
 mod schedules;
+
+#[tokio::test]
+async fn stall_health_exempts_approval_waits_and_fences_uncertain_effects_without_reset()
+-> Result<()> {
+    let home = Fixture::new();
+    let store = OrganizationStore::open(&home.0).await?;
+    let (worker, attempt) = authorized_attempt(&store, true).await?;
+    store
+        .admit_model_request(&attempt.id, &worker, 1001)
+        .await?;
+    store.checkpoint_usage(&attempt.id, &worker, 1, 9).await?;
+    let action = store
+        .prepare_action(&attempt.id, &worker, "stall", "exec_command", "{}", 1001)
+        .await?;
+    assert!(
+        !store
+            .observe_attempt_health(&attempt.id, &worker, Some(1001), Some(10), 100, 1002)
+            .await?,
+        "owner waits are not stalls"
+    );
+    store
+        .decide_approval(
+            action.approval_id.as_ref().unwrap(),
+            &action.action_hash,
+            true,
+            1002,
+        )
+        .await?;
+    assert!(store.dispatch_action(&action.id, &worker, 1002, 2).await?);
+    assert!(
+        store
+            .observe_attempt_health(&attempt.id, &worker, Some(1001), Some(10), 0, 1002)
+            .await?
+    );
+    assert!(
+        store
+            .observe_attempt_health(&attempt.id, &worker, Some(1001), Some(10), 10, 1012)
+            .await
+            .is_err()
+    );
+    let view = store.execution_view(&attempt.task_id).await?;
+    assert_eq!(view.task.state, "failed");
+    assert_eq!(view.actions[0].state, OrganizationActionState::Uncertain);
+    assert_eq!(
+        (
+            view.authorization_used_tokens,
+            view.authorization_model_requests
+        ),
+        (9, 1)
+    );
+    assert_eq!(view.attempts[0].last_progress_at, Some(1001));
+    assert!(
+        view.attempts[0]
+            .stop_reason
+            .as_deref()
+            .unwrap()
+            .contains("stall")
+    );
+    assert!(
+        store
+            .dispatch_action(&action.id, &worker, 1013, 2)
+            .await
+            .is_err()
+    );
+    store.close().await;
+    let store = OrganizationStore::open(&home.0).await?;
+    assert_eq!(store.execution_view(&attempt.task_id).await?, view);
+    assert_eq!(store.reconcile_interrupted_attempts().await?, 0);
+    Ok(())
+}
+
+#[tokio::test]
+async fn full_bundle_restores_evidence_runtime_paths_and_uncertain_accounting_without_credentials()
+-> Result<()> {
+    use sha2::{Digest, Sha256};
+    let home = Fixture::new();
+    let bundle = Fixture::new();
+    let destination = Fixture::new();
+    let workspace = Fixture::new();
+    let store = OrganizationStore::open(&home.0).await?;
+    private_directory(&workspace.0).await?;
+    private_file(&workspace.0.join("report.txt"), true)?.write_all(b"checked evidence")?;
+    private_file(&home.0.join("auth.json"), true)?.write_all(b"excluded test credential")?;
+    let (worker, attempt) = authorized_attempt(&store, false).await?;
+    store
+        .bind_attempt_runtime(
+            &attempt.id,
+            &worker,
+            &OrganizationRuntimeBinding {
+                workspace: workspace.0.to_str().unwrap().into(),
+                turn_id: None,
+                artifact_bases: vec![OrganizationArtifactBase {
+                    path: "report.txt".into(),
+                    sha256: None,
+                }],
+            },
+            1001,
+        )
+        .await?;
+    store
+        .admit_model_request(&attempt.id, &worker, 1001)
+        .await?;
+    store.checkpoint_usage(&attempt.id, &worker, 1, 9).await?;
+    let result = store
+        .record_result(
+            &attempt.id,
+            &worker,
+            vec![OrganizationArtifactEvidence {
+                path: "report.txt".into(),
+                sha256: format!("{:x}", Sha256::digest(b"checked evidence")),
+                bytes: 16,
+            }],
+            vec![OrganizationCheckEvidence {
+                argv: execution_scope().checks[0].clone(),
+                exit_code: Some(0),
+                output: "actual state test".into(),
+                truncated: false,
+            }],
+            1002,
+        )
+        .await?;
+    let v = store.execution_view(&attempt.task_id).await?;
+    store
+        .accept_result(&attempt.task_id, v.task.revision, &result.digest)
+        .await?;
+    let (other_worker, other) = authorized_attempt(&store, false).await?;
+    store
+        .admit_model_request(&other.id, &other_worker, 1003)
+        .await?;
+    let action = store
+        .prepare_action(
+            &other.id,
+            &other_worker,
+            "interrupted",
+            "exec_command",
+            "{}",
+            1003,
+        )
+        .await?;
+    store
+        .dispatch_action(&action.id, &other_worker, 1003, 2)
+        .await?;
+    private_directory(&home.0.join("sessions")).await?;
+    let rollout = home.0.join("sessions/thread.jsonl");
+    private_file(&rollout, true)?.write_all(b"{\"type\":\"test receipt\"}\n")?;
+    let config = crate::SqliteConfig::from_sqlite_home(
+        codex_utils_absolute_path::AbsolutePathBuf::try_from(home.0.clone())?,
+    );
+    private_file(&config.state_db_path(), true)?;
+    let pool = SqlitePoolOptions::new()
+        .max_connections(1)
+        .connect_with(SqliteConnectOptions::new().filename(config.state_db_path()))
+        .await?;
+    sqlx::query(
+        "CREATE TABLE threads(id TEXT PRIMARY KEY,rollout_path TEXT NOT NULL,cwd TEXT NOT NULL)",
+    )
+    .execute(&pool)
+    .await?;
+    sqlx::query("INSERT INTO threads VALUES('test',?,?)")
+        .bind(rollout.to_str())
+        .bind(workspace.0.to_str())
+        .execute(&pool)
+        .await?;
+    pool.close().await;
+    let lock = store.acquire_execution_owner()?;
+    assert!(store.backup_bundle(&home.0, &bundle.0).await.is_err());
+    assert!(
+        !bundle.0.exists(),
+        "live execution refused before bundle creation"
+    );
+    drop(lock);
+    store.backup_bundle(&home.0, &bundle.0).await?;
+    assert!(!bundle.0.join("auth.json").exists());
+    let restored = OrganizationStore::restore_bundle(&bundle.0, &destination.0).await?;
+    assert_eq!(restored.database_id().await?, store.database_id().await?);
+    let view = restored.execution_view(&attempt.task_id).await?;
+    assert_eq!(view.task.state, "accepted");
+    assert_eq!(view.result.as_ref().unwrap().digest, result.digest);
+    assert_eq!(
+        (
+            view.authorization_used_tokens,
+            view.authorization_model_requests
+        ),
+        (9, 1)
+    );
+    let relocated = PathBuf::from(view.attempts[0].workspace.as_ref().unwrap());
+    assert!(relocated.starts_with(&destination.0));
+    assert_eq!(
+        std::fs::read(relocated.join("report.txt"))?,
+        b"checked evidence"
+    );
+    let config = crate::SqliteConfig::from_sqlite_home(
+        codex_utils_absolute_path::AbsolutePathBuf::try_from(destination.0.clone())?,
+    );
+    let pool = SqlitePoolOptions::new()
+        .max_connections(1)
+        .connect_with(SqliteConnectOptions::new().filename(config.state_db_path()))
+        .await?;
+    let (path, cwd): (String, String) = sqlx::query_as("SELECT rollout_path,cwd FROM threads")
+        .fetch_one(&pool)
+        .await?;
+    assert_eq!(
+        path,
+        destination
+            .0
+            .join("sessions/thread.jsonl")
+            .to_str()
+            .unwrap()
+    );
+    assert_eq!(cwd, relocated.to_str().unwrap());
+    pool.close().await;
+    assert_eq!(restored.reconcile_interrupted_attempts().await?, 1);
+    let view = restored.execution_view(&other.task_id).await?;
+    assert_eq!(view.task.state, "needsReconciliation");
+    assert_eq!(view.authorization_model_requests, 1);
+    assert_eq!(view.actions[0].state, OrganizationActionState::Uncertain);
+    assert!(
+        OrganizationStore::restore_bundle(&bundle.0, &destination.0)
+            .await
+            .is_err(),
+        "cannot replace a recovered home"
+    );
+    restored.close().await;
+    store.close().await;
+    Ok(())
+}
+
+#[tokio::test]
+async fn full_bundle_refuses_corruption_and_path_injection_before_destination_creation()
+-> Result<()> {
+    let home = Fixture::new();
+    let bundle = Fixture::new();
+    let bad = Fixture::new();
+    let store = OrganizationStore::open(&home.0).await?;
+    store.backup_bundle(&home.0, &bundle.0).await?;
+    let manifest = bundle.0.join("manifest.json");
+    let original = std::fs::read(&manifest)?;
+    let mut value: serde_json::Value = serde_json::from_slice(&original)?;
+    value["files"][0]["path"] = "../escape".into();
+    std::fs::write(&manifest, serde_json::to_vec(&value)?)?;
+    assert!(
+        OrganizationStore::restore_bundle(&bundle.0, &bad.0)
+            .await
+            .is_err()
+    );
+    assert!(!bad.0.exists());
+    std::fs::write(&manifest, &original)?;
+    std::fs::write(
+        bundle.0.join("organization/organization.sqlite"),
+        b"corrupt",
+    )?;
+    assert!(
+        OrganizationStore::restore_bundle(&bundle.0, &bad.0)
+            .await
+            .is_err()
+    );
+    assert!(!bad.0.exists());
+    Ok(())
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn full_bundle_refuses_workspace_symlinks_instead_of_reading_owner_files() -> Result<()> {
+    let home = Fixture::new();
+    let workspace = Fixture::new();
+    let bundle = Fixture::new();
+    let store = OrganizationStore::open(&home.0).await?;
+    private_directory(&workspace.0).await?;
+    std::os::unix::fs::symlink(
+        home.0.join("organization/organization.sqlite"),
+        workspace.0.join("leak"),
+    )?;
+    let (worker, attempt) = authorized_attempt(&store, false).await?;
+    store
+        .bind_attempt_runtime(
+            &attempt.id,
+            &worker,
+            &OrganizationRuntimeBinding {
+                workspace: workspace.0.to_str().unwrap().into(),
+                turn_id: None,
+                artifact_bases: vec![OrganizationArtifactBase {
+                    path: "report.txt".into(),
+                    sha256: None,
+                }],
+            },
+            1001,
+        )
+        .await?;
+    assert!(store.backup_bundle(&home.0, &bundle.0).await.is_err());
+    assert!(!bundle.0.join("manifest.json").exists());
+    Ok(())
+}

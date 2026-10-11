@@ -106,3 +106,7 @@ the release matrix for evidence, the $0.345433 rate estimate and operating limit
 The owner approved the [MVP build plan](mvp.md#build-order-and-usable-checkpoints),
 Ponytail implementation and periodic local commits. Follow the recorded scope and
 evidence gates; do not infer external operational or spending authority.
+
+Current autonomy batch details: [approved delivery](autonomy-batch.md),
+[local background health and full recovery](background-and-recovery.md) and
+[owner Neovim configuration sample](neovim-owner.lua).

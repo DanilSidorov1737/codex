@@ -148,6 +148,9 @@ impl OrganizationStore {
                 reported_tokens: 0,
                 model_requests: 0,
                 reported_model_requests: 0,
+                last_progress_at: None,
+                stall_seconds: None,
+                stop_reason: None,
             };
             sqlx::query("INSERT INTO organization_attempts(id,task_id,authorization_id,generation,thread_id,worker_id,lease_until,state,data) VALUES (?,?,?,?,?,?,?,'running',?)")
                 .bind(&attempt.id).bind(&task_id).bind(&authorization.id).bind(attempt.generation).bind(thread_id).bind(worker_id).bind(attempt.lease_until).bind(serde_json::to_string(&attempt)?).execute(&mut *tx).await?;

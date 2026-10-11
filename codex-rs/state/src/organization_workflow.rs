@@ -385,9 +385,15 @@ impl OrganizationStore {
             {
                 let data: String = sqlx::query_scalar("SELECT r.data FROM organization_results r JOIN organization_attempts p ON p.id=r.attempt_id JOIN organization_tasks t ON t.id=p.task_id WHERE t.id=? AND t.project_id=? AND t.authorization_id=? AND p.authorization_id=t.authorization_id AND t.state='accepted' AND r.digest=? AND json_extract(r.data,'$.accepted')=1").bind(task_id).bind(&task.project_id).bind(authorization_id).bind(series.source_result_digest.context("trigger result digest missing")?).fetch_one(&mut *tx).await?;
                 let mut result: OrganizationTaskResult = serde_json::from_str(&data)?;
-                result
-                    .artifacts
-                    .retain(|artifact| scope.input_files.contains(&artifact.path));
+                result.artifacts.retain(|artifact| {
+                    scope.input_files.contains(&artifact.path)
+                        && !inputs.iter().any(|(prior, _)| {
+                            prior
+                                .artifacts
+                                .iter()
+                                .any(|item| item.path == artifact.path)
+                        })
+                });
                 if !result.artifacts.is_empty() {
                     let data: String =
                         sqlx::query_scalar("SELECT data FROM organization_attempts WHERE id=?")
