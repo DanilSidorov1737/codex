@@ -2,8 +2,13 @@
 
 Approved autonomy batch items 10/11. Use existing native daemon/process/IPC and
 SQLite facilities. No new supervisor, archive library or application dependency.
-Automated state qualification passes; final native service/recovery evidence is
-being collected. This page will be updated with final receipts.
+Automated state and final native recovery qualification pass on application source
+`37eeac36a9`. Exact commands/receipts are in
+[final testing](testing.md#autonomy-batch-final-qualification). Unit syntax validates;
+actual foreground startup/attachment/SIGKILL/restart, silent-stream stall,
+approval-wait exemption, full fresh restore, restored Neovim review/Apply and a
+second restore refusing duplicate Apply pass. User-manager/logout/reboot behavior
+remains unqualified on this host.
 
 ## Linux user service
 
@@ -103,3 +108,21 @@ restore relocates the native indexes and protected business workspace binding.
 Managed interrupted tasks continue only through the existing owner checkpoint
 recovery, which creates a new guarded runtime/workspace. Do not use a generic
 Console resume to replay restored managed-task work or bypass its uncertainty.
+
+## Final native evidence
+
+`autonomy-batch/final/recovery-resume.json` verifies 30 files/2,005,973 bytes,
+seven tasks/grants/workspaces, five accepted results, three notes, two series and
+121 audit events before Apply. Canonical tables/reports match except the volatile
+report generation timestamp. A crashed admitted request remains fenced with the
+same grant/attempt; no inference is replayed. Live backup and corrupted restore
+are refused before a completed output/fresh destination exists.
+
+Seven old workspace paths are intentionally quarantined, with bytes and mapping
+retained, to prove restored review uses relocated files. The real official Neovim
+diff and exact two-file Apply pass; owner-original immutable checks pass.
+`restored-review-finish.json` verifies a second full bundle/fresh home retaining
+the completed application and refusing repeat Apply, normal CLI exit 0, unchanged
+provider response count and stopped owned services. All five package assets match
+in both restored homes. Preserve these homes, bundles and failed driver receipts;
+never rerun their mutations or restart the quarantined source home.

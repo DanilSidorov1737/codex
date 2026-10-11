@@ -1,5 +1,14 @@
 # Codex CLI fork development
 
+Latest delivery: **all twelve approved autonomy/usability items complete** on
+application source `37eeac36a9`, with **770 selected automated checks** and actual
+CLI/TUI/official-Neovim, mixed-GPT, automation, team-knowledge, crash/full recovery
+and restored review/Apply evidence. Read [current status](status.md),
+[batch contracts](autonomy-batch.md) and [final tests](testing.md#autonomy-batch-final-qualification).
+External integrations are deferred; systemd logout/reboot remains untested on this
+host. Current captures: `/workspace/artifacts/cli-autonomy-batch/cli-autonomy-batch-screenshots.zip`.
+The previous checkpoints below remain historical evidence.
+
 Phase: **B1–B6 implemented/qualified, including bounded real GPT-5.5 pilots**.
 The owner-approved TUI creation/authorization and concept-art dashboard usability
 slice is also qualified on application source `46d999bf5b`; see status.md and layouts.md.

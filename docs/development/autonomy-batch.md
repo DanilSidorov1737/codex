@@ -25,7 +25,61 @@ Start with whole-workflow controls and shared limits before more automatic work.
 | 11 | Full backup/restore: owner bundle covers business/runtime state, task workspaces/artifacts with integrity manifest; restore to a fresh home and prove review/accounting/recovery. Preserve originals/credentials; uncertainty remains fenced. |
 | 12 | Qualification throughout: meaningful negative/restart/concurrency tests, actual CLI/TUI/official-Neovim workflows, exact evidence/failures/limits, maintained docs and logical local commits. |
 
-## Progress and resumption
+## Final delivery and resumption
+
+**All twelve approved bounded items are implemented and qualified.** Final
+application source: `37eeac36a9`; later commits update documentation only. Complete
+package: `/workspace/.onboarding/qualification/autonomy-batch/final/package/bin/codex`.
+CLI SHA256: `1505455e2a0ea73250d5c4b3eab10b3390c3c762e72b700dba9eb6eb7bf4ca80`.
+
+**770 distinct selected automated checks pass**, production CLI Clippy denies
+warnings, full CLI/package build and workspace formatting pass. Actual native
+evidence covers whole-run controls/shared limits; editable goal planning; saved
+panes; official Neovim owner config/matchit/native Rust LSP; compatible mixed-GPT
+execution; finite workflows/accepted triggers; owner-reviewed team knowledge;
+foreground crash/stall recovery; full fresh-home restoration; restored Neovim
+diff, exact acceptance/Apply and another restoration refusing duplicate Apply.
+All five installed package assets match in both restored homes. See the final
+[testing matrix](testing.md#autonomy-batch-final-qualification) for exact counts,
+commands, receipts and preserved failures.
+
+Ponytail implementation/review reused protected SQLite transactions, native
+workflow execution, owner RPC/forms, scoped notes, actual Neovim and the existing
+foreground daemon. No new application dependency, custom supervisor/editor,
+general workflow DSL or automatic acceptance/Apply was introduced. Series
+creation uses explicit CLI JSON; canonical visibility and controls are in the TUI.
+Console retains native conversation settings; dashboard pane controls apply to
+the four dashboard layouts.
+
+Linux unit syntax validates and actual foreground attachment/SIGKILL/restart pass.
+The host has no running systemd user manager, so logout/reboot/automatic systemd
+restart remain unqualified. Offline bundles require stopping every runtime writer;
+they exclude credentials/configuration/owner originals. Historical rollout context
+stays historical; interrupted managed tasks require guarded owner recovery.
+Reported token caps can be exceeded by already-admitted requests; they are not
+provider money caps. General plugin compatibility, unsaved-buffer crash recovery,
+shared-buffer merging, other platforms, greater active concurrency, distributed
+workers and external integrations remain outside this qualification.
+
+Mixed GPT-5.4 Mini/GPT-5.5 pilot: four real requests, **$0.0198223 new estimated
+spend / $0.3652553 historical combined**, below the conservative $1 ceiling.
+Final local fixture: 15 admitted requests/195 reported tokens/zero paid requests,
+including the separate interrupted setup's two responses/30 tokens. The corrected
+fresh home has 13 admissions/11 reported responses/165 tokens; its two unknown
+requests remain fenced. Nothing was reset or replayed. Owned services are stopped.
+
+Preserve all homes, grants, usage, failed drivers, completed Apply, bundles and
+`final/workspace-quarantine.json`; seven old workspace paths were moved aside to
+prove independence, with bytes retained. Do not restart the original source home
+or rerun any historical fixture script. No approved batch implementation remains;
+select the next bounded scope with the owner. Screenshots: 70 actual PNG/text
+pairs in the CRC-checked 142-entry archive
+`/workspace/artifacts/cli-autonomy-batch/cli-autonomy-batch-screenshots.zip`.
+
+## Historical implementation checkpoints
+
+Pending markers below record intermediate checkpoints and are superseded by the
+final delivery above; retain them with their failure evidence.
 
 Initial source: `db0c2161e93a5bfee345fec8894e067b900ee384`; worktree clean.
 Status: **in progress**. Item 5 implementation checkpoint adds versioned run
@@ -257,5 +311,10 @@ The bundle contains 30 files/2,005,973 bytes, including business/runtime databas
 JSONLs and workspaces. Live service backup and hash-corrupted restore are refused.
 The initial report equality check compared volatile generatedAt timestamps; every
 other report field and full canonical table match passes. No original writes or
-new inference occurred. Restored native Neovim review/Apply is the final pending
-qualification step; do not replay prior authority or reset counters.
+new inference occurred at that checkpoint. Restored native Neovim review/Apply
+subsequently passed in `final/restored-review-finish.json`: one two-file Apply,
+immutable original-file check, normal CLI exit 0 and a second full bundle/fresh
+restore with the completed receipt retained and repeat Apply refused. The failed
+drivers are preserved: accepted tasks are outside Review's pending-action inbox;
+a plain `1` in Console is text, so the corrected exit used global F1 then `/quit`.
+Only remaining checks were continued, without replaying the completed Apply.

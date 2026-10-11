@@ -91,6 +91,18 @@ Neovim configuration/LSP and other listed local features. Preserve exact grants,
 review/Apply, uncertainty fences and minimal spending. No repeated approval is
 needed for ordinary slices; update progress and evidence continuously.
 
+This revised autonomy batch is now complete/qualified on application source
+`37eeac36a9`: 770 selected automated checks and actual CLI/TUI/official-Neovim,
+mixed-GPT, finite automation/team knowledge, crash/full restore and one restored
+Apply pass. See the latest status and final testing section. All owned services
+are stopped. Preserve every autonomy fixture/home, failed driver, grant, usage,
+bundle and completed Apply. Never rerun their setup/authorization/review/Apply,
+reset ceilings, redo paid pilots or restart the original quarantined source home;
+read `final/workspace-quarantine.json`. Linux unit syntax/foreground recovery pass,
+but systemd user-manager/logout/reboot remains unqualified. No approved batch
+implementation remains; choose new scope with the owner. External integrations,
+distributed workers, shared buffers and automatic acceptance/Apply remain deferred.
+
 Read [docs/development/README.md](docs/development/README.md) and
 [status.md](docs/development/status.md) at the start of every session.
 Then read [decisions](docs/development/decisions-and-risks.md),

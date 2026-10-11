@@ -1,5 +1,110 @@
 # Testing procedures and evidence
 
+## Autonomy batch final qualification
+
+2026-10-11 UTC. All twelve approved bounded items are delivered. Final application
+source `37eeac36a9`; later commits are documentation only. Complete package:
+`/workspace/.onboarding/qualification/autonomy-batch/final/package/bin/codex`.
+CLI SHA256: `1505455e2a0ea73250d5c4b3eab10b3390c3c762e72b700dba9eb6eb7bf4ca80`.
+Rust 1.95.0, Node 24.19.0, pnpm 10.34.5, official Neovim 0.12.6 and official
+rust-analyzer 1.95.0. Activate `. /workspace/.onboarding/activate.sh`.
+
+Cargo commands run from `/workspace/codex/codex-rs` with
+`CARGO_INCREMENTAL=0 RUST_MIN_STACK=8388608` and
+`--locked --offline --profile dev-small -j4`. Evidence logs are in
+`/workspace/.onboarding/qualification/`.
+
+| Selected command (common Cargo options above) | Passed | Log |
+| --- | --- | --- |
+| `cargo test -p codex-protocol -p codex-state --lib` | 373 + 293 | `autonomy-final-libs.log` |
+| `cargo test -p codex-protocol --test organization_execution_contract` | 2 | `autonomy-final-wire.log` |
+| `cargo test -p codex-app-server-protocol --lib schema_fixtures_tests -- --skip write_schema_fixtures_from_env` | 4 | `autonomy-final-schema-check.log` |
+| `cargo test -p codex-tui --lib organization` | 52, including actual official Neovim | `autonomy-final-ui.log` |
+| `cargo test -p codex-app-server --lib organization` | 12 | `autonomy-final-runtime.log` |
+| `cargo test -p codex-app-server --test all suite::v2::organization` | 8 actual native API cases | `autonomy-final-native-api.log` |
+| `cargo test -p codex-cli --bin codex organization_service` | 1 | `autonomy-final-service-tests.log` |
+| SDK `python -m pytest tests/test_contract_generation.py tests/test_public_api_signatures.py -q` | 25 | `autonomy-final-sdk-tests.log` |
+
+**770 distinct selected checks; zero failures.** Repetitions and schema writers
+are excluded. Complete state suite includes 65 organization cases: concurrency,
+queue fairness, paused/exhausted admission, descendant/handoff accounting,
+deduplicated finite series, accepted-source pinning/input precedence, project/team
+filtering/correction/revocation, health exemptions/unknown effects and full recovery
+integrity/path/lock refusals. Neither denied assertions nor integrity checks were
+disabled. Native IPC/process/sandbox/Neovim cases use authorized native execution
+because the outer cloud sandbox masks protected control paths.
+
+Production `cargo clippy -p codex-cli --bin codex -- -D warnings`, full
+`cargo build -p codex-cli --bin codex`, existing full-package builder and
+`cargo fmt --all --check` pass: `autonomy-recovery-clippy-v4.log`,
+`autonomy-final-build.log`, `autonomy-final-package.log`, `autonomy-final-format.log`.
+The stable rustfmt import-option warning does not change the passing exit.
+Raw stable/experimental schema writers run explicitly (the intentionally ignored
+writer is not an omitted test): `autonomy-final-schema-{stable,experimental}-raw.log`.
+JSON/TypeScript/precomputed exports and Python SDK types are regenerated; SDK
+generation uses its existing activated venv so ruff is on PATH.
+`final/final-asset-verification.json` independently matches all five package files
+(CLI, code-mode-host, bwrap, rg and manifest) in both fresh restored installations.
+
+Physical evidence root: `/workspace/.onboarding/qualification/autonomy-batch/`.
+These scripts are completed evidence, **not commands to rerun**:
+
+| Receipt | Actual interaction and independent outcome |
+| --- | --- |
+| `physical-v3.json`, `restart-controls.json` | Whole-run pause/refused paused approval/same-grant and attempt continuation/cancellation, shared limits, accepted prerequisites, immutable native checks, actual Neovim diff and one explicit Apply; 36 switches at three sizes and restart retain usage. |
+| `planning-final-readonly.json` | Goal creates only proposed planner work; accepted plan opens editable idle workflow; pane preferences survive restart; actual owner config/matchit/Rust LSP diagnostics/definition/native completion/fix/save/config SHA and normal exit 0. |
+| `mixed-models/{receipt,accounting}.json` | Four real OpenAI Responses requests: GPT-5.4 Mini + GPT-5.5, actual checks/acceptance, one Apply. New estimate $0.0198223; historical combined $0.3652553, below conservative $1 ceiling. |
+| `final/physical-resume-v2.json` | Five immutable checked/accepted tasks; two chained exact accepted-result follow-ups with newer prerequisite bytes; owner team promotion/correction, stale denial, live outsider membership grant/revocation; two finite recurring invocations/pause/resume/cancel; 25 skipped missed/overlapping intervals; actual silent keepalive stall; 36 switches at 120×36 / 50×20 / 160×48; exit 0. |
+| `final/unit-verify.json` | `systemd-analyze verify` exits 0 for the printed unit. Actual foreground command stays independent of the TUI and clients attach. This host has no running user manager: no logout/reboot/automatic systemd restart claim. |
+| `final/recovery-resume.json` | Actual owned foreground SIGKILL/restart retains unknown request/grant/attempt and fences replay; live backup refuses; 30-file/2,005,973-byte full bundle restores all canonical tables/reports (except generatedAt), runtime JSONLs and seven workspaces to a fresh home; original workspace paths quarantined; corrupted restore refuses before destination creation. |
+| `final/restored-review-finish.json` | Prior driver's actual official-Neovim relocated diff and exact two-file Apply retained; immutable owner-original oracle passes; frontend/backend duplicate refusal; corrected normal exit 0; another full bundle/fresh restore preserves the completed application and refuses replay without another intent/response. |
+| `final/cleanup.json` | Owned native daemons/providers are stopped; all homes, grants, usage, artifacts, bundles and failures retained. |
+
+Final deterministic provider accounting: **15 admitted / 195 reported fixture
+tokens / zero paid requests**, unchanged across crash/restores/Apply. Corrected
+fresh home: 13 admissions, 11 reported responses/165 tokens; one actual stall and
+one crash remain unknown/fenced. Separate interrupted setup: two reported
+responses/30 tokens. Never conflate fixture labels with live model intelligence
+or billing. Real pilot estimates are not invoices/taxes or provider hard caps;
+CodeModeOnly Luna remains refused and no additional paid calls were made.
+
+Failures and corrected outcomes are retained. Compile/type/lint/schema issues are
+recorded in the historical baseline below. A preparation command's process-group
+cleanup terminated its foreground child; the corrected fixture used a dedicated
+retained session without resetting the interrupted home. UUID search selected a
+related limit row instead of a series; exact label selection corrected the driver.
+A resume assertion missed immediate issuance of the final finite occurrence;
+only pending work was continued. A report comparison included volatile generatedAt;
+all other fields and tables match independently. Review is a pending-action inbox,
+so restored accepted tasks were opened in Workspace. A final exit helper sent a
+plain `1` while already in Console, submitting unintended text; credentials were
+removed and no provider response was recorded. Global F1 then `/quit` passes.
+The already-completed Apply was never replayed; only remaining exit/restore checks
+continued. Preserve both failed review receipts/screens and the successful finish.
+
+Screenshot evidence: **70 actual PNG/text pairs**, **142 CRC-checked ZIP entries**,
+including SHA256 manifest and README:
+`/workspace/artifacts/cli-autonomy-batch/cli-autonomy-batch-screenshots.zip`.
+Archive SHA256: `e5fa3103f2912593bbc740b8dc353c3354a42b429af8ca78c7d6ede9fbfe513d`.
+PNGs are unmodified captures of actual CLI/official-Neovim native grids, with
+clearly named failure captures retained. Operations and restored Neovim diff were
+visually inspected. Selected images are alongside the archive; no credentials,
+private databases, bundle contents or session JSONLs are packaged in it.
+
+Limits: single-owner Linux, existing default-two/max-four active executions,
+finite explicit series/scopes and native-compatible models. Series creation is
+CLI JSON with TUI visibility/controls; completed means all bounded invocations
+issued, not their tasks accepted. Console uses native conversation settings.
+Offline full bundles require stopping all writers; config/auth/owner originals
+are separate, and historical rollout context is not rewritten into new authority.
+Unsaved crash restoration, general plugin compatibility, shared buffers, greater
+concurrency, other platforms, distributed workers, external integrations, full
+Rust/Bazel suite and actual systemd logout/reboot remain unqualified.
+
+Preserve all historical fixtures and `final/workspace-quarantine.json`; never
+restart the quarantined source home, rerun drivers/grants/Apply, reset counters or
+redo paid pilots. Use fresh scoped fixtures only for newly authorized checks.
+
 ## Review, reports, inventory and native selection qualification
 
 2026-10-11 UTC, expanded-batch items 7–12. Workflow source

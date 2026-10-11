@@ -1,15 +1,75 @@
 # Current status and resumption instructions
 
-The owner approved the revised [autonomy/usability batch](autonomy-batch.md).
-Implementation is in progress. Whole-run controls/shared limits, goal planning,
-saved panes, actual Neovim configuration/LSP and bounded mixed-model pilots are
-qualified. Finite workflow automation, team knowledge, background health and full
-recovery have passing state/contract baselines; final native qualification is
-running. External integrations are deferred. Earlier sections below are historical
-evidence; read the latest autonomy checkpoint before resuming.
+The revised [autonomy/usability batch](autonomy-batch.md) is **complete: all twelve
+approved bounded items are implemented and qualified**. **770 selected automated
+checks** and actual CLI/TUI/official-Neovim checks pass. External integrations are
+deferred. Read this latest checkpoint before the historical evidence below.
+
+## Latest checkpoint: autonomy batch complete
+
+Final application source `37eeac36a9`; later commits are documentation only.
+Package: `/workspace/.onboarding/qualification/autonomy-batch/final/package/bin/codex`.
+CLI SHA256: `1505455e2a0ea73250d5c4b3eab10b3390c3c762e72b700dba9eb6eb7bf4ca80`.
+Production CLI Clippy, full build/package, formatting, generated schema/type
+comparisons and all five installed assets in both restored homes pass. Read
+[final testing](testing.md#autonomy-batch-final-qualification).
+
+Delivered: saved dashboard panes, compatible mixed-GPT qualification, shared
+project/run caps, goal-to-editable-workflow planning, whole-run controls, finite
+recurring workflows, deduplicated accepted-result follow-ups, owner-reviewed
+project/team knowledge, actual owner-configured Neovim/matchit/Rust LSP, Linux
+unit generation/canonical stall health and complete offline recovery bundles.
+Existing grants/approvals/checks/acceptance/Apply and unknown-effect fences remain.
+No new application dependencies, custom editor or supervisor were added.
+
+Passing receipts under `/workspace/.onboarding/qualification/autonomy-batch/`:
+`physical-v3.json`, `restart-controls.json`, `planning-final-readonly.json`,
+`mixed-models/receipt.json`, `final/physical-resume-v2.json`,
+`final/recovery-resume.json`, `final/restored-review-finish.json`,
+`final/final-asset-verification.json` and `final/cleanup.json`.
+Actual controls, immutable subprocess checks, five checked/accepted tasks,
+two finite invocations, team correction/member revocation, native Neovim diff,
+one exact Apply, crash reconciliation and two fresh restores refusing replay pass.
+36 rapid switches at three sizes pass; native exits are 0. All owned services stop.
+
+Four live mixed-model requests estimate $0.0198223 new / $0.3652553 combined
+historical spend, below the conservative $1 ceiling; estimates are not invoices.
+The final local provider has 15 admissions/195 reported fixture tokens/zero paid:
+13 admissions/165 reported tokens in the corrected fresh home, including two
+retained unknown requests, plus two responses/30 tokens in interrupted setup.
+No limits or receipts were reset. No further paid inference is planned.
+
+Linux unit syntax and actual foreground SIGKILL/restart pass; systemd logout,
+reboot and automatic service restart cannot be tested on this host (PID 1 is
+`tail`). Bundles require every runtime writer stopped, exclude config/credentials
+and owner originals, and relocate indexes/workspaces while preserving historical
+rollout context. Managed interrupted tasks require owner checkpoint recovery.
+General plugins, unsaved crash restoration, shared buffers, greater concurrency,
+additional platforms/providers and remote workers remain unqualified.
+
+Preserve `automation-home`, `automation-home-v2`, `restored-home`,
+`restored-again-home`, all failed scripts/receipts, scopes/accounting, the completed
+Apply, both valid bundles and damaged-bundle refusal evidence. Seven original
+workspace paths are intentionally quarantined with bytes and mapping retained;
+do not restart the original source home or blindly rerun any fixture driver.
+Planner and live-pilot historical grants also must not be replayed. Next action:
+choose the next bounded scope with the owner; no approved implementation remains.
+
+Screenshots: `/workspace/artifacts/cli-autonomy-batch/cli-autonomy-batch-screenshots.zip`
+(70 actual PNG/text pairs, 142 CRC-checked entries). Selected Operations, restored
+Neovim diff, native LSP, goal-plan and recurrence PNGs are alongside the archive.
+
+Cloud setup: tested current startup guidance is saved in environment draft
+revision 15 and `/workspace/.onboarding/autonomy-batch-start-skill.md`.
+Repository membership, install script, network/credential metadata remain unchanged.
+Saving is not publication: review/save environment settings and publish the
+refreshed snapshot to retain the installed setup and local work. No push or
+publication occurred; fresh-task restoration of local-only commits is unverified.
+
+## Historical MVP and expanded-batch checkpoints
 
 Phase 0: **exploration and planning complete for available inputs**.
-Current work: **N1/N2/N3 and all 12 expanded-batch items complete and qualified**.
+Historical checkpoint: **N1/N2/N3 and all 12 expanded-batch items complete and qualified**.
 Application features: **delivered for the documented single-owner Linux envelope**.
 The MVP's release criteria are **qualified for the documented single-owner Linux/GPT-5.5 envelope**.
 
@@ -754,14 +814,17 @@ authorize push/publication, outbound communications or unbounded provider spendi
 - A05 passed real GPT-5.5 coding, delegation and document checks plus review/Apply.
   This qualifies small supplied fixtures and the documented native-tool provider;
   broader models/tasks and provider invoice validation remain unqualified.
-- Clean official Neovim 0.12.6 is qualified. User plugins/configs, unsaved crash
-  restoration, shared-buffer merging and uncoordinated external writers are not.
-  Saved files survive; clean mode disables swap. Use disjoint parallel artifacts.
+- Official Neovim 0.12.6 clean mode and the explicitly selected owner config,
+  bundled matchit and native Rust LSP are qualified. General plugin compatibility,
+  unsaved crash restoration, shared-buffer merging and uncoordinated external
+  writers are not. Saved files survive; clean mode disables swap.
 - Single-owner Linux and one verified provider binding are the current envelope.
-  More platforms/providers, remote workers, recurring workflows, larger active
-  concurrency and broader integrations remain later roadmap phases.
-- Canonical snapshots exclude separate runtime/project metadata and artifact
-  workspaces. Full host recovery requires preserving/reconciling those too.
+  More platforms/providers, remote workers, larger active concurrency and broader
+  integrations remain later roadmap phases. Finite recurring workflows are now
+  qualified within the autonomy batch's explicit ceilings.
+- Business-only snapshots remain narrow. The new full offline bundle includes
+  native runtime databases, sessions and recorded isolated workspaces/artifacts;
+  credentials/configuration and owner originals must be retained separately.
 - Separate PDF is absent; supplied text and all seven concept images were reviewed.
   Standalone upstream Ponytail hooks are optional/uninstalled; session skills and
   the documented review process were used.
@@ -776,7 +839,7 @@ authorize push/publication, outbound communications or unbounded provider spendi
 1. Read AGENTS.md, this status, release matrix, MVP, decisions and testing.
 2. Check Git status/log and preserve changes in the existing checkout.
 3. Activate the pinned environment with `. /workspace/.onboarding/activate.sh`.
-   Final package: `/workspace/.onboarding/qualification/workflows-n3/package/bin/codex`.
+   Final package: `/workspace/.onboarding/qualification/autonomy-batch/final/package/bin/codex`.
    Evidence root: `/workspace/.onboarding/qualification/`; fixture services are stopped.
 4. N1, N2, N3 and A05 are complete. Read workflows-n3/{verification,cleanup}.json,
    recurring-schedules-n2/{verification,cleanup}.json,
@@ -784,8 +847,9 @@ authorize push/publication, outbound communications or unbounded provider spendi
    Preserve all historical tasks/results/series and failures; owned services are
    stopped. Never rerun qualification setup/authorization/crash scripts, replay
    authorization/Apply, redo paid pilots or create automatic inference loops.
-   Continue the approved expanded batch above with checkpoints and N4
-   handoffs/blockers; use fresh scoped projects/grants for new approved tests.
+   Both expanded and revised autonomy batches are complete; read the latest
+   checkpoint and select new scope with the owner. Use fresh scoped projects/grants
+   for separately approved tests.
    Preserve expanded-batch/eb-home's accepted/applied report fixture too.
 5. Update acceptance/status/testing and make logical local commits after results.
    Do not start later roadmap phases without matching user scope, or infer push,
@@ -793,8 +857,9 @@ authorize push/publication, outbound communications or unbounded provider spendi
 
 ## Revised autonomy batch reliability/recovery checkpoint
 
-Implementation of all twelve bounded items is now present; final qualification is
-in progress. Latest finite series/team-knowledge source is `75a22f1d72`.
+Historical pre-final checkpoint, superseded by the latest section above.
+Implementation of all twelve bounded items was present; final qualification was
+in progress. Finite series/team-knowledge source was `75a22f1d72`.
 Recovery/health code passes 65 organization state tests; native service/bundle/UI
 qualification and generated-contract refresh are next. Actual goal-planner,
 persisted panes and official-Neovim config/matchit/diagnostics/definition/completion/
