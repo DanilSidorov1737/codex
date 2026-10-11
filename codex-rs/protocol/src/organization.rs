@@ -144,9 +144,12 @@ pub struct OrganizationReplanItem {
 impl OrganizationReplanItem {
     pub fn handoff(&self) -> crate::organization_execution::OrganizationExecutionMutation {
         crate::organization_execution::OrganizationExecutionMutation::Handoff {
-            task_id: self.task_id.clone(), expected_revision: self.expected_revision,
-            checkpoint_id: self.checkpoint_id.clone(), owner_id: self.owner_id.clone(),
-            expected_owner_revision: self.expected_owner_revision, instructions: self.instructions.clone(),
+            task_id: self.task_id.clone(),
+            expected_revision: self.expected_revision,
+            checkpoint_id: self.checkpoint_id.clone(),
+            owner_id: self.owner_id.clone(),
+            expected_owner_revision: self.expected_owner_revision,
+            instructions: self.instructions.clone(),
         }
     }
 }

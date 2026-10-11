@@ -1357,12 +1357,24 @@ impl Dashboard {
         }
     }
     fn decision(&mut self, key: char) {
-        let command = if key=='%' {
+        let command = if key == '%' {
             match self.record() {
                 Some(OrganizationRecord::Control(control)) => match &control.value {
-                    OrganizationControlValue::Replan { id,items,applied_handoff_ids,.. } if applied_handoff_ids.is_empty() => items.first().map(|item|Command::Execution(OrganizationExecutionMutation::ApplyReplan { task_id:item.task_id.clone(),id:id.clone(),expected_revision:control.revision })),
+                    OrganizationControlValue::Replan {
+                        id,
+                        items,
+                        applied_handoff_ids,
+                        ..
+                    } if applied_handoff_ids.is_empty() => items.first().map(|item| {
+                        Command::Execution(OrganizationExecutionMutation::ApplyReplan {
+                            task_id: item.task_id.clone(),
+                            id: id.clone(),
+                            expected_revision: control.revision,
+                        })
+                    }),
                     _ => None,
-                }, _ => None,
+                },
+                _ => None,
             }
         } else if let Some(view) = self.selected_schedule() {
             let action = match key {
@@ -1547,10 +1559,24 @@ impl Dashboard {
             'O' => form::Kind::GlobalControl(self.control("global")),
             '*' => {
                 let policy = match self.record() {
-                    Some(OrganizationRecord::Control(policy)) if matches!(policy.value, OrganizationControlValue::Supervision { .. }) => Some(policy.clone()),
-                    _ => match self.selected_workflow() { Some(OrganizationWorkflowView::Series { series, .. }) => self.control(&format!("supervision:{}", series.id)), _ => None },
+                    Some(OrganizationRecord::Control(policy))
+                        if matches!(policy.value, OrganizationControlValue::Supervision { .. }) =>
+                    {
+                        Some(policy.clone())
+                    }
+                    _ => match self.selected_workflow() {
+                        Some(OrganizationWorkflowView::Series { series, .. }) => {
+                            self.control(&format!("supervision:{}", series.id))
+                        }
+                        _ => None,
+                    },
                 };
-                let Some(policy) = policy else { self.message = "Select a goal supervision policy in owner controls, or its finite series".into(); return; };
+                let Some(policy) = policy else {
+                    self.message =
+                        "Select a goal supervision policy in owner controls, or its finite series"
+                            .into();
+                    return;
+                };
                 form::Kind::SupervisionControl(policy)
             }
             '!' => match self.record() {
@@ -1718,11 +1744,19 @@ impl Dashboard {
                         _ => None,
                     })
                     .collect();
-                if key=='&' { form::Kind::Replan { task:view.task.clone(),checkpoint:checkpoint.clone(),receivers } } else { form::Kind::Handoff {
-                    task: view.task.clone(),
-                    checkpoint: checkpoint.clone(),
-                    receivers,
-                } }
+                if key == '&' {
+                    form::Kind::Replan {
+                        task: view.task.clone(),
+                        checkpoint: checkpoint.clone(),
+                        receivers,
+                    }
+                } else {
+                    form::Kind::Handoff {
+                        task: view.task.clone(),
+                        checkpoint: checkpoint.clone(),
+                        receivers,
+                    }
+                }
             }
             'W' => match self.workflow_items() {
                 Ok((project_id, items)) => form::Kind::WorkflowSave {
@@ -1780,9 +1814,24 @@ impl Dashboard {
             'T' => form::Kind::Task,
             '+' => form::Kind::Discussion,
             '-' => {
-                let Some(OrganizationRecord::Control(control))=self.record() else {self.message="Select a knowledge review control to restore it, or search for an active note and press -".into();return;};
-                let OrganizationControlValue::Knowledge {note_id,body_sha256,..}=&control.value else {self.message="Select a knowledge review control".into();return;};
-                form::Kind::Knowledge {note_id:note_id.clone(),body_sha256:body_sha256.clone(),previous:Some(control.clone())}
+                let Some(OrganizationRecord::Control(control)) = self.record() else {
+                    self.message="Select a knowledge review control to restore it, or search for an active note and press -".into();
+                    return;
+                };
+                let OrganizationControlValue::Knowledge {
+                    note_id,
+                    body_sha256,
+                    ..
+                } = &control.value
+                else {
+                    self.message = "Select a knowledge review control".into();
+                    return;
+                };
+                form::Kind::Knowledge {
+                    note_id: note_id.clone(),
+                    body_sha256: body_sha256.clone(),
+                    previous: Some(control.clone()),
+                }
             }
             's' if self.selected_template().is_some() => {
                 let Some(template) = self.selected_template().cloned() else {
@@ -1800,11 +1849,22 @@ impl Dashboard {
                         "Select a saved workflow template before creating a finite series".into();
                     return;
                 };
-                let goal = self.snapshot.records.iter().find_map(|r| match r {
-                    OrganizationRecord::Project(p) if p.id == template.project_id => p.goal_id.as_ref(), _ => None,
-                }).and_then(|id| self.snapshot.records.iter().find_map(|r| match r {
-                    OrganizationRecord::Goal(g) if &g.id == id => Some(g.clone()), _ => None,
-                }));
+                let goal = self
+                    .snapshot
+                    .records
+                    .iter()
+                    .find_map(|r| match r {
+                        OrganizationRecord::Project(p) if p.id == template.project_id => {
+                            p.goal_id.as_ref()
+                        }
+                        _ => None,
+                    })
+                    .and_then(|id| {
+                        self.snapshot.records.iter().find_map(|r| match r {
+                            OrganizationRecord::Goal(g) if &g.id == id => Some(g.clone()),
+                            _ => None,
+                        })
+                    });
                 form::Kind::WorkflowSeries { template, goal }
             }
             's' => match self.record() {
@@ -2200,12 +2260,32 @@ impl Dashboard {
         if self.memory_request.is_some() {
             match key.code {
                 KeyCode::Char('-') => {
-                    if let Some(Ok(result))=&self.memory_result && let Some(note)=result.notes.first() {
+                    if let Some(Ok(result)) = &self.memory_result
+                        && let Some(note) = result.notes.first()
+                    {
                         use sha2::Digest;
-                        let kind=form::Kind::Knowledge {note_id:note.id.clone(),body_sha256:format!("{:x}",sha2::Sha256::digest(note.body.as_bytes())),previous:self.control(&format!("knowledge:{}",note.id))};
-                        self.form=Some(form::Form::new(kind,&self.snapshot.records,self.record(),&self.model));
-                        self.memory_request=None;self.memory_result=None;self.scroll=0;
-                    } else {self.message="Search for the exact source note before reviewing its retirement".into();}
+                        let kind = form::Kind::Knowledge {
+                            note_id: note.id.clone(),
+                            body_sha256: format!(
+                                "{:x}",
+                                sha2::Sha256::digest(note.body.as_bytes())
+                            ),
+                            previous: self.control(&format!("knowledge:{}", note.id)),
+                        };
+                        self.form = Some(form::Form::new(
+                            kind,
+                            &self.snapshot.records,
+                            self.record(),
+                            &self.model,
+                        ));
+                        self.memory_request = None;
+                        self.memory_result = None;
+                        self.scroll = 0;
+                    } else {
+                        self.message =
+                            "Search for the exact source note before reviewing its retirement"
+                                .into();
+                    }
                 }
                 KeyCode::Char('O') => {
                     if let Some(Ok(result)) = &self.memory_result
@@ -3031,7 +3111,10 @@ impl Dashboard {
             ) {
                 text.push_str("\nQueues one fresh attempt under the original grant and remaining budgets. The old worker stays fenced. Only verified checkpoint inputs/outputs are copied. Uncertain effects, missing usage, active descendants or changed authority prevent continuation. Acceptance and Apply remain separate owner decisions.\n");
             }
-            if matches!(command,Command::Execution(OrganizationExecutionMutation::ApplyReplan { .. })) {
+            if matches!(
+                command,
+                Command::Execution(OrganizationExecutionMutation::ApplyReplan { .. })
+            ) {
                 text.push_str("\nApplies the exact pending checkpoint replacements atomically under their original grants, scopes, deadlines and remaining budgets. Accepted work stays retained. Stale receivers/checkpoints, unknown usage/effects, live runtimes or exhausted limits refuse the whole delta. No automatic acceptance or Apply.\n");
             }
             match command {
@@ -3057,16 +3140,29 @@ impl Dashboard {
             if let Command::Workflow(OrganizationWorkflowMutation::Run { preview }) = command {
                 text.push_str(&format!("\nAuthorizes {} fresh tasks in background. Fixed per-step grants sum to {} tokens / {} requests.\nPrerequisites require owner acceptance. Expired/failed/interrupted grants block work; no automatic restart or Apply.\nToken ceilings allow already-admitted usage; cost estimate unavailable.\n", preview.template.items.len(), preview.max_tokens, preview.max_model_requests));
             }
-            if let Command::Workflow(OrganizationWorkflowMutation::CreateSeries {
-                preview,
-                config,
-                trigger,
-                ..
-            } | OrganizationWorkflowMutation::CreateSupervision { preview, config, trigger, .. }) = command
+            if let Command::Workflow(
+                OrganizationWorkflowMutation::CreateSeries {
+                    preview,
+                    config,
+                    trigger,
+                    ..
+                }
+                | OrganizationWorkflowMutation::CreateSupervision {
+                    preview,
+                    config,
+                    trigger,
+                    ..
+                },
+            ) = command
             {
                 text.push_str(&format!("\nFinite series: {} · {} steps per invocation · at most {} runs\nUTC first/end: {} / {} · interval {} seconds\nLifetime pool: {} reported tokens / {} admitted requests\nTrigger: {:?}\nMissed/overlapping intervals are skipped. Accepted trigger pins the displayed source task/grant and runs once.\nExisting step grants, checks and exact-action approvals apply. No automatic root acceptance or Apply. Already-admitted tokens may overrun a ceiling.\n", config.label, preview.template.items.len(), config.max_runs, config.first_run_at, config.ends_at, config.interval_seconds, config.max_tokens, config.max_model_requests, trigger));
             }
-            if let Command::Workflow(OrganizationWorkflowMutation::CreateSupervision { goal, work_type, .. }) = command {
+            if let Command::Workflow(OrganizationWorkflowMutation::CreateSupervision {
+                goal,
+                work_type,
+                ..
+            }) = command
+            {
                 text.push_str(&format!("\nGoal supervision policy: {} · captured goal revision {}\nPermitted work type: {}\nThe displayed template, project, model/path/delegate scopes and finite pool are the authority. Goal edits fence admissions. Policy changes require a fresh exact review; revocation preserves prior accounting. Work-type text grants no additional tools or permissions.\n", goal.objective, goal.revision, work_type));
             }
             text = format!(

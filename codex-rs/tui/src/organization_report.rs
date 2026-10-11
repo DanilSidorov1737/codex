@@ -220,15 +220,24 @@ pub(super) fn text(
         );
     }
     text.push_str("\nAGENT / MODEL EVIDENCE SCORECARDS\n");
-    if let Some(cards)=&report.scorecards {
-        for s in cards.entries.iter().filter(|s|match focus {
-            Focus::All=>true,Focus::Project(id)=>&s.project_id==id,Focus::Agent(id)=>s.owner_id.as_ref()==Some(id),Focus::Workflow(id)=>s.workflow_run_id.as_ref()==Some(id),
+    if let Some(cards) = &report.scorecards {
+        for s in cards.entries.iter().filter(|s| match focus {
+            Focus::All => true,
+            Focus::Project(id) => &s.project_id == id,
+            Focus::Agent(id) => s.owner_id.as_ref() == Some(id),
+            Focus::Workflow(id) => s.workflow_run_id.as_ref() == Some(id),
         }) {
             text.push_str(&format!("agent {} · {}/{} · project {} · workflow {}\n  {} attempts · {} accepted results · {} failed · {} blocked · {} uncertain\n  checks: {} passed / {} failed · {} reported tokens · {} admitted / {} reported requests\n",s.owner_id.as_deref().unwrap_or("unavailable (historical)"),s.provider.as_ref().map(|p|p.id.as_str()).unwrap_or("unavailable (historical)"),s.model.as_deref().unwrap_or("unavailable (historical)"),s.project_id,s.workflow_run_id.as_deref().unwrap_or("none"),s.attempts,s.accepted_results,s.failed_attempts,s.blocked_attempts,s.uncertain_attempts,s.checks_passed,s.checks_failed,s.reported_tokens,s.model_requests,s.reported_model_requests));
         }
-        if cards.truncated {text.push_str("Scorecard groups truncated at 2,000; choose a project to narrow the report.\n");}
+        if cards.truncated {
+            text.push_str(
+                "Scorecard groups truncated at 2,000; choose a project to narrow the report.\n",
+            );
+        }
         text.push_str("Evidence describes recorded outcomes and checks, not a quality grade. Missing attribution stays unavailable; no automatic model fallback.\n");
-    } else {text.push_str("Scorecards unavailable from this daemon; refresh after updating it.\n");}
+    } else {
+        text.push_str("Scorecards unavailable from this daemon; refresh after updating it.\n");
+    }
     text.push_str("\nUPCOMING LOCAL RUNS (first 16)\n");
     for run in &report.upcoming_runs {
         text.push_str(&format!(
@@ -347,7 +356,7 @@ mod tests {
             project_id: None,
             totals: OrganizationReportTotals::default(),
             global_usage: Some(OrganizationGlobalUsage::default()),
-            scorecards:None,
+            scorecards: None,
             tasks: vec![a, b],
             usage: vec![OrganizationUsageReport {
                 task_id: "task".into(),

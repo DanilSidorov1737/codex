@@ -481,7 +481,8 @@ async fn finite_series_preview_refuses_changed_scope_and_late_closed_draft() {
     let mut d = dashboard();
     let (updates, receiver) = mpsc::channel(4);
     d.updates = receiver;
-    let template = OrganizationWorkflowTemplate { discussion:None,
+    let template = OrganizationWorkflowTemplate {
+        discussion: None,
         id: "template".into(),
         project_id: "project".into(),
         label: "Finite work".into(),
@@ -558,12 +559,31 @@ async fn finite_series_preview_refuses_changed_scope_and_late_closed_draft() {
         "a changed response cannot create authority"
     );
     preview.scopes = request.scopes.clone();
-    updates.send(Update::SeriesPreview {
-        request: request.clone(), config:config.clone(),source_task:source_task.clone(),
-        supervision:Some((Box::new(OrganizationGoal { id:"other-goal".into(),parent_id:None,objective:"Changed policy".into(),criteria:vec![],revision:1 }),"Other work".into())),
-        preview:Box::new(preview.clone()),trigger:OrganizationWorkflowTrigger::Interval,
-    }).await.unwrap();
-    d.update(); assert!(d.confirmation.is_none(),"late policy changes cannot expand the owner's draft");
+    updates
+        .send(Update::SeriesPreview {
+            request: request.clone(),
+            config: config.clone(),
+            source_task: source_task.clone(),
+            supervision: Some((
+                Box::new(OrganizationGoal {
+                    id: "other-goal".into(),
+                    parent_id: None,
+                    objective: "Changed policy".into(),
+                    criteria: vec![],
+                    revision: 1,
+                }),
+                "Other work".into(),
+            )),
+            preview: Box::new(preview.clone()),
+            trigger: OrganizationWorkflowTrigger::Interval,
+        })
+        .await
+        .unwrap();
+    d.update();
+    assert!(
+        d.confirmation.is_none(),
+        "late policy changes cannot expand the owner's draft"
+    );
     updates
         .send(Update::SeriesPreview {
             request: request.clone(),
@@ -659,7 +679,8 @@ async fn workflow_views_save_prerequisite_closure_and_freeze_preview_confirmatio
             .prerequisites,
         vec!["one".to_string()]
     );
-    let template = OrganizationWorkflowTemplate { discussion:None,
+    let template = OrganizationWorkflowTemplate {
+        discussion: None,
         id: "template".into(),
         project_id,
         label: "Research café\x1b[31m".into(),
@@ -1777,7 +1798,7 @@ fn empty_report() -> OrganizationReport {
         project_id: None,
         totals: OrganizationReportTotals::default(),
         global_usage: Some(OrganizationGlobalUsage::default()),
-            scorecards:None,
+        scorecards: None,
         tasks: vec![],
         usage: vec![],
         usage_truncated: false,

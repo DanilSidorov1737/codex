@@ -416,7 +416,20 @@ pub(super) async fn promote_note(
     body: String,
 ) -> Result<()> {
     text(&body, 4096)?;
-    ensure!(!matches!(super::controls::read(tx,&format!("knowledge:{source_id}")).await?.map(|c|c.value),Some(codex_protocol::organization::OrganizationControlValue::Knowledge {retired:true,..})),"source note retired; inspect its history before restoring or correcting it");
+    ensure!(
+        !matches!(
+            super::controls::read(tx, &format!("knowledge:{source_id}"))
+                .await?
+                .map(|c| c.value),
+            Some(
+                codex_protocol::organization::OrganizationControlValue::Knowledge {
+                    retired: true,
+                    ..
+                }
+            )
+        ),
+        "source note retired; inspect its history before restoring or correcting it"
+    );
     let (data, superseded): (String, Option<String>) =
         sqlx::query_as("SELECT data,superseded_by FROM organization_notes WHERE id=?")
             .bind(source_id)

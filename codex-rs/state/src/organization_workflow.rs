@@ -30,37 +30,130 @@ impl OrganizationStore {
             now >= 0 && serde_json::to_vec(&mutation)?.len() <= 128 * 1024,
             "invalid workflow time or oversized mutation"
         );
-        let (mutation,discussion)=match mutation {
-            OrganizationWorkflowMutation::PutDiscussion {id,expected_revision,project_id,label,discussion} => {
-                let items=discussion.plan_items().map_err(anyhow::Error::msg)?;
-                (OrganizationWorkflowMutation::Put {id,expected_revision,project_id,label,items},Some(discussion))
-            }, mutation=>(mutation,None),
+        let (mutation, discussion) = match mutation {
+            OrganizationWorkflowMutation::PutDiscussion {
+                id,
+                expected_revision,
+                project_id,
+                label,
+                discussion,
+            } => {
+                let items = discussion.plan_items().map_err(anyhow::Error::msg)?;
+                (
+                    OrganizationWorkflowMutation::Put {
+                        id,
+                        expected_revision,
+                        project_id,
+                        label,
+                        items,
+                    },
+                    Some(discussion),
+                )
+            }
+            mutation => (mutation, None),
         };
         let mut tx = self.pool.begin_with("BEGIN IMMEDIATE").await?;
         let view = match mutation {
-            OrganizationWorkflowMutation::PutDiscussion { .. } => unreachable!("discussion normalized above"),
-            OrganizationWorkflowMutation::CreateSupervision { id, preview, config, trigger, goal, work_type } => {
-                let view = super::workflow_series::create_in(&mut tx, id.clone(), preview, config, trigger, now).await?;
-                super::controls::set(&mut tx, None, codex_protocol::organization::OrganizationControlValue::Supervision {
-                    series_id: id, goal, work_type, state: OrganizationWorkflowState::Active,
-                }).await?;
-                owner_event(&mut tx, "supervision/create", match &view { OrganizationWorkflowView::Series { series, .. } => &series.id, _ => unreachable!() }).await?;
+            OrganizationWorkflowMutation::PutDiscussion { .. } => {
+                unreachable!("discussion normalized above")
+            }
+            OrganizationWorkflowMutation::CreateSupervision {
+                id,
+                preview,
+                config,
+                trigger,
+                goal,
+                work_type,
+            } => {
+                let view = super::workflow_series::create_in(
+                    &mut tx,
+                    id.clone(),
+                    preview,
+                    config,
+                    trigger,
+                    now,
+                )
+                .await?;
+                super::controls::set(
+                    &mut tx,
+                    None,
+                    codex_protocol::organization::OrganizationControlValue::Supervision {
+                        series_id: id,
+                        goal,
+                        work_type,
+                        state: OrganizationWorkflowState::Active,
+                    },
+                )
+                .await?;
+                owner_event(
+                    &mut tx,
+                    "supervision/create",
+                    match &view {
+                        OrganizationWorkflowView::Series { series, .. } => &series.id,
+                        _ => unreachable!(),
+                    },
+                )
+                .await?;
                 view
             }
-            OrganizationWorkflowMutation::ControlSupervision { id, expected_revision, action } => {
-                let policy = super::controls::read(&mut tx, &format!("supervision:{id}")).await?.context("supervision policy missing")?;
-                ensure!(policy.revision == expected_revision, "supervision revision conflict");
-                let codex_protocol::organization::OrganizationControlValue::Supervision { goal, work_type, state: old_state, .. } = policy.value else {
+            OrganizationWorkflowMutation::ControlSupervision {
+                id,
+                expected_revision,
+                action,
+            } => {
+                let policy = super::controls::read(&mut tx, &format!("supervision:{id}"))
+                    .await?
+                    .context("supervision policy missing")?;
+                ensure!(
+                    policy.revision == expected_revision,
+                    "supervision revision conflict"
+                );
+                let codex_protocol::organization::OrganizationControlValue::Supervision {
+                    goal,
+                    work_type,
+                    state: old_state,
+                    ..
+                } = policy.value
+                else {
                     anyhow::bail!("invalid stored supervision policy");
                 };
-                ensure!(old_state != OrganizationWorkflowState::Cancelled, "supervision policy revoked");
-                if action == OrganizationWorkflowControl::Resume { super::controls::check_goal(&mut tx, &goal).await?; }
-                let data: String = sqlx::query_scalar("SELECT data FROM organization_workflow_series WHERE id=?")
-                    .bind(&id).fetch_one(&mut *tx).await?;
+                ensure!(
+                    old_state != OrganizationWorkflowState::Cancelled,
+                    "supervision policy revoked"
+                );
+                if action == OrganizationWorkflowControl::Resume {
+                    super::controls::check_goal(&mut tx, &goal).await?;
+                }
+                let data: String =
+                    sqlx::query_scalar("SELECT data FROM organization_workflow_series WHERE id=?")
+                        .bind(&id)
+                        .fetch_one(&mut *tx)
+                        .await?;
                 let series: OrganizationWorkflowSeries = serde_json::from_str(&data)?;
-                let view = super::workflow_series::control_in(&mut tx, id.clone(), series.revision, action, now).await?;
-                let state = match action { OrganizationWorkflowControl::Pause => OrganizationWorkflowState::Paused, OrganizationWorkflowControl::Resume => OrganizationWorkflowState::Active, OrganizationWorkflowControl::Cancel => OrganizationWorkflowState::Cancelled };
-                super::controls::set(&mut tx, Some(expected_revision), codex_protocol::organization::OrganizationControlValue::Supervision { series_id: id.clone(), goal, work_type, state }).await?;
+                let view = super::workflow_series::control_in(
+                    &mut tx,
+                    id.clone(),
+                    series.revision,
+                    action,
+                    now,
+                )
+                .await?;
+                let state = match action {
+                    OrganizationWorkflowControl::Pause => OrganizationWorkflowState::Paused,
+                    OrganizationWorkflowControl::Resume => OrganizationWorkflowState::Active,
+                    OrganizationWorkflowControl::Cancel => OrganizationWorkflowState::Cancelled,
+                };
+                super::controls::set(
+                    &mut tx,
+                    Some(expected_revision),
+                    codex_protocol::organization::OrganizationControlValue::Supervision {
+                        series_id: id.clone(),
+                        goal,
+                        work_type,
+                        state,
+                    },
+                )
+                .await?;
                 owner_event(&mut tx, "supervision/control", &id).await?;
                 view
             }

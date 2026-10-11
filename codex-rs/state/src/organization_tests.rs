@@ -868,12 +868,19 @@ async fn incompatible_migration_and_bad_backup_are_rejected() -> Result<()> {
 
 #[tokio::test]
 async fn reviewed_autonomy_floor_refuses_older_runtime_without_changing_grants() -> Result<()> {
-    let home=Fixture::new();let store=OrganizationStore::open(&home.0).await?;
-    let (_,attempt)=authorized_attempt(&store,false).await?;
-    let before=store.execution_view(&attempt.task_id).await?;
-    let legacy=sqlx::migrate::Migrator {migrations:std::borrow::Cow::Borrowed(&super::MIGRATOR.migrations[..14]),..sqlx::migrate::Migrator::DEFAULT};
-    assert!(matches!(legacy.run(&store.pool).await,Err(sqlx::migrate::MigrateError::VersionMissing(15))));
-    assert_eq!(store.execution_view(&attempt.task_id).await?,before);
+    let home = Fixture::new();
+    let store = OrganizationStore::open(&home.0).await?;
+    let (_, attempt) = authorized_attempt(&store, false).await?;
+    let before = store.execution_view(&attempt.task_id).await?;
+    let legacy = sqlx::migrate::Migrator {
+        migrations: std::borrow::Cow::Borrowed(&super::MIGRATOR.migrations[..14]),
+        ..sqlx::migrate::Migrator::DEFAULT
+    };
+    assert!(matches!(
+        legacy.run(&store.pool).await,
+        Err(sqlx::migrate::MigrateError::VersionMissing(15))
+    ));
+    assert_eq!(store.execution_view(&attempt.task_id).await?, before);
     Ok(())
 }
 

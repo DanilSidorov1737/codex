@@ -297,7 +297,9 @@ impl OrganizationStore {
                 series.state = OrganizationScheduleState::Completed;
                 series.next_run_at = None;
                 series.reason = Some("finite series time, run or aggregate ceiling reached".into());
-            } else if super::controls::check_supervision(&mut tx, &series.id).await.is_err()
+            } else if super::controls::check_supervision(&mut tx, &series.id)
+                .await
+                .is_err()
                 || pinned(&mut tx, &series.preview).await.is_err()
                 || unsafe_usage(&mut tx, &series.id).await?
             {

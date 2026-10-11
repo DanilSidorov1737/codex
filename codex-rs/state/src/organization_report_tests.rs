@@ -2,14 +2,36 @@ use super::*;
 
 #[tokio::test]
 async fn scorecards_keep_missing_historical_attribution_unavailable() -> Result<()> {
-    let home=Fixture::new();let store=OrganizationStore::open(&home.0).await?;
-    let (worker,attempt)=authorized_attempt(&store,false).await?;
-    store.admit_model_request(&attempt.id,&worker,1001).await?;store.checkpoint_usage(&attempt.id,&worker,1,17).await?;
+    let home = Fixture::new();
+    let store = OrganizationStore::open(&home.0).await?;
+    let (worker, attempt) = authorized_attempt(&store, false).await?;
+    store
+        .admit_model_request(&attempt.id, &worker, 1001)
+        .await?;
+    store.checkpoint_usage(&attempt.id, &worker, 1, 17).await?;
     sqlx::query("UPDATE organization_attempts SET data=json_remove(data,'$.ownerId','$.provider') WHERE id=?").bind(&attempt.id).execute(&store.pool).await?;
-    let report=store.operational_report(None,None,1,1002).await?;let entries=report.scorecards.unwrap().entries;
-    assert_eq!(entries.len(),1);assert!(entries[0].owner_id.is_none() && entries[0].provider.is_none());assert_eq!(entries[0].model.as_deref(),Some("fixture"));
-    assert_eq!((entries[0].reported_tokens,entries[0].model_requests,entries[0].reported_model_requests),(17,1,1));
-    assert_eq!((entries[0].accepted_results,entries[0].failed_attempts,entries[0].checks_passed,entries[0].checks_failed),(0,0,0,0));
+    let report = store.operational_report(None, None, 1, 1002).await?;
+    let entries = report.scorecards.unwrap().entries;
+    assert_eq!(entries.len(), 1);
+    assert!(entries[0].owner_id.is_none() && entries[0].provider.is_none());
+    assert_eq!(entries[0].model.as_deref(), Some("fixture"));
+    assert_eq!(
+        (
+            entries[0].reported_tokens,
+            entries[0].model_requests,
+            entries[0].reported_model_requests
+        ),
+        (17, 1, 1)
+    );
+    assert_eq!(
+        (
+            entries[0].accepted_results,
+            entries[0].failed_attempts,
+            entries[0].checks_passed,
+            entries[0].checks_failed
+        ),
+        (0, 0, 0, 0)
+    );
     Ok(())
 }
 

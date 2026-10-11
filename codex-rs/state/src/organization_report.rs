@@ -275,14 +275,28 @@ LEFT JOIN organization_results r ON r.attempt_id=p.id WHERE (? IS NULL OR t.proj
 GROUP BY t.project_id,captured_run,captured_owner,captured_provider,captured_model
 ORDER BY t.project_id,captured_run,captured_owner,captured_provider,captured_model LIMIT 2001"#)
             .bind(project_id).bind(project_id).fetch_all(&mut *tx).await?;
-        let truncated=rows.len()>2000;
-        let mut entries=Vec::new();
+        let truncated = rows.len() > 2000;
+        let mut entries = Vec::new();
         for row in rows.into_iter().take(2000) {
             entries.push(OrganizationScorecard {
-                project_id:row.try_get("project_id")?,workflow_run_id:row.try_get("captured_run")?,owner_id:row.try_get("captured_owner")?,
-                provider:row.try_get::<Option<String>,_>("captured_provider")?.map(|s|serde_json::from_str(&s)).transpose()?,model:row.try_get("captured_model")?,
-                attempts:row.try_get("attempts")?,accepted_results:row.try_get("accepted")?,failed_attempts:row.try_get("failed")?,blocked_attempts:row.try_get("blocked")?,uncertain_attempts:row.try_get("uncertain")?,
-                checks_passed:row.try_get("passed")?,checks_failed:row.try_get("checks_failed")?,reported_tokens:row.try_get("tokens")?,model_requests:row.try_get("requests")?,reported_model_requests:row.try_get("reported")?,
+                project_id: row.try_get("project_id")?,
+                workflow_run_id: row.try_get("captured_run")?,
+                owner_id: row.try_get("captured_owner")?,
+                provider: row
+                    .try_get::<Option<String>, _>("captured_provider")?
+                    .map(|s| serde_json::from_str(&s))
+                    .transpose()?,
+                model: row.try_get("captured_model")?,
+                attempts: row.try_get("attempts")?,
+                accepted_results: row.try_get("accepted")?,
+                failed_attempts: row.try_get("failed")?,
+                blocked_attempts: row.try_get("blocked")?,
+                uncertain_attempts: row.try_get("uncertain")?,
+                checks_passed: row.try_get("passed")?,
+                checks_failed: row.try_get("checks_failed")?,
+                reported_tokens: row.try_get("tokens")?,
+                model_requests: row.try_get("requests")?,
+                reported_model_requests: row.try_get("reported")?,
             });
         }
         tx.commit().await?;
@@ -292,7 +306,7 @@ ORDER BY t.project_id,captured_run,captured_owner,captured_provider,captured_mod
             project_id: project_id.map(str::to_owned),
             totals,
             global_usage: Some(global_usage),
-            scorecards:Some(OrganizationScorecards {entries,truncated}),
+            scorecards: Some(OrganizationScorecards { entries, truncated }),
             tasks,
             usage,
             usage_truncated,

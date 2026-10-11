@@ -112,20 +112,43 @@ impl OrganizationStore {
 
     /// Atomic owner-reviewed checkpoint replacements. Original grants and usage
     /// are retained; one stale/uncertain item rolls back the entire decision.
-    pub async fn apply_replan(&self, task_id: &str, id: &str, expected_revision: i64, now: i64) -> Result<Vec<OrganizationTaskHandoff>> {
+    pub async fn apply_replan(
+        &self,
+        task_id: &str,
+        id: &str,
+        expected_revision: i64,
+        now: i64,
+    ) -> Result<Vec<OrganizationTaskHandoff>> {
         let mut tx = self.pool.begin_with("BEGIN IMMEDIATE").await?;
-        let policy = super::controls::read(&mut tx, &format!("replan:{id}")).await?.context("replan proposal missing")?;
-        ensure!(policy.revision == expected_revision, "replan revision conflict");
-        let mut value=policy.value;
-        let codex_protocol::organization::OrganizationControlValue::Replan { items, applied_handoff_ids, .. }=&mut value else {anyhow::bail!("not a replan proposal")};
-        ensure!(applied_handoff_ids.is_empty() && items.first().is_some_and(|item|item.task_id==task_id),"replan already applied or response task changed");
-        let mut handoffs=Vec::new();
+        let policy = super::controls::read(&mut tx, &format!("replan:{id}"))
+            .await?
+            .context("replan proposal missing")?;
+        ensure!(
+            policy.revision == expected_revision,
+            "replan revision conflict"
+        );
+        let mut value = policy.value;
+        let codex_protocol::organization::OrganizationControlValue::Replan {
+            items,
+            applied_handoff_ids,
+            ..
+        } = &mut value
+        else {
+            anyhow::bail!("not a replan proposal")
+        };
+        ensure!(
+            applied_handoff_ids.is_empty()
+                && items.first().is_some_and(|item| item.task_id == task_id),
+            "replan already applied or response task changed"
+        );
+        let mut handoffs = Vec::new();
         for item in items {
-            let handoff=handoff_in(&mut tx,&item.handoff(),now).await?;
-            applied_handoff_ids.push(handoff.id.clone());handoffs.push(handoff);
+            let handoff = handoff_in(&mut tx, &item.handoff(), now).await?;
+            applied_handoff_ids.push(handoff.id.clone());
+            handoffs.push(handoff);
         }
-        super::controls::set(&mut tx,Some(expected_revision),value).await?;
-        owner_event(&mut tx,"replan/apply",id).await?;
+        super::controls::set(&mut tx, Some(expected_revision), value).await?;
+        owner_event(&mut tx, "replan/apply", id).await?;
         tx.commit().await?;
         Ok(handoffs)
     }
@@ -196,12 +219,11 @@ pub(super) async fn handoff_in(
     );
     let (tokens, requests): (i64, i64) = sqlx::query_as("SELECT r.used_tokens,r.model_requests FROM organization_authorizations a JOIN organization_authorizations r ON r.id=a.root_id WHERE a.id=?")
         .bind(&authorization.id).fetch_one(&mut **tx).await?;
-    let attempts: i64 = sqlx::query_scalar(
-        "SELECT count(*) FROM organization_attempts WHERE authorization_id=?",
-    )
-    .bind(&authorization.id)
-    .fetch_one(&mut **tx)
-    .await?;
+    let attempts: i64 =
+        sqlx::query_scalar("SELECT count(*) FROM organization_attempts WHERE authorization_id=?")
+            .bind(&authorization.id)
+            .fetch_one(&mut **tx)
+            .await?;
     ensure!(
         tokens < authorization.scope.max_tokens
             && requests < i64::from(authorization.scope.max_model_requests)

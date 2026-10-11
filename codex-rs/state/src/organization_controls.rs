@@ -5,10 +5,12 @@ use super::resource::validate_shared_ceilings;
 use anyhow::{Context, Result, ensure};
 use codex_protocol::organization::*;
 use codex_protocol::organization_execution::OrganizationTaskAuthorization;
-use codex_protocol::organization_workflow::{OrganizationWorkflowSeries, OrganizationWorkflowState};
+use codex_protocol::organization_workflow::{
+    OrganizationWorkflowSeries, OrganizationWorkflowState,
+};
+use sha2::Digest;
 use sqlx::{Sqlite, Transaction};
 use std::collections::BTreeSet;
-use sha2::Digest;
 use uuid::Uuid;
 
 pub(super) async fn read(
@@ -35,9 +37,11 @@ pub(super) async fn set(
     value: OrganizationControlValue,
 ) -> Result<OrganizationControl> {
     let id = match &value {
-        OrganizationControlValue::Knowledge {note_id,..}=>format!("knowledge:{note_id}"),
+        OrganizationControlValue::Knowledge { note_id, .. } => format!("knowledge:{note_id}"),
         OrganizationControlValue::Replan { id, .. } => format!("replan:{id}"),
-        OrganizationControlValue::Supervision { series_id, .. } => format!("supervision:{series_id}"),
+        OrganizationControlValue::Supervision { series_id, .. } => {
+            format!("supervision:{series_id}")
+        }
         OrganizationControlValue::Global { .. } => "global".into(),
         OrganizationControlValue::Project { project_id, .. } => format!("project:{project_id}"),
         OrganizationControlValue::Priority { task_id, .. } => format!("priority:{task_id}"),
@@ -48,70 +52,170 @@ pub(super) async fn set(
         "control revision conflict"
     );
     match &value {
-        OrganizationControlValue::Knowledge {note_id,body_sha256,reason,..}=>{
-            text(reason,4096)?;
-            let data:String=sqlx::query_scalar("SELECT data FROM organization_notes WHERE id=?").bind(note_id).fetch_one(&mut **tx).await?;
-            let note:codex_protocol::organization_coordination::OrganizationNote=serde_json::from_str(&data)?;
-            ensure!(*body_sha256==format!("{:x}",sha2::Sha256::digest(note.body.as_bytes())),"knowledge source changed; inspect its exact body before review");
+        OrganizationControlValue::Knowledge {
+            note_id,
+            body_sha256,
+            reason,
+            ..
+        } => {
+            text(reason, 4096)?;
+            let data: String = sqlx::query_scalar("SELECT data FROM organization_notes WHERE id=?")
+                .bind(note_id)
+                .fetch_one(&mut **tx)
+                .await?;
+            let note: codex_protocol::organization_coordination::OrganizationNote =
+                serde_json::from_str(&data)?;
+            ensure!(
+                *body_sha256 == format!("{:x}", sha2::Sha256::digest(note.body.as_bytes())),
+                "knowledge source changed; inspect its exact body before review"
+            );
         }
-        OrganizationControlValue::Replan { id, project_id, reason, items, applied_handoff_ids } => {
-            Uuid::parse_str(id)?; text(reason,4096)?;
-            ensure!((1..=32).contains(&items.len()),"replans contain 1–32 checkpointed tasks");
-            let mut ids=BTreeSet::new();
-            if let Some(old)=&previous {
-                let OrganizationControlValue::Replan { project_id: old_project, applied_handoff_ids: old_handoffs, .. }=&old.value else {anyhow::bail!("invalid stored replan")};
-                ensure!(old_project==project_id && old_handoffs.is_empty(),"applied replans are immutable");
+        OrganizationControlValue::Replan {
+            id,
+            project_id,
+            reason,
+            items,
+            applied_handoff_ids,
+        } => {
+            Uuid::parse_str(id)?;
+            text(reason, 4096)?;
+            ensure!(
+                (1..=32).contains(&items.len()),
+                "replans contain 1–32 checkpointed tasks"
+            );
+            let mut ids = BTreeSet::new();
+            if let Some(old) = &previous {
+                let OrganizationControlValue::Replan {
+                    project_id: old_project,
+                    applied_handoff_ids: old_handoffs,
+                    ..
+                } = &old.value
+                else {
+                    anyhow::bail!("invalid stored replan")
+                };
+                ensure!(
+                    old_project == project_id && old_handoffs.is_empty(),
+                    "applied replans are immutable"
+                );
             }
             if applied_handoff_ids.is_empty() {
-                check_project_edit(tx,project_id).await?;
+                check_project_edit(tx, project_id).await?;
                 for item in items {
-                    ensure!(ids.insert(&item.task_id),"duplicate replan task");text(&item.instructions,4096)?;
-                    let task=read_task(tx,&item.task_id).await?;
-                    ensure!(task.project_id==*project_id && task.revision==item.expected_revision && task.state=="blocked","replan requires exact checkpointed blocked work in this project");
+                    ensure!(ids.insert(&item.task_id), "duplicate replan task");
+                    text(&item.instructions, 4096)?;
+                    let task = read_task(tx, &item.task_id).await?;
+                    ensure!(
+                        task.project_id == *project_id
+                            && task.revision == item.expected_revision
+                            && task.state == "blocked",
+                        "replan requires exact checkpointed blocked work in this project"
+                    );
                     let latest:Option<String>=sqlx::query_scalar("SELECT id FROM organization_checkpoints WHERE task_id=? ORDER BY id DESC LIMIT 1")
                         .bind(&item.task_id).fetch_optional(&mut **tx).await?;
-                    ensure!(latest.as_ref()==Some(&item.checkpoint_id),"replan checkpoint changed");
-                    ensure!(read_node(tx,&item.owner_id).await?.revision==item.expected_owner_revision,"replan receiver changed");
+                    ensure!(
+                        latest.as_ref() == Some(&item.checkpoint_id),
+                        "replan checkpoint changed"
+                    );
+                    ensure!(
+                        read_node(tx, &item.owner_id).await?.revision
+                            == item.expected_owner_revision,
+                        "replan receiver changed"
+                    );
                 }
             } else {
-                let old=previous.as_ref().context("save the pending proposal before applying a replan")?;
-                let mut pending=value.clone();
-                if let OrganizationControlValue::Replan { applied_handoff_ids, .. }=&mut pending {applied_handoff_ids.clear();}
-                ensure!(old.value==pending && applied_handoff_ids.len()==items.len(),"applied replan must preserve the exact pending proposal");
-                for (item,handoff_id) in items.iter().zip(applied_handoff_ids) {
-                    ensure!(ids.insert(handoff_id),"duplicate replan handoff receipt");
+                let old = previous
+                    .as_ref()
+                    .context("save the pending proposal before applying a replan")?;
+                let mut pending = value.clone();
+                if let OrganizationControlValue::Replan {
+                    applied_handoff_ids,
+                    ..
+                } = &mut pending
+                {
+                    applied_handoff_ids.clear();
+                }
+                ensure!(
+                    old.value == pending && applied_handoff_ids.len() == items.len(),
+                    "applied replan must preserve the exact pending proposal"
+                );
+                for (item, handoff_id) in items.iter().zip(applied_handoff_ids) {
+                    ensure!(ids.insert(handoff_id), "duplicate replan handoff receipt");
                     let data:String=sqlx::query_scalar("SELECT data FROM organization_handoffs WHERE id=? AND task_id=? AND checkpoint_id=?")
                         .bind(handoff_id).bind(&item.task_id).bind(&item.checkpoint_id).fetch_one(&mut **tx).await?;
-                    let handoff:codex_protocol::organization_execution::OrganizationTaskHandoff=serde_json::from_str(&data)?;
-                    ensure!(handoff.to_owner_id==item.owner_id && handoff.to_node_revision==item.expected_owner_revision && handoff.instructions==item.instructions,"replan receipt does not match its owner-reviewed delta");
+                    let handoff: codex_protocol::organization_execution::OrganizationTaskHandoff =
+                        serde_json::from_str(&data)?;
+                    ensure!(
+                        handoff.to_owner_id == item.owner_id
+                            && handoff.to_node_revision == item.expected_owner_revision
+                            && handoff.instructions == item.instructions,
+                        "replan receipt does not match its owner-reviewed delta"
+                    );
                 }
             }
         }
-        OrganizationControlValue::Supervision { series_id, goal, work_type, state } => {
+        OrganizationControlValue::Supervision {
+            series_id,
+            goal,
+            work_type,
+            state,
+        } => {
             text(work_type, 256)?;
-            let data: String = sqlx::query_scalar("SELECT data FROM organization_workflow_series WHERE id=?")
-                .bind(series_id).fetch_one(&mut **tx).await?;
+            let data: String =
+                sqlx::query_scalar("SELECT data FROM organization_workflow_series WHERE id=?")
+                    .bind(series_id)
+                    .fetch_one(&mut **tx)
+                    .await?;
             let series: OrganizationWorkflowSeries = serde_json::from_str(&data)?;
             let expected_state = match series.state {
-                codex_protocol::organization_schedule::OrganizationScheduleState::Active => OrganizationWorkflowState::Active,
-                codex_protocol::organization_schedule::OrganizationScheduleState::Paused => OrganizationWorkflowState::Paused,
-                codex_protocol::organization_schedule::OrganizationScheduleState::Cancelled => OrganizationWorkflowState::Cancelled,
-                _ => anyhow::bail!("control the blocked/completed finite series before changing its supervision policy"),
+                codex_protocol::organization_schedule::OrganizationScheduleState::Active => {
+                    OrganizationWorkflowState::Active
+                }
+                codex_protocol::organization_schedule::OrganizationScheduleState::Paused => {
+                    OrganizationWorkflowState::Paused
+                }
+                codex_protocol::organization_schedule::OrganizationScheduleState::Cancelled => {
+                    OrganizationWorkflowState::Cancelled
+                }
+                _ => anyhow::bail!(
+                    "control the blocked/completed finite series before changing its supervision policy"
+                ),
             };
-            ensure!(*state == expected_state, "use the native supervision control to change execution state");
+            ensure!(
+                *state == expected_state,
+                "use the native supervision control to change execution state"
+            );
             if let Some(old) = previous.as_ref() {
-                let OrganizationControlValue::Supervision { goal: old_goal, work_type: old_type, state: old_state, .. } = &old.value else {
+                let OrganizationControlValue::Supervision {
+                    goal: old_goal,
+                    work_type: old_type,
+                    state: old_state,
+                    ..
+                } = &old.value
+                else {
                     anyhow::bail!("invalid stored supervision control");
                 };
-                ensure!(old_goal == goal && old_type == work_type && *old_state != OrganizationWorkflowState::Cancelled,
-                    "policy content is immutable; cancel and review a fresh finite policy without resetting prior usage");
+                ensure!(
+                    old_goal == goal
+                        && old_type == work_type
+                        && *old_state != OrganizationWorkflowState::Cancelled,
+                    "policy content is immutable; cancel and review a fresh finite policy without resetting prior usage"
+                );
             } else {
-                ensure!(*state == OrganizationWorkflowState::Active, "new supervision must bind an active finite series");
+                ensure!(
+                    *state == OrganizationWorkflowState::Active,
+                    "new supervision must bind an active finite series"
+                );
             }
             if *state == OrganizationWorkflowState::Active {
                 check_goal(tx, goal).await?;
-                ensure!(read_project(tx, &series.preview.template.project_id).await?.goal_id.as_ref() == Some(&goal.id),
-                    "supervision goal must be linked to the captured project");
+                ensure!(
+                    read_project(tx, &series.preview.template.project_id)
+                        .await?
+                        .goal_id
+                        .as_ref()
+                        == Some(&goal.id),
+                    "supervision goal must be linked to the captured project"
+                );
             }
         }
         OrganizationControlValue::Global { limits, .. } => {
@@ -268,20 +372,34 @@ pub(super) async fn check_project_edit(
     Ok(())
 }
 
-pub(super) async fn check_goal(tx: &mut Transaction<'_, Sqlite>, goal: &OrganizationGoal) -> Result<()> {
+pub(super) async fn check_goal(
+    tx: &mut Transaction<'_, Sqlite>,
+    goal: &OrganizationGoal,
+) -> Result<()> {
     let data: String = sqlx::query_scalar("SELECT data FROM organization_goals WHERE id=?")
-        .bind(&goal.id).fetch_one(&mut **tx).await?;
-    ensure!(serde_json::from_str::<OrganizationRecord>(&data)? == OrganizationRecord::Goal(goal.clone()),
-        "supervision goal changed; review a new finite policy");
+        .bind(&goal.id)
+        .fetch_one(&mut **tx)
+        .await?;
+    ensure!(
+        serde_json::from_str::<OrganizationRecord>(&data)?
+            == OrganizationRecord::Goal(goal.clone()),
+        "supervision goal changed; review a new finite policy"
+    );
     Ok(())
 }
 
-pub(super) async fn check_supervision(tx: &mut Transaction<'_, Sqlite>, series_id: &str) -> Result<()> {
+pub(super) async fn check_supervision(
+    tx: &mut Transaction<'_, Sqlite>,
+    series_id: &str,
+) -> Result<()> {
     if let Some(policy) = read(tx, &format!("supervision:{series_id}")).await? {
         let OrganizationControlValue::Supervision { goal, state, .. } = policy.value else {
             anyhow::bail!("invalid stored supervision policy");
         };
-        ensure!(state == OrganizationWorkflowState::Active, "supervision policy is paused or revoked");
+        ensure!(
+            state == OrganizationWorkflowState::Active,
+            "supervision policy is paused or revoked"
+        );
         check_goal(tx, &goal).await?;
     }
     Ok(())
@@ -320,10 +438,17 @@ pub(super) async fn check_dispatch(
     let policy_data: Option<String> = sqlx::query_scalar("SELECT c.data FROM organization_controls c JOIN organization_workflow_occurrences o ON c.id='supervision:'||o.series_id JOIN organization_workflow_tasks w ON w.run_id=o.run_id WHERE w.authorization_id=? LIMIT 1")
         .bind(grant.root_authorization_id.as_ref().unwrap_or(&grant.id)).fetch_optional(&mut **tx).await?;
     if let Some(data) = policy_data {
-        let OrganizationRecord::Control(OrganizationControl { value: OrganizationControlValue::Supervision { goal, state, .. }, .. }) = serde_json::from_str(&data)? else {
+        let OrganizationRecord::Control(OrganizationControl {
+            value: OrganizationControlValue::Supervision { goal, state, .. },
+            ..
+        }) = serde_json::from_str(&data)?
+        else {
             anyhow::bail!("invalid stored supervision policy");
         };
-        ensure!(state == OrganizationWorkflowState::Active && check_goal(tx, &goal).await.is_ok(), super::WorkflowPaused);
+        ensure!(
+            state == OrganizationWorkflowState::Active && check_goal(tx, &goal).await.is_ok(),
+            super::WorkflowPaused
+        );
     }
     Ok(())
 }
