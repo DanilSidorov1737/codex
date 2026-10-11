@@ -6,6 +6,14 @@ completed autonomy-batch evidence below. External integrations remain deferred.
 Real systemd logout/reboot qualification needs a suitable host; independent
 local implementation proceeds. Initial source `41820fc11e`, clean worktree.
 
+Operations batch first slice: command palette, finite workflow/accepted-trigger
+forms and navigable goal evidence/editing are implemented. 59 targeted
+TUI/actual-Neovim checks and production CLI Clippy pass; full-package physical
+qualification is in progress. [Batch checkpoint](next-twenty.md) is authoritative
+for remaining work; [host runbook](unattended-host-qualification.md) describes the
+unavailable logout/reboot checks. Preserve all fresh operations-batch fixtures
+and do not replay their mutations.
+
 The revised [autonomy/usability batch](autonomy-batch.md) is **complete: all twelve
 approved bounded items are implemented and qualified**. **770 selected automated
 checks** and actual CLI/TUI/official-Neovim checks pass. External integrations are

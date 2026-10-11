@@ -10,6 +10,28 @@ existing chat/composer. Other presets share the existing alternate-screen TUI,
 Ratatui widgets and typed owner app-server connection. Alternate-screen-disabled
 launches report the requirement rather than silently taking terminal ownership.
 
+The approved operations batch adds `/layout commands` in Console and Ctrl-P
+with dashboard host focus. Search matches command names, shortcuts and context;
+arrows select, Enter invokes the existing handler and Esc cancels. Opening or
+searching the palette grants no execution authority. Neovim keeps its native
+Ctrl-P binding while the editor has focus; use Ctrl-G for host controls first.
+
+Host `g` opens the parent/subgoal tree. Left/right/Enter collapse or expand and
+`/` searches IDs/objectives inside collapsed branches. Progress rolls up linked
+accepted tasks, including descendant goals, and explicitly leaves success
+criteria for owner review. `E` edits the selected goal's objective, criteria and
+parent using its captured revision and the existing backend cycle checks.
+
+Select a saved workflow template and press `Y` to preview a finite workflow
+series. Its form includes scope per step, optional shared run limits, UTC epoch
+first/end times, interval, lifetime runs/reported-token/request limits and either
+an interval or accepted-result trigger. Accepted triggers require one run and a
+same-project source with a current nonrevoked grant. F6 captures a native preview
+and the exact source grant; `y` confirms the displayed series. Closing/changing
+the draft rejects its late preview. The daemon remains authoritative for every
+definition, scope, trigger and bound; series do not accept or Apply results.
+Qualification of these new controls is tracked in [next twenty](next-twenty.md).
+
 - While the dashboard has focus, F1 returns to Console and F2–F5 select
   Workspace, Projects, Operations and Review. Numeric 1–5 are alternatives.
   From Console, reopen with `/layout operations` (or another preset); Console's

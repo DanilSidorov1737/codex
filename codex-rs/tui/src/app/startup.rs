@@ -987,6 +987,7 @@ See the Codex keymap documentation for supported actions and examples."
         {
             app.app_event_tx.send(AppEvent::OpenOrganizationLayout {
                 preset: Some(preset),
+                commands: false,
             });
         }
         if !tui.is_terminal_focused() {

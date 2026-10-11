@@ -763,6 +763,7 @@ pub(crate) enum AppEvent {
     },
     OpenOrganizationLayout {
         preset: Option<crate::organization::Preset>,
+        commands: bool,
     },
 
     /// Open the reset-credit flow selected from the `/usage` menu.

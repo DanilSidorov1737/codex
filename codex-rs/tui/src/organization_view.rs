@@ -285,7 +285,9 @@ impl Dashboard {
 
     fn rows_view(&self, area: Rect, buffer: &mut Buffer, cards: bool) {
         let pane = &self.preferences.panes[self.preferences.preset.index()];
-        let title = if self.workflow_view {
+        let title = if self.goal_view {
+            "Goal tree / milestones"
+        } else if self.workflow_view {
             "Workflows · w returns to default view"
         } else if self.schedule_view {
             "Schedules · S returns to default view"
@@ -472,7 +474,7 @@ impl Dashboard {
                 ),
             ]),
             Line::styled(
-                " F1 Console   F2 Workspace   F3 Projects   F4 Operations   F5 Review",
+                " F1 Console   F2 Workspace   F3 Projects   F4 Operations   F5 Review   Ctrl-P Commands",
                 Style::default().fg(foreground(BLUE)),
             ),
         ])
@@ -508,7 +510,47 @@ impl Dashboard {
             })
             .split(body);
         let mut cursor = None;
-        if self.confirmation.is_some() {
+        if let Some(palette) = &self.palette {
+            let actions = palette.actions();
+            let visible = usize::from(body.height.saturating_sub(5));
+            let start = palette.selected.saturating_sub(visible.saturating_sub(1));
+            let mut lines = vec![
+                Line::styled(
+                    format!("Search: {}", palette.query),
+                    Style::default().fg(foreground(TEXT)),
+                ),
+                Line::default(),
+            ];
+            if actions.is_empty() {
+                lines.push(Line::from("No matching commands"));
+            }
+            for (index, action) in actions.iter().enumerate().skip(start).take(visible) {
+                lines.push(Line::styled(
+                    format!(
+                        "{} {:<6} {} · {}",
+                        if index == palette.selected {
+                            "›"
+                        } else {
+                            " "
+                        },
+                        action.shortcut,
+                        action.title,
+                        action.context
+                    ),
+                    Style::default().fg(foreground(if index == palette.selected {
+                        BLUE
+                    } else {
+                        TEXT
+                    })),
+                ));
+            }
+            Paragraph::new(lines)
+                .block(panel(
+                    "Commands · type to search · ↑↓ select · Enter open · Esc cancel",
+                    true,
+                ))
+                .render(body, buffer);
+        } else if self.confirmation.is_some() {
             Paragraph::new(self.confirmation_text.as_str())
                 .wrap(Wrap { trim: false })
                 .scroll((self.scroll, 0))
@@ -541,16 +583,24 @@ impl Dashboard {
                 .render(body, buffer);
         } else {
             let central = areas[0];
-            let subtitle = match self.preferences.preset {
-                Preset::Operations => {
-                    "Monitor and supervise autonomous work across your organization."
+            let subtitle = if self.goal_view {
+                "Goal tree · accepted task evidence; success criteria still need owner review"
+            } else {
+                match self.preferences.preset {
+                    Preset::Operations => {
+                        "Monitor and supervise autonomous work across your organization."
+                    }
+                    Preset::Projects => {
+                        "Define goals, assign tasks and review completion criteria."
+                    }
+                    Preset::Workspace => {
+                        "Actual Neovim · Follow AI / Live Diff / Independent Editing."
+                    }
+                    Preset::Review => {
+                        "Action inbox: approvals, blockers, requested changes and results."
+                    }
+                    Preset::Console => "Plan and build with your agents.",
                 }
-                Preset::Projects => "Define goals, assign tasks and review completion criteria.",
-                Preset::Workspace => "Actual Neovim · Follow AI / Live Diff / Independent Editing.",
-                Preset::Review => {
-                    "Action inbox: approvals, blockers, requested changes and results."
-                }
-                Preset::Console => "Plan and build with your agents.",
             };
             let sections = Layout::vertical([
                 Constraint::Length(if central.height >= 14 { 3 } else { 1 }),
@@ -629,7 +679,7 @@ impl Dashboard {
                     self.project_summary(parts[0], buffer);
                     self.rows_view(parts[1], buffer, false);
                 }
-                Preset::Workspace if self.editor.is_some() => {
+                Preset::Workspace if self.editor.is_some() && !self.goal_view => {
                     let Some(editor) = &self.editor else {
                         return None;
                     };
@@ -653,10 +703,11 @@ impl Dashboard {
                     }
                 }
                 Preset::Review
-                    if self
-                        .review_diff
-                        .as_ref()
-                        .is_some_and(|(id, _, _)| Some(id) == self.selected.as_ref()) =>
+                    if !self.goal_view
+                        && self
+                            .review_diff
+                            .as_ref()
+                            .is_some_and(|(id, _, _)| Some(id) == self.selected.as_ref()) =>
                 {
                     let parts = Layout::vertical([
                         Constraint::Length(if sections[1].height >= 16 { 6 } else { 3 }),

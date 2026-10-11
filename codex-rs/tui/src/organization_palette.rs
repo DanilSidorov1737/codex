@@ -1,0 +1,338 @@
+//! Discovery routes to the same owner handlers; it never carries execution authority.
+use super::*;
+
+pub(super) struct Palette {
+    pub query: String,
+    pub selected: usize,
+}
+
+pub(super) struct Action {
+    pub title: &'static str,
+    pub shortcut: &'static str,
+    pub code: KeyCode,
+    pub context: &'static str,
+}
+
+const ACTIONS: &[Action] = &[
+    Action {
+        title: "Console",
+        shortcut: "F1",
+        code: KeyCode::F(1),
+        context: "layout",
+    },
+    Action {
+        title: "Workspace / official Neovim",
+        shortcut: "F2",
+        code: KeyCode::F(2),
+        context: "layout",
+    },
+    Action {
+        title: "Projects",
+        shortcut: "F3",
+        code: KeyCode::F(3),
+        context: "layout",
+    },
+    Action {
+        title: "Operations / hierarchy",
+        shortcut: "F4",
+        code: KeyCode::F(4),
+        context: "layout",
+    },
+    Action {
+        title: "Review / action inbox",
+        shortcut: "F5",
+        code: KeyCode::F(5),
+        context: "layout",
+    },
+    Action {
+        title: "New project",
+        shortcut: "N",
+        code: KeyCode::Char('N'),
+        context: "owner proposal",
+    },
+    Action {
+        title: "New goal",
+        shortcut: "G",
+        code: KeyCode::Char('G'),
+        context: "owner proposal",
+    },
+    Action {
+        title: "New task",
+        shortcut: "T",
+        code: KeyCode::Char('T'),
+        context: "owner proposal",
+    },
+    Action {
+        title: "New agent",
+        shortcut: "U",
+        code: KeyCode::Char('U'),
+        context: "owner form",
+    },
+    Action {
+        title: "New group",
+        shortcut: "B",
+        code: KeyCode::Char('B'),
+        context: "owner form",
+    },
+    Action {
+        title: "Edit node or goal / reparent / retire node",
+        shortcut: "E",
+        code: KeyCode::Char('E'),
+        context: "select node or goal",
+    },
+    Action {
+        title: "Create role version",
+        shortcut: "L",
+        code: KeyCode::Char('L'),
+        context: "select node or role",
+    },
+    Action {
+        title: "Edit memberships",
+        shortcut: "I",
+        code: KeyCode::Char('I'),
+        context: "select node",
+    },
+    Action {
+        title: "Plan goal / import accepted plan",
+        shortcut: "P",
+        code: KeyCode::Char('P'),
+        context: "select goal or accepted planner",
+    },
+    Action {
+        title: "Save / edit workflow",
+        shortcut: "W",
+        code: KeyCode::Char('W'),
+        context: "select project or template",
+    },
+    Action {
+        title: "Templates / workflow runs",
+        shortcut: "w",
+        code: KeyCode::Char('w'),
+        context: "view",
+    },
+    Action {
+        title: "Authorize task / preview workflow",
+        shortcut: "s",
+        code: KeyCode::Char('s'),
+        context: "select task or template; exact confirmation",
+    },
+    Action {
+        title: "Create recurring task",
+        shortcut: "R",
+        code: KeyCode::Char('R'),
+        context: "select task; finite scope",
+    },
+    Action {
+        title: "Recurring workflow / accepted-result trigger",
+        shortcut: "Y",
+        code: KeyCode::Char('Y'),
+        context: "select template; finite preview and confirmation",
+    },
+    Action {
+        title: "Schedules",
+        shortcut: "S",
+        code: KeyCode::Char('S'),
+        context: "view",
+    },
+    Action {
+        title: "Shared project / workflow limits",
+        shortcut: "b",
+        code: KeyCode::Char('b'),
+        context: "select project, task, run or limit",
+    },
+    Action {
+        title: "Approve exact action",
+        shortcut: "a",
+        code: KeyCode::Char('a'),
+        context: "select waiting approval; confirmation",
+    },
+    Action {
+        title: "Reject exact action",
+        shortcut: "r",
+        code: KeyCode::Char('r'),
+        context: "select waiting approval; confirmation",
+    },
+    Action {
+        title: "Accept checked result",
+        shortcut: "v",
+        code: KeyCode::Char('v'),
+        context: "select reviewable task; confirmation",
+    },
+    Action {
+        title: "Request changes",
+        shortcut: "c",
+        code: KeyCode::Char('c'),
+        context: "select task; reviewed instructions",
+    },
+    Action {
+        title: "Select files to Apply",
+        shortcut: "A",
+        code: KeyCode::Char('A'),
+        context: "select accepted task; exact confirmation",
+    },
+    Action {
+        title: "Pause",
+        shortcut: "p",
+        code: KeyCode::Char('p'),
+        context: "select task, run or series; confirmation",
+    },
+    Action {
+        title: "Resume",
+        shortcut: "u",
+        code: KeyCode::Char('u'),
+        context: "select paused work; safe continuation",
+    },
+    Action {
+        title: "Cancel",
+        shortcut: "x",
+        code: KeyCode::Char('x'),
+        context: "select work; confirmation",
+    },
+    Action {
+        title: "Resolve blocker / handoff",
+        shortcut: "H",
+        code: KeyCode::Char('H'),
+        context: "select blocked task",
+    },
+    Action {
+        title: "Search project knowledge",
+        shortcut: "m",
+        code: KeyCode::Char('m'),
+        context: "select project or task",
+    },
+    Action {
+        title: "Search agent memory",
+        shortcut: "M",
+        code: KeyCode::Char('M'),
+        context: "select task",
+    },
+    Action {
+        title: "Search team knowledge",
+        shortcut: "J",
+        code: KeyCode::Char('J'),
+        context: "select task",
+    },
+    Action {
+        title: "Selected evidence summary",
+        shortcut: "z",
+        code: KeyCode::Char('z'),
+        context: "select project, agent or run",
+    },
+    Action {
+        title: "Organization evidence summary",
+        shortcut: "Z",
+        code: KeyCode::Char('Z'),
+        context: "read-only",
+    },
+    Action {
+        title: "Capability inventory",
+        shortcut: "C",
+        code: KeyCode::Char('C'),
+        context: "read-only; no probes",
+    },
+    Action {
+        title: "Refresh canonical state",
+        shortcut: "f",
+        code: KeyCode::Char('f'),
+        context: "read-only",
+    },
+    Action {
+        title: "Goal tree / milestone evidence",
+        shortcut: "g",
+        code: KeyCode::Char('g'),
+        context: "view; owner reviews success criteria",
+    },
+    Action {
+        title: "Reset current layout panes",
+        shortcut: "0",
+        code: KeyCode::Char('0'),
+        context: "local preferences",
+    },
+];
+
+impl Palette {
+    pub fn paste(&mut self, value: &str) {
+        for c in value.chars().filter(|c| !c.is_control()) {
+            if self.query.len() + c.len_utf8() > 256 {
+                break;
+            }
+            self.query.push(c);
+        }
+        self.selected = 0;
+    }
+    pub fn new() -> Self {
+        Self {
+            query: String::new(),
+            selected: 0,
+        }
+    }
+    pub fn actions(&self) -> Vec<&'static Action> {
+        let query = self.query.to_lowercase();
+        ACTIONS
+            .iter()
+            .filter(|action| {
+                query.split_whitespace().all(|word| {
+                    format!("{} {} {}", action.title, action.shortcut, action.context)
+                        .to_lowercase()
+                        .contains(word)
+                })
+            })
+            .collect()
+    }
+    pub fn key(&mut self, key: KeyEvent) -> Option<KeyCode> {
+        match key.code {
+            KeyCode::Enter => return self.actions().get(self.selected).map(|action| action.code),
+            KeyCode::Up => self.selected = self.selected.saturating_sub(1),
+            KeyCode::Down => {
+                self.selected = (self.selected + 1).min(self.actions().len().saturating_sub(1))
+            }
+            KeyCode::Backspace => {
+                self.query.pop();
+                self.selected = 0;
+            }
+            KeyCode::Char(c)
+                if !c.is_control()
+                    && (key.modifiers.is_empty()
+                        || key.modifiers == crossterm::event::KeyModifiers::SHIFT)
+                    && self.query.len() + c.len_utf8() <= 256 =>
+            {
+                self.query.push(c);
+                self.selected = 0;
+            }
+            _ => {}
+        }
+        None
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn search_matches_context_and_dispatches_only_on_enter() {
+        let mut palette = Palette::new();
+        for c in "apply accepted".chars() {
+            assert_eq!(palette.key(KeyCode::Char(c).into()), None);
+        }
+        assert_eq!(palette.actions().len(), 1);
+        assert_eq!(palette.key(KeyCode::Enter.into()), Some(KeyCode::Char('A')));
+        palette.query = "unrecognized command".into();
+        assert_eq!(palette.key(KeyCode::Enter.into()), None);
+        palette.query.clear();
+        palette.paste("Apply\naccepted\u{1b}");
+        assert_eq!(palette.query, "Applyaccepted");
+    }
+    #[test]
+    fn navigation_and_unicode_query_remain_bounded() {
+        let mut palette = Palette::new();
+        palette.key(KeyCode::Down.into());
+        assert_eq!(palette.key(KeyCode::Enter.into()), Some(KeyCode::F(2)));
+        for _ in 0..200 {
+            palette.key(KeyCode::Char('é').into());
+        }
+        assert_eq!(palette.query.len(), 256);
+        palette.key(KeyCode::Backspace.into());
+        assert_eq!(palette.query.len(), 254);
+        assert_eq!(palette.selected, 0);
+    }
+}

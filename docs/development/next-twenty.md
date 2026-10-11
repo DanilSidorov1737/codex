@@ -31,9 +31,16 @@ autonomy batch and every historical fixture/grant/receipt remain protected.
 
 ## Implementation checkpoint
 
-Work has started. Task 1 needs a real user-manager/reboot-capable host; prepare
-the test while completing independent work. No source implementation is yet
-qualified at this checkpoint. Subsequent slices update this page, status and
-testing with exact commits, commands, actual interactions, failures and limits.
+Work has started. Task 1 needs a real user-manager/reboot-capable host; the
+[host qualification runbook](unattended-host-qualification.md) records the
+separate acceptance sequence. No host logout or reboot was performed.
+
+Tasks 2, 3 and 5 are implemented and pass 59 targeted TUI/editor checks plus
+production CLI Clippy with warnings denied. They reuse existing owner handlers,
+native workflow previews, protected mutations and goal/task records; no new
+dependency was added. Full-package physical qualification is next, so these
+items are not yet claimed complete. Remaining approved tasks are pending.
+Subsequent slices update this page, status and testing with exact commits,
+commands, actual interactions, failures and limits.
 No push, deployment, external message, new integration, purchase or automatic
 Apply is authorized by this local batch.

@@ -24,6 +24,8 @@ use crate::tui::{FrameRequester, Tui, TuiEvent};
 
 #[path = "organization_form.rs"]
 mod form;
+#[path = "organization_palette.rs"]
+mod palette;
 #[path = "organization_report.rs"]
 mod reporting;
 #[path = "organization_view.rs"]
@@ -177,6 +179,11 @@ enum Command {
     Schedule(OrganizationScheduleMutation),
     Workflow(OrganizationWorkflowMutation),
     WorkflowPreview(OrganizationWorkflowPreviewRequest),
+    SeriesPreview {
+        request: OrganizationWorkflowPreviewRequest,
+        config: OrganizationScheduleConfig,
+        source_task: Option<String>,
+    },
     Project {
         params: ProjectCreateParams,
         goal_id: Option<String>,
@@ -205,6 +212,13 @@ enum Update {
     ScheduleSaved(Box<OrganizationScheduleView>, bool),
     WorkflowSaved(Box<OrganizationWorkflowView>),
     WorkflowPreview(Box<OrganizationWorkflowPreview>),
+    SeriesPreview {
+        request: OrganizationWorkflowPreviewRequest,
+        config: OrganizationScheduleConfig,
+        source_task: Option<String>,
+        preview: Box<OrganizationWorkflowPreview>,
+        trigger: OrganizationWorkflowTrigger,
+    },
 }
 
 fn request_id() -> RequestId {
@@ -476,6 +490,53 @@ async fn worker(
                         .send(Update::WorkflowPreview(Box::new(response.preview)))
                         .await?;
                 }
+                Command::SeriesPreview {
+                    request,
+                    config,
+                    source_task,
+                } => {
+                    let response: OrganizationWorkflowPreviewResponse = handle
+                        .request_typed(ClientRequest::OrganizationWorkflowPreview {
+                            request_id: request_id(),
+                            params: OrganizationWorkflowPreviewParams {
+                                request: request.clone(),
+                            },
+                        })
+                        .await?;
+                    let trigger = if let Some(task_id) = &source_task {
+                        let source: OrganizationExecutionReadResponse = handle
+                            .request_typed(ClientRequest::OrganizationExecutionRead {
+                                request_id: request_id(),
+                                params: OrganizationExecutionReadParams {
+                                    task_id: task_id.clone(),
+                                },
+                            })
+                            .await?;
+                        anyhow::ensure!(
+                            source.view.task.project_id == response.preview.template.project_id,
+                            "trigger source must belong to the same project"
+                        );
+                        let grant = source.view.authorization.ok_or_else(|| {
+                            anyhow::anyhow!("source task has no current authorization")
+                        })?;
+                        anyhow::ensure!(!grant.revoked, "source authorization is revoked");
+                        OrganizationWorkflowTrigger::Accepted {
+                            task_id: task_id.clone(),
+                            authorization_id: grant.id,
+                        }
+                    } else {
+                        OrganizationWorkflowTrigger::Interval
+                    };
+                    updates
+                        .send(Update::SeriesPreview {
+                            request,
+                            config,
+                            source_task,
+                            preview: Box::new(response.preview),
+                            trigger,
+                        })
+                        .await?;
+                }
                 Command::Workflow(mutation) => {
                     let response: OrganizationWorkflowMutateResponse = handle
                         .request_typed(ClientRequest::OrganizationWorkflowMutate {
@@ -537,14 +598,88 @@ struct Row {
 
 /// Iterative traversal keeps deep user-defined hierarchies off the call stack.
 fn tree(nodes: &[OrganizationNode], collapsed: &BTreeSet<String>, search: &str) -> Vec<Row> {
-    let mut children: BTreeMap<Option<&str>, Vec<&OrganizationNode>> = BTreeMap::new();
-    let ids: BTreeSet<&str> = nodes.iter().map(|n| n.id.as_str()).collect();
+    let entries: Vec<_> = nodes
+        .iter()
+        .map(|n| {
+            (
+                n.id.as_str(),
+                n.parent_id.as_deref(),
+                n.label.as_str(),
+                format!(
+                    "{}{}",
+                    if n.kind == OrganizationNodeKind::Group {
+                        "group"
+                    } else {
+                        "agent"
+                    },
+                    if n.enabled {
+                        ""
+                    } else {
+                        "; retired / disabled"
+                    }
+                ),
+            )
+        })
+        .collect();
+    tree_rows(&entries, collapsed, search)
+}
+
+fn goal_tree(
+    records: &[OrganizationRecord],
+    collapsed: &BTreeSet<String>,
+    search: &str,
+) -> Vec<Row> {
+    let goals: BTreeMap<_, _> = records
+        .iter()
+        .filter_map(|record| match record {
+            OrganizationRecord::Goal(goal) => Some((goal.id.as_str(), goal)),
+            _ => None,
+        })
+        .collect();
+    let mut progress: BTreeMap<&str, (usize, usize)> = BTreeMap::new();
+    for record in records {
+        if let OrganizationRecord::Task(task) = record {
+            let mut parent = task.goal_id.as_deref();
+            let mut visited = BTreeSet::new();
+            while let Some(goal) = parent.and_then(|id| goals.get(id)) {
+                if !visited.insert(goal.id.as_str()) {
+                    break;
+                }
+                let count = progress.entry(&goal.id).or_default();
+                count.0 += 1;
+                count.1 += usize::from(task.state == "accepted");
+                parent = goal.parent_id.as_deref();
+            }
+        }
+    }
+    let entries: Vec<_> = goals
+        .values()
+        .map(|goal| {
+            let (total, accepted) = progress.get(goal.id.as_str()).copied().unwrap_or_default();
+            (
+                goal.id.as_str(),
+                goal.parent_id.as_deref(),
+                goal.objective.as_str(),
+                format!("goal · {accepted}/{total} tasks accepted; criteria need owner review"),
+            )
+        })
+        .collect();
+    tree_rows(&entries, collapsed, search)
+}
+
+fn tree_rows(
+    nodes: &[(&str, Option<&str>, &str, String)],
+    collapsed: &BTreeSet<String>,
+    search: &str,
+) -> Vec<Row> {
+    let mut children: BTreeMap<Option<&str>, Vec<_>> = BTreeMap::new();
+    let ids: BTreeSet<&str> = nodes.iter().map(|n| n.0).collect();
     for node in nodes {
-        let parent = node.parent_id.as_deref().filter(|p| ids.contains(p));
+        let parent = node.1.filter(|p| ids.contains(p));
         children.entry(parent).or_default().push(node);
     }
     for siblings in children.values_mut() {
-        siblings.sort_by_key(|n| (&n.label, &n.id));
+        siblings.sort_by_key(|n| (n.2, n.0));
     }
     let mut stack: Vec<_> = children
         .get(&None)
@@ -556,21 +691,18 @@ fn tree(nodes: &[OrganizationNode], collapsed: &BTreeSet<String>, search: &str) 
     let mut visited = BTreeSet::new();
     let mut rows = Vec::new();
     while let Some((node, depth)) = stack.pop() {
-        if !visited.insert(node.id.as_str()) {
+        if !visited.insert(node.0) {
             continue;
         }
-        let branch = children.contains_key(&Some(node.id.as_str()));
-        if search.is_empty()
-            || node.label.to_lowercase().contains(search)
-            || node.id.contains(search)
-        {
+        let branch = children.contains_key(&Some(node.0));
+        if search.is_empty() || node.2.to_lowercase().contains(search) || node.0.contains(search) {
             rows.push(Row {
-                id: node.id.clone(),
+                id: node.0.to_string(),
                 label: format!(
-                    "{}{} {} [{}{}]",
+                    "{}{} {} [{}]",
                     "  ".repeat(depth.min(12)),
                     if branch {
-                        if collapsed.contains(&node.id) {
+                        if collapsed.contains(node.0) {
                             "▸"
                         } else {
                             "▾"
@@ -578,22 +710,13 @@ fn tree(nodes: &[OrganizationNode], collapsed: &BTreeSet<String>, search: &str) 
                     } else {
                         "·"
                     },
-                    node.label,
-                    if node.kind == OrganizationNodeKind::Group {
-                        "group"
-                    } else {
-                        "agent"
-                    },
-                    if node.enabled {
-                        ""
-                    } else {
-                        "; retired / disabled"
-                    }
+                    node.2,
+                    node.3,
                 ),
             });
         }
-        if (!collapsed.contains(&node.id) || !search.is_empty())
-            && let Some(list) = children.get(&Some(node.id.as_str()))
+        if (!collapsed.contains(node.0) || !search.is_empty())
+            && let Some(list) = children.get(&Some(node.0))
         {
             stack.extend(list.iter().rev().map(|n| (*n, depth + 1)));
         }
@@ -607,6 +730,7 @@ pub(crate) struct Dashboard {
     snapshot: Snapshot,
     schedule_view: bool,
     workflow_view: bool,
+    goal_view: bool,
     rows: Vec<Row>,
     selected: Option<String>,
     collapsed: BTreeSet<String>,
@@ -640,6 +764,7 @@ pub(crate) struct Dashboard {
     provider: String,
     model: String,
     form: Option<form::Form>,
+    palette: Option<palette::Palette>,
     prices: Option<crate::organization_pricing::Prices>,
     frame: FrameRequester,
     pub(crate) is_done: bool,
@@ -652,6 +777,11 @@ impl Drop for Dashboard {
 }
 
 impl Dashboard {
+    pub(crate) fn open_palette(&mut self) {
+        self.palette = Some(palette::Palette::new());
+        self.message =
+            "Search commands · Enter selects · Esc cancels; owner decisions still confirm".into();
+    }
     pub(crate) fn context(&self) -> Option<String> {
         self.record()
             .map(|record| match record {
@@ -699,6 +829,7 @@ impl Dashboard {
             snapshot: Snapshot::default(),
             schedule_view: false,
             workflow_view: false,
+            goal_view: false,
             rows: Vec::new(),
             selected: None,
             collapsed: BTreeSet::new(),
@@ -732,6 +863,7 @@ impl Dashboard {
             provider: provider.into(),
             model: model.into(),
             form: None,
+            palette: None,
             prices: crate::organization_pricing::Prices::load(home).ok(),
             frame,
             is_done: false,
@@ -764,6 +896,7 @@ impl Dashboard {
         self.preferences.preset = preset;
         self.schedule_view = false;
         self.workflow_view = false;
+        self.goal_view = false;
         self.search.clear();
         self.selected = None;
         self.rebuild();
@@ -772,7 +905,9 @@ impl Dashboard {
     }
     fn rebuild(&mut self) {
         let search = self.search.to_lowercase();
-        self.rows = if self.preferences.preset == Preset::Review {
+        self.rows = if self.goal_view {
+            goal_tree(&self.snapshot.records, &self.collapsed, &search)
+        } else if self.preferences.preset == Preset::Review {
             self.snapshot
                 .report
                 .as_ref()
@@ -1349,6 +1484,7 @@ impl Dashboard {
             }
             'E' => match self.record() {
                 Some(OrganizationRecord::Node(node)) => form::Kind::NodeEdit(node.clone()),
+                Some(OrganizationRecord::Goal(goal)) => form::Kind::GoalEdit(goal.clone()),
                 _ => {
                     self.message =
                         "Select an Operations node to edit its captured definition.".into();
@@ -1511,6 +1647,14 @@ impl Dashboard {
                 }
                 form::Kind::WorkflowRun { template }
             }
+            'Y' => {
+                let Some(template) = self.selected_template().cloned() else {
+                    self.message =
+                        "Select a saved workflow template before creating a finite series".into();
+                    return;
+                };
+                form::Kind::WorkflowSeries { template }
+            }
             's' => match self.record() {
                 Some(OrganizationRecord::Task(task))
                     if matches!(
@@ -1662,6 +1806,27 @@ impl Dashboard {
         if key.kind == KeyEventKind::Release {
             return;
         }
+        if let Some(palette) = &mut self.palette {
+            if key.code == KeyCode::Esc {
+                self.palette = None;
+            } else if let Some(code) = palette.key(key) {
+                self.palette = None;
+                self.key(KeyEvent::from(code));
+            }
+            return;
+        }
+        if key.code == KeyCode::Char('p')
+            && key.modifiers == crossterm::event::KeyModifiers::CONTROL
+            && self.form.is_none()
+            && self.confirmation.is_none()
+            && self.input.is_none()
+            && self.report_text.is_none()
+            && self.memory_request.is_none()
+            && !self.editor.as_ref().is_some_and(|editor| editor.focused)
+        {
+            self.open_palette();
+            return;
+        }
         if self.report_text.is_some() {
             match key.code {
                 KeyCode::Esc | KeyCode::Char('q') => {
@@ -1808,6 +1973,10 @@ impl Dashboard {
                     Ok(Command::WorkflowPreview(request)) => {
                         self.send(Command::WorkflowPreview(request));
                         self.message = "Loading exact workflow preview; no work authorized".into();
+                    }
+                    Ok(command @ Command::SeriesPreview { .. }) => {
+                        self.send(command);
+                        self.message = "Loading exact finite series preview and source grant; no work authorized".into();
                     }
                     Ok(command) => {
                         self.confirmation = Some(command);
@@ -2038,7 +2207,7 @@ impl Dashboard {
             KeyCode::PageDown => self.scroll = self.scroll.saturating_add(10),
             KeyCode::PageUp => self.scroll = self.scroll.saturating_sub(10),
             KeyCode::Left | KeyCode::Right | KeyCode::Enter
-                if self.preferences.preset == Preset::Operations
+                if (self.preferences.preset == Preset::Operations || self.goal_view)
                     && !self.schedule_view
                     && !self.workflow_view =>
             {
@@ -2058,7 +2227,17 @@ impl Dashboard {
                 self.changes = false;
             }
             KeyCode::Char('f') => self.send(Command::Refresh),
+            KeyCode::Char('g') if key.modifiers.is_empty() => {
+                self.goal_view = !self.goal_view;
+                self.schedule_view = false;
+                self.workflow_view = false;
+                self.search.clear();
+                self.selected = None;
+                self.rebuild();
+                self.inspect();
+            }
             KeyCode::Char('w') => {
+                self.goal_view = false;
                 self.workflow_view = !self.workflow_view;
                 self.schedule_view = false;
                 self.selected = None;
@@ -2069,6 +2248,7 @@ impl Dashboard {
                     "Workflows · W saves selected task chain · s previews selected template".into();
             }
             KeyCode::Char('S') => {
+                self.goal_view = false;
                 self.schedule_view = !self.schedule_view;
                 self.workflow_view = false;
                 self.search.clear();
@@ -2108,7 +2288,8 @@ impl Dashboard {
                 }
             }
             KeyCode::Char(
-                c @ ('U' | 'G' | 'N' | 'T' | 's' | 'A' | 'R' | 'W' | 'H' | 'B' | 'E' | 'L' | 'I'),
+                c @ ('U' | 'G' | 'N' | 'T' | 's' | 'A' | 'R' | 'W' | 'H' | 'B' | 'E' | 'L' | 'I'
+                | 'Y'),
             ) => self.open_form(c),
             KeyCode::Char('n') if self.preferences.preset == Preset::Review => {
                 if let Some(result) = self
@@ -2219,6 +2400,15 @@ impl Dashboard {
                         self.pane().inspector = true;
                         self.confirmation_text = clean(&self.details());
                         self.message = "Review exact workflow tasks/scopes · y start · Esc back".into();
+                    }
+                }
+                Update::SeriesPreview { request, config, source_task, preview, trigger } => {
+                    if preview.id == request.id && preview.template.id == request.template_id && preview.template.revision == request.expected_revision && preview.scopes == request.scopes && preview.shared_limits == request.shared_limits
+                        && self.form.as_ref().is_some_and(|form| matches!(form.command(), Ok(Command::SeriesPreview { request: current, config: settings, source_task: source }) if current == request && settings == config && source == source_task)) {
+                        self.confirmation = Some(Command::Workflow(OrganizationWorkflowMutation::CreateSeries { id: request.id, preview, config, trigger }));
+                        self.scroll = 0;
+                        self.confirmation_text = clean(&self.details());
+                        self.message = "Review exact finite series/source grant · y confirm · Esc back".into();
                     }
                 }
                 Update::WorkflowSaved(view) => {
@@ -2612,6 +2802,15 @@ impl Dashboard {
             if let Command::Workflow(OrganizationWorkflowMutation::Run { preview }) = command {
                 text.push_str(&format!("\nAuthorizes {} fresh tasks in background. Fixed per-step grants sum to {} tokens / {} requests.\nPrerequisites require owner acceptance. Expired/failed/interrupted grants block work; no automatic restart or Apply.\nToken ceilings allow already-admitted usage; cost estimate unavailable.\n", preview.template.items.len(), preview.max_tokens, preview.max_model_requests));
             }
+            if let Command::Workflow(OrganizationWorkflowMutation::CreateSeries {
+                preview,
+                config,
+                trigger,
+                ..
+            }) = command
+            {
+                text.push_str(&format!("\nFinite series: {} · {} steps per invocation · at most {} runs\nUTC first/end: {} / {} · interval {} seconds\nLifetime pool: {} reported tokens / {} admitted requests\nTrigger: {:?}\nMissed/overlapping intervals are skipped. Accepted trigger pins the displayed source task/grant and runs once.\nExisting step grants, checks and exact-action approvals apply. No automatic root acceptance or Apply. Already-admitted tokens may overrun a ceiling.\n", config.label, preview.template.items.len(), config.max_runs, config.first_run_at, config.ends_at, config.interval_seconds, config.max_tokens, config.max_model_requests, trigger));
+            }
             text = format!(
                 "EXACT OWNER DECISION (y confirms)\n{}\n\n{text}",
                 value.unwrap_or_default()
@@ -2628,7 +2827,9 @@ impl Dashboard {
         match event {
             TuiEvent::Key(key) => self.key(key),
             TuiEvent::Paste(value) => {
-                if self.confirmation.is_some() {
+                if let Some(palette) = &mut self.palette {
+                    palette.paste(&value);
+                } else if self.confirmation.is_some() {
                     // A frozen confirmation is never edited by pasted input.
                 } else if let Some(form) = &mut self.form {
                     form.paste(&value);

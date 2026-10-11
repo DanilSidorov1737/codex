@@ -573,9 +573,10 @@ impl ChatWidget {
                     self.open_usage_menu();
                 }
             }
-            SlashCommand::Layout => self
-                .app_event_tx
-                .send(AppEvent::OpenOrganizationLayout { preset: None }),
+            SlashCommand::Layout => self.app_event_tx.send(AppEvent::OpenOrganizationLayout {
+                preset: None,
+                commands: false,
+            }),
             SlashCommand::Ide => {
                 self.handle_ide_command();
             }
@@ -829,12 +830,20 @@ impl ChatWidget {
                     }
                 }
             }
+            SlashCommand::Layout if trimmed == "commands" => {
+                self.app_event_tx.send(AppEvent::OpenOrganizationLayout {
+                    preset: None,
+                    commands: true,
+                })
+            }
             SlashCommand::Layout => match crate::organization::Preset::parse(trimmed) {
                 Some(preset) => self.app_event_tx.send(AppEvent::OpenOrganizationLayout {
                     preset: Some(preset),
+                    commands: false,
                 }),
                 None => self.add_error_message(
-                    "Usage: /layout [console|workspace|projects|operations|review]".to_string(),
+                    "Usage: /layout [console|workspace|projects|operations|review|commands]"
+                        .to_string(),
                 ),
             },
             SlashCommand::Voice => match trimmed.to_ascii_lowercase().as_str() {

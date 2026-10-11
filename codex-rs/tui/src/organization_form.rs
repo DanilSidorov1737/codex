@@ -11,6 +11,7 @@ pub(super) enum Kind {
     Role(Option<OrganizationRoleVersion>),
     Membership(OrganizationNode),
     Goal,
+    GoalEdit(OrganizationGoal),
     Project,
     Task,
     GoalPlan(OrganizationGoal),
@@ -32,6 +33,9 @@ pub(super) enum Kind {
         previous: Option<OrganizationWorkflowTemplate>,
     },
     WorkflowRun {
+        template: OrganizationWorkflowTemplate,
+    },
+    WorkflowSeries {
         template: OrganizationWorkflowTemplate,
     },
     SharedLimits {
@@ -65,6 +69,80 @@ mod tests {
             state: "proposed".into(),
             revision: 7,
         }
+    }
+
+    #[test]
+    fn finite_workflow_form_captures_series_and_needs_exact_source_with_one_run() {
+        let template = OrganizationWorkflowTemplate {
+            id: "template".into(),
+            project_id: "project".into(),
+            label: "A workflow".into(),
+            revision: 4,
+            items: vec![OrganizationPlanItem {
+                key: "step".into(),
+                owner_id: "agent".into(),
+                instructions: "Write result".into(),
+                criteria: vec!["Check passes".into()],
+                prerequisites: vec![],
+            }],
+        };
+        let records = vec![OrganizationRecord::Task(task())];
+        let mut form = Form::new(Kind::WorkflowSeries { template }, &records, None, "model");
+        set(&mut form, 0, "result.txt");
+        set(&mut form, 2, "result.txt");
+        let Command::SeriesPreview {
+            request,
+            config,
+            source_task,
+        } = form.command().unwrap()
+        else {
+            panic!("series must only preview")
+        };
+        assert_eq!(request.expected_revision, 4);
+        assert_eq!(config.max_runs, 3);
+        assert!(source_task.is_none());
+        form.fields[24].choice = 1;
+        assert!(
+            form.command().is_err(),
+            "accepted trigger cannot issue three runs"
+        );
+        set(&mut form, 21, "1");
+        assert!(form.command().is_err(), "source is mandatory");
+        form.fields[25].choice = 1;
+        let Command::SeriesPreview { source_task, .. } = form.command().unwrap() else {
+            panic!("source preview")
+        };
+        assert_eq!(source_task.as_deref(), Some("original-task"));
+        set(&mut form, 18, "0");
+        assert!(form.command().is_err(), "past first run cannot confirm");
+    }
+
+    #[test]
+    fn goal_edit_preserves_identity_revision_and_explicit_parent() {
+        let goal = OrganizationGoal {
+            id: "goal".into(),
+            parent_id: None,
+            objective: "Old objective".into(),
+            criteria: vec!["Measured evidence".into()],
+            revision: 8,
+        };
+        let mut form = Form::new(Kind::GoalEdit(goal), &[], None, "model");
+        set(&mut form, 0, "Reviewed objective");
+        let Command::Definition(OrganizationMutation::PutGoal {
+            id,
+            expected_revision,
+            parent_id,
+            objective,
+            ..
+        }) = form.command().unwrap()
+        else {
+            panic!("goal edit")
+        };
+        assert_eq!(
+            (id.as_deref(), expected_revision, parent_id),
+            (Some("goal"), Some(8), None)
+        );
+        assert_eq!(objective, "Reviewed objective");
     }
 
     #[test]
@@ -1032,10 +1110,10 @@ impl Form {
                 Field::text("Model", "Blank uses the configured default", node.and_then(|node|node.model.as_deref()).unwrap_or("")),
                 Field::select("State",vec![("true".into(),"Enabled".into()),("false".into(),"Retired / disabled (records retained)".into())],Some(if node.is_none_or(|node|node.enabled) { "true" } else { "false" })),
             ]},
-            Kind::Goal => vec![
-                Field::text("Objective", "Describe the desired outcome", ""),
-                Field::text("Success criteria", "One criterion per line", ""),
-                Field::select("Parent goal", optional(goals), goal_id),
+            Kind::Goal | Kind::GoalEdit(_) => vec![
+                Field::text("Objective", "Describe the desired outcome", if let Kind::GoalEdit(goal) = &kind { &goal.objective } else { "" }),
+                Field::text("Success criteria", "One criterion per line", &if let Kind::GoalEdit(goal) = &kind { goal.criteria.join("\n") } else { String::new() }),
+                Field::select("Parent goal", optional(goals), if let Kind::GoalEdit(goal) = &kind { goal.parent_id.as_deref() } else { goal_id }),
             ],
             Kind::Project => vec![
                 Field::text("Project name", "A local coding or document project", ""),
@@ -1076,7 +1154,7 @@ impl Form {
                 Field::text("Shared model requests", "Lifetime admitted requests; 1–100000, never reset by controls", &previous.as_ref().map(|limit|limit.max_model_requests).unwrap_or(20).to_string()),
                 Field::text("Concurrent executions", "1–4; also constrained by the daemon and each grant", &previous.as_ref().map(|limit|limit.max_active).unwrap_or(2).to_string()),
             ],
-            Kind::WorkflowRun { template } => template.items.iter().flat_map(|item| {
+            Kind::WorkflowRun { template } | Kind::WorkflowSeries { template } => template.items.iter().flat_map(|item| {
                 let model=records.iter().find_map(|record|match record {OrganizationRecord::Node(node) if node.id==item.owner_id=>node.model.as_deref(),_=>None}).unwrap_or(model);
                 let mut fields=Self::scope_fields(model);
                 for field in &mut fields {field.label=format!("{} · {}",item.key,field.label);}
@@ -1097,6 +1175,74 @@ impl Form {
                 Self::scope_fields(model)
             }
         };
+        if let Kind::WorkflowSeries { template } = &kind {
+            let now = chrono::Utc::now().timestamp();
+            let sources = records
+                .iter()
+                .filter_map(|record| match record {
+                    OrganizationRecord::Task(task) if task.project_id == template.project_id => {
+                        Some((
+                            task.id.clone(),
+                            format!(
+                                "{} · {}",
+                                task.instructions.chars().take(60).collect::<String>(),
+                                task.state
+                            ),
+                        ))
+                    }
+                    _ => None,
+                })
+                .collect();
+            fields.extend([
+                Field::text(
+                    "Series name",
+                    "Finite approved workflow; y confirms exact authority",
+                    &format!("{} series", template.label),
+                ),
+                Field::text(
+                    "First run (UTC epoch)",
+                    "Future time; accepted triggers wait for acceptance",
+                    &(now + 3600).to_string(),
+                ),
+                Field::text(
+                    "Interval (seconds)",
+                    "10–2678400; missed and overlapping intervals are skipped",
+                    "3600",
+                ),
+                Field::text(
+                    "End time (UTC epoch)",
+                    "End within 31 days; expiry is retained across controls",
+                    &(now + 86400).to_string(),
+                ),
+                Field::text(
+                    "Total runs",
+                    "1–1000; accepted-result trigger requires exactly 1",
+                    "3",
+                ),
+                Field::text(
+                    "Total reported tokens",
+                    "Lifetime series pool; in-flight usage may overrun",
+                    "30000",
+                ),
+                Field::text(
+                    "Total model requests",
+                    "Lifetime admitted requests across all steps and descendants",
+                    "60",
+                ),
+                Field::select(
+                    "Trigger",
+                    vec![
+                        ("interval".into(), "Recurring interval".into()),
+                        (
+                            "accepted".into(),
+                            "Exact accepted task result (one-shot)".into(),
+                        ),
+                    ],
+                    None,
+                ),
+                Field::select("Source task", optional(sources), None),
+            ]);
+        }
         if matches!(&kind, Kind::Schedule(_)) {
             let now = chrono::Utc::now().timestamp();
             fields[13] = Field::text(
@@ -1182,6 +1328,7 @@ impl Form {
             Kind::Role(_) => "Create immutable role version",
             Kind::Membership(_) => "Edit group membership",
             Kind::Goal => "New goal",
+            Kind::GoalEdit(_) => "Edit goal / parent / success criteria",
             Kind::Project => "New project",
             Kind::Task => "New task",
             Kind::GoalPlan(_) => "Propose goal planner · starts no execution",
@@ -1192,12 +1339,16 @@ impl Form {
             Kind::Schedule(_) => "Create recurring schedule",
             Kind::WorkflowSave { .. } => "Save workflow template",
             Kind::WorkflowRun { .. } => "Preview workflow · scope for each step",
+            Kind::WorkflowSeries { .. } => "Preview recurring workflow / accepted-result trigger",
             Kind::SharedLimits { .. } => "Set shared project / workflow ceilings",
             Kind::Apply { .. } => "Select files to Apply",
         }
     }
     pub(super) fn prefill_scope(&mut self, scope: &OrganizationExecutionScope) {
-        if !matches!(&self.kind, Kind::Schedule(_) | Kind::WorkflowRun { .. }) {
+        if !matches!(
+            &self.kind,
+            Kind::Schedule(_) | Kind::WorkflowRun { .. } | Kind::WorkflowSeries { .. }
+        ) {
             return;
         }
         let values = [
@@ -1211,7 +1362,9 @@ impl Form {
             scope.max_model_requests.to_string(),
             scope.max_attempts.to_string(),
         ];
-        let groups = if let Kind::WorkflowRun { template } = &self.kind {
+        let groups = if let Kind::WorkflowRun { template } | Kind::WorkflowSeries { template } =
+            &self.kind
+        {
             template.items.len()
         } else {
             1
@@ -1511,9 +1664,17 @@ impl Form {
                     enabled: value(4) == "true",
                 })
             }
-            Kind::Goal => Command::Definition(OrganizationMutation::PutGoal {
-                id: None,
-                expected_revision: None,
+            Kind::Goal | Kind::GoalEdit(_) => Command::Definition(OrganizationMutation::PutGoal {
+                id: if let Kind::GoalEdit(goal) = &self.kind {
+                    Some(goal.id.clone())
+                } else {
+                    None
+                },
+                expected_revision: if let Kind::GoalEdit(goal) = &self.kind {
+                    Some(goal.revision)
+                } else {
+                    None
+                },
                 parent_id: optional(2),
                 objective: required(0)?,
                 criteria: criteria(1)?,
@@ -1582,8 +1743,8 @@ impl Form {
                 max_model_requests: required(1)?.parse()?,
                 max_active: required(2)?.parse()?,
             }),
-            Kind::WorkflowRun { template } => {
-                Command::WorkflowPreview(OrganizationWorkflowPreviewRequest {
+            Kind::WorkflowRun { template } | Kind::WorkflowSeries { template } => {
+                let request = OrganizationWorkflowPreviewRequest {
                     shared_limits: {
                         let start = template.items.len() * 14;
                         if (start..start + 3).all(|index| value(index).trim().is_empty()) {
@@ -1610,7 +1771,38 @@ impl Form {
                             })
                         })
                         .collect::<anyhow::Result<Vec<_>>>()?,
-                })
+                };
+                if matches!(&self.kind, Kind::WorkflowSeries { .. }) {
+                    let start = template.items.len() * 14 + 3;
+                    let config = OrganizationScheduleConfig {
+                        label: required(start)?,
+                        first_run_at: required(start + 1)?.parse()?,
+                        interval_seconds: required(start + 2)?.parse()?,
+                        ends_at: required(start + 3)?.parse()?,
+                        max_runs: required(start + 4)?.parse()?,
+                        max_tokens: required(start + 5)?.parse()?,
+                        max_model_requests: required(start + 6)?.parse()?,
+                    };
+                    config
+                        .validate(chrono::Utc::now().timestamp())
+                        .map_err(anyhow::Error::msg)?;
+                    let source_task = if required(start + 7)? == "accepted" {
+                        anyhow::ensure!(
+                            config.max_runs == 1,
+                            "accepted-result triggers require exactly one run"
+                        );
+                        Some(required(start + 8)?)
+                    } else {
+                        None
+                    };
+                    Command::SeriesPreview {
+                        request,
+                        config,
+                        source_task,
+                    }
+                } else {
+                    Command::WorkflowPreview(request)
+                }
             }
             Kind::Task | Kind::GoalPlan(_) | Kind::Selection { .. } => {
                 Command::Definition(OrganizationMutation::PutTask {

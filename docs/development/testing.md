@@ -1,5 +1,37 @@
 # Testing procedures and evidence
 
+## Operations batch: discovery, finite forms and goal evidence
+
+2026-10-11 (America/New_York). Tasks 2, 3 and 5 are implemented; physical
+full-package qualification is pending at this source checkpoint. Logs:
+`/workspace/.onboarding/qualification/operations-batch/`.
+
+After `. /workspace/.onboarding/activate.sh`, from `codex-rs`, with
+`CARGO_INCREMENTAL=0 RUST_MIN_STACK=8388608`:
+
+| Check | Result | Log |
+| --- | --- | --- |
+| `cargo test --locked --offline --profile dev-small -j4 -p codex-tui --lib organization` | 59 passed, 0 failed/ignored; actual official Neovim checks included; native IPC execution outside outer sandbox | `ui-tests-final.log` |
+| `cargo clippy --locked --offline --profile dev-small -j4 -p codex-cli --bin codex -- -D warnings` | passed | `ui-clippy-final.log` |
+| `cargo build --locked --offline --profile dev-small -j4 -p codex-cli --bin codex` | passed | `ui-build-final.log` |
+| `cargo fmt --all`, `git diff --check` | passed | `ui-format-final.log` / terminal result |
+
+Meaningful new checks cover Unicode-bounded palette navigation/search/paste,
+cancel without dispatch, existing-handler routing, finite interval/accepted
+trigger validation, exact source/draft preview fencing, parent/subgoal accepted
+evidence and revision-preserving goal edits. Existing official-Neovim edits/save/
+undo/diff/dirty refusal, configured plugin and redraw checks also pass. Earlier
+compile failure from a missing test-fixture field is retained in `palette-tests.log`;
+it was corrected, without disabling assertions. The goal-to-schedules projection
+reset and goal view over an open editor were corrected in normal review.
+
+Disk headroom required deleting only inactive rebuildable older Rust artifacts.
+Hash/size receipts are `derived-artifact-cleanup.json`,
+`derived-library-cleanup.json` and `derived-executable-cleanup-final.json`.
+Every historical source/package/state/grant/bundle/log is preserved. No dependency
+installation, new paid request, historical replay, host logout or reboot occurred.
+The [host runbook](unattended-host-qualification.md) records unrun task 1 gates.
+
 ## Autonomy batch final qualification
 
 2026-10-11 UTC. All twelve approved bounded items are delivered. Final application

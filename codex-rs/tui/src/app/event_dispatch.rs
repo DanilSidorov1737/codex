@@ -1940,7 +1940,7 @@ impl App {
                 self.overlay = Some(Overlay::Analytics(view));
                 tui.frame_requester().schedule_frame();
             }
-            AppEvent::OpenOrganizationLayout { preset } => {
+            AppEvent::OpenOrganizationLayout { preset, commands } => {
                 if preset == Some(crate::organization::Preset::Console) {
                     self.close_transcript_overlay(tui);
                     if let Err(e) = crate::organization::select_console(self.local_settings.codex_home.as_path()) {
@@ -1950,9 +1950,11 @@ impl App {
                     self.chat_widget.add_error_message("Organization layouts require the alternate screen; relaunch without --no-alt-screen.".into());
                 } else {
                     tui.enter_alt_screen()?;
-                    self.overlay = Some(Overlay::Organization(Box::new(crate::organization::Dashboard::open(
+                    let mut dashboard = crate::organization::Dashboard::open(
                         app_server.request_handle(), tui.frame_requester(), self.local_settings.codex_home.as_path(), preset, &self.config.model_provider_id, self.config.model.as_deref().unwrap_or(""),
-                    ))));
+                    );
+                    if commands { dashboard.open_palette(); }
+                    self.overlay = Some(Overlay::Organization(Box::new(dashboard)));
                     tui.frame_requester().schedule_frame();
                 }
             }

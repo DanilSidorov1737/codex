@@ -306,6 +306,7 @@ fn dashboard() -> Dashboard {
         path: PathBuf::from("unused"),
         schedule_view: false,
         workflow_view: false,
+        goal_view: false,
         snapshot: Snapshot {
             report: Some(report_for_tasks(&["one", "two"])),
             schedules: vec![],
@@ -349,10 +350,197 @@ fn dashboard() -> Dashboard {
         provider: "test".into(),
         model: "model".into(),
         form: None,
+        palette: None,
         prices: None,
         frame: FrameRequester::test_dummy(),
         is_done: false,
     }
+}
+
+#[tokio::test]
+async fn palette_search_and_cancel_never_dispatch_and_selection_uses_existing_form() {
+    let mut d = dashboard();
+    let (commands, mut receiver) = mpsc::channel(4);
+    d.commands = commands;
+    let mut proposed = task("proposal");
+    proposed.state = "proposed".into();
+    d.snapshot.records.push(OrganizationRecord::Task(proposed));
+    d.selected = Some("proposal".into());
+    d.key(KeyEvent::new(
+        KeyCode::Char('p'),
+        crossterm::event::KeyModifiers::CONTROL,
+    ));
+    for c in "authorize task".chars() {
+        d.key(KeyCode::Char(c).into());
+    }
+    assert!(receiver.try_recv().is_err());
+    d.key(KeyCode::Enter.into());
+    assert!(d.palette.is_none() && d.form.is_some() && d.confirmation.is_none());
+    assert!(receiver.try_recv().is_err());
+    d.key(KeyCode::Esc.into());
+    d.open_palette();
+    d.key(KeyCode::Esc.into());
+    assert!(d.palette.is_none() && d.form.is_none());
+    assert!(receiver.try_recv().is_err());
+}
+
+#[test]
+fn goal_tree_rolls_up_accepted_tasks_without_claiming_goal_completion() {
+    let root = OrganizationGoal {
+        id: "mission".into(),
+        parent_id: None,
+        objective: "Mission".into(),
+        criteria: vec!["Owner evidence".into()],
+        revision: 1,
+    };
+    let child = OrganizationGoal {
+        id: "milestone".into(),
+        parent_id: Some(root.id.clone()),
+        objective: "Milestone".into(),
+        criteria: vec!["Check".into()],
+        revision: 1,
+    };
+    let mut accepted = task("accepted");
+    accepted.goal_id = Some(child.id.clone());
+    accepted.state = "accepted".into();
+    let mut review = task("review");
+    review.goal_id = Some(child.id.clone());
+    review.state = "needsReview".into();
+    let records = vec![
+        OrganizationRecord::Goal(root),
+        OrganizationRecord::Goal(child),
+        OrganizationRecord::Task(accepted),
+        OrganizationRecord::Task(review),
+    ];
+    let rows = goal_tree(&records, &BTreeSet::new(), "");
+    assert_eq!(rows.len(), 2);
+    assert!(rows.iter().all(|row| {
+        row.label
+            .contains("1/2 tasks accepted; criteria need owner review")
+    }));
+    assert_eq!(
+        goal_tree(&records, &BTreeSet::from(["mission".into()]), "").len(),
+        1
+    );
+    assert_eq!(
+        goal_tree(&records, &BTreeSet::from(["mission".into()]), "milestone")[0].id,
+        "milestone"
+    );
+}
+
+#[tokio::test]
+async fn finite_series_preview_refuses_changed_scope_and_late_closed_draft() {
+    let mut d = dashboard();
+    let (updates, receiver) = mpsc::channel(4);
+    d.updates = receiver;
+    let template = OrganizationWorkflowTemplate {
+        id: "template".into(),
+        project_id: "project".into(),
+        label: "Finite work".into(),
+        revision: 4,
+        items: vec![OrganizationPlanItem {
+            key: "step".into(),
+            owner_id: "owner".into(),
+            instructions: "Write evidence".into(),
+            criteria: vec!["Check".into()],
+            prerequisites: vec![],
+        }],
+    };
+    let mut form = form::Form::new(
+        form::Kind::WorkflowSeries {
+            template: template.clone(),
+        },
+        &d.snapshot.records,
+        None,
+        "model",
+    );
+    form.prefill_scope(&OrganizationExecutionScope {
+        input_files: vec!["evidence.txt".into()],
+        immutable_files: vec![],
+        artifacts: vec!["evidence.txt".into()],
+        checks: vec![],
+        model: "model".into(),
+        max_tokens: 100,
+        max_seconds: 60,
+        max_model_requests: 2,
+        max_attempts: 1,
+        require_tool_approval: true,
+        delegates: vec![],
+        max_children: 0,
+        auto_accept_children: false,
+        not_before: None,
+    });
+    let Command::SeriesPreview {
+        request,
+        config,
+        source_task,
+    } = form.command().unwrap()
+    else {
+        panic!("expected series preview")
+    };
+    d.form = Some(form);
+    let mut preview = OrganizationWorkflowPreview {
+        id: request.id.clone(),
+        template,
+        project_revision: 1,
+        node_revisions: BTreeMap::from([("owner".into(), 1)]),
+        policy_version: 2,
+        scopes: request.scopes.clone(),
+        max_tokens: 100,
+        max_model_requests: 2,
+        shared_limits: None,
+    };
+    preview.scopes[0].scope.max_tokens += 1;
+    updates
+        .send(Update::SeriesPreview {
+            request: request.clone(),
+            config: config.clone(),
+            source_task: source_task.clone(),
+            preview: Box::new(preview.clone()),
+            trigger: OrganizationWorkflowTrigger::Interval,
+        })
+        .await
+        .unwrap();
+    d.update();
+    assert!(
+        d.confirmation.is_none(),
+        "a changed response cannot create authority"
+    );
+    preview.scopes = request.scopes.clone();
+    updates
+        .send(Update::SeriesPreview {
+            request: request.clone(),
+            config: config.clone(),
+            source_task: source_task.clone(),
+            preview: Box::new(preview.clone()),
+            trigger: OrganizationWorkflowTrigger::Interval,
+        })
+        .await
+        .unwrap();
+    d.update();
+    assert!(matches!(
+        d.confirmation,
+        Some(Command::Workflow(
+            OrganizationWorkflowMutation::CreateSeries { .. }
+        ))
+    ));
+    d.confirmation = None;
+    d.form = None;
+    updates
+        .send(Update::SeriesPreview {
+            request,
+            config,
+            source_task,
+            preview: Box::new(preview),
+            trigger: OrganizationWorkflowTrigger::Interval,
+        })
+        .await
+        .unwrap();
+    d.update();
+    assert!(
+        d.confirmation.is_none(),
+        "closing the draft fences a late response"
+    );
 }
 
 #[tokio::test]
