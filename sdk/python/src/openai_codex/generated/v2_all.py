@@ -3099,6 +3099,17 @@ class OrganizationCheckpointContent(BaseModel):
     remaining_steps: Annotated[list[str], Field(alias="remainingSteps")]
 
 
+class PriorityOrganizationControlValue(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    priority: int
+    task_id: Annotated[str, Field(alias="taskId")]
+    task_revision: Annotated[int, Field(alias="taskRevision")]
+    type: Annotated[Literal["priority"], Field(title="PriorityOrganizationControlValueType")]
+
+
 class HandoffOrganizationExecutionMutation(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
@@ -3236,6 +3247,16 @@ class OrganizationExecutionScope(BaseModel):
         ),
     ] = None
     require_tool_approval: Annotated[bool, Field(alias="requireToolApproval")]
+
+
+class OrganizationGlobalUsage(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    active: int
+    model_requests: Annotated[int, Field(alias="modelRequests")]
+    reported_tokens: Annotated[int, Field(alias="reportedTokens")]
+    unresolved_requests: Annotated[int, Field(alias="unresolvedRequests")]
 
 
 class OrganizationGoal(BaseModel):
@@ -3402,6 +3423,16 @@ class OrganizationPresetClone(BaseModel):
     root_id: Annotated[str, Field(alias="rootId")]
 
 
+class OrganizationProjectEvidence(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    criterion: Annotated[int, Field(ge=0)]
+    explanation: str
+    result_digest: Annotated[str, Field(alias="resultDigest")]
+    task_id: Annotated[str, Field(alias="taskId")]
+
+
 class OrganizationProjectPlan(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
@@ -3413,6 +3444,13 @@ class OrganizationProjectPlan(BaseModel):
     owner_id: Annotated[str | None, Field(alias="ownerId")] = None
     revision: int
     roots: list[str]
+
+
+class OrganizationProjectState(Enum):
+    active = "active"
+    paused = "paused"
+    completed = "completed"
+    archived = "archived"
 
 
 class OrganizationProviderEvidence(BaseModel):
@@ -3484,6 +3522,8 @@ class OrganizationRecordKind(Enum):
     tasks = "tasks"
     memberships = "memberships"
     presets = "presets"
+    controls = "controls"
+    control_history = "controlHistory"
 
 
 class OrganizationReportTotals(BaseModel):
@@ -9891,6 +9931,45 @@ class OrganizationApplication(BaseModel):
     state: OrganizationApplicationState
 
 
+class GlobalOrganizationControlValue(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    limits: OrganizationSharedCeilings | None = None
+    paused: bool
+    type: Annotated[Literal["global"], Field(title="GlobalOrganizationControlValueType")]
+
+
+class ProjectOrganizationControlValue(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    evidence: list[OrganizationProjectEvidence]
+    project_id: Annotated[str, Field(alias="projectId")]
+    project_revision: Annotated[int, Field(alias="projectRevision")]
+    state: OrganizationProjectState
+    type: Annotated[Literal["project"], Field(title="ProjectOrganizationControlValueType")]
+
+
+class OrganizationControlValue(
+    RootModel[
+        GlobalOrganizationControlValue
+        | ProjectOrganizationControlValue
+        | PriorityOrganizationControlValue
+    ]
+):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    root: (
+        GlobalOrganizationControlValue
+        | ProjectOrganizationControlValue
+        | PriorityOrganizationControlValue
+    )
+
+
 class AuthorizeOrganizationExecutionMutation(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
@@ -9927,6 +10006,16 @@ class OrganizationExecutionMutation(
     )
 
 
+class SetControlOrganizationMutation(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    expected_revision: Annotated[int | None, Field(alias="expectedRevision")] = None
+    type: Annotated[Literal["setControl"], Field(title="SetControlOrganizationMutationType")]
+    value: OrganizationControlValue
+
+
 class PutNodeOrganizationMutation(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
@@ -9945,7 +10034,8 @@ class PutNodeOrganizationMutation(BaseModel):
 
 class OrganizationMutation(
     RootModel[
-        SavePresetOrganizationMutation
+        SetControlOrganizationMutation
+        | SavePresetOrganizationMutation
         | ClonePresetOrganizationMutation
         | PromoteNoteOrganizationMutation
         | PutNodeOrganizationMutation
@@ -9960,7 +10050,8 @@ class OrganizationMutation(
         populate_by_name=True,
     )
     root: (
-        SavePresetOrganizationMutation
+        SetControlOrganizationMutation
+        | SavePresetOrganizationMutation
         | ClonePresetOrganizationMutation
         | PromoteNoteOrganizationMutation
         | PutNodeOrganizationMutation
@@ -10068,36 +10159,18 @@ class PresetOrganizationRecord(BaseModel):
     type: Annotated[Literal["preset"], Field(title="PresetOrganizationRecordType")]
 
 
-class OrganizationRecord(
-    RootModel[
-        NodeOrganizationRecord
-        | RoleOrganizationRecord
-        | GoalOrganizationRecord
-        | ProjectOrganizationRecord
-        | TaskOrganizationRecord
-        | MembershipOrganizationRecord
-        | PresetOrganizationRecord
-    ]
-):
-    model_config = ConfigDict(
-        populate_by_name=True,
-    )
-    root: (
-        NodeOrganizationRecord
-        | RoleOrganizationRecord
-        | GoalOrganizationRecord
-        | ProjectOrganizationRecord
-        | TaskOrganizationRecord
-        | MembershipOrganizationRecord
-        | PresetOrganizationRecord
-    )
-
-
 class OrganizationReport(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
     generated_at: Annotated[int, Field(alias="generatedAt")]
+    global_usage: Annotated[
+        OrganizationGlobalUsage | None,
+        Field(
+            alias="globalUsage",
+            description="Whole-store root ledgers, independent of the selected project/task page.",
+        ),
+    ] = None
     next_cursor: Annotated[str | None, Field(alias="nextCursor")] = None
     project_id: Annotated[str | None, Field(alias="projectId")] = None
     sequence: Annotated[
@@ -12503,6 +12576,23 @@ class ModelsRequirements(BaseModel):
     new_thread: Annotated[NewThreadModelDefaults | None, Field(alias="newThread")] = None
 
 
+class OrganizationControl(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    id: str
+    revision: int
+    value: OrganizationControlValue
+
+
+class OrganizationControlHistory(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    control: OrganizationControl
+    id: str
+
+
 class OrganizationExecutionView(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
@@ -12533,6 +12623,51 @@ class OrganizationInventory(BaseModel):
     mcp_servers: Annotated[list[OrganizationMcpCapability], Field(alias="mcpServers")]
     providers: list[OrganizationProviderCapability]
     tools: list[OrganizationToolCapability]
+
+
+class ControlOrganizationRecord(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    data: OrganizationControl
+    type: Annotated[Literal["control"], Field(title="ControlOrganizationRecordType")]
+
+
+class ControlHistoryOrganizationRecord(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    data: OrganizationControlHistory
+    type: Annotated[Literal["controlHistory"], Field(title="ControlHistoryOrganizationRecordType")]
+
+
+class OrganizationRecord(
+    RootModel[
+        NodeOrganizationRecord
+        | RoleOrganizationRecord
+        | GoalOrganizationRecord
+        | ProjectOrganizationRecord
+        | TaskOrganizationRecord
+        | MembershipOrganizationRecord
+        | PresetOrganizationRecord
+        | ControlOrganizationRecord
+        | ControlHistoryOrganizationRecord
+    ]
+):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    root: (
+        NodeOrganizationRecord
+        | RoleOrganizationRecord
+        | GoalOrganizationRecord
+        | ProjectOrganizationRecord
+        | TaskOrganizationRecord
+        | MembershipOrganizationRecord
+        | PresetOrganizationRecord
+        | ControlOrganizationRecord
+        | ControlHistoryOrganizationRecord
+    )
 
 
 class CreateSeriesOrganizationWorkflowMutation(BaseModel):

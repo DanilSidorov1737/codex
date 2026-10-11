@@ -76,6 +76,87 @@ fn series_config(runs: u32) -> codex_protocol::organization_schedule::Organizati
 }
 
 #[tokio::test]
+async fn project_and_global_pause_fence_automatic_workflow_materialization() -> Result<()> {
+    let home = Fixture::new();
+    let store = OrganizationStore::open(&home.0).await?;
+    let template = fixture(&store).await?;
+    let preview = store.preview_workflow(request(&template)).await?;
+    store
+        .mutate_workflow(
+            OrganizationWorkflowMutation::CreateSeries {
+                id: Uuid::now_v7().to_string(),
+                preview: Box::new(preview),
+                config: series_config(2),
+                trigger: OrganizationWorkflowTrigger::Interval,
+            },
+            1000,
+        )
+        .await?;
+    let value = OrganizationControlValue::Global {
+        paused: true,
+        limits: None,
+    };
+    store
+        .mutate_owner(
+            OrganizationMutation::SetControl {
+                expected_revision: None,
+                value,
+            },
+            None,
+        )
+        .await?;
+    assert_eq!(store.materialize_workflow_series(1001).await?, 0);
+    store
+        .mutate_owner(
+            OrganizationMutation::SetControl {
+                expected_revision: Some(1),
+                value: OrganizationControlValue::Global {
+                    paused: false,
+                    limits: None,
+                },
+            },
+            None,
+        )
+        .await?;
+    store
+        .mutate_owner(
+            OrganizationMutation::SetControl {
+                expected_revision: None,
+                value: OrganizationControlValue::Project {
+                    project_id: template.project_id.clone(),
+                    project_revision: 1,
+                    state: OrganizationProjectState::Paused,
+                    evidence: vec![],
+                },
+            },
+            None,
+        )
+        .await?;
+    assert_eq!(store.materialize_workflow_series(1001).await?, 0);
+    store
+        .mutate_owner(
+            OrganizationMutation::SetControl {
+                expected_revision: Some(1),
+                value: OrganizationControlValue::Project {
+                    project_id: template.project_id.clone(),
+                    project_revision: 1,
+                    state: OrganizationProjectState::Active,
+                    evidence: vec![],
+                },
+            },
+            None,
+        )
+        .await?;
+    assert_eq!(store.materialize_workflow_series(1001).await?, 1);
+    assert_eq!(
+        store.materialize_workflow_series(1001).await?,
+        0,
+        "resume does not replay the occurrence"
+    );
+    Ok(())
+}
+
+#[tokio::test]
 async fn workflow_series_skip_overlap_cancel_preserve_usage_and_reject_stale_controls() -> Result<()>
 {
     let home = Fixture::new();
@@ -1452,6 +1533,7 @@ async fn workflow_migration_from_seven_preserves_existing_tasks_and_crash_blocks
     let store = OrganizationStore::open(&home.0).await?;
     let template = fixture(&store).await?;
     let old = execution_task(&store, &template.items[0].owner_id, &template.project_id).await?;
+    remove_controls_migration_for_legacy_fixture(&store).await?;
     sqlx::query("DROP TABLE organization_presets")
         .execute(&store.pool)
         .await?;

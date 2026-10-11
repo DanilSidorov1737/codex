@@ -48,7 +48,14 @@ async fn organization_overlay_owns_function_keys_and_editor_chords() -> Result<(
         action: "toggle_voice"
     }));
     assert!(!contexts.contains(KeymapContext::Voice));
-    for code in [KeyCode::F(7), KeyCode::F(8), KeyCode::F(9)] {
+    for code in [
+        KeyCode::F(7),
+        KeyCode::F(8),
+        KeyCode::F(9),
+        KeyCode::F(10),
+        KeyCode::F(11),
+        KeyCode::F(12),
+    ] {
         let key = KeyEvent::from(code);
         assert_eq!(app.route_key_chord_event(&mut tui, key), Some(key));
     }

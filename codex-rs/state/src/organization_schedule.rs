@@ -226,7 +226,7 @@ impl OrganizationStore {
     pub async fn materialize_schedules(&self, now: i64) -> Result<u32> {
         ensure!(now >= 0, "invalid schedule time");
         let mut tx = self.pool.begin_with("BEGIN IMMEDIATE").await?;
-        let rows: Vec<String> = sqlx::query_scalar("SELECT data FROM organization_schedules WHERE state='active' AND next_run_at<=? ORDER BY next_run_at,id LIMIT 32")
+        let rows: Vec<String> = sqlx::query_scalar("SELECT s.data FROM organization_schedules s WHERE s.state='active' AND s.next_run_at<=? AND NOT EXISTS(SELECT 1 FROM organization_controls c WHERE (c.id='global' AND json_extract(c.data,'$.data.value.paused')=1) OR (c.id='project:'||s.project_id AND json_extract(c.data,'$.data.value.state')<>'active')) ORDER BY s.next_run_at,s.id LIMIT 32")
             .bind(now).fetch_all(&mut *tx).await?;
         let mut issued = 0;
         for row in rows {

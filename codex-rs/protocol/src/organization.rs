@@ -109,6 +109,67 @@ pub struct OrganizationPresetClone {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
 #[serde(rename_all = "camelCase")]
+pub enum OrganizationProjectState {
+    Active,
+    Paused,
+    Completed,
+    Archived,
+}
+
+/// Owner-reviewed criterion evidence references an exact accepted result.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct OrganizationProjectEvidence {
+    pub criterion: u32,
+    pub task_id: String,
+    pub result_digest: String,
+    pub explanation: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
+#[serde(tag = "type", rename_all = "camelCase", deny_unknown_fields)]
+pub enum OrganizationControlValue {
+    #[serde(rename_all = "camelCase")]
+    Global {
+        paused: bool,
+        limits: Option<crate::organization_workflow::OrganizationSharedCeilings>,
+    },
+    #[serde(rename_all = "camelCase")]
+    Project {
+        project_id: String,
+        #[ts(type = "number")]
+        project_revision: i64,
+        state: OrganizationProjectState,
+        evidence: Vec<OrganizationProjectEvidence>,
+    },
+    #[serde(rename_all = "camelCase")]
+    Priority {
+        task_id: String,
+        #[ts(type = "number")]
+        task_revision: i64,
+        priority: i32,
+    },
+}
+
+/// Controls have separate revisions so pause/priority never invalidate a grant.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct OrganizationControl {
+    pub id: String,
+    #[ts(type = "number")]
+    pub revision: i64,
+    pub value: OrganizationControlValue,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct OrganizationControlHistory {
+    pub id: String,
+    pub control: OrganizationControl,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
+#[serde(rename_all = "camelCase")]
 pub enum OrganizationRecordKind {
     Nodes,
     Roles,
@@ -117,6 +178,8 @@ pub enum OrganizationRecordKind {
     Tasks,
     Memberships,
     Presets,
+    Controls,
+    ControlHistory,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
@@ -129,11 +192,19 @@ pub enum OrganizationRecord {
     Task(OrganizationTask),
     Membership(OrganizationMembership),
     Preset(Box<OrganizationPreset>),
+    Control(OrganizationControl),
+    ControlHistory(OrganizationControlHistory),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
 #[serde(tag = "type", rename_all = "camelCase", deny_unknown_fields)]
 pub enum OrganizationMutation {
+    #[serde(rename_all = "camelCase")]
+    SetControl {
+        #[ts(type = "number | null")]
+        expected_revision: Option<i64>,
+        value: OrganizationControlValue,
+    },
     #[serde(rename_all = "camelCase")]
     SavePreset {
         root_id: String,

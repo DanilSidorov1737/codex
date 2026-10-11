@@ -367,27 +367,41 @@ async fn presets_are_discoverable_and_forms_pin_revisions_without_sending_author
         Ok(Command::Definition(OrganizationMutation::SavePreset { root_id, expected_root_revision: 1, .. })) if root_id == "owner"));
     assert!(rx.try_recv().is_err());
     d.key(KeyCode::Esc.into());
-    let preset = OrganizationPreset { id: "preset".into(), label: "Arbitrary organization".into(),
-        revision: 7, nodes: vec![node("owner",None)], roles: vec![], memberships: vec![], last_clone: None };
-    d.snapshot.records.push(OrganizationRecord::Preset(Box::new(preset)));
+    let preset = OrganizationPreset {
+        id: "preset".into(),
+        label: "Arbitrary organization".into(),
+        revision: 7,
+        nodes: vec![node("owner", None)],
+        roles: vec![],
+        memberships: vec![],
+        last_clone: None,
+    };
+    d.snapshot
+        .records
+        .push(OrganizationRecord::Preset(Box::new(preset)));
     d.key(KeyCode::F(9).into());
-    assert_eq!(d.projection,Projection::Presets);
-    assert_eq!(d.rows.len(),1);
+    assert_eq!(d.projection, Projection::Presets);
+    assert_eq!(d.rows.len(), 1);
     d.key(KeyCode::Char('V').into());
     d.key(KeyCode::F(6).into());
     assert!(matches!(d.confirmation,
         Some(Command::Definition(OrganizationMutation::ClonePreset { ref id, expected_revision: 7, ref label, parent_id: None })) if id=="preset" && label=="Arbitrary organization copy"));
     assert!(rx.try_recv().is_err());
-    for (width,height) in [(160,48),(50,20)] {
-        let area=Rect::new(0,0,width,height);
-        d.render(area,&mut Buffer::empty(area));
+    for (width, height) in [(160, 48), (50, 20)] {
+        let area = Rect::new(0, 0, width, height);
+        d.render(area, &mut Buffer::empty(area));
     }
     d.key(KeyCode::Esc.into());
     d.key(KeyCode::Esc.into());
-    for (code,expected) in [(KeyCode::Char('g'),Projection::Goals),(KeyCode::Char('S'),Projection::Schedules),
-        (KeyCode::Char('w'),Projection::Workflows),(KeyCode::F(9),Projection::Presets),(KeyCode::F(9),Projection::Default)] {
+    for (code, expected) in [
+        (KeyCode::Char('g'), Projection::Goals),
+        (KeyCode::Char('S'), Projection::Schedules),
+        (KeyCode::Char('w'), Projection::Workflows),
+        (KeyCode::F(9), Projection::Presets),
+        (KeyCode::F(9), Projection::Default),
+    ] {
         d.key(code.into());
-        assert_eq!(d.projection,expected);
+        assert_eq!(d.projection, expected);
     }
 }
 
@@ -1644,12 +1658,114 @@ async fn uncertain_apply_stays_frozen_after_refresh_and_unrelated_success() {
     d.editor.as_mut().unwrap().paste("settled").unwrap();
 }
 
+#[tokio::test]
+async fn owner_controls_discover_capture_and_confirm_without_early_authority() {
+    let mut d = dashboard();
+    let (tx, mut rx) = mpsc::channel(4);
+    d.commands = tx;
+    let limits = OrganizationSharedCeilings {
+        max_tokens: 500,
+        max_model_requests: 3,
+        max_active: 2,
+    };
+    d.snapshot
+        .records
+        .push(OrganizationRecord::Control(OrganizationControl {
+            id: "global".into(),
+            revision: 7,
+            value: OrganizationControlValue::Global {
+                paused: false,
+                limits: Some(limits.clone()),
+            },
+        }));
+    d.key(KeyCode::F(12).into());
+    assert!(d.confirmation_text.contains("EXACT OWNER DECISION"));
+    assert!(
+        matches!(d.confirmation,Some(Command::Definition(OrganizationMutation::SetControl {expected_revision:Some(7),value:OrganizationControlValue::Global {paused:true,ref limits}})) if limits.as_ref()==Some(&OrganizationSharedCeilings {max_tokens:500,max_model_requests:3,max_active:2}))
+    );
+    assert!(rx.try_recv().is_err());
+    d.key(KeyCode::Esc.into());
+    assert!(rx.try_recv().is_err());
+    d.key(KeyCode::F(12).into());
+    d.key(KeyCode::Char('y').into());
+    assert!(matches!(
+        rx.try_recv(),
+        Ok(Command::Definition(OrganizationMutation::SetControl {
+            expected_revision: Some(7),
+            ..
+        }))
+    ));
+    d.key(KeyCode::F(10).into());
+    assert!(
+        matches!(d.form.as_ref().unwrap().command(),Ok(Command::Definition(OrganizationMutation::SetControl {expected_revision:Some(7),value:OrganizationControlValue::Global {paused:false,ref limits}})) if limits.as_ref()==Some(&OrganizationSharedCeilings {max_tokens:500,max_model_requests:3,max_active:2}))
+    );
+    d.key(KeyCode::Esc.into());
+    d.selected = Some("one".into());
+    d.key(KeyCode::Char('!').into());
+    assert!(
+        matches!(d.form.as_ref().unwrap().command(),Ok(Command::Definition(OrganizationMutation::SetControl {value:OrganizationControlValue::Priority {ref task_id,priority:0,..},..})) if task_id=="one")
+    );
+    assert!(rx.try_recv().is_err());
+    d.key(KeyCode::Esc.into());
+    d.snapshot
+        .records
+        .push(OrganizationRecord::Project(OrganizationProjectPlan {
+            id: "project".into(),
+            name: "Reviewable project".into(),
+            roots: vec!["/tmp".into()],
+            goal_id: None,
+            owner_id: Some("owner".into()),
+            criteria: vec!["Verified result".into()],
+            revision: 3,
+        }));
+    d.snapshot.report.as_mut().unwrap().tasks[0].state = "accepted".into();
+    d.selected = Some("project".into());
+    d.key(KeyCode::Char('F').into());
+    d.key(KeyCode::Right.into());
+    d.key(KeyCode::Right.into());
+    d.key(KeyCode::Tab.into());
+    d.key(KeyCode::Right.into());
+    d.key(KeyCode::Tab.into());
+    d.form
+        .as_mut()
+        .unwrap()
+        .paste("Owner read and verified the criterion");
+    d.key(KeyCode::F(6).into());
+    assert!(rx.try_recv().is_err());
+    assert!(d.confirmation_text.contains("fixture-result"));
+    d.key(KeyCode::Char('y').into());
+    assert!(
+        matches!(rx.try_recv(),Ok(Command::Definition(OrganizationMutation::SetControl {value:OrganizationControlValue::Project {project_revision:3,state:OrganizationProjectState::Completed,ref evidence,..},..})) if evidence.len()==1 && evidence[0].task_id=="one" && evidence[0].result_digest=="fixture-result")
+    );
+    d.key(KeyCode::F(11).into());
+    assert_eq!(d.projection, Projection::Controls);
+    assert_eq!(d.rows.len(), 1);
+    for (width, height) in [(160, 48), (50, 20)] {
+        let area = Rect::new(0, 0, width, height);
+        d.render(area, &mut Buffer::empty(area));
+    }
+    d.key(KeyCode::F(11).into());
+    assert_eq!(d.projection, Projection::Default);
+}
+
+#[test]
+fn absent_legacy_global_usage_is_unavailable_instead_of_invented_zero() {
+    let mut wire = serde_json::to_value(empty_report()).unwrap();
+    wire.as_object_mut().unwrap().remove("globalUsage");
+    let report: OrganizationReport = serde_json::from_value(wire).unwrap();
+    assert!(report.global_usage.is_none());
+    let text = reporting::text(&report, &reporting::Focus::All, None);
+    assert!(text.contains("Whole organization usage unavailable"));
+    assert!(!text.contains("Whole organization: 0"));
+}
+
 fn empty_report() -> OrganizationReport {
     OrganizationReport {
         sequence: 0,
         generated_at: 0,
         project_id: None,
         totals: OrganizationReportTotals::default(),
+        global_usage: Some(OrganizationGlobalUsage::default()),
         tasks: vec![],
         usage: vec![],
         usage_truncated: false,

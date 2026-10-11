@@ -18,6 +18,21 @@ mod report;
 #[path = "organization_preset_tests.rs"]
 mod presets;
 
+#[path = "organization_control_tests.rs"]
+mod controls;
+
+async fn remove_controls_migration_for_legacy_fixture(store: &OrganizationStore) -> Result<()> {
+    for query in [
+        "DROP VIEW organization_global_usage",
+        "DROP TABLE organization_control_history",
+        "DROP TABLE organization_controls",
+        "ALTER TABLE organization_tasks DROP COLUMN queue_since",
+    ] {
+        sqlx::query(query).execute(&store.pool).await?;
+    }
+    Ok(())
+}
+
 async fn authorized_attempt(
     store: &OrganizationStore,
     approval: bool,

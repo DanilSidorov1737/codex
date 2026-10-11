@@ -85,3 +85,16 @@ Subsequent slices update this page, status and testing with exact commits,
 commands, actual interactions, failures and limits.
 No push, deployment, external message, new integration, purchase or automatic
 Apply is authorized by this local batch.
+
+Controls checkpoint: all 301 state and 373 protocol checks pass, including six
+new failure-sensitive checks for pause/late receipts, exact completion/history,
+priority aging/40 paused candidates, root/descendant accounting, concurrent global
+claims/requests and automatic workflow materialization. Legacy downgrade fixtures
+now remove the new migration's views/tables/queue column before simulating older
+schemas; assertions remain. The first TUI run exposed existing K/Q shortcut
+collisions; project lifecycle is now F and priority !, retaining K navigation and
+Q native selection. The corrected 62 targeted TUI/actual-Neovim checks, four
+generated schema comparisons and 25 SDK contract checks pass. Missing global
+usage from older daemons is explicitly unavailable. Production CLI Clippy with
+warnings denied, CLI build and formatting pass. Fresh physical coding/document/
+control qualification remains in progress.

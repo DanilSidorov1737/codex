@@ -7,6 +7,19 @@ use ts_rs::TS;
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
 #[serde(rename_all = "camelCase")]
+pub struct OrganizationGlobalUsage {
+    #[ts(type = "number")]
+    pub reported_tokens: i64,
+    #[ts(type = "number")]
+    pub model_requests: i64,
+    #[ts(type = "number")]
+    pub active: i64,
+    #[ts(type = "number")]
+    pub unresolved_requests: i64,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
+#[serde(rename_all = "camelCase")]
 pub struct OrganizationReportTotals {
     #[ts(type = "Record<string, number>")]
     pub task_states: BTreeMap<String, i64>,
@@ -124,6 +137,9 @@ pub struct OrganizationReport {
     pub project_id: Option<String>,
     /// Complete totals for the selected project/store, independent of pagination.
     pub totals: OrganizationReportTotals,
+    /// Whole-store root ledgers, independent of the selected project/task page.
+    #[serde(default)]
+    pub global_usage: Option<OrganizationGlobalUsage>,
     pub tasks: Vec<OrganizationTaskReport>,
     /// At most 2,000 grouped observations for this task page.
     pub usage: Vec<OrganizationUsageReport>,

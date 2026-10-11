@@ -242,6 +242,7 @@ async fn load(handle: &AppServerRequestHandle) -> anyhow::Result<Snapshot> {
         OrganizationRecordKind::Tasks,
         OrganizationRecordKind::Memberships,
         OrganizationRecordKind::Presets,
+        OrganizationRecordKind::Controls,
     ] {
         let mut cursor = None;
         for page in 0..10 {
@@ -605,6 +606,7 @@ enum Projection {
     Schedules,
     Workflows,
     Presets,
+    Controls,
 }
 
 /// Iterative traversal keeps deep user-defined hierarchies off the call stack.
@@ -910,7 +912,27 @@ impl Dashboard {
     }
     fn rebuild(&mut self) {
         let search = self.search.to_lowercase();
-        self.rows = if self.projection == Projection::Presets {
+        self.rows = if self.projection == Projection::Controls {
+            self.snapshot
+                .records
+                .iter()
+                .filter_map(|r| {
+                    let OrganizationRecord::Control(c) = r else {
+                        return None;
+                    };
+                    let label = format!(
+                        "{} · revision {} · {}",
+                        c.id,
+                        c.revision,
+                        serde_json::to_string(&c.value).unwrap_or_default()
+                    );
+                    (search.is_empty() || label.to_lowercase().contains(&search)).then(|| Row {
+                        id: c.id.clone(),
+                        label,
+                    })
+                })
+                .collect()
+        } else if self.projection == Projection::Presets {
             self.snapshot
                 .records
                 .iter()
@@ -1175,12 +1197,19 @@ impl Dashboard {
             OrganizationRecord::Goal(g) => Some(&g.id) == self.selected.as_ref(),
             OrganizationRecord::Project(p) => Some(&p.id) == self.selected.as_ref(),
             OrganizationRecord::Preset(p) => Some(&p.id) == self.selected.as_ref(),
+            OrganizationRecord::Control(c) => Some(&c.id) == self.selected.as_ref(),
             _ => false,
         })
     }
     fn selected_schedule(&self) -> Option<&OrganizationScheduleView> {
         let id = self.selected.as_deref()?.strip_prefix("schedule:")?;
         self.snapshot.schedules.iter().find(|v| v.schedule.id == id)
+    }
+    fn control(&self, id: &str) -> Option<OrganizationControl> {
+        self.snapshot.records.iter().find_map(|r| match r {
+            OrganizationRecord::Control(c) if c.id == id => Some(c.clone()),
+            _ => None,
+        })
     }
     fn editor_open(&mut self, key: KeyCode) {
         if self.applying {
@@ -1504,6 +1533,53 @@ impl Dashboard {
                 }
             }
             'B' => form::Kind::Group,
+            'O' => form::Kind::GlobalControl(self.control("global")),
+            '!' => match self.record() {
+                Some(OrganizationRecord::Task(task)) => form::Kind::Priority {
+                    task: task.clone(),
+                    previous: self.control(&format!("priority:{}", task.id)),
+                },
+                _ => {
+                    self.message = "Select a task to set its bounded priority.".into();
+                    return;
+                }
+            },
+            'F' => {
+                let project = match self.record() {
+                    Some(OrganizationRecord::Project(p)) => Some(p.clone()),
+                    Some(OrganizationRecord::Task(t)) => {
+                        self.snapshot.records.iter().find_map(|r| match r {
+                            OrganizationRecord::Project(p) if p.id == t.project_id => {
+                                Some(p.clone())
+                            }
+                            _ => None,
+                        })
+                    }
+                    _ => None,
+                };
+                let Some(project) = project else {
+                    self.message = "Select a project or its task to review its lifecycle.".into();
+                    return;
+                };
+                let previous = self.control(&format!("project:{}", project.id));
+                let accepted = self
+                    .snapshot
+                    .report
+                    .iter()
+                    .flat_map(|r| &r.tasks)
+                    .filter(|t| {
+                        t.project_id == project.id
+                            && t.state == "accepted"
+                            && t.result_digest.is_some()
+                    })
+                    .cloned()
+                    .collect();
+                form::Kind::ProjectControl {
+                    project,
+                    previous,
+                    accepted,
+                }
+            }
             'D' => match self.record() {
                 Some(OrganizationRecord::Node(node)) => form::Kind::PresetSave(node.clone()),
                 _ => {
@@ -2284,6 +2360,38 @@ impl Dashboard {
                 self.rebuild();
                 self.inspect();
             }
+            KeyCode::F(10) => self.open_form('O'),
+            KeyCode::F(11) => {
+                self.projection = if self.projection == Projection::Controls {
+                    Projection::Default
+                } else {
+                    Projection::Controls
+                };
+                self.search.clear();
+                self.rebuild();
+                self.inspect();
+            }
+            KeyCode::F(12) => {
+                let previous = self.control("global");
+                let (paused, limits) = match previous.as_ref().map(|c| &c.value) {
+                    Some(OrganizationControlValue::Global { paused, limits }) => {
+                        (*paused, limits.clone())
+                    }
+                    _ => (false, None),
+                };
+                self.confirmation = Some(Command::Definition(OrganizationMutation::SetControl {
+                    expected_revision: previous.map(|c| c.revision),
+                    value: OrganizationControlValue::Global {
+                        paused: !paused,
+                        limits,
+                    },
+                }));
+                self.scroll = 0;
+                self.pane().inspector = true;
+                self.confirmation_text = clean(&self.details());
+                self.message =
+                    "Review exact organization pause/resume · y confirms · Esc cancels".into();
+            }
             KeyCode::Char('g') if key.modifiers.is_empty() => {
                 self.projection = if self.projection == Projection::Goals {
                     Projection::Default
@@ -2352,7 +2460,7 @@ impl Dashboard {
             }
             KeyCode::Char(
                 c @ ('U' | 'G' | 'N' | 'T' | 's' | 'A' | 'R' | 'W' | 'H' | 'B' | 'E' | 'L' | 'I'
-                | 'Y' | 'D' | 'V'),
+                | 'Y' | 'D' | 'V' | '!' | 'F'),
             ) => self.open_form(c),
             KeyCode::Char('n') if self.preferences.preset == Preset::Review => {
                 if let Some(result) = self
@@ -2445,6 +2553,8 @@ impl Dashboard {
                 Update::Saved(record) => {
                     if matches!(record, OrganizationRecord::Preset(_)) {
                         self.projection = Projection::Presets;
+                    } else if matches!(record, OrganizationRecord::Control(_)) {
+                        self.projection = Projection::Controls;
                     }
                     let id = record_id(&record).map(str::to_string);
                     if let Some(id) = &id {
@@ -2562,6 +2672,26 @@ impl Dashboard {
         }
         if let Some(record) = self.record() {
             match record {
+                OrganizationRecord::Control(control) => {
+                    text = format!(
+                        "OWNER CONTROL · revision {}\n{}\n\n{}\n\nF10 organization limits · F12 pause/resume · F project lifecycle · ! task priority\nImmutable versions: organization list controlHistory\nChanges preserve original grants, deadlines and accounting.\n",
+                        control.revision,
+                        control.id,
+                        serde_json::to_string_pretty(&control.value).unwrap_or_default()
+                    );
+                    if let Some(u) = self
+                        .snapshot
+                        .report
+                        .as_ref()
+                        .and_then(|r| r.global_usage.as_ref())
+                    {
+                        text.push_str(&format!("\nWhole organization: {} reported tokens · {} admitted requests · {} active · {} unresolved terminal requests\n", u.reported_tokens, u.model_requests, u.active, u.unresolved_requests));
+                    } else {
+                        text.push_str(
+                            "\nWhole organization usage unavailable; refresh the daemon report.\n",
+                        );
+                    }
+                }
                 OrganizationRecord::Preset(preset) => {
                     text = format!(
                         "Organization preset · {}\n{}\nRevision: {}\n{} captured nodes · {} roles · {} internal memberships\nV clones fresh definitions beneath a named group; no grants/tasks/private knowledge are copied.\n\n{}",
@@ -2643,6 +2773,11 @@ impl Dashboard {
                         tasks.len(),
                         p.criteria.join("\n")
                     );
+                    if let Some(control) = self.control(&format!("project:{}", p.id)) {
+                        text.push_str(&format!("\nLifecycle · revision {}\n{}\nF reviews lifecycle; prior evidence is retained in controlHistory.\n", control.revision, serde_json::to_string_pretty(&control.value).unwrap_or_default()));
+                    } else {
+                        text.push_str("\nLifecycle: active · F pause/complete/archive/reopen\n");
+                    }
                 }
                 OrganizationRecord::Goal(g) => {
                     text = format!(
@@ -3002,6 +3137,7 @@ fn record_id(record: &OrganizationRecord) -> Option<&str> {
         OrganizationRecord::Project(p) => Some(&p.id),
         OrganizationRecord::Task(t) => Some(&t.id),
         OrganizationRecord::Preset(p) => Some(&p.id),
+        OrganizationRecord::Control(c) => Some(&c.id),
         _ => None,
     }
 }

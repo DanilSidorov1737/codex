@@ -175,8 +175,9 @@ impl OrganizationStore {
                 sqlx::query("INSERT INTO organization_authorizations(id,task_id,expires_at,parent_attempt_id,root_id,data) VALUES (?,?,?,?,?,?)")
                     .bind(&grant.id).bind(&child.id).bind(grant.expires_at).bind(&attempt.id).bind(root)
                     .bind(serde_json::to_string(&grant)?).execute(&mut *tx).await?;
-                sqlx::query("UPDATE organization_tasks SET authorization_id=? WHERE id=?")
+                sqlx::query("UPDATE organization_tasks SET authorization_id=?,queue_since=COALESCE(queue_since,?) WHERE id=?")
                     .bind(&grant.id)
+                    .bind(now)
                     .bind(&child.id)
                     .execute(&mut *tx)
                     .await?;

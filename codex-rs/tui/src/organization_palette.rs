@@ -51,6 +51,36 @@ const ACTIONS: &[Action] = &[
         context: "owner proposal",
     },
     Action {
+        title: "Organization lifetime ceilings",
+        shortcut: "F10",
+        code: KeyCode::F(10),
+        context: "owner control; recorded historical usage; exact confirmation",
+    },
+    Action {
+        title: "Emergency organization pause / resume",
+        shortcut: "F12",
+        code: KeyCode::F(12),
+        context: "preserves grants, expiry and usage; exact confirmation",
+    },
+    Action {
+        title: "Browse owner controls",
+        shortcut: "F11",
+        code: KeyCode::F(11),
+        context: "view",
+    },
+    Action {
+        title: "Project pause / complete / archive / reopen",
+        shortcut: "F",
+        code: KeyCode::Char('F'),
+        context: "select project or task; accepted criterion evidence",
+    },
+    Action {
+        title: "Task priority / fair dispatch",
+        shortcut: "!",
+        code: KeyCode::Char('!'),
+        context: "select task; bounded priority and waiting age",
+    },
+    Action {
         title: "New goal",
         shortcut: "G",
         code: KeyCode::Char('G'),

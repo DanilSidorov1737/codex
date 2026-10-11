@@ -112,6 +112,10 @@ pub(super) async fn check_shared_ceilings(
     grant: &OrganizationTaskAuthorization,
     inference: bool,
 ) -> Result<()> {
+    ensure!(
+        super::controls::check_global(tx, inference, false).await?,
+        "global resource pool is paused, exhausted or unresolved"
+    );
     for limit in applicable_limits(tx, grant).await? {
         let unresolved: i64 = sqlx::query_scalar(
             "SELECT unresolved_requests FROM organization_shared_usage WHERE id=?",
@@ -143,6 +147,9 @@ pub(super) async fn shared_capacity_available(
     tx: &mut Transaction<'_, Sqlite>,
     grant: &OrganizationTaskAuthorization,
 ) -> Result<bool> {
+    if !super::controls::check_global(tx, false, true).await? {
+        return Ok(false);
+    }
     for limit in applicable_limits(tx, grant).await? {
         if shared_usage(tx, &limit).await?.active >= i64::from(limit.max_active) {
             return Ok(false);

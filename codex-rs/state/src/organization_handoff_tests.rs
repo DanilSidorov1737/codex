@@ -710,6 +710,7 @@ async fn continuity_migration_from_eight_preserves_existing_authorizations() -> 
         .await?;
     store.checkpoint_usage(&attempt.id, &worker, 1, 10).await?;
     let before = store.execution_view(&attempt.task_id).await?;
+    remove_controls_migration_for_legacy_fixture(&store).await?;
     sqlx::query("DROP TABLE organization_presets")
         .execute(&store.pool)
         .await?;

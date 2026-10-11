@@ -67,9 +67,13 @@ export type { OrganizationArtifactEvidence } from "./OrganizationArtifactEvidenc
 export type { OrganizationBudgetReport } from "./OrganizationBudgetReport";
 export type { OrganizationCheckEvidence } from "./OrganizationCheckEvidence";
 export type { OrganizationCheckpointContent } from "./OrganizationCheckpointContent";
+export type { OrganizationControl } from "./OrganizationControl";
+export type { OrganizationControlHistory } from "./OrganizationControlHistory";
+export type { OrganizationControlValue } from "./OrganizationControlValue";
 export type { OrganizationExecutionMutation } from "./OrganizationExecutionMutation";
 export type { OrganizationExecutionScope } from "./OrganizationExecutionScope";
 export type { OrganizationExecutionView } from "./OrganizationExecutionView";
+export type { OrganizationGlobalUsage } from "./OrganizationGlobalUsage";
 export type { OrganizationGoal } from "./OrganizationGoal";
 export type { OrganizationInventory } from "./OrganizationInventory";
 export type { OrganizationMcpCapability } from "./OrganizationMcpCapability";
@@ -83,7 +87,9 @@ export type { OrganizationNoteSearchResult } from "./OrganizationNoteSearchResul
 export type { OrganizationPlanItem } from "./OrganizationPlanItem";
 export type { OrganizationPreset } from "./OrganizationPreset";
 export type { OrganizationPresetClone } from "./OrganizationPresetClone";
+export type { OrganizationProjectEvidence } from "./OrganizationProjectEvidence";
 export type { OrganizationProjectPlan } from "./OrganizationProjectPlan";
+export type { OrganizationProjectState } from "./OrganizationProjectState";
 export type { OrganizationProviderCapability } from "./OrganizationProviderCapability";
 export type { OrganizationProviderEvidence } from "./OrganizationProviderEvidence";
 export type { OrganizationProviderObservation } from "./OrganizationProviderObservation";

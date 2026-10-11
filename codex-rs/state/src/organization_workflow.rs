@@ -412,6 +412,7 @@ pub(super) async fn check_workflow_dispatch(
     tx: &mut Transaction<'_, Sqlite>,
     grant: &OrganizationTaskAuthorization,
 ) -> Result<()> {
+    super::controls::check_dispatch(tx, grant).await?;
     let data: Option<String> = sqlx::query_scalar("SELECT r.data FROM organization_workflow_tasks w JOIN organization_workflow_runs r ON r.id=w.run_id WHERE w.authorization_id=?")
         .bind(grant.root_authorization_id.as_ref().unwrap_or(&grant.id)).fetch_optional(&mut **tx).await?;
     if let Some(data) = data {
@@ -441,6 +442,7 @@ pub(super) async fn preview_in(
             .fetch_one(&mut **tx)
             .await?;
     let template: OrganizationWorkflowTemplate = serde_json::from_str(&data)?;
+    super::controls::check_project_edit(tx, &template.project_id).await?;
     ensure!(
         template.revision == request.expected_revision,
         "workflow template revision conflict"

@@ -29,6 +29,13 @@ impl OrganizationStore {
         };
         let mut tx = self.pool.begin_with("BEGIN IMMEDIATE").await?;
         let (operation, record) = match mutation {
+            OrganizationMutation::SetControl {
+                expected_revision,
+                value,
+            } => {
+                let control = super::controls::set(&mut tx, expected_revision, value).await?;
+                ("control/set", Some(OrganizationRecord::Control(control)))
+            }
             OrganizationMutation::SavePreset {
                 root_id,
                 expected_root_revision,
@@ -201,6 +208,7 @@ impl OrganizationStore {
             } => {
                 validate_criteria(&criteria)?;
                 text(&project_id, 256)?;
+                super::controls::check_project_edit(&mut tx, &project_id).await?;
                 let (name, roots) = project_descriptor
                     .context("project must be verified against the existing project store")?;
                 if let Some(owner) = &owner_id {
@@ -241,6 +249,7 @@ impl OrganizationStore {
             } => {
                 text(&instructions, 64 * 1024)?;
                 validate_criteria(&criteria)?;
+                super::controls::check_project_edit(&mut tx, &project_id).await?;
                 ensure!(prerequisites.len() <= 256, "too many task prerequisites");
                 require_agent(&mut tx, &owner_id).await?;
                 let (id, revision) = next_revision(
@@ -363,6 +372,10 @@ impl OrganizationStore {
                 "SELECT data FROM organization_memberships WHERE id=?"
             }
             OrganizationRecordKind::Presets => "SELECT data FROM organization_presets WHERE id=?",
+            OrganizationRecordKind::Controls => "SELECT data FROM organization_controls WHERE id=?",
+            OrganizationRecordKind::ControlHistory => {
+                "SELECT data FROM organization_control_history WHERE id=?"
+            }
         };
         let data: String = sqlx::query_scalar(query)
             .bind(id)
@@ -406,6 +419,12 @@ impl OrganizationStore {
             OrganizationRecordKind::Presets => {
                 "SELECT data FROM organization_presets WHERE id > ? ORDER BY id LIMIT ?"
             }
+            OrganizationRecordKind::Controls => {
+                "SELECT data FROM organization_controls WHERE id > ? ORDER BY id LIMIT ?"
+            }
+            OrganizationRecordKind::ControlHistory => {
+                "SELECT data FROM organization_control_history WHERE id > ? ORDER BY id LIMIT ?"
+            }
         };
         let rows: Vec<String> = sqlx::query_scalar(query)
             .bind(cursor.unwrap_or_default())
@@ -436,6 +455,8 @@ pub(super) fn record_id(record: &OrganizationRecord) -> &str {
         OrganizationRecord::Task(record) => &record.id,
         OrganizationRecord::Membership(record) => &record.id,
         OrganizationRecord::Preset(record) => &record.id,
+        OrganizationRecord::Control(record) => &record.id,
+        OrganizationRecord::ControlHistory(record) => &record.id,
     }
 }
 

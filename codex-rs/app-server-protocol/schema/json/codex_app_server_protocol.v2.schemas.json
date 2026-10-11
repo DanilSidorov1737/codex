@@ -12476,6 +12476,145 @@
       ],
       "type": "object"
     },
+    "OrganizationControl": {
+      "description": "Controls have separate revisions so pause/priority never invalidate a grant.",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "revision": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "value": {
+          "$ref": "#/definitions/OrganizationControlValue"
+        }
+      },
+      "required": [
+        "id",
+        "revision",
+        "value"
+      ],
+      "type": "object"
+    },
+    "OrganizationControlHistory": {
+      "properties": {
+        "control": {
+          "$ref": "#/definitions/OrganizationControl"
+        },
+        "id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "control",
+        "id"
+      ],
+      "type": "object"
+    },
+    "OrganizationControlValue": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "limits": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/OrganizationSharedCeilings"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "paused": {
+              "type": "boolean"
+            },
+            "type": {
+              "enum": [
+                "global"
+              ],
+              "title": "GlobalOrganizationControlValueType",
+              "type": "string"
+            }
+          },
+          "required": [
+            "paused",
+            "type"
+          ],
+          "title": "GlobalOrganizationControlValue",
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "evidence": {
+              "items": {
+                "$ref": "#/definitions/OrganizationProjectEvidence"
+              },
+              "type": "array"
+            },
+            "projectId": {
+              "type": "string"
+            },
+            "projectRevision": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "state": {
+              "$ref": "#/definitions/OrganizationProjectState"
+            },
+            "type": {
+              "enum": [
+                "project"
+              ],
+              "title": "ProjectOrganizationControlValueType",
+              "type": "string"
+            }
+          },
+          "required": [
+            "evidence",
+            "projectId",
+            "projectRevision",
+            "state",
+            "type"
+          ],
+          "title": "ProjectOrganizationControlValue",
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "priority": {
+              "format": "int32",
+              "type": "integer"
+            },
+            "taskId": {
+              "type": "string"
+            },
+            "taskRevision": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": {
+              "enum": [
+                "priority"
+              ],
+              "title": "PriorityOrganizationControlValueType",
+              "type": "string"
+            }
+          },
+          "required": [
+            "priority",
+            "taskId",
+            "taskRevision",
+            "type"
+          ],
+          "title": "PriorityOrganizationControlValue",
+          "type": "object"
+        }
+      ]
+    },
     "OrganizationExecutionMutation": {
       "oneOf": [
         {
@@ -12903,6 +13042,33 @@
       ],
       "type": "object"
     },
+    "OrganizationGlobalUsage": {
+      "properties": {
+        "active": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "modelRequests": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "reportedTokens": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "unresolvedRequests": {
+          "format": "int64",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "active",
+        "modelRequests",
+        "reportedTokens",
+        "unresolvedRequests"
+      ],
+      "type": "object"
+    },
     "OrganizationGoal": {
       "properties": {
         "criteria": {
@@ -13016,6 +13182,34 @@
     },
     "OrganizationMutation": {
       "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "expectedRevision": {
+              "format": "int64",
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "type": {
+              "enum": [
+                "setControl"
+              ],
+              "title": "SetControlOrganizationMutationType",
+              "type": "string"
+            },
+            "value": {
+              "$ref": "#/definitions/OrganizationControlValue"
+            }
+          },
+          "required": [
+            "type",
+            "value"
+          ],
+          "title": "SetControlOrganizationMutation",
+          "type": "object"
+        },
         {
           "additionalProperties": false,
           "properties": {
@@ -13648,6 +13842,32 @@
       ],
       "type": "object"
     },
+    "OrganizationProjectEvidence": {
+      "description": "Owner-reviewed criterion evidence references an exact accepted result.",
+      "properties": {
+        "criterion": {
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "explanation": {
+          "type": "string"
+        },
+        "resultDigest": {
+          "type": "string"
+        },
+        "taskId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "criterion",
+        "explanation",
+        "resultDigest",
+        "taskId"
+      ],
+      "type": "object"
+    },
     "OrganizationProjectPlan": {
       "properties": {
         "criteria": {
@@ -13693,6 +13913,15 @@
         "roots"
       ],
       "type": "object"
+    },
+    "OrganizationProjectState": {
+      "enum": [
+        "active",
+        "paused",
+        "completed",
+        "archived"
+      ],
+      "type": "string"
     },
     "OrganizationProviderCapability": {
       "properties": {
@@ -13933,6 +14162,46 @@
           ],
           "title": "PresetOrganizationRecord",
           "type": "object"
+        },
+        {
+          "properties": {
+            "data": {
+              "$ref": "#/definitions/OrganizationControl"
+            },
+            "type": {
+              "enum": [
+                "control"
+              ],
+              "title": "ControlOrganizationRecordType",
+              "type": "string"
+            }
+          },
+          "required": [
+            "data",
+            "type"
+          ],
+          "title": "ControlOrganizationRecord",
+          "type": "object"
+        },
+        {
+          "properties": {
+            "data": {
+              "$ref": "#/definitions/OrganizationControlHistory"
+            },
+            "type": {
+              "enum": [
+                "controlHistory"
+              ],
+              "title": "ControlHistoryOrganizationRecordType",
+              "type": "string"
+            }
+          },
+          "required": [
+            "data",
+            "type"
+          ],
+          "title": "ControlHistoryOrganizationRecord",
+          "type": "object"
         }
       ]
     },
@@ -13944,7 +14213,9 @@
         "projects",
         "tasks",
         "memberships",
-        "presets"
+        "presets",
+        "controls",
+        "controlHistory"
       ],
       "type": "string"
     },
@@ -13953,6 +14224,18 @@
         "generatedAt": {
           "format": "int64",
           "type": "integer"
+        },
+        "globalUsage": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/OrganizationGlobalUsage"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Whole-store root ledgers, independent of the selected project/task page."
         },
         "nextCursor": {
           "type": [

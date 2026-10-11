@@ -254,12 +254,21 @@ WHERE p.task_id IN (SELECT value FROM json_each(?)) GROUP BY p.task_id,run_id,ow
         let next_cursor = more
             .then(|| tasks.last().map(|task| task.task_id.clone()))
             .flatten();
+        let (reported_tokens, model_requests, active, unresolved_requests) = sqlx::query_as("SELECT reported_tokens,model_requests,active,unresolved_requests FROM organization_global_usage")
+            .fetch_one(&mut *tx).await?;
+        let global_usage = OrganizationGlobalUsage {
+            reported_tokens,
+            model_requests,
+            active,
+            unresolved_requests,
+        };
         tx.commit().await?;
         Ok(OrganizationReport {
             sequence,
             generated_at: now,
             project_id: project_id.map(str::to_owned),
             totals,
+            global_usage: Some(global_usage),
             tasks,
             usage,
             usage_truncated,

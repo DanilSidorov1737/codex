@@ -12,6 +12,16 @@ pub(super) enum Kind {
     Membership(OrganizationNode),
     PresetSave(OrganizationNode),
     PresetClone(Box<OrganizationPreset>),
+    GlobalControl(Option<OrganizationControl>),
+    Priority {
+        task: OrganizationTask,
+        previous: Option<OrganizationControl>,
+    },
+    ProjectControl {
+        project: OrganizationProjectPlan,
+        previous: Option<OrganizationControl>,
+        accepted: Vec<OrganizationTaskReport>,
+    },
     Goal,
     GoalEdit(OrganizationGoal),
     Project,
@@ -1030,6 +1040,37 @@ impl Form {
             .or_else(|| project.and_then(|p| p.goal_id.as_deref()));
         let owner = project.and_then(|p| p.owner_id.as_deref());
         let mut fields = match &kind {
+            Kind::GlobalControl(previous) => {
+                let (paused, limits) = match previous.as_ref().map(|c| &c.value) {
+                    Some(OrganizationControlValue::Global { paused, limits }) => (*paused, limits.as_ref()),
+                    _ => (false, None),
+                };
+                vec![
+                    Field::select("Organization execution", vec![("false".into(), "Running".into()), ("true".into(), "Paused".into())], Some(if paused { "true" } else { "false" })),
+                    Field::text("Lifetime reported-token ceiling", "All roots/history; blank all three removes optional global ceilings", &limits.map(|l| l.max_tokens.to_string()).unwrap_or_default()),
+                    Field::text("Lifetime admitted-request ceiling", "Unknown requests stay charged; no counter reset", &limits.map(|l| l.max_model_requests.to_string()).unwrap_or_default()),
+                    Field::text("Active ceiling", "1–4; default runtime capacity remains unchanged", &limits.map(|l| l.max_active.to_string()).unwrap_or_default()),
+                ]
+            }
+            Kind::Priority { previous, .. } => {
+                let priority = match previous.as_ref().map(|c| &c.value) {
+                    Some(OrganizationControlValue::Priority { priority, .. }) => *priority,
+                    _ => 0,
+                };
+                vec![Field::text("Task priority", "-10 to 10; each queued minute from its start time adds one; grant/usage unchanged", &priority.to_string())]
+            }
+            Kind::ProjectControl { project, accepted, .. } => {
+                let mut fields = vec![Field::select("Project lifecycle", vec![
+                    ("paused".into(), "Pause".into()), ("active".into(), "Resume / reopen".into()),
+                    ("completed".into(), "Complete with accepted evidence".into()), ("archived".into(), "Archive paused/completed project".into()),
+                ], None)];
+                let candidates = optional(accepted.iter().map(|t| (t.task_id.clone(), t.title.clone())).collect());
+                for (index, criterion) in project.criteria.iter().enumerate() {
+                    fields.push(Field::select(format!("Criterion {} · {}", index + 1, criterion), candidates.clone(), None));
+                    fields.push(Field::text("Why this accepted result satisfies the criterion", "Required only for Complete; owner assessment, exact digest is pinned", ""));
+                }
+                fields
+            }
             Kind::PresetSave(node) => vec![Field::text("Preset name", "Definition subtree only; at most 128 nodes", &node.label)],
             Kind::PresetClone(preset) => vec![
                 Field::text("Clone group name", "Fresh identities; grants/tasks/private knowledge stay separate", &format!("{} copy", preset.label)),
@@ -1336,6 +1377,9 @@ impl Form {
             Kind::Membership(_) => "Edit group membership",
             Kind::PresetSave(_) => "Save organization preset · definition subtree",
             Kind::PresetClone(_) => "Clone organization preset · fresh identities",
+            Kind::GlobalControl(_) => "Organization pause / lifetime ceilings",
+            Kind::Priority { .. } => "Task priority / fair dispatch",
+            Kind::ProjectControl { .. } => "Project pause / complete / archive / reopen",
             Kind::Goal => "New goal",
             Kind::GoalEdit(_) => "Edit goal / parent / success criteria",
             Kind::Project => "New project",
@@ -1581,6 +1625,80 @@ impl Form {
             Ok(lines(i))
         };
         Ok(match &self.kind {
+            Kind::GlobalControl(previous) => {
+                Command::Definition(OrganizationMutation::SetControl {
+                    expected_revision: previous.as_ref().map(|c| c.revision),
+                    value: OrganizationControlValue::Global {
+                        paused: required(0)?.parse()?,
+                        limits: if (1..4).all(|i| value(i).trim().is_empty()) {
+                            None
+                        } else {
+                            Some(OrganizationSharedCeilings {
+                                max_tokens: required(1)?.parse()?,
+                                max_model_requests: required(2)?.parse()?,
+                                max_active: required(3)?.parse()?,
+                            })
+                        },
+                    },
+                })
+            }
+            Kind::Priority { task, previous } => {
+                Command::Definition(OrganizationMutation::SetControl {
+                    expected_revision: previous.as_ref().map(|c| c.revision),
+                    value: OrganizationControlValue::Priority {
+                        task_id: task.id.clone(),
+                        task_revision: task.revision,
+                        priority: required(0)?.parse()?,
+                    },
+                })
+            }
+            Kind::ProjectControl {
+                project,
+                previous,
+                accepted,
+            } => {
+                let state = match required(0)?.as_str() {
+                    "active" => OrganizationProjectState::Active,
+                    "paused" => OrganizationProjectState::Paused,
+                    "completed" => OrganizationProjectState::Completed,
+                    "archived" => OrganizationProjectState::Archived,
+                    _ => anyhow::bail!("invalid project lifecycle"),
+                };
+                let evidence = if state == OrganizationProjectState::Completed {
+                    project
+                        .criteria
+                        .iter()
+                        .enumerate()
+                        .map(|(index, _)| {
+                            let task_id = required(1 + index * 2)?;
+                            let result_digest = accepted
+                                .iter()
+                                .find(|t| t.task_id == task_id)
+                                .and_then(|t| t.result_digest.clone())
+                                .ok_or_else(|| {
+                                    anyhow::anyhow!("accepted result unavailable; refresh")
+                                })?;
+                            Ok(OrganizationProjectEvidence {
+                                criterion: index as u32,
+                                task_id,
+                                result_digest,
+                                explanation: required(2 + index * 2)?,
+                            })
+                        })
+                        .collect::<anyhow::Result<Vec<_>>>()?
+                } else {
+                    vec![]
+                };
+                Command::Definition(OrganizationMutation::SetControl {
+                    expected_revision: previous.as_ref().map(|c| c.revision),
+                    value: OrganizationControlValue::Project {
+                        project_id: project.id.clone(),
+                        project_revision: project.revision,
+                        state,
+                        evidence,
+                    },
+                })
+            }
             Kind::PresetSave(node) => Command::Definition(OrganizationMutation::SavePreset {
                 root_id: node.id.clone(),
                 expected_root_revision: node.revision,

@@ -2369,6 +2369,109 @@
       ],
       "type": "string"
     },
+    "OrganizationControlValue": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "limits": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/OrganizationSharedCeilings"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "paused": {
+              "type": "boolean"
+            },
+            "type": {
+              "enum": [
+                "global"
+              ],
+              "title": "GlobalOrganizationControlValueType",
+              "type": "string"
+            }
+          },
+          "required": [
+            "paused",
+            "type"
+          ],
+          "title": "GlobalOrganizationControlValue",
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "evidence": {
+              "items": {
+                "$ref": "#/definitions/OrganizationProjectEvidence"
+              },
+              "type": "array"
+            },
+            "projectId": {
+              "type": "string"
+            },
+            "projectRevision": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "state": {
+              "$ref": "#/definitions/OrganizationProjectState"
+            },
+            "type": {
+              "enum": [
+                "project"
+              ],
+              "title": "ProjectOrganizationControlValueType",
+              "type": "string"
+            }
+          },
+          "required": [
+            "evidence",
+            "projectId",
+            "projectRevision",
+            "state",
+            "type"
+          ],
+          "title": "ProjectOrganizationControlValue",
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "priority": {
+              "format": "int32",
+              "type": "integer"
+            },
+            "taskId": {
+              "type": "string"
+            },
+            "taskRevision": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": {
+              "enum": [
+                "priority"
+              ],
+              "title": "PriorityOrganizationControlValueType",
+              "type": "string"
+            }
+          },
+          "required": [
+            "priority",
+            "taskId",
+            "taskRevision",
+            "type"
+          ],
+          "title": "PriorityOrganizationControlValue",
+          "type": "object"
+        }
+      ]
+    },
     "OrganizationExecutionMutation": {
       "oneOf": [
         {
@@ -2713,6 +2816,34 @@
     },
     "OrganizationMutation": {
       "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "expectedRevision": {
+              "format": "int64",
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "type": {
+              "enum": [
+                "setControl"
+              ],
+              "title": "SetControlOrganizationMutationType",
+              "type": "string"
+            },
+            "value": {
+              "$ref": "#/definitions/OrganizationControlValue"
+            }
+          },
+          "required": [
+            "type",
+            "value"
+          ],
+          "title": "SetControlOrganizationMutation",
+          "type": "object"
+        },
         {
           "additionalProperties": false,
           "properties": {
@@ -3144,6 +3275,41 @@
       ],
       "type": "object"
     },
+    "OrganizationProjectEvidence": {
+      "description": "Owner-reviewed criterion evidence references an exact accepted result.",
+      "properties": {
+        "criterion": {
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "explanation": {
+          "type": "string"
+        },
+        "resultDigest": {
+          "type": "string"
+        },
+        "taskId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "criterion",
+        "explanation",
+        "resultDigest",
+        "taskId"
+      ],
+      "type": "object"
+    },
+    "OrganizationProjectState": {
+      "enum": [
+        "active",
+        "paused",
+        "completed",
+        "archived"
+      ],
+      "type": "string"
+    },
     "OrganizationRecordKind": {
       "enum": [
         "nodes",
@@ -3152,7 +3318,9 @@
         "projects",
         "tasks",
         "memberships",
-        "presets"
+        "presets",
+        "controls",
+        "controlHistory"
       ],
       "type": "string"
     },

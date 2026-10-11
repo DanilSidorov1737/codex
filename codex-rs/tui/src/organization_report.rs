@@ -121,6 +121,11 @@ pub(super) fn text(
         utc_time(report.generated_at)
     );
     if matches!(focus, Focus::All | Focus::Project(_)) {
+        if let Some(u) = &report.global_usage {
+            text.push_str(&format!("Whole organization: {} reported tokens · {} admitted requests · {} active · {} unresolved terminal requests\n", u.reported_tokens, u.model_requests, u.active, u.unresolved_requests));
+        } else {
+            text.push_str("Whole organization usage unavailable; refresh the daemon report.\n");
+        }
         text.push_str(&format!("Scope: {}\nTask states: {:?}\nAction states: {:?}\nSchedules: {:?}\n{} pending approvals · {} requested changes\nRecorded checks: {} passed / {} failed\n{} reported tokens · {} admitted requests / {} usage receipts\n",report.project_id.as_deref().unwrap_or("whole store"),report.totals.task_states,report.totals.action_states,report.totals.schedule_states,report.totals.pending_approvals,report.totals.changes_requested,report.totals.checks_passed,report.totals.checks_failed,report.totals.reported_tokens,report.totals.model_requests,report.totals.reported_model_requests));
     }
     text.push_str("\nTASKS / EVIDENCE\n");
@@ -331,6 +336,7 @@ mod tests {
             generated_at: 0,
             project_id: None,
             totals: OrganizationReportTotals::default(),
+            global_usage: Some(OrganizationGlobalUsage::default()),
             tasks: vec![a, b],
             usage: vec![OrganizationUsageReport {
                 task_id: "task".into(),

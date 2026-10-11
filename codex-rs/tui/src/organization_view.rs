@@ -285,7 +285,9 @@ impl Dashboard {
 
     fn rows_view(&self, area: Rect, buffer: &mut Buffer, cards: bool) {
         let pane = &self.preferences.panes[self.preferences.preset.index()];
-        let title = if self.projection == Projection::Presets {
+        let title = if self.projection == Projection::Controls {
+            "Owner controls · F10 limits · F12 pause/resume · F11 returns"
+        } else if self.projection == Projection::Presets {
             "Organization presets · D save node subtree · V clone"
         } else if self.projection == Projection::Goals {
             "Goal tree / milestones"

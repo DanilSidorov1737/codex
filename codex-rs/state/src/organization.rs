@@ -36,6 +36,9 @@ mod definitions;
 #[path = "organization_presets.rs"]
 mod presets;
 
+#[path = "organization_controls.rs"]
+mod controls;
+
 #[path = "organization_execution.rs"]
 mod execution;
 

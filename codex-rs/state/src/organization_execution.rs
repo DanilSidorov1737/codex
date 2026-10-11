@@ -41,7 +41,7 @@ impl OrganizationStore {
         Uuid::parse_str(worker_id)?;
         Uuid::parse_str(thread_id)?;
         ensure!(
-            (1..=4).contains(&max_active),
+            (1..=4).contains(&max_active) && now >= 0,
             "active execution limit must be 1–4"
         );
         let mut tx = self.pool.begin_with("BEGIN IMMEDIATE").await?;
@@ -49,6 +49,9 @@ impl OrganizationStore {
             sqlx::query_scalar("SELECT count(*) FROM organization_attempts WHERE occupied=1")
                 .fetch_one(&mut *tx)
                 .await?;
+        if !super::controls::check_global(&mut tx, true, true).await? {
+            return Ok(None);
+        }
         if active >= i64::from(max_active) {
             return Ok(None);
         }
@@ -59,9 +62,12 @@ impl OrganizationStore {
             .fetch_one(&mut *tx).await?;
         let candidates: Vec<(String, String)> = sqlx::query_as(r#"SELECT t.id,a.data
             FROM organization_tasks t JOIN organization_authorizations a ON a.id=t.authorization_id
+            LEFT JOIN organization_controls priority ON priority.id='priority:'||t.id
             WHERE t.state='queued' AND a.revoked=0 AND a.expires_at>?
             AND COALESCE(json_extract(a.data,'$.scope.notBefore'),0)<=?
             AND (a.parent_attempt_id IS NOT NULL OR ?<4)
+            AND NOT EXISTS(SELECT 1 FROM organization_controls c WHERE c.id='project:'||t.project_id
+                AND json_extract(c.data,'$.data.value.state')<>'active')
             AND NOT EXISTS(SELECT 1 FROM organization_workflow_tasks w
                 JOIN organization_workflow_runs r ON r.id=w.run_id WHERE w.authorization_id=a.root_id
                 AND COALESCE(json_extract(r.data,'$.state'),'active')<>'active')
@@ -71,8 +77,11 @@ impl OrganizationStore {
                 AND (u.reported_tokens>=u.max_tokens OR u.model_requests>=u.max_model_requests OR u.active>=u.max_active OR u.unresolved_requests>0))
             AND NOT EXISTS(SELECT 1 FROM organization_task_dependencies d
                 JOIN organization_tasks p ON p.id=d.prerequisite_id WHERE d.task_id=t.id AND p.state<>'accepted')
-            ORDER BY a.parent_attempt_id IS NULL,t.id LIMIT 32"#)
-            .bind(now).bind(now).bind(roots).fetch_all(&mut *tx).await?;
+            ORDER BY a.parent_attempt_id IS NULL,
+                COALESCE(json_extract(priority.data,'$.data.value.priority'),0)
+                + max(0,(?-max(COALESCE(t.queue_since,0),COALESCE(json_extract(a.data,'$.scope.notBefore'),0)))/60) DESC,
+                COALESCE(t.queue_since,0),t.id LIMIT 32"#)
+            .bind(now).bind(now).bind(roots).bind(now).fetch_all(&mut *tx).await?;
         for (task_id, authorization_data) in candidates {
             let authorization: OrganizationTaskAuthorization =
                 serde_json::from_str(&authorization_data)?;
@@ -678,8 +687,9 @@ pub(super) async fn authorize_task_in(
         .bind(&authorization.id)
         .execute(&mut **tx)
         .await?;
-    sqlx::query("UPDATE organization_tasks SET authorization_id = ? WHERE id = ?")
+    sqlx::query("UPDATE organization_tasks SET authorization_id = ?,queue_since=COALESCE(queue_since,?) WHERE id = ?")
         .bind(&authorization.id)
+        .bind(now)
         .bind(task_id)
         .execute(&mut **tx)
         .await?;
