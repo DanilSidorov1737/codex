@@ -10,8 +10,9 @@ The owner-approved N1 memory search slice is qualified on `d6d049cc49`, with
 Neovim interaction. N2 recurring schedules is qualified on `e06def499e`: 700
 automated tests, real background/approval/pause/restart/resume/cancel/budget/crash
 and native CLI/TUI/official-Neovim checks. See recurring-schedules.md and status.md;
-N3 reusable workflow templates is approved and undergoing final native qualification;
-see [workflow contract](workflows.md). N4–N8 remain proposed later scope.
+N3 reusable workflows is qualified on `2bd752a3d1`: 712 automated tests and actual
+dependency/restart/approval/Neovim/conflict-denial/Apply checks. See
+[workflow evidence](workflows.md). N4–N8 remain proposed later scope.
 Phase 0 repository baseline: `8026444c98cd9c6db9e7c953b44a20ea4f93c7b6`, from `origin/main`.
 Research recorded on 2026-10-09 (America/New_York).
 
@@ -35,7 +36,8 @@ organization is a template, not the product's fixed structure.
 B1 usage: [organization command guide](organization-commands.md).
 B3 contracts and bounds: [coordination](coordination.md).
 B4 layout usage and qualification: [layouts](layouts.md).
-Current recurring screenshots: `/workspace/artifacts/cli-recurring-schedules/cli-recurring-schedules-screenshots.zip`.
+Current workflow screenshots: `/workspace/artifacts/cli-workflows/cli-workflows-screenshots.zip`.
+Historical recurring screenshots: `/workspace/artifacts/cli-recurring-schedules/cli-recurring-schedules-screenshots.zip`.
 Historical memory screenshots: `/workspace/artifacts/cli-memory-search/cli-memory-search-screenshots.zip`.
 Selective Apply captures: `/workspace/artifacts/cli-selective-apply/cli-selective-apply-screenshots.zip`.
 Previous UI captures: `/workspace/artifacts/cli-ui-update/cli-ui-update-screenshots.zip`.

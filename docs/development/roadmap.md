@@ -48,8 +48,10 @@ physical CLI/TUI interaction, actual Neovim checks when affected, updated eviden
 and logical local commits for each approved slice. N1 qualification is complete;
 N2 recurring schedules is complete: 700 automated tests and actual background,
 approval, pause/restart/resume, cancellation, budgets, crash/remote denial and
-native TUI/official-Neovim evidence. N3 reusable workflow templates is next
-approved scope, now in progress; see [workflow contract](workflows.md).
+native TUI/official-Neovim evidence. N3 reusable workflows is complete on
+`2bd752a3d1`: 712 automated tests and actual dependency/restart/approval/Neovim/
+conflict-denial/Apply checks; see [workflow evidence](workflows.md). N4 structured
+handoffs/blockers is the next proposal, requiring matching owner scope.
 Distributed workers, multimodal production, meetings, full-environment backup
 automation and protected self-improvement remain in their later roadmap phases.
 

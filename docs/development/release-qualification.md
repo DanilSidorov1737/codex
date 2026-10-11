@@ -45,6 +45,17 @@ fixture Responses/240 reported tokens, zero paid calls. This qualifies local mem
 control/retrieval, not new live-model quality or broader platforms/plugins.
 See [memory search](memory-search.md), [testing](testing.md) and status.md.
 
+The subsequent N3 reusable workflow slice is qualified on `2bd752a3d1`: 712 distinct
+automated tests, production/CLI Clippy, formatting and complete installed package
+passed. Actual two-agent inspect/implement/verify dependencies and owner acceptance,
+background approvals, scoped hash-checked handoff, real restart, fresh identities,
+cycle/stale/duplicate/limit-reset/remote denial, UI save/preview/confirmation, official
+Neovim Follow/diff, original conflict denial and one explicit report-only Apply
+passed. Three invocations/eight task links and five independent immutable checks
+match canonical state. Ten localhost Responses/150 reported tokens, zero paid;
+all owned services stopped, failures preserved. This is local control evidence,
+not new live-model quality. See [workflows](workflows.md) and [testing](testing.md).
+
 ## Acceptance evidence
 
 The subsequent N2 recurring-schedule slice is qualified on `e06def499e`: 700

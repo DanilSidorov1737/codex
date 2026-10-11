@@ -49,6 +49,17 @@ launches report the requirement rather than silently taking terminal ownership.
   sizes and narrow counter scrolling passed. Switching layouts clears selection;
   explicitly select the occurrence in Workspace before `t` Follow. Current
   captures are in `/workspace/artifacts/cli-recurring-schedules/`.
+- Select a final task in Projects and `W` saves its loaded prerequisite closure as
+  a workflow template. Select a template and `s` enters a common scope per step;
+  F6 obtains a read-only canonical preview, then `y` confirms that exact run.
+  `w` browses templates/runs and their linked tasks in Projects/Operations;
+  Operations retains its default hierarchy tree. Inspectors show arbitrary
+  owners, criteria, prerequisites, fixed summed limits and canonical states.
+  Run tasks retain existing approval/actual-Neovim/acceptance/Apply controls.
+  CLI supports distinct per-step scopes. Qualified on `2bd752a3d1` with 30 native
+  TUI/Neovim tests and actual forms, dependencies, restart, Follow/diff,
+  original conflict denial, exact Apply and 36 switches across three sizes.
+  See [workflows](workflows.md); captures are at `/workspace/artifacts/cli-workflows/`.
 - Review/task inspection: `a` approves the first pending exact action, `r` rejects
   it, `v` accepts the exact current result digest, and `c` requests changes with
   entered instructions. Decisions require an explicit `y` against the displayed

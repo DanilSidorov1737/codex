@@ -44,7 +44,11 @@ recurring-schedules.md, testing.md and status.md.
 The owner approved N3 with “ok do this”: reusable bounded workflow templates,
 explicit run previews/scopes, fresh task identities, existing dependency/approval
 enforcement, Projects/Operations UI, actual CLI/TUI/official-Neovim qualification,
-Ponytail and periodic local commits. See workflows.md and current status.
+Ponytail and periodic local commits. N3 is qualified on `2bd752a3d1`: 712 automated
+tests and actual CLI/TUI/official-Neovim dependency/restart/approval/conflict-denial/
+Apply evidence. Preserve all three invocations/eight tasks; services are stopped.
+Never rerun N3 fixture setup/authorization/lifecycle/Apply or reset its limits.
+N4–N8 remain later scope. See workflows.md, testing.md and current status.
 Preserve N1's accepted writer
 and three needsReview reader fixtures; never blindly rerun authorization scripts.
 

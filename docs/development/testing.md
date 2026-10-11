@@ -1,5 +1,167 @@
 # Testing procedures and evidence
 
+## Reusable workflow qualification — 2026-10-11 UTC
+
+Qualified application source `2bd752a3d1f09583c90d208e2081b7ee69335661`;
+storage `05e04c6116`, owner API/runtime `52211ba6e8`, dashboard `c59f1b38f1`
+and original-base carry-forward fix `dc299dfb77`. No dependency/installation.
+Ponytail correctness review traced atomic creation, owner-origin ordering,
+revision/scope pins, fixed descendant accounting, dependency acceptance and
+same-run artifact imports. Review caught recapturing an imported file's base,
+which could hide an owner edit between steps; the runtime now carries the
+producer's base and meaningful native/physical regression checks pass.
+Complexity review retained existing validated plan items, SQLx transactions,
+daemon poller, task/grant controls and forms. The bounded 32-step validator uses
+a simple deterministic topological scan; no workflow engine, broker or DSL.
+
+### Automated checks
+
+From `/workspace/codex/codex-rs`, `. /workspace/.onboarding/activate.sh`, with
+`CARGO_INCREMENTAL=0 RUST_MIN_STACK=8388608` and test/build/Clippy flags
+`--locked --offline --profile dev-small -j4`. Logs are in
+`/workspace/.onboarding/qualification/workflows-n3/`.
+
+| Command/target | Result | Log |
+| --- | --- | --- |
+| `cargo test -p codex-protocol -p codex-state --lib` | 372 protocol + 269 state; 0 failed/ignored | `state-protocol-tests.log` |
+| `cargo test -p codex-state --lib organization::tests::workflow` | 4 repeated scenarios with added overlapping-producer assertion; 0 failed/ignored | `state-workflow-final.log` |
+| `cargo test -p codex-app-server-protocol --lib schema_fixtures_tests -- --skip write_schema_fixtures_from_env` | 4 comparisons | `schema-comparisons.log` |
+| `cargo test -p codex-app-server --test all suite::v2::organization` | 7 native API, rerun after base fix | `native-api-tests-current.log` |
+| `cargo test -p codex-tui --lib organization` | 30 native TUI/actual official-Neovim, rerun after base fix | `native-tui-tests-current.log` |
+| `cargo test -p codex-app-server --lib request_processors::organization` | 1 owner-origin | `owner-origin-test.log` |
+| `cargo test -p codex-app-server --lib organization_workspace` | 4 native workspace, including accepted-byte/base regression | `workspace-tests-current.log` |
+| `cargo clippy -p codex-protocol -p codex-state -p codex-app-server-protocol -p codex-app-server -p codex-tui --lib -- -D warnings` | Exit 0 | `clippy-final.log` |
+| `cargo clippy -p codex-cli --bin codex -- -D warnings` | Exit 0 | `cli-clippy-current.log` |
+| `cargo fmt --check -p codex-protocol -p codex-state -p codex-app-server-protocol -p codex-app-server -p codex-tui -p codex-cli` | Exit 0; known stable-toolchain nightly imports warning | `format-check.log` |
+| `cargo build -p codex-cli --bin codex` | Complete final CLI, exit 0 | `cli-build-current.log` |
+
+Python from `/workspace/codex/sdk/python`, `. .venv/bin/activate`:
+`python -m pytest tests/test_contract_generation.py tests/test_public_api_signatures.py -q`
+passed **25** (`python-contract-tests-current.log`). **712 distinct automated tests**;
+`automated-checks.json` verifies counts and SHA256s. Repeats and two schema-writing
+helpers are excluded from that distinct count. Native tests ran with authorized
+native execution because the outer sandbox masks protected IPC/paths; inner
+permission/integrity assertions remained enabled. Full Rust/Bazel/platform suites
+were not run. No new paid/provider intelligence check was performed.
+
+Four new state scenarios cover invalid/duplicate/cyclic graphs, missing/extra/
+immutable/ambiguous scopes, read-only preview with no authority, late-grant
+transaction rollback, tampered totals, stale node/template revisions, fresh
+identities, duplicate run refusal, fixed request exhaustion, exact acceptance
+before dependency admission, filtered same-run metadata, restart/pagination,
+reauthorization refusal, migration from v7 and interrupted predecessor blocking.
+The v6 migration test now reconstructs a genuine prefix by dropping later tables
+and migration rows. Native API checks preserve frozen run content through edits
+and restart. TUI checks freeze IDs/scopes/confirmation and ignore late previews
+after closing/changing a form; narrow/untrusted controls remain safe. Existing
+actual Neovim Unicode editing/save/undo/diff/dirty-buffer/focus/startup tests pass.
+
+Schema generation used explicit `CODEX_APP_SERVER_SCHEMA_ROOT` ending in
+`codex-rs/app-server-protocol/schema`, `CODEX_APP_SERVER_SCHEMA_EXPERIMENTAL=0`
+then `1`, and the ignored exact schema writer. Both passed; four comparisons passed.
+Experimental endpoint wrappers remain filtered from flat stable exports; shared
+workflow DTOs are exported. SDK generation used
+`python scripts/update_sdk_artifacts.py generate-types --schema-dir ../../codex-rs/app-server-protocol/schema/json`.
+Generated JSON/TypeScript/precomputed/schema/SDK files are committed together.
+
+### Complete package and actual interaction
+
+Pinned Rust 1.95.0, official checksum-verified Neovim 0.12.6, Node 24.19.0 and
+pnpm 10.34.5 were reused. Package build, from the Rust directory, exit 0:
+
+```sh
+CODEX_REPO_ROOT=/workspace/codex python3 /workspace/codex/scripts/build_codex_package.py --target x86_64-unknown-linux-gnu --package-dir /workspace/.onboarding/qualification/workflows-n3/package --entrypoint-bin /workspace/codex/codex-rs/target/dev-small/codex --code-mode-host-bin /workspace/.onboarding/qualification/memory-search-20261010/package/bin/codex-code-mode-host --bwrap-bin /workspace/.onboarding/qualification/memory-search-20261010/package/codex-resources/bwrap --rg-bin /workspace/.onboarding/qualification/memory-search-20261010/package/codex-path/rg --strip none
+```
+
+`package-build.log`, `preflight.json` and `verification.json` verify source/clean
+application diff and all five source/installed hashes (CLI, Code Mode helper,
+bwrap, rg, manifest). Reusing the helper does not qualify CodeModeOnly execution.
+CLI SHA256: `2f3980aff324d7c998ce4190133960342c04a228510335327985185760ec5b5a`.
+Fresh private home `/workspace/.onboarding/qualification/n3-home`; source project,
+local provider and scripts in `workflows-n3/`. OPENAI_API_KEY was removed from
+fixture process environments. Historical homes/results were not reset or replayed.
+
+Actual commands below ran from the evidence directory, with activation and native
+execution, logging to corresponding `.log` files. These are **single-use evidence,
+not instructions to recreate/replay invocations**. Native Neovim terminal channels
+physically entered keys; captures render actual external-UI cells/colors. Every
+successful physical session has a native `on_exit` code 0 receipt.
+
+| Actual stage | Evidence |
+| --- | --- |
+| `launch-provider.py`, `setup.py`, `preflight.py`, `coding-start.py` | Actual CLI creates two arbitrary agents/project, saves template with zero calls, previews and atomically authorizes three fresh fixed grants; closed frontend first waits for exact approval; dependents queued |
+| `physical.py inspect`, `implement`, `verify` | Exact native approval, actual immutable checks, actual Neovim Follow; owner accepts first two to release next steps; accepted plan/math imported privately; final stays needsReview; original math remains subtraction |
+| `lifecycle.py` then `lifecycle-resume.py` | Actual stop/start preserves canonical state/no extra calls; second future-gated invocation has distinct IDs; edits do not retarget first run; duplicate/cycle/stale/reset denied; existing fresh tasks cancelled correctly |
+| `physical.py save-ui`, `run-ui` | Physically save prerequisite closure, Unicode template label, explicit common scopes, canonical read-only F6 preview and exact y confirmation; templates/runs visible; hierarchy remains Operations default |
+| `physical.py ui-first`, `ui-second` | Real approved document commands and immutable checks; second stays queued until first accepted; imports first report privately; actual Neovim diff |
+| `physical.py ui-apply`, then `ui-apply-final` | Owner accepts final result; Apply of the actual carried original base rejects a controlled edit made between steps before an intent; preserves edit; records restoration of this owned fixture; inspect canonical no-intent state and reconnect the conservatively frozen frontend, then new exact confirmation applies report once |
+| `physical.py navigation` | 36 switches across 120×36, 50×20 and 160×48; actual narrow scrolling; no duplicate request IDs/timeouts; exit 0 |
+| `remote-denial.py` | Real TCP WebSocket denies workflow list/preview/mutation before owner data/authority |
+| `verify.py`, `cleanup.py` | Independent immutable checks/hashes, SQLite quick/FK, eight unique task/grant links, fixed counters, canonical states and all package files; stop only owned services, remove PID record, preserve state |
+
+`verification.json` proves three runs/eight tasks: coding accepted/accepted/needsReview
+(no Apply), UI accepted/accepted with one Completed `paths=["report.txt"]` receipt,
+and the second coding invocation's three future-gated tasks cancelled. Five actual
+immutable oracles are independently rerun in preserved workspaces; all pass.
+Original coding files stay unchanged; document original changes only after the
+explicit final Apply. Exactly **10 localhost Responses / 150 fixture-reported
+tokens / zero paid requests**; five executed tasks each consumed two requests/30
+reported tokens. The model label gpt-5.5 denotes a deterministic fixture, not
+new live-model competence/billing evidence. Failed harness recovery added no
+invocation or model request. Services/frontends are stopped; JSON/logs/workspaces
+and prior failures remain. Actual PNG/text archive: `/workspace/artifacts/cli-workflows/`.
+
+### Preserved failures and boundaries
+
+- Initial safe-query compilation rejected dynamic SQL formatting; separate literal
+  queries replaced it. Initial test/runtime binding, processor field/origin,
+  private helper and unnecessary unwrap issues were corrected and rerun.
+- State fixtures initially left migration 8 behind when deleting migration 7, and
+  omitted artifact base metadata. Tests now reconstruct real migration prefixes
+  and supply required metadata; checksums/base guards were not weakened.
+- The initial native API negative helper panicked on the expected duplicate error
+  because it accepted success only. Explicit error-stream assertions now verify
+  -32602; all seven native API tests pass.
+- Initial SDK checks selected nonexistent test paths (no tests ran); corrected
+  contract/signature targets pass 25. Wrong initial Cargo working directories
+  were corrected; all relevant original logs remain.
+- Physical Follow initially waited for an absent “NORMAL” string. The actual
+  editor showed `Neovim · normal · editor focus` and the checked plan. Failure
+  capture/log/receipt remains; corrected physical inspection resumed the existing
+  needsReview result, then accepted it without authorization/approval/model replay.
+- Lifecycle cancellation initially submitted nonexistent `type:cancel`; the CLI
+  correctly rejected it before mutation. Its future-gated invocation and first
+  template edit were preserved. Correct `type:stop,cancel:true` cancelled those
+  same tasks; restart/denials were checked again with zero extra Responses.
+
+- Final acceptance initially succeeded, but the harness waited for an offscreen
+  `Accepted: true` result field instead of the visible `State: accepted`. The
+  failed receipt preserves the actual screen; corrected checks resumed the
+  accepted result without a second acceptance or additional inference.
+- Apply correctly refused the owner edit before an intent/write. A subsequent
+  same-frontend retry remained blocked by its conservative `applying`/frozen-editor
+  guard after that consequential RPC error. The preserved attempt failed its
+  completion expectation with no receipt/write. After inspecting canonical state,
+  a fresh actual frontend reviewed and explicitly applied the same accepted result
+  once. This reconnect requirement is an existing usability limitation; automatic
+  replay/unfreezing was not introduced. The first offscreen-field failure's full
+  native screen survives in its receipt/log; the shared failure PNG filename was
+  reused by the later attempt, whose PNG/text are separately retained.
+
+Linux x86_64, clean official Neovim and local fixtures are the current qualification.
+User configuration/LSP/plugins, new live-provider quality/invoice checks, distributed
+workers, recurring whole-workflow triggers and high-volume workflow load are unrun.
+Scopes are fixed per step, not pooled cash/token credits. Already-admitted requests
+can overshoot token ceilings. Expired/interrupted/failed predecessors stay blocked;
+there is no run-wide resume/retry/reset, automatic acceptance/Apply or uncertain
+replay. A fresh invocation requires its own owner-reviewed preview. See
+[workflow limits](workflows.md) and [safe resumption](status.md).
+
+Startup guidance saved/read back exactly at cloud draft revision 13, with all
+other draft fields unchanged (`cloud-draft-readback.json`). The archive contains
+38 actual PNG/TXT capture pairs and 80 CRC-checked entries (`archive.json`).
+Review/save and publication remain owner actions; fresh-task restore is unverified.
+
 ## Recurring schedule qualification — 2026-10-11 UTC
 
 Application source `e06def499ef919e381bb8ec6e0ab7518960f280d`, storage

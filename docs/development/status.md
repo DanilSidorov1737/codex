@@ -1,9 +1,98 @@
 # Current status and resumption instructions
 
 Phase 0: **exploration and planning complete for available inputs**.
-Current work: **N1/N2 complete; owner-approved N3 workflows in progress**.
+Current work: **N1/N2/N3 complete; N4 handoffs/blockers proposed**.
 Application features: **delivered for the documented single-owner Linux envelope**.
 The MVP's release criteria are **qualified for the documented single-owner Linux/GPT-5.5 envelope**.
+
+## Completed reusable workflow slice — 2026-10-11 UTC
+
+The owner approved N3 with “ok do this”. Reusable bounded workflows are delivered
+and qualified on **`2bd752a3d1f09583c90d208e2081b7ee69335661`**, following storage `05e04c6116`,
+API/runtime `52211ba6e8`, UI `c59f1b38f1` and original-base fix `dc299dfb77`.
+Ponytail reused validated plan items, SQLite transactions, existing task/grant
+and dependency gates, the detached daemon, protected owner RPC, dashboard forms
+and actual official Neovim. Migration 8 preserves existing records; no new
+framework, dependency or installation. See [workflows](workflows.md),
+[commands](organization-commands.md) and [testing](testing.md).
+
+Templates save 1–32 project-bound steps with arbitrary configured owners,
+instructions, criteria and prerequisites, without authority. Read-only previews
+pin content/revisions/policy and explicit per-step scopes. Exact owner confirmation
+atomically creates fresh tasks/dependencies/grants/run links. Stale or altered
+previews, duplicate run IDs, invalid graphs/scopes and late authorization failures
+leave no partial invocation. An uncertain outcome requires inspection by run ID.
+Each step keeps its fixed root grant; descendant usage is counted there. The sum
+is not a shared pool or money cap; admitted requests may exceed token limits.
+
+Prerequisites need explicit owner acceptance. Declared accepted artifacts transfer
+within the same invocation with hash/immutable/64 MiB combined input guards.
+Later edits retain the producer's original base: an intervening user edit still
+blocks Apply. Failed/interrupted/expired/cancelled steps block dependents; no
+ordinary reauthorization may reset run limits. No automatic retry/acceptance/Apply.
+`W` saves a selected task's prerequisite closure; `s` previews a template with
+one common scope per step; F6 obtains a canonical preview and `y` confirms it.
+CLI supports distinct per-step scopes. `w` browses templates/runs/tasks in
+Projects/Operations; Operations retains its primary hierarchy tree.
+
+**712 distinct automated tests passed**: protocol 372, state 269, schemas 4,
+Python 25, native API 7, native TUI/official Neovim 30, owner origin 1 and native
+workspace 4. Relevant repeat checks are not counted twice. Production/CLI Clippy
+with warnings denied, affected formatting, complete CLI/package and all five
+source/installed hashes passed. Actual packaged CLI/TUI ran a two-agent
+inspect → implement → verify chain with exact native approvals and immutable
+checks. The first two results were accepted to release dependencies; the final
+result stays needsReview, with no coding Apply. Closing the frontend left the
+daemon active; actual stop/start preserved canonical records with no extra calls.
+A second invocation had fresh IDs and future gates, then its three tasks were
+explicitly cancelled. Duplicate/cycle/stale/limit-reset requests were refused.
+
+A separate two-step document workflow was saved and previewed through actual
+UI forms. Exact approvals, accepted artifact handoff and real Neovim diff passed.
+Apply refused a controlled owner edit introduced between steps, before recording
+an application intent, preserving its bytes. After recording restoration of this
+synthetic fixture only, a new explicit confirmation applied report.txt once.
+Remote TCP WebSocket list/preview/mutation were denied. Thirty-six rapid switches
+and three terminal sizes passed. All nine corrected physical sessions exited
+normally with native code 0. Five independent immutable oracles, SQLite quick/FK
+checks, fixed counters and eight unique invocation task/grant links passed.
+
+Three invocations/eight tasks used **10 localhost Responses / 150 fixture-reported
+tokens / zero paid requests**. These are deterministic control/accounting checks,
+not new GPT quality or billing evidence. The initial physical harness expected
+an absent “NORMAL” string; actual Neovim displayed “Neovim · normal”. Its failure
+is retained; the corrected run resumed the checked result without repeating the
+approval, authorization or model request. The initial lifecycle harness also used the nonexistent cancel tag; the CLI
+refused it, then correct stop/cancel handled the same existing tasks without
+authorization replay. Earlier compiler/fixture/helper failures also remain,
+with corrected passing checks.
+
+Current package: `/workspace/.onboarding/qualification/workflows-n3/package/`.
+CLI SHA256: `2f3980aff324d7c998ce4190133960342c04a228510335327985185760ec5b5a`.
+Evidence/scripts: `/workspace/.onboarding/qualification/workflows-n3/`.
+Private home: `/workspace/.onboarding/qualification/n3-home`.
+Canonical states: coding accepted/accepted/needsReview; UI accepted/accepted with
+one Completed report-only Apply; repeated invocation's three tasks cancelled.
+All owned services/frontends are stopped; cleanup retains native stop, removed
+PID record and stopped/zombie identities. Preserve state, packages and failures;
+never replay these setup/authorization/lifecycle/Apply scripts or historical N1/N2
+fixtures. 38 actual PNG/text captures and CRC-checked archive are at
+`/workspace/artifacts/cli-workflows/`.
+
+N3 is complete. Next recommendation: N4 structured handoffs/blockers/reassignment,
+requiring matching owner scope. Calendar/recurrent whole-workflow triggers, pooled
+money limits, remote workers, automatic Apply, new live-model quality and user
+Neovim plugins/LSP remain outside qualification. Current-instance checks do not
+prove fresh-task restoration. After an Apply RPC failure, the current frontend
+conservatively keeps its editor
+frozen until reconnect; inspect canonical application receipts first. This is a
+known usability limitation, and the physical retry stayed blocked with no intent
+or write. A fresh frontend safely completed the separately confirmed Apply.
+The startup guide was saved and read back exactly at cloud draft revision **13**;
+install/network/repository/credential fields are unchanged. `requires_publish=true`:
+review/save the updated settings, then publish the refreshed environment snapshot
+to retain local commits/packages. Saving does not publish or prove fresh-task
+restoration of local-only commits.
 
 ## Completed recurring-schedule slice — 2026-10-11 UTC
 
@@ -67,8 +156,9 @@ to retain local commits/packages. Saving does not publish or prove new-task rest
 
 Do not rerun fixture setup, authorization or crash scripts, reauthorize old
 occurrences, replay accepted/applied historical tasks or redo paid pilots.
-N3 reusable bounded workflow templates is the next proposal; N3–N8 require their
-matching scope. Calendar/cron/timezones, infinite recurrence, automatic Apply,
+At this historical checkpoint N3 was next; it was subsequently approved and
+qualified above. N4–N8 still require matching scope. Calendar/cron/timezones,
+infinite recurrence, automatic Apply,
 distributed workers, user Neovim plugins/LSP and new live-model checks remain later.
 
 ## Completed memory slice — 2026-10-10 UTC
@@ -263,9 +353,8 @@ remain separate work; the completed N1 search slice above supersedes this checkp
 Persistent configurable agents/roles/goals/projects/tasks, protected canonical state,
 bounded daemon work/delegation/context, all five layouts, official embedded Neovim,
 exact human review/Apply, owner boot limits, trusted price estimates, N1 scoped
-memory search and N2 recurring schedules are delivered. Next recommendation: N3
-reusable bounded workflow templates after
-matching scope; preserve current fixture state and do not repeat paid pilots.
+memory search, N2 recurring schedules and N3 reusable workflows are delivered.
+Next recommendation: N4 structured handoffs/blockers after matching scope; preserve current fixture state and do not repeat paid pilots.
 Ponytail reuse-first implementation/review and logical local commits were used.
 
 Previous startup/workflow application source: **`6a4a9f6329`**, following request-ID fix `4a19208b2c`.
@@ -535,14 +624,15 @@ authorize push/publication, outbound communications or unbounded provider spendi
 1. Read AGENTS.md, this status, release matrix, MVP, decisions and testing.
 2. Check Git status/log and preserve changes in the existing checkout.
 3. Activate the pinned environment with `. /workspace/.onboarding/activate.sh`.
-   Final package: `/workspace/.onboarding/qualification/recurring-schedules-n2/package/bin/codex`.
+   Final package: `/workspace/.onboarding/qualification/workflows-n3/package/bin/codex`.
    Evidence root: `/workspace/.onboarding/qualification/`; fixture services are stopped.
-4. N1, N2 and A05 are complete. Read recurring-schedules-n2/{verification,cleanup}.json,
+4. N1, N2, N3 and A05 are complete. Read workflows-n3/{verification,cleanup}.json,
+   recurring-schedules-n2/{verification,cleanup}.json,
    the historical memory-search-20261010/ verification and separate live-gpt/ evidence.
    Preserve all historical tasks/results/series and failures; owned services are
    stopped. Never rerun qualification setup/authorization/crash scripts, replay
    authorization/Apply, redo paid pilots or create automatic inference loops.
-   Next recommendation: N3 reusable workflows after matching scope; use fresh
+   Next recommendation: N4 handoffs/blockers after matching scope; use fresh
    scoped projects/grants for new approved tests.
 5. Update acceptance/status/testing and make logical local commits after results.
    Do not start later roadmap phases without matching user scope, or infer push,
