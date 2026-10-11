@@ -373,6 +373,13 @@ pub enum OrganizationApplicationState {
 #[serde(tag = "type", rename_all = "camelCase", deny_unknown_fields)]
 pub enum OrganizationExecutionMutation {
     #[serde(rename_all = "camelCase")]
+    ApplyReplan {
+        task_id: String,
+        id: String,
+        #[ts(type = "number")]
+        expected_revision: i64,
+    },
+    #[serde(rename_all = "camelCase")]
     Handoff {
         task_id: String,
         #[ts(type = "number")]
@@ -498,7 +505,7 @@ impl OrganizationExecutionMutation {
             | Self::Accept { task_id, .. }
             | Self::RequestChanges { task_id, .. }
             | Self::Apply { task_id, .. } => task_id,
-            Self::Handoff { task_id, .. } => task_id,
+            Self::Handoff { task_id, .. } | Self::ApplyReplan { task_id, .. } => task_id,
         }
     }
 }

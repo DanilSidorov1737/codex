@@ -119,8 +119,12 @@ impl Dashboard {
         };
         let (template, run) = match view {
             OrganizationWorkflowView::Series { series, usage } => {
+                let policy = self.control(&format!("supervision:{}", series.id)).map(|control| {
+                    let OrganizationControlValue::Supervision { goal, work_type, state, .. } = control.value else { return String::new() };
+                    format!("\nGoal supervision: {} · goal revision {} · policy revision {} · {:?}\nPermitted work type: {}\n* reviews policy pause/resume/revoke, including current admissions. The captured scopes and finite pool enforce authority. Goal completion is owner assessment.\n",goal.objective,goal.revision,control.revision,state,work_type)
+                }).unwrap_or_default();
                 return format!(
-                    "Workflow series: {}\n{}\nState: {} · revision {}\nTrigger: {:?}\nNext due: {}\nEnd: {}\nIssued: {} / {} · skipped: {}\nReported tokens: {} / {}\nRequests: {} / {}\n{}\n\np pauses future invocations; current runs use their own controls.\nu resumes future invocations without resetting usage.\nx cancels unfinished series work. No automatic acceptance or Apply.\nCreate finite series with owner workflow-mutate JSON.\n",
+                    "Workflow series: {}\n{}\nState: {} · revision {}\nTrigger: {:?}\nNext due: {}\nEnd: {}\nIssued: {} / {} · skipped: {}\nReported tokens: {} / {}\nRequests: {} / {}\n{}\n{policy}\np pauses future invocations; current runs use their own controls.\nu resumes future invocations without resetting usage.\nx cancels unfinished series work. No automatic acceptance or Apply.\nY creates a finite series or linked-goal policy from a saved template.\n",
                     series.config.label,
                     series.id,
                     series.state.as_str(),

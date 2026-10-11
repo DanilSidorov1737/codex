@@ -376,6 +376,7 @@ impl OrganizationStore {
             OrganizationRecordKind::ControlHistory => {
                 "SELECT data FROM organization_control_history WHERE id=?"
             }
+            OrganizationRecordKind::Notes => "SELECT json_object('type','note','data',json(data)) FROM organization_notes WHERE id=?",
         };
         let data: String = sqlx::query_scalar(query)
             .bind(id)
@@ -425,6 +426,7 @@ impl OrganizationStore {
             OrganizationRecordKind::ControlHistory => {
                 "SELECT data FROM organization_control_history WHERE id > ? ORDER BY id LIMIT ?"
             }
+            OrganizationRecordKind::Notes => "SELECT json_object('type','note','data',json(data)) FROM organization_notes WHERE id > ? ORDER BY id LIMIT ?",
         };
         let rows: Vec<String> = sqlx::query_scalar(query)
             .bind(cursor.unwrap_or_default())
@@ -457,6 +459,7 @@ pub(super) fn record_id(record: &OrganizationRecord) -> &str {
         OrganizationRecord::Preset(record) => &record.id,
         OrganizationRecord::Control(record) => &record.id,
         OrganizationRecord::ControlHistory(record) => &record.id,
+        OrganizationRecord::Note(record)=>&record.id,
     }
 }
 

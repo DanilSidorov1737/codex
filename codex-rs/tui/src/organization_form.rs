@@ -13,6 +13,7 @@ pub(super) enum Kind {
     PresetSave(OrganizationNode),
     PresetClone(Box<OrganizationPreset>),
     GlobalControl(Option<OrganizationControl>),
+    SupervisionControl(OrganizationControl),
     Priority {
         task: OrganizationTask,
         previous: Option<OrganizationControl>,
@@ -27,12 +28,23 @@ pub(super) enum Kind {
     Project,
     Task,
     GoalPlan(OrganizationGoal),
+    Discussion,
+    Knowledge {
+        note_id: String,
+        body_sha256: String,
+        previous: Option<OrganizationControl>,
+    },
     PromoteNote(OrganizationNote),
     Selection {
         project_id: String,
         selection: crate::organization_editor::Selection,
     },
     Handoff {
+        task: OrganizationTask,
+        checkpoint: OrganizationTaskCheckpoint,
+        receivers: Vec<OrganizationNode>,
+    },
+    Replan {
         task: OrganizationTask,
         checkpoint: OrganizationTaskCheckpoint,
         receivers: Vec<OrganizationNode>,
@@ -49,6 +61,7 @@ pub(super) enum Kind {
     },
     WorkflowSeries {
         template: OrganizationWorkflowTemplate,
+        goal: Option<OrganizationGoal>,
     },
     SharedLimits {
         project_id: String,
@@ -85,7 +98,7 @@ mod tests {
 
     #[test]
     fn finite_workflow_form_captures_series_and_needs_exact_source_with_one_run() {
-        let template = OrganizationWorkflowTemplate {
+        let template = OrganizationWorkflowTemplate { discussion:None,
             id: "template".into(),
             project_id: "project".into(),
             label: "A workflow".into(),
@@ -99,13 +112,14 @@ mod tests {
             }],
         };
         let records = vec![OrganizationRecord::Task(task())];
-        let mut form = Form::new(Kind::WorkflowSeries { template }, &records, None, "model");
+        let mut form = Form::new(Kind::WorkflowSeries { template, goal: None }, &records, None, "model");
         set(&mut form, 0, "result.txt");
         set(&mut form, 2, "result.txt");
         let Command::SeriesPreview {
             request,
             config,
             source_task,
+            ..
         } = form.command().unwrap()
         else {
             panic!("series must only preview")
@@ -127,6 +141,21 @@ mod tests {
         assert_eq!(source_task.as_deref(), Some("original-task"));
         set(&mut form, 18, "0");
         assert!(form.command().is_err(), "past first run cannot confirm");
+    }
+
+    #[test]
+    fn supervision_form_pins_goal_work_type_and_native_control_revision() {
+        let goal = OrganizationGoal { id: "goal".into(), parent_id: None, objective: "Owner evidence".into(), criteria: vec!["Accepted result".into()], revision: 7 };
+        let template = OrganizationWorkflowTemplate { discussion:None, id: "template".into(), project_id: "project".into(), label: "Finite policy".into(), revision: 3, items: vec![OrganizationPlanItem { key: "step".into(), owner_id: "agent".into(), instructions: "Write evidence".into(), criteria: vec!["Check passes".into()], prerequisites: vec![] }] };
+        let mut form = Form::new(Kind::WorkflowSeries { template, goal: Some(goal.clone()) }, &[], None, "model");
+        set(&mut form,0,"input.txt"); set(&mut form,2,"report.txt"); form.fields[26].choice=1;
+        let Command::SeriesPreview { supervision: Some((captured, work_type)), .. } = form.command().unwrap() else { panic!("policy preview") };
+        assert_eq!(*captured,goal); assert_eq!(work_type,"bounded goal work");
+        set(&mut form,27,""); assert!(form.command().is_err());
+        let policy = OrganizationControl { id:"supervision:series".into(), revision:9, value:OrganizationControlValue::Supervision { series_id:"series".into(), goal:Box::new(goal), work_type:"Evidence".into(), state:OrganizationWorkflowState::Active } };
+        let mut control=Form::new(Kind::SupervisionControl(policy),&[],None,"model");
+        control.fields[0].choice=2;
+        assert!(matches!(control.command().unwrap(),Command::Workflow(OrganizationWorkflowMutation::ControlSupervision {id, expected_revision:9,action:OrganizationWorkflowControl::Cancel}) if id=="series"));
     }
 
     #[test]
@@ -423,7 +452,7 @@ mod tests {
                 prerequisites: vec!["first".into()],
             },
         ];
-        let template = OrganizationWorkflowTemplate {
+        let template = OrganizationWorkflowTemplate { discussion:None,
             id: "template".into(),
             project_id: "project".into(),
             label: "Custom flow".into(),
@@ -733,7 +762,7 @@ mod tests {
             panic!("expected template")
         };
         assert_eq!(id, again);
-        let template = OrganizationWorkflowTemplate {
+        let template = OrganizationWorkflowTemplate { discussion:None,
             id,
             project_id,
             label: "Research café".into(),
@@ -1040,6 +1069,26 @@ impl Form {
             .or_else(|| project.and_then(|p| p.goal_id.as_deref()));
         let owner = project.and_then(|p| p.owner_id.as_deref());
         let mut fields = match &kind {
+            Kind::Knowledge { .. }=>vec![
+                Field::select("Knowledge state",vec![("true".into(),"Retire from fresh retrieval; retain history".into()),("false".into(),"Restore original visibility; superseded notes stay superseded".into())],None),
+                Field::text("Owner review reason","Record stale, conflicting or duplicate evidence; corrections use O promotion; no new visibility is granted",""),
+            ],
+            Kind::Discussion => {
+                let mut fields=vec![
+                    Field::select("Project",records.iter().filter_map(|r|match r {OrganizationRecord::Project(p)=>Some((p.id.clone(),p.name.clone())),_=>None}).collect(),project.map(|p|p.id.as_str())),
+                    Field::text("Discussion name","Saving creates a finite template; scopes and execution need a separate exact review",""),
+                    Field::text("Topic","Up to 2048 bytes; conclusions preserve dissent, evidence and proposed follow-ups",""),
+                    Field::text("Rounds","1–3; later rounds wait for prior accepted contributions","1"),
+                    Field::select("Conclusions author",agents.clone(),owner),
+                ];
+                for index in 0..8 {fields.push(Field::select(format!("Participant {}",index+1),optional(agents.clone()),if index==0 {owner} else {None}));}
+                fields
+            }
+            Kind::SupervisionControl(_) => vec![Field::select("Policy action", vec![
+                ("pause".into(), "Pause admissions and future invocations".into()),
+                ("resume".into(), "Resume original finite authority".into()),
+                ("cancel".into(), "Revoke; preserve results and usage".into()),
+            ], None)],
             Kind::GlobalControl(previous) => {
                 let (paused, limits) = match previous.as_ref().map(|c| &c.value) {
                     Some(OrganizationControlValue::Global { paused, limits }) => (*paused, limits.as_ref()),
@@ -1079,7 +1128,7 @@ impl Form {
             Kind::PromoteNote(note) => vec![Field::select("Visibility",optional(records.iter().filter_map(|record|match record {OrganizationRecord::Node(node) if node.kind==OrganizationNodeKind::Group && node.enabled=>Some((node.id.clone(),node.label.clone())),_=>None}).collect()),note.group_id.as_deref()),Field::text("Owner-reviewed knowledge", "Blank team selects project visibility; source/task/attempt provenance is retained", &note.body)],
             Kind::Handoff {
                 task, receivers, ..
-            } => vec![
+            } | Kind::Replan { task, receivers, .. } => vec![
                 Field::select(
                     "Receiver",
                     receivers
@@ -1202,7 +1251,7 @@ impl Form {
                 Field::text("Shared model requests", "Lifetime admitted requests; 1–100000, never reset by controls", &previous.as_ref().map(|limit|limit.max_model_requests).unwrap_or(20).to_string()),
                 Field::text("Concurrent executions", "1–4; also constrained by the daemon and each grant", &previous.as_ref().map(|limit|limit.max_active).unwrap_or(2).to_string()),
             ],
-            Kind::WorkflowRun { template } | Kind::WorkflowSeries { template } => template.items.iter().flat_map(|item| {
+            Kind::WorkflowRun { template } | Kind::WorkflowSeries { template, .. } => template.items.iter().flat_map(|item| {
                 let model=records.iter().find_map(|record|match record {OrganizationRecord::Node(node) if node.id==item.owner_id=>node.model.as_deref(),_=>None}).unwrap_or(model);
                 let mut fields=Self::scope_fields(model);
                 for field in &mut fields {field.label=format!("{} · {}",item.key,field.label);}
@@ -1223,7 +1272,7 @@ impl Form {
                 Self::scope_fields(model)
             }
         };
-        if let Kind::WorkflowSeries { template } = &kind {
+        if let Kind::WorkflowSeries { template, goal } = &kind {
             let now = chrono::Utc::now().timestamp();
             let sources = records
                 .iter()
@@ -1289,7 +1338,20 @@ impl Form {
                     None,
                 ),
                 Field::select("Source task", optional(sources), None),
+                Field::select("Goal supervision policy", optional(goal.iter().map(|g| (g.id.clone(), g.objective.clone())).collect()), None),
+                Field::text("Permitted work type", "Owner label; exact templates, models, paths and finite budgets enforce authority", "bounded goal work"),
             ]);
+        }
+        if matches!(&kind,Kind::Replan { .. }) {
+            fields.push(Field::text("Why replan", "Saving starts no work; separate exact review applies the delta under original grants", ""));
+        }
+        if let Kind::WorkflowRun {template} | Kind::WorkflowSeries {template,..}=&kind {
+            if template.discussion.is_some() {
+                for (index,item) in template.items.iter().enumerate() {
+                    fields[index*14].input.set_text_clearing_elements(&item.prerequisites.iter().map(|key|format!("discussion/{key}.json")).collect::<Vec<_>>().join("\n"));
+                    fields[index*14+2].input.set_text_clearing_elements(&format!("discussion/{}.json",item.key));
+                }
+            }
         }
         if matches!(&kind, Kind::Schedule(_)) {
             let now = chrono::Utc::now().timestamp();
@@ -1378,6 +1440,7 @@ impl Form {
             Kind::PresetSave(_) => "Save organization preset · definition subtree",
             Kind::PresetClone(_) => "Clone organization preset · fresh identities",
             Kind::GlobalControl(_) => "Organization pause / lifetime ceilings",
+            Kind::SupervisionControl(_) => "Goal supervision policy · pause / resume / revoke",
             Kind::Priority { .. } => "Task priority / fair dispatch",
             Kind::ProjectControl { .. } => "Project pause / complete / archive / reopen",
             Kind::Goal => "New goal",
@@ -1385,9 +1448,12 @@ impl Form {
             Kind::Project => "New project",
             Kind::Task => "New task",
             Kind::GoalPlan(_) => "Propose goal planner · starts no execution",
+            Kind::Discussion => "Draft finite agent discussion · saving starts no execution",
+            Kind::Knowledge { .. }=>"Review knowledge retirement / restoration",
             Kind::PromoteNote(_) => "Promote / correct knowledge · explicit owner review",
             Kind::Selection { .. } => "Propose task from actual Neovim selection",
             Kind::Handoff { .. } => "Resolve blocker / hand off remaining work",
+            Kind::Replan { .. } => "Propose versioned checkpoint replan · starts no execution",
             Kind::Authorize(_) => "Authorize task",
             Kind::Schedule(_) => "Create recurring schedule",
             Kind::WorkflowSave { .. } => "Save workflow template",
@@ -1415,7 +1481,7 @@ impl Form {
             scope.max_model_requests.to_string(),
             scope.max_attempts.to_string(),
         ];
-        let groups = if let Kind::WorkflowRun { template } | Kind::WorkflowSeries { template } =
+        let groups = if let Kind::WorkflowRun { template } | Kind::WorkflowSeries { template, .. } =
             &self.kind
         {
             template.items.len()
@@ -1625,6 +1691,19 @@ impl Form {
             Ok(lines(i))
         };
         Ok(match &self.kind {
+            Kind::Knowledge {note_id,body_sha256,previous}=>Command::Definition(OrganizationMutation::SetControl {expected_revision:previous.as_ref().map(|c|c.revision),value:OrganizationControlValue::Knowledge {note_id:note_id.clone(),body_sha256:body_sha256.clone(),retired:required(0)?.parse()?,reason:required(1)?}}),
+            Kind::Discussion => {
+                let discussion=OrganizationDiscussion { topic:required(2)?,rounds:required(3)?.parse()?,conclusion_owner_id:required(4)?,participants:(5..13).filter_map(optional).collect() };
+                discussion.plan_items().map_err(anyhow::Error::msg)?;
+                Command::Workflow(OrganizationWorkflowMutation::PutDiscussion {id:self.project_key.clone(),expected_revision:None,project_id:required(0)?,label:required(1)?,discussion})
+            }
+            Kind::SupervisionControl(policy) => {
+                let OrganizationControlValue::Supervision { series_id, .. } = &policy.value else { anyhow::bail!("Select a supervision policy") };
+                Command::Workflow(OrganizationWorkflowMutation::ControlSupervision {
+                    id: series_id.clone(), expected_revision: policy.revision,
+                    action: match required(0)?.as_str() { "pause" => OrganizationWorkflowControl::Pause, "resume" => OrganizationWorkflowControl::Resume, "cancel" => OrganizationWorkflowControl::Cancel, _ => anyhow::bail!("Invalid policy action") },
+                })
+            }
             Kind::GlobalControl(previous) => {
                 Command::Definition(OrganizationMutation::SetControl {
                     expected_revision: previous.as_ref().map(|c| c.revision),
@@ -1719,7 +1798,7 @@ impl Form {
                 task,
                 checkpoint,
                 receivers,
-            } => {
+            } | Kind::Replan { task, checkpoint, receivers } => {
                 let owner_id = required(0)?;
                 let receiver = receivers
                     .iter()
@@ -1727,14 +1806,19 @@ impl Form {
                     .ok_or_else(|| anyhow::anyhow!("Captured receiver missing"))?;
                 let instructions = required(1)?;
                 anyhow::ensure!(instructions.len() <= 4096, "Resolution exceeds 4096 bytes");
-                Command::Execution(OrganizationExecutionMutation::Handoff {
+                let item=OrganizationReplanItem {
                     task_id: task.id.clone(),
                     expected_revision: task.revision,
                     checkpoint_id: checkpoint.id.clone(),
                     owner_id,
                     expected_owner_revision: receiver.revision,
                     instructions,
-                })
+                };
+                if matches!(&self.kind,Kind::Replan { .. }) {
+                    Command::Definition(OrganizationMutation::SetControl { expected_revision:None,value:OrganizationControlValue::Replan {
+                        id: self.project_key.clone(), project_id:task.project_id.clone(),reason:required(2)?,items:vec![item],applied_handoff_ids:vec![],
+                    } })
+                } else { Command::Execution(item.handoff()) }
             }
             Kind::Apply { task, result } => {
                 anyhow::ensure!(result.accepted, "Result must be accepted before Apply");
@@ -1881,7 +1965,7 @@ impl Form {
                 max_model_requests: required(1)?.parse()?,
                 max_active: required(2)?.parse()?,
             }),
-            Kind::WorkflowRun { template } | Kind::WorkflowSeries { template } => {
+            Kind::WorkflowRun { template } | Kind::WorkflowSeries { template, .. } => {
                 let request = OrganizationWorkflowPreviewRequest {
                     shared_limits: {
                         let start = template.items.len() * 14;
@@ -1937,6 +2021,10 @@ impl Form {
                         request,
                         config,
                         source_task,
+                        supervision: if !value(start + 9).is_empty() {
+                            let Kind::WorkflowSeries { goal: Some(goal), .. } = &self.kind else { anyhow::bail!("Linked goal is unavailable") };
+                            Some((Box::new(goal.clone()), required(start + 10)?))
+                        } else { None },
                     }
                 } else {
                     Command::WorkflowPreview(request)

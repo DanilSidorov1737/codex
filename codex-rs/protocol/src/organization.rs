@@ -126,9 +126,58 @@ pub struct OrganizationProjectEvidence {
     pub explanation: String,
 }
 
+/// A reviewed replacement for checkpointed unfinished work. Execution reuses
+/// the native handoff transaction, original grant, checkpoints and ledgers.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct OrganizationReplanItem {
+    pub task_id: String,
+    #[ts(type = "number")]
+    pub expected_revision: i64,
+    pub checkpoint_id: String,
+    pub owner_id: String,
+    #[ts(type = "number")]
+    pub expected_owner_revision: i64,
+    pub instructions: String,
+}
+
+impl OrganizationReplanItem {
+    pub fn handoff(&self) -> crate::organization_execution::OrganizationExecutionMutation {
+        crate::organization_execution::OrganizationExecutionMutation::Handoff {
+            task_id: self.task_id.clone(), expected_revision: self.expected_revision,
+            checkpoint_id: self.checkpoint_id.clone(), owner_id: self.owner_id.clone(),
+            expected_owner_revision: self.expected_owner_revision, instructions: self.instructions.clone(),
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
 #[serde(tag = "type", rename_all = "camelCase", deny_unknown_fields)]
 pub enum OrganizationControlValue {
+    #[serde(rename_all = "camelCase")]
+    Knowledge {
+        note_id: String,
+        body_sha256: String,
+        retired: bool,
+        reason: String,
+    },
+    #[serde(rename_all = "camelCase")]
+    Replan {
+        id: String,
+        project_id: String,
+        reason: String,
+        items: Vec<OrganizationReplanItem>,
+        applied_handoff_ids: Vec<String>,
+    },
+    /// Binds a finite, immutable series to an exact owner-reviewed goal. Models,
+    /// projects, templates, scopes and ceilings remain in that captured series.
+    #[serde(rename_all = "camelCase")]
+    Supervision {
+        series_id: String,
+        goal: Box<OrganizationGoal>,
+        work_type: String,
+        state: crate::organization_workflow::OrganizationWorkflowState,
+    },
     #[serde(rename_all = "camelCase")]
     Global {
         paused: bool,
@@ -180,6 +229,7 @@ pub enum OrganizationRecordKind {
     Presets,
     Controls,
     ControlHistory,
+    Notes,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
@@ -194,6 +244,7 @@ pub enum OrganizationRecord {
     Preset(Box<OrganizationPreset>),
     Control(OrganizationControl),
     ControlHistory(OrganizationControlHistory),
+    Note(crate::organization_coordination::OrganizationNote),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]

@@ -51,6 +51,16 @@ const ACTIONS: &[Action] = &[
         context: "owner proposal",
     },
     Action {
+        title: "Goal supervision policy pause / resume / revoke",
+        shortcut: "*",
+        code: KeyCode::Char('*'),
+        context: "select finite goal policy or its series; exact confirmation",
+    },
+    Action { title:"Propose checkpoint replan",shortcut:"&",code:KeyCode::Char('&'),context:"select blocked task; original grants and accounting" },
+    Action { title:"Apply exact replan proposal",shortcut:"%",code:KeyCode::Char('%'),context:"select pending owner control; atomic delta confirmation" },
+    Action {title:"Draft finite agent discussion",shortcut:"+",code:KeyCode::Char('+'),context:"arbitrary participants; contributions, conclusions, dissent and proposals"},
+    Action {title:"Review knowledge retirement / restoration",shortcut:"-",code:KeyCode::Char('-'),context:"search active notes or select a knowledge control; preserve scope and history"},
+    Action {
         title: "Organization lifetime ceilings",
         shortcut: "F10",
         code: KeyCode::F(10),
@@ -249,7 +259,7 @@ const ACTIONS: &[Action] = &[
         context: "select project, agent or run",
     },
     Action {
-        title: "Organization evidence summary",
+        title: "Organization evidence summary / agent and model scorecards",
         shortcut: "Z",
         code: KeyCode::Char('Z'),
         context: "read-only",

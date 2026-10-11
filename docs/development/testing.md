@@ -2488,3 +2488,21 @@ drivers passed. Twenty-six PNG/text pairs form a CRC-checked 52-entry archive:
 Only inactive rebuildable target artifacts were removed for disk headroom, with
 hash/size receipts; qualified packages/homes/results/grants/evidence were retained.
 
+## Reviewed autonomy implementation checks
+
+Activated the pinned environment; from codex-rs ran offline locked
+`cargo test -p codex-state --lib --profile dev-small -j4` (310),
+`cargo test -p codex-protocol --lib --profile dev-small -j4` (373), and
+`cargo test -p codex-tui --lib organization --profile dev-small -j4` (63),
+all exit 0 with no failures/ignored selected tests. Logs in
+`/workspace/.onboarding/qualification/operations-batch/`:
+`autonomy-review-full-state.log`, `autonomy-review-full-protocol.log` and
+`autonomy-review-tui.log`. State checks cover finite captured goal policies,
+stale-goal rollback, policy pause/revoke/late accounting, atomic stale replans,
+accepted-work preservation, unknown usage, accepted scoped discussion inputs,
+knowledge hash/revision/visibility/history, migration-15 downgrade refusal and
+captured whole-snapshot scorecards after handoffs and missing historical fields.
+The first discussion test failed because its fixture retained stopped attempt
+capacity; explicit release now matches production, and the complete rerun passes.
+No paid calls ran. These are implementation checks; fresh physical qualification,
+contract generation and production Clippy remain pending.

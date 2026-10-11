@@ -76,6 +76,83 @@ fn content(blocked: bool) -> OrganizationCheckpointContent {
     }
 }
 
+fn replan_item(mutation:OrganizationExecutionMutation)->OrganizationReplanItem {
+    let OrganizationExecutionMutation::Handoff { task_id,expected_revision,checkpoint_id,owner_id,expected_owner_revision,instructions }=mutation else {panic!("handoff")};
+    OrganizationReplanItem {task_id,expected_revision,checkpoint_id,owner_id,expected_owner_revision,instructions}
+}
+
+#[tokio::test]
+async fn atomic_replan_rolls_back_stale_delta_preserves_accepted_work_and_original_ledgers() -> Result<()> {
+    let home=Fixture::new();let store=OrganizationStore::open(&home.0).await?;
+    let (worker,first,receiver)=fixture(&store,3,4).await?;
+    store.admit_model_request(&first.id,&worker,1001).await?;store.checkpoint_usage(&first.id,&worker,1,10).await?;
+    store.record_checkpoint(&first.id,&worker,"checkpoint",content(true),files(),1001).await?;store.release_attempt_capacity(&first.id,&worker).await?;
+    let first_before=store.execution_view(&first.task_id).await?;
+    let project=first_before.task.project_id.clone();let source_owner=first_before.task.owner_id.clone();
+    let accepted=execution_task(&store,&source_owner,&project).await?;
+    store.authorize_task(&accepted.id,accepted.revision,execution_scope(),1000).await?;
+    let accepted_attempt=store.claim_task(&worker,&Uuid::now_v7().to_string(),1001,2).await?.unwrap();
+    let result=store.record_result(&accepted_attempt.id,&worker,vec![OrganizationArtifactEvidence {path:"report.txt".into(),sha256:"a".repeat(64),bytes:1}],vec![OrganizationCheckEvidence {argv:execution_scope().checks[0].clone(),exit_code:Some(0),output:"state-only check evidence".into(),truncated:false}],1001).await?;
+    let v=store.execution_view(&accepted.id).await?;store.accept_result(&accepted.id,v.task.revision,&result.digest).await?;
+    store.release_attempt_capacity(&accepted_attempt.id,&worker).await?;
+    let accepted_before=store.execution_view(&accepted.id).await?;
+    let second_receiver=node_from(store.mutate_owner(node_mutation("Second receiver",None,OrganizationNodeKind::Agent),None).await?);
+    let second_task=execution_task(&store,&source_owner,&project).await?;let mut scope=execution_scope();scope.max_attempts=3;scope.max_model_requests=4;scope.delegates=vec![second_receiver.id.clone()];
+    store.authorize_task(&second_task.id,second_task.revision,scope,1000).await?;
+    let second=store.claim_task(&worker,&Uuid::now_v7().to_string(),1001,2).await?.unwrap();
+    store.bind_attempt_runtime(&second.id,&worker,&OrganizationRuntimeBinding {workspace:"/tmp/state-only-checkpoint-fixture".into(),turn_id:None,artifact_bases:first_before.checkpoints[0].artifact_bases.clone()},1001).await?;
+    store.admit_model_request(&second.id,&worker,1001).await?;store.checkpoint_usage(&second.id,&worker,1,12).await?;
+    store.record_checkpoint(&second.id,&worker,"checkpoint",content(true),files(),1001).await?;store.release_attempt_capacity(&second.id,&worker).await?;
+    let second_before=store.execution_view(&second.task_id).await?;
+    let mut items=vec![replan_item(request(&store,&first.task_id,&receiver).await?),replan_item(request(&store,&second.task_id,&second_receiver).await?)];
+    let id=Uuid::now_v7().to_string();let value=OrganizationControlValue::Replan {id:id.clone(),project_id:project,reason:"Owner replaces two blocked assignments without changing scope or budget".into(),items:items.clone(),applied_handoff_ids:vec![]};
+    store.mutate_owner(OrganizationMutation::SetControl {expected_revision:None,value:value.clone()},None).await?;
+    let mut edit=node_mutation("Changed second receiver",None,OrganizationNodeKind::Agent);
+    if let OrganizationMutation::PutNode {id,expected_revision,..}=&mut edit {*id=Some(second_receiver.id.clone());*expected_revision=Some(1);}
+    store.mutate_owner(edit,None).await?;
+    assert!(store.apply_replan(&first.task_id,&id,1,1002).await.is_err());
+    assert_eq!(store.execution_view(&first.task_id).await?,first_before,"first handoff must roll back when the second delta fails");
+    assert_eq!(store.execution_view(&second.task_id).await?,second_before);
+    items[1].expected_owner_revision=2;
+    let mut corrected=value;if let OrganizationControlValue::Replan {items:current,..}=&mut corrected {*current=items;}
+    store.mutate_owner(OrganizationMutation::SetControl {expected_revision:Some(1),value:corrected},None).await?;
+    assert!(store.apply_replan(&first.task_id,&id,1,1002).await.is_err());
+    let handoffs=store.apply_replan(&first.task_id,&id,2,1002).await?;assert_eq!(handoffs.len(),2);
+    for (task,before,tokens) in [(&first.task_id,&first_before,10),(&second.task_id,&second_before,12)] {
+        let after=store.execution_view(task).await?;assert_eq!(after.task.state,"queued");assert_eq!(after.authorization.as_ref().unwrap().id,before.authorization.as_ref().unwrap().id);
+        assert_eq!((after.authorization_model_requests,after.authorization_used_tokens),(1,tokens));assert_eq!(after.checkpoints,before.checkpoints);assert_eq!(after.handoffs.len(),1);
+    }
+    assert_eq!(store.execution_view(&accepted.id).await?,accepted_before);
+    let report=store.operational_report(None,None,1,1002).await?;
+    let cards=report.scorecards.unwrap();assert!(!cards.truncated);assert_eq!(cards.entries.len(),1);
+    let card=&cards.entries[0];assert_eq!(card.owner_id.as_deref(),Some(source_owner.as_str()),"scores use captured owners, not the reassigned current tasks");
+    assert_eq!((card.attempts,card.accepted_results,card.blocked_attempts,card.checks_passed,card.model_requests,card.reported_tokens),(3,1,2,1,2,22),"whole-project scorecards are independent of the one-task page and do not multiply usage by checks");
+    assert!(card.provider.is_none(),"missing recorded provider remains unavailable");
+    assert!(store.apply_replan(&first.task_id,&id,3,1003).await.is_err(),"applied replan cannot replay");
+    store.close().await;let store=OrganizationStore::open(&home.0).await?;
+    let (history,_)=store.list_definitions(OrganizationRecordKind::ControlHistory,None,200).await?;assert_eq!(history.len(),3);
+    assert_eq!(store.operational_report(None,None,200,1003).await?.global_usage.unwrap().reported_tokens,22);
+    Ok(())
+}
+
+#[tokio::test]
+async fn replan_proposal_grants_no_authority_and_unknown_usage_blocks_application() -> Result<()> {
+    let home=Fixture::new();let store=OrganizationStore::open(&home.0).await?;
+    let (worker,source,receiver)=fixture(&store,3,4).await?;
+    store.admit_model_request(&source.id,&worker,1001).await?;
+    store.record_checkpoint(&source.id,&worker,"checkpoint",content(true),files(),1001).await?;store.release_attempt_capacity(&source.id,&worker).await?;
+    let before=store.execution_view(&source.task_id).await?;
+    let id=Uuid::now_v7().to_string();let item=replan_item(request(&store,&source.task_id,&receiver).await?);
+    store.mutate_owner(OrganizationMutation::SetControl {expected_revision:None,value:OrganizationControlValue::Replan {id:id.clone(),project_id:before.task.project_id.clone(),reason:"Review blocked replacement".into(),items:vec![item],applied_handoff_ids:vec![]}},None).await?;
+    assert_eq!(store.execution_view(&source.task_id).await?,before);
+    assert!(store.apply_replan(&source.task_id,&id,1,1002).await.is_err());
+    assert_eq!(store.execution_view(&source.task_id).await?,before);
+    store.checkpoint_usage(&source.id,&worker,1,10).await?;
+    assert_eq!(store.apply_replan(&source.task_id,&id,1,1002).await?.len(),1);
+    assert_eq!(store.execution_view(&source.task_id).await?.authorization_used_tokens,10);
+    Ok(())
+}
+
 async fn request(
     store: &OrganizationStore,
     task: &str,

@@ -18,6 +18,43 @@ pub struct OrganizationGlobalUsage {
     pub unresolved_requests: i64,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct OrganizationScorecard {
+    pub project_id: String,
+    pub workflow_run_id: Option<String>,
+    pub owner_id: Option<String>,
+    pub provider: Option<OrganizationProviderEvidence>,
+    pub model: Option<String>,
+    #[ts(type = "number")]
+    pub attempts: i64,
+    #[ts(type = "number")]
+    pub accepted_results: i64,
+    #[ts(type = "number")]
+    pub failed_attempts: i64,
+    #[ts(type = "number")]
+    pub blocked_attempts: i64,
+    #[ts(type = "number")]
+    pub uncertain_attempts: i64,
+    #[ts(type = "number")]
+    pub checks_passed: i64,
+    #[ts(type = "number")]
+    pub checks_failed: i64,
+    #[ts(type = "number")]
+    pub reported_tokens: i64,
+    #[ts(type = "number")]
+    pub model_requests: i64,
+    #[ts(type = "number")]
+    pub reported_model_requests: i64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct OrganizationScorecards {
+    pub entries: Vec<OrganizationScorecard>,
+    pub truncated: bool,
+}
+
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct OrganizationReportTotals {
@@ -140,6 +177,10 @@ pub struct OrganizationReport {
     /// Whole-store root ledgers, independent of the selected project/task page.
     #[serde(default)]
     pub global_usage: Option<OrganizationGlobalUsage>,
+    /// Whole selected store/project, independent of the task page. Missing from
+    /// older daemons means unavailable, not a zero or guessed quality grade.
+    #[serde(default)]
+    pub scorecards: Option<OrganizationScorecards>,
     pub tasks: Vec<OrganizationTaskReport>,
     /// At most 2,000 grouped observations for this task page.
     pub usage: Vec<OrganizationUsageReport>,

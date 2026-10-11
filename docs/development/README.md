@@ -1,6 +1,7 @@
 # Codex CLI fork development
 
-Current approved work: [next twenty tasks](next-twenty.md); read its checkpoint
+Current approved work: [next twenty tasks](next-twenty.md);
+finite policy/replan/discussion/knowledge contracts: [reviewed autonomy](reviewed-autonomy.md); read its checkpoint
 and current status. The completed autonomy batch below is the protected baseline.
 
 Latest delivery: **all twelve approved autonomy/usability items complete** on

@@ -106,3 +106,11 @@ paused; owned services are stopped. Preserve both accepted unapplied results and
 the cancelled zero-usage ceiling probe. All 26 native PNG/text pairs are archived
 under `/workspace/artifacts/cli-owner-controls/`. Next work is tasks 10–15;
 their implementation is in progress, with no further item qualified yet.
+
+Tasks 10–15 are implemented with native qualification pending. All 310 state,
+373 protocol and 63 targeted TUI/official-Neovim checks pass. The corrected
+discussion fixture releases completed attempt capacity, matching the real host.
+The new finite policies, atomic checkpoint replans, typed discussions, scoped
+knowledge retirement/history and captured scorecards are described in
+[reviewed autonomy](reviewed-autonomy.md). Generated contracts, production
+Clippy/package and fresh physical checks follow; tasks 16–20 remain in progress.

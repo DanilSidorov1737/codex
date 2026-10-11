@@ -278,7 +278,7 @@ impl OrganizationStore {
     pub async fn materialize_workflow_series(&self, now: i64) -> Result<u32> {
         ensure!(now >= 0, "invalid workflow series time");
         let mut tx = self.pool.begin_with("BEGIN IMMEDIATE").await?;
-        let rows: Vec<String>=sqlx::query_scalar("SELECT s.data FROM organization_workflow_series s WHERE s.state='active' AND s.next_run_at<=? AND NOT EXISTS(SELECT 1 FROM organization_controls c WHERE (c.id='global' AND json_extract(c.data,'$.data.value.paused')=1) OR (c.id='project:'||s.project_id AND json_extract(c.data,'$.data.value.state')<>'active')) ORDER BY s.next_run_at,s.id LIMIT 32").bind(now).fetch_all(&mut *tx).await?;
+        let rows: Vec<String>=sqlx::query_scalar("SELECT s.data FROM organization_workflow_series s WHERE s.state='active' AND s.next_run_at<=? AND NOT EXISTS(SELECT 1 FROM organization_controls c WHERE (c.id='global' AND json_extract(c.data,'$.data.value.paused')=1) OR (c.id='project:'||s.project_id AND json_extract(c.data,'$.data.value.state')<>'active') OR (c.id='supervision:'||s.id AND json_extract(c.data,'$.data.value.state')<>'active')) ORDER BY s.next_run_at,s.id LIMIT 32").bind(now).fetch_all(&mut *tx).await?;
         let mut issued = 0;
         for data in rows {
             let mut series: OrganizationWorkflowSeries = serde_json::from_str(&data)?;
@@ -297,7 +297,8 @@ impl OrganizationStore {
                 series.state = OrganizationScheduleState::Completed;
                 series.next_run_at = None;
                 series.reason = Some("finite series time, run or aggregate ceiling reached".into());
-            } else if pinned(&mut tx, &series.preview).await.is_err()
+            } else if super::controls::check_supervision(&mut tx, &series.id).await.is_err()
+                || pinned(&mut tx, &series.preview).await.is_err()
                 || unsafe_usage(&mut tx, &series.id).await?
             {
                 series.state = OrganizationScheduleState::Blocked;

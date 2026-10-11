@@ -416,6 +416,7 @@ pub(super) async fn promote_note(
     body: String,
 ) -> Result<()> {
     text(&body, 4096)?;
+    ensure!(!matches!(super::controls::read(tx,&format!("knowledge:{source_id}")).await?.map(|c|c.value),Some(codex_protocol::organization::OrganizationControlValue::Knowledge {retired:true,..})),"source note retired; inspect its history before restoring or correcting it");
     let (data, superseded): (String, Option<String>) =
         sqlx::query_as("SELECT data,superseded_by FROM organization_notes WHERE id=?")
             .bind(source_id)
@@ -505,7 +506,7 @@ async fn search_notes(
     } else {
         vec![]
     };
-    let data: Vec<String> = sqlx::query_scalar("SELECT data FROM organization_notes WHERE project_id=? AND scope=? AND superseded_by IS NULL AND (?='project' OR (?='agent' AND author_id=?) OR (?='team' AND group_id IN (SELECT value FROM json_each(?)))) ORDER BY id DESC LIMIT 129")
+    let data: Vec<String> = sqlx::query_scalar("SELECT data FROM organization_notes WHERE project_id=? AND scope=? AND superseded_by IS NULL AND NOT EXISTS(SELECT 1 FROM organization_controls c WHERE c.id='knowledge:'||organization_notes.id AND json_extract(c.data,'$.data.value.retired')=1) AND (?='project' OR (?='agent' AND author_id=?) OR (?='team' AND group_id IN (SELECT value FROM json_each(?)))) ORDER BY id DESC LIMIT 129")
         .bind(project_id).bind(note_scope(scope)).bind(note_scope(scope)).bind(note_scope(scope)).bind(author_id).bind(note_scope(scope)).bind(serde_json::to_string(&groups)?)
         .fetch_all(&mut **tx).await?;
     ensure!(data.len() <= 128, "memory storage ceiling exceeded");

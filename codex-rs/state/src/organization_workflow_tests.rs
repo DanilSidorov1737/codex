@@ -76,6 +76,121 @@ fn series_config(runs: u32) -> codex_protocol::organization_schedule::Organizati
 }
 
 #[tokio::test]
+async fn finite_discussion_waits_for_review_and_imports_only_permitted_contributions() -> Result<()> {
+    let home=Fixture::new();let store=OrganizationStore::open(&home.0).await?;
+    let ordinary=fixture(&store).await?;let other=node_from(store.mutate_owner(node_mutation("Arbitrary challenger",None,OrganizationNodeKind::Agent),None).await?);
+    let discussion=OrganizationDiscussion {topic:"Review the cited plan; preserve disagreement".into(),participants:vec![ordinary.items[0].owner_id.clone(),other.id.clone()],rounds:2,conclusion_owner_id:other.id};
+    let OrganizationWorkflowView::Template {template}=store.mutate_workflow(OrganizationWorkflowMutation::PutDiscussion {id:Uuid::now_v7().to_string(),expected_revision:None,project_id:ordinary.project_id,label:"Finite review café".into(),discussion:discussion.clone()},1000).await? else {panic!("discussion")};
+    assert_eq!(template.discussion.as_ref(),Some(&discussion));assert_eq!(template.items.len(),5);assert_eq!(template.items[2].prerequisites,vec!["discussion-r1-p1","discussion-r1-p2"]);
+    let mut r=request(&template);
+    for (index,step) in r.scopes.iter_mut().enumerate() {
+        step.scope.artifacts=vec![format!("discussion/{}.json",step.key)];step.scope.immutable_files.clear();step.scope.checks.clear();
+        step.scope.input_files=if index>=2 {vec!["discussion/discussion-r1-p1.json".into()]} else {vec![]};
+    }
+    let preview=store.preview_workflow(r).await?;
+    let OrganizationWorkflowView::Run {run,..}=store.mutate_workflow(OrganizationWorkflowMutation::Run {preview:Box::new(preview)},1000).await? else {panic!("run")};
+    let worker=Uuid::now_v7().to_string();
+    for _ in 0..2 {
+        let attempt=store.claim_task(&worker,&Uuid::now_v7().to_string(),1001,2).await?.unwrap();
+        let v=store.execution_view(&attempt.task_id).await?;assert!(v.task.prerequisites.is_empty());
+        let path=v.authorization.unwrap().scope.artifacts[0].clone();
+        let result=store.record_result(&attempt.id,&worker,vec![OrganizationArtifactEvidence {path,sha256:"a".repeat(64),bytes:1}],vec![],1001).await?;
+        let v=store.execution_view(&attempt.task_id).await?;
+        if attempt.task_id==run.task_ids["discussion-r1-p1"] {
+            assert!(store.workflow_inputs(&run.task_ids["discussion-r2-p1"]).await.is_err(),"unaccepted contributions cannot transfer");
+        }
+        store.accept_result(&attempt.task_id,v.task.revision,&result.digest).await?;
+        store.release_attempt_capacity(&attempt.id,&worker).await?;
+    }
+    let inputs=store.workflow_inputs(&run.task_ids["discussion-r2-p1"]).await?;
+    assert_eq!(inputs.len(),1);assert_eq!(inputs[0].0.artifacts[0].path,"discussion/discussion-r1-p1.json");
+    assert!(store.execution_view(&run.task_ids["discussion-conclusion"]).await?.task.prerequisites.iter().all(|id|id!=&run.task_ids["discussion-r1-p1"]));
+    let next=store.claim_task(&worker,&Uuid::now_v7().to_string(),1002,2).await?.unwrap();assert!(next.task_id==run.task_ids["discussion-r2-p1"] || next.task_id==run.task_ids["discussion-r2-p2"]);
+    Ok(())
+}
+
+#[tokio::test]
+async fn discussion_definition_rejects_duplicate_or_unbounded_participants_before_saving() -> Result<()> {
+    let home=Fixture::new();let store=OrganizationStore::open(&home.0).await?;let ordinary=fixture(&store).await?;
+    let owner=ordinary.items[0].owner_id.clone();
+    for discussion in [OrganizationDiscussion {topic:"Topic".into(),participants:vec![owner.clone(),owner.clone()],rounds:1,conclusion_owner_id:owner.clone()},OrganizationDiscussion {topic:"Topic".into(),participants:vec![owner.clone()],rounds:4,conclusion_owner_id:owner}] {
+        assert!(store.mutate_workflow(OrganizationWorkflowMutation::PutDiscussion {id:Uuid::now_v7().to_string(),expected_revision:None,project_id:ordinary.project_id.clone(),label:"Invalid discussion".into(),discussion},1000).await.is_err());
+    }
+    assert_eq!(store.list_workflows(OrganizationWorkflowKind::Templates,None,None,200).await?.0.len(),1);
+    Ok(())
+}
+
+#[tokio::test]
+async fn goal_supervision_pins_finite_authority_parks_revokes_and_preserves_usage() -> Result<()> {
+    let home = Fixture::new();
+    let store = OrganizationStore::open(&home.0).await?;
+    let template = fixture(&store).await?;
+    let Some(OrganizationRecord::Goal(goal)) = store.mutate_owner(OrganizationMutation::PutGoal {
+        id: None, expected_revision: None, parent_id: None, objective: "Tested evidence".into(), criteria: vec!["Owner accepts cited evidence".into()],
+    }, None).await? else { panic!("goal") };
+    store.mutate_owner(OrganizationMutation::LinkProject {
+        project_id: template.project_id.clone(), expected_revision: Some(1), goal_id: Some(goal.id.clone()),
+        owner_id: Some(template.items[0].owner_id.clone()), criteria: vec!["Owner accepts cited evidence".into()],
+    }, Some(("Fixture".into(), vec!["/tmp/fixture-project".into()]))).await?;
+    let preview = store.preview_workflow(request(&template)).await?;
+    let id = Uuid::now_v7().to_string();
+    store.mutate_workflow(OrganizationWorkflowMutation::CreateSupervision {
+        id: id.clone(), preview: Box::new(preview.clone()), config: series_config(2), trigger: OrganizationWorkflowTrigger::Interval,
+        goal: Box::new(goal.clone()), work_type: "Evidence and review".into(),
+    }, 1000).await?;
+    assert_eq!(store.materialize_workflow_series(1001).await?, 1);
+    let worker = Uuid::now_v7().to_string();
+    let attempt = store.claim_task(&worker, &Uuid::now_v7().to_string(), 1001, 2).await?.unwrap();
+    let before = store.execution_view(&attempt.task_id).await?;
+    assert_eq!(before.task.goal_id.as_ref(), Some(&goal.id));
+    store.admit_model_request(&attempt.id, &worker, 1001).await?;
+    store.mutate_workflow(OrganizationWorkflowMutation::ControlSupervision { id: id.clone(), expected_revision: 1, action: OrganizationWorkflowControl::Pause }, 1002).await?;
+    assert!(store.admit_model_request(&attempt.id, &worker, 1002).await.unwrap_err().is::<crate::organization::WorkflowPaused>());
+    store.checkpoint_usage(&attempt.id, &worker, 1, 10).await?;
+    assert!(!store.workflow_dispatch_ready(&attempt.id, &worker, 1002, 2).await?);
+    assert!(!store.attempt_snapshot(&attempt.id).await?.runtime_active);
+    assert!(store.mutate_workflow(OrganizationWorkflowMutation::ControlSupervision { id: id.clone(), expected_revision: 1, action: OrganizationWorkflowControl::Resume }, 1003).await.is_err());
+    store.mutate_workflow(OrganizationWorkflowMutation::ControlSupervision { id: id.clone(), expected_revision: 2, action: OrganizationWorkflowControl::Resume }, 1003).await?;
+    assert!(store.workflow_dispatch_ready(&attempt.id, &worker, 1003, 2).await?);
+    assert_eq!(store.execution_view(&attempt.task_id).await?.authorization, before.authorization);
+    let (policies, _) = store.list_definitions(OrganizationRecordKind::Controls, None, 200).await?;
+    let OrganizationRecord::Control(policy) = &policies[0] else { panic!("policy") };
+    let mut changed = policy.value.clone();
+    if let OrganizationControlValue::Supervision { work_type, .. } = &mut changed { *work_type = "Expanded work".into(); }
+    assert!(store.mutate_owner(OrganizationMutation::SetControl { expected_revision: Some(3), value: changed }, None).await.is_err());
+    store.mutate_owner(OrganizationMutation::PutGoal { id: Some(goal.id.clone()), expected_revision: Some(1), parent_id: None, objective: "Changed goal".into(), criteria: goal.criteria.clone() }, None).await?;
+    assert!(!store.workflow_dispatch_ready(&attempt.id, &worker, 1004, 2).await?);
+    assert_eq!(store.materialize_workflow_series(1011).await?, 0);
+    assert!(store.mutate_workflow(OrganizationWorkflowMutation::ControlSupervision { id: id.clone(), expected_revision: 3, action: OrganizationWorkflowControl::Resume }, 1011).await.is_err());
+    store.mutate_workflow(OrganizationWorkflowMutation::ControlSupervision { id: id.clone(), expected_revision: 3, action: OrganizationWorkflowControl::Cancel }, 1011).await?;
+    let after = store.execution_view(&attempt.task_id).await?;
+    assert_eq!((after.authorization_model_requests, after.authorization_used_tokens), (1,10));
+    assert_eq!(after.authorization.as_ref().unwrap().id, before.authorization.as_ref().unwrap().id);
+    store.close().await;
+    let store = OrganizationStore::open(&home.0).await?;
+    let (history, _) = store.list_definitions(OrganizationRecordKind::ControlHistory, None, 200).await?;
+    assert_eq!(history.len(), 4);
+    assert!(store.mutate_workflow(OrganizationWorkflowMutation::ControlSupervision { id, expected_revision: 4, action: OrganizationWorkflowControl::Resume }, 1012).await.is_err());
+    assert_eq!(store.operational_report(None,None,200,1012).await?.global_usage.unwrap().model_requests,1);
+    Ok(())
+}
+
+#[tokio::test]
+async fn stale_goal_supervision_creation_rolls_back_series_and_pool() -> Result<()> {
+    let home = Fixture::new(); let store = OrganizationStore::open(&home.0).await?;
+    let template = fixture(&store).await?;
+    let preview = store.preview_workflow(request(&template)).await?;
+    let goal = OrganizationGoal { id: Uuid::now_v7().to_string(), parent_id: None, objective: "Missing goal".into(), criteria: vec!["Evidence".into()], revision: 1 };
+    assert!(store.mutate_workflow(OrganizationWorkflowMutation::CreateSupervision {
+        id: Uuid::now_v7().to_string(), preview: Box::new(preview), config: series_config(2), trigger: OrganizationWorkflowTrigger::Interval,
+        goal: Box::new(goal), work_type: "bounded work".into(),
+    },1000).await.is_err());
+    assert!(store.list_workflows(OrganizationWorkflowKind::Series,None,None,200).await?.0.is_empty());
+    assert!(store.list_workflows(OrganizationWorkflowKind::Limits,None,None,200).await?.0.is_empty());
+    Ok(())
+}
+
+#[tokio::test]
 async fn project_and_global_pause_fence_automatic_workflow_materialization() -> Result<()> {
     let home = Fixture::new();
     let store = OrganizationStore::open(&home.0).await?;

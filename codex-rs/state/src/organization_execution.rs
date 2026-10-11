@@ -71,6 +71,12 @@ impl OrganizationStore {
             AND NOT EXISTS(SELECT 1 FROM organization_workflow_tasks w
                 JOIN organization_workflow_runs r ON r.id=w.run_id WHERE w.authorization_id=a.root_id
                 AND COALESCE(json_extract(r.data,'$.state'),'active')<>'active')
+            AND NOT EXISTS(SELECT 1 FROM organization_workflow_tasks w
+                JOIN organization_workflow_occurrences o ON o.run_id=w.run_id
+                JOIN organization_controls c ON c.id='supervision:'||o.series_id
+                LEFT JOIN organization_goals g ON g.id=json_extract(c.data,'$.data.value.goal.id')
+                WHERE w.authorization_id=a.root_id AND (json_extract(c.data,'$.data.value.state')<>'active'
+                    OR g.revision IS NULL OR g.revision<>json_extract(c.data,'$.data.value.goal.revision')))
             AND NOT EXISTS(SELECT 1 FROM organization_shared_usage u WHERE u.project_id=t.project_id
                 AND ((u.run_id IS NULL AND u.series_id IS NULL) OR EXISTS(SELECT 1 FROM organization_workflow_tasks w LEFT JOIN organization_workflow_occurrences o ON o.run_id=w.run_id
                     WHERE w.authorization_id=a.root_id AND (w.run_id=u.run_id OR o.series_id=u.series_id)))

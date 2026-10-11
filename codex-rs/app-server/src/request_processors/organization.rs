@@ -360,6 +360,21 @@ impl OrganizationRequestProcessor {
         let mut apply_rejection = None;
         let result = async {
             match params.mutation {
+                OrganizationExecutionMutation::ApplyReplan { task_id, id, expected_revision } => {
+                    let record=store.read_definition(codex_protocol::organization::OrganizationRecordKind::Controls,&format!("replan:{id}")).await.context("replan proposal missing")?;
+                    let codex_protocol::organization::OrganizationRecord::Control(policy)=record else {anyhow::bail!("not a replan policy")};
+                    anyhow::ensure!(policy.revision==expected_revision,"replan revision conflict");
+                    let codex_protocol::organization::OrganizationControlValue::Replan { items, applied_handoff_ids, .. }=policy.value else {anyhow::bail!("not a replan proposal")};
+                    anyhow::ensure!(applied_handoff_ids.is_empty(),"replan already applied");
+                    for item in &items {
+                        let view=store.execution_view(&item.task_id).await?;
+                        let checkpoint=view.checkpoints.iter().find(|c|c.id==item.checkpoint_id).context("replan checkpoint missing")?;
+                        let source=store.attempt_snapshot(&checkpoint.attempt_id).await?;
+                        anyhow::ensure!(source.task_id==view.task.id && source.authorization_id==checkpoint.authorization_id,"replan checkpoint identity changed");
+                        crate::organization_workspace::verify_checkpoint(std::path::Path::new(source.workspace.as_deref().context("checkpoint workspace missing")?),checkpoint)?;
+                    }
+                    store.apply_replan(&task_id,&id,expected_revision,crate::organization_runtime::now()).await?;
+                }
                 handoff @ OrganizationExecutionMutation::Handoff { .. } => {
                     let view = store.execution_view(handoff.task_id()).await?;
                     let OrganizationExecutionMutation::Handoff { checkpoint_id, .. } = &handoff else { unreachable!() };

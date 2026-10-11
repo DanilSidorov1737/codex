@@ -262,6 +262,29 @@ WHERE p.task_id IN (SELECT value FROM json_each(?)) GROUP BY p.task_id,run_id,ow
             active,
             unresolved_requests,
         };
+        let rows=sqlx::query(r#"SELECT t.project_id,
+(SELECT run_id FROM organization_workflow_tasks WHERE authorization_id=COALESCE(a.root_id,a.id) LIMIT 1) captured_run,
+json_extract(p.data,'$.ownerId') captured_owner,json_extract(p.data,'$.provider') captured_provider,json_extract(a.data,'$.scope.model') captured_model,
+count(*) attempts,COALESCE(sum(p.state='accepted' AND json_extract(r.data,'$.accepted')=1),0) accepted,
+COALESCE(sum(p.state='failed'),0) failed,COALESCE(sum(p.state='blocked'),0) blocked,COALESCE(sum(p.state='needsReconciliation'),0) uncertain,
+COALESCE(sum((SELECT count(*) FROM json_each(r.data,'$.checks') WHERE json_extract(value,'$.exitCode')=0)),0) passed,
+COALESCE(sum((SELECT count(*) FROM json_each(r.data,'$.checks') WHERE json_extract(value,'$.exitCode') IS NULL OR json_extract(value,'$.exitCode')<>0)),0) checks_failed,
+COALESCE(sum(json_extract(p.data,'$.reportedTokens')),0) tokens,COALESCE(sum(json_extract(p.data,'$.modelRequests')),0) requests,COALESCE(sum(json_extract(p.data,'$.reportedModelRequests')),0) reported
+FROM organization_attempts p JOIN organization_tasks t ON t.id=p.task_id JOIN organization_authorizations a ON a.id=p.authorization_id
+LEFT JOIN organization_results r ON r.attempt_id=p.id WHERE (? IS NULL OR t.project_id=?)
+GROUP BY t.project_id,captured_run,captured_owner,captured_provider,captured_model
+ORDER BY t.project_id,captured_run,captured_owner,captured_provider,captured_model LIMIT 2001"#)
+            .bind(project_id).bind(project_id).fetch_all(&mut *tx).await?;
+        let truncated=rows.len()>2000;
+        let mut entries=Vec::new();
+        for row in rows.into_iter().take(2000) {
+            entries.push(OrganizationScorecard {
+                project_id:row.try_get("project_id")?,workflow_run_id:row.try_get("captured_run")?,owner_id:row.try_get("captured_owner")?,
+                provider:row.try_get::<Option<String>,_>("captured_provider")?.map(|s|serde_json::from_str(&s)).transpose()?,model:row.try_get("captured_model")?,
+                attempts:row.try_get("attempts")?,accepted_results:row.try_get("accepted")?,failed_attempts:row.try_get("failed")?,blocked_attempts:row.try_get("blocked")?,uncertain_attempts:row.try_get("uncertain")?,
+                checks_passed:row.try_get("passed")?,checks_failed:row.try_get("checks_failed")?,reported_tokens:row.try_get("tokens")?,model_requests:row.try_get("requests")?,reported_model_requests:row.try_get("reported")?,
+            });
+        }
         tx.commit().await?;
         Ok(OrganizationReport {
             sequence,
@@ -269,6 +292,7 @@ WHERE p.task_id IN (SELECT value FROM json_each(?)) GROUP BY p.task_id,run_id,ow
             project_id: project_id.map(str::to_owned),
             totals,
             global_usage: Some(global_usage),
+            scorecards:Some(OrganizationScorecards {entries,truncated}),
             tasks,
             usage,
             usage_truncated,

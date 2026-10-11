@@ -1,6 +1,32 @@
 use super::*;
 
 #[tokio::test]
+async fn knowledge_retirement_preserves_history_and_scope_before_fresh_search() -> Result<()> {
+    use sha2::Digest;
+    let home=Fixture::new();let store=OrganizationStore::open(&home.0).await?;
+    let (worker,attempt)=authorized_attempt(&store,false).await?;
+    let source:OrganizationNote=serde_json::from_value(store.coordinate(&attempt.id,&worker,"source",OrganizationCoordinationCall::WriteNote {scope:OrganizationNoteScope::Agent,body:"Private obsolete evidence".into()},1001).await?)?;
+    let hash=format!("{:x}",sha2::Sha256::digest(source.body.as_bytes()));
+    let value=OrganizationControlValue::Knowledge {note_id:source.id.clone(),body_sha256:hash,retired:true,reason:"Owner reviewed stale evidence; keep original provenance".into()};
+    let mut stale=value.clone();if let OrganizationControlValue::Knowledge {body_sha256,..}=&mut stale {*body_sha256="a".repeat(64);}
+    assert!(store.mutate_owner(OrganizationMutation::SetControl {expected_revision:None,value:stale},None).await.is_err());
+    store.mutate_owner(OrganizationMutation::SetControl {expected_revision:None,value:value.clone()},None).await?;
+    let found:OrganizationNoteSearchResult=serde_json::from_value(store.coordinate(&attempt.id,&worker,"after-retirement",OrganizationCoordinationCall::SearchNotes {scope:OrganizationNoteScope::Agent,query:"obsolete".into()},1002).await?)?;
+    assert!(found.notes.is_empty());assert_eq!(found.matched_count,0);
+    assert!(store.mutate_owner(OrganizationMutation::PromoteNote {source_id:source.id.clone(),group_id:None,body:"Would widen the retired source".into()},None).await.is_err());
+    let (history,_)=store.list_definitions(OrganizationRecordKind::Notes,None,200).await?;assert_eq!(history,vec![OrganizationRecord::Note(source.clone())]);
+    let mut restore=value;if let OrganizationControlValue::Knowledge {retired,reason,..}=&mut restore {*retired=false;*reason="Owner restores original private visibility".into();}
+    assert!(store.mutate_owner(OrganizationMutation::SetControl {expected_revision:None,value:restore.clone()},None).await.is_err());
+    store.mutate_owner(OrganizationMutation::SetControl {expected_revision:Some(1),value:restore},None).await?;
+    let private:Vec<OrganizationNote>=serde_json::from_value(store.coordinate(&attempt.id,&worker,"restored-private",OrganizationCoordinationCall::ReadNotes {scope:OrganizationNoteScope::Agent},1003).await?)?;
+    assert_eq!(private,vec![source]);
+    let project:Vec<OrganizationNote>=serde_json::from_value(store.coordinate(&attempt.id,&worker,"still-not-project",OrganizationCoordinationCall::ReadNotes {scope:OrganizationNoteScope::Project},1003).await?)?;assert!(project.is_empty());
+    store.close().await;let store=OrganizationStore::open(&home.0).await?;
+    let (reviews,_)=store.list_definitions(OrganizationRecordKind::ControlHistory,None,200).await?;assert_eq!(reviews.len(),2);
+    Ok(())
+}
+
+#[tokio::test]
 async fn owner_promoted_team_knowledge_filters_membership_project_and_correction_history()
 -> Result<()> {
     let home = Fixture::new();
