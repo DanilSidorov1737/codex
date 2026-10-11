@@ -6,9 +6,10 @@ import type { OrganizationControlHistory } from "./OrganizationControlHistory";
 import type { OrganizationGoal } from "./OrganizationGoal";
 import type { OrganizationMembership } from "./OrganizationMembership";
 import type { OrganizationNode } from "./OrganizationNode";
+import type { OrganizationNote } from "./OrganizationNote";
 import type { OrganizationPreset } from "./OrganizationPreset";
 import type { OrganizationProjectPlan } from "./OrganizationProjectPlan";
 import type { OrganizationRoleVersion } from "./OrganizationRoleVersion";
 import type { OrganizationTask } from "./OrganizationTask";
 
-export type OrganizationRecord = { "type": "node", "data": OrganizationNode } | { "type": "role", "data": OrganizationRoleVersion } | { "type": "goal", "data": OrganizationGoal } | { "type": "project", "data": OrganizationProjectPlan } | { "type": "task", "data": OrganizationTask } | { "type": "membership", "data": OrganizationMembership } | { "type": "preset", "data": OrganizationPreset } | { "type": "control", "data": OrganizationControl } | { "type": "controlHistory", "data": OrganizationControlHistory };
+export type OrganizationRecord = { "type": "node", "data": OrganizationNode } | { "type": "role", "data": OrganizationRoleVersion } | { "type": "goal", "data": OrganizationGoal } | { "type": "project", "data": OrganizationProjectPlan } | { "type": "task", "data": OrganizationTask } | { "type": "membership", "data": OrganizationMembership } | { "type": "preset", "data": OrganizationPreset } | { "type": "control", "data": OrganizationControl } | { "type": "controlHistory", "data": OrganizationControlHistory } | { "type": "note", "data": OrganizationNote };

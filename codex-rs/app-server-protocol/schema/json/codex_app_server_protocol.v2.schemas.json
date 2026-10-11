@@ -12276,6 +12276,15 @@
         "digest": {
           "type": "string"
         },
+        "hunks": {
+          "items": {
+            "$ref": "#/definitions/OrganizationHunkSelection"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "id": {
           "type": "string"
         },
@@ -12517,6 +12526,116 @@
         {
           "additionalProperties": false,
           "properties": {
+            "bodySha256": {
+              "type": "string"
+            },
+            "noteId": {
+              "type": "string"
+            },
+            "reason": {
+              "type": "string"
+            },
+            "retired": {
+              "type": "boolean"
+            },
+            "type": {
+              "enum": [
+                "knowledge"
+              ],
+              "title": "KnowledgeOrganizationControlValueType",
+              "type": "string"
+            }
+          },
+          "required": [
+            "bodySha256",
+            "noteId",
+            "reason",
+            "retired",
+            "type"
+          ],
+          "title": "KnowledgeOrganizationControlValue",
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "appliedHandoffIds": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "id": {
+              "type": "string"
+            },
+            "items": {
+              "items": {
+                "$ref": "#/definitions/OrganizationReplanItem"
+              },
+              "type": "array"
+            },
+            "projectId": {
+              "type": "string"
+            },
+            "reason": {
+              "type": "string"
+            },
+            "type": {
+              "enum": [
+                "replan"
+              ],
+              "title": "ReplanOrganizationControlValueType",
+              "type": "string"
+            }
+          },
+          "required": [
+            "appliedHandoffIds",
+            "id",
+            "items",
+            "projectId",
+            "reason",
+            "type"
+          ],
+          "title": "ReplanOrganizationControlValue",
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Binds a finite, immutable series to an exact owner-reviewed goal. Models, projects, templates, scopes and ceilings remain in that captured series.",
+          "properties": {
+            "goal": {
+              "$ref": "#/definitions/OrganizationGoal"
+            },
+            "seriesId": {
+              "type": "string"
+            },
+            "state": {
+              "$ref": "#/definitions/OrganizationWorkflowState"
+            },
+            "type": {
+              "enum": [
+                "supervision"
+              ],
+              "title": "SupervisionOrganizationControlValueType",
+              "type": "string"
+            },
+            "workType": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "goal",
+            "seriesId",
+            "state",
+            "type",
+            "workType"
+          ],
+          "title": "SupervisionOrganizationControlValue",
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
             "limits": {
               "anyOf": [
                 {
@@ -12615,8 +12734,68 @@
         }
       ]
     },
+    "OrganizationDiscussion": {
+      "additionalProperties": false,
+      "description": "A finite discussion is an ordinary, owner-reviewed workflow. Each round's participants depend on the prior round; a final step records conclusions, dissent and proposals. Artifact sharing still requires explicit input scopes.",
+      "properties": {
+        "conclusionOwnerId": {
+          "type": "string"
+        },
+        "participants": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "rounds": {
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "topic": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "conclusionOwnerId",
+        "participants",
+        "rounds",
+        "topic"
+      ],
+      "type": "object"
+    },
     "OrganizationExecutionMutation": {
       "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "expectedRevision": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "id": {
+              "type": "string"
+            },
+            "taskId": {
+              "type": "string"
+            },
+            "type": {
+              "enum": [
+                "applyReplan"
+              ],
+              "title": "ApplyReplanOrganizationExecutionMutationType",
+              "type": "string"
+            }
+          },
+          "required": [
+            "expectedRevision",
+            "id",
+            "taskId",
+            "type"
+          ],
+          "title": "ApplyReplanOrganizationExecutionMutation",
+          "type": "object"
+        },
         {
           "additionalProperties": false,
           "properties": {
@@ -12822,6 +13001,15 @@
             "expectedRevision": {
               "format": "int64",
               "type": "integer"
+            },
+            "hunks": {
+              "items": {
+                "$ref": "#/definitions/OrganizationHunkSelection"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
             },
             "paths": {
               "description": "Omit to apply all accepted artifacts. Explicit selection must be nonempty and unique; the receipt records exactly these whole files.",
@@ -13099,6 +13287,36 @@
         "id",
         "objective",
         "revision"
+      ],
+      "type": "object"
+    },
+    "OrganizationHunkSelection": {
+      "additionalProperties": false,
+      "properties": {
+        "indices": {
+          "description": "Zero-based indices in the canonical diffy's complete patch, ascending.",
+          "items": {
+            "format": "uint32",
+            "minimum": 0.0,
+            "type": "integer"
+          },
+          "type": "array"
+        },
+        "outputSha256": {
+          "type": "string"
+        },
+        "patchSha256": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "indices",
+        "outputSha256",
+        "patchSha256",
+        "path"
       ],
       "type": "object"
     },
@@ -14202,6 +14420,26 @@
           ],
           "title": "ControlHistoryOrganizationRecord",
           "type": "object"
+        },
+        {
+          "properties": {
+            "data": {
+              "$ref": "#/definitions/OrganizationNote"
+            },
+            "type": {
+              "enum": [
+                "note"
+              ],
+              "title": "NoteOrganizationRecordType",
+              "type": "string"
+            }
+          },
+          "required": [
+            "data",
+            "type"
+          ],
+          "title": "NoteOrganizationRecord",
+          "type": "object"
         }
       ]
     },
@@ -14215,9 +14453,45 @@
         "memberships",
         "presets",
         "controls",
-        "controlHistory"
+        "controlHistory",
+        "notes"
       ],
       "type": "string"
+    },
+    "OrganizationReplanItem": {
+      "additionalProperties": false,
+      "description": "A reviewed replacement for checkpointed unfinished work. Execution reuses the native handoff transaction, original grant, checkpoints and ledgers.",
+      "properties": {
+        "checkpointId": {
+          "type": "string"
+        },
+        "expectedOwnerRevision": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "expectedRevision": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "instructions": {
+          "type": "string"
+        },
+        "ownerId": {
+          "type": "string"
+        },
+        "taskId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "checkpointId",
+        "expectedOwnerRevision",
+        "expectedRevision",
+        "instructions",
+        "ownerId",
+        "taskId"
+      ],
+      "type": "object"
     },
     "OrganizationReport": {
       "properties": {
@@ -14248,6 +14522,18 @@
             "string",
             "null"
           ]
+        },
+        "scorecards": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/OrganizationScorecards"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Whole selected store/project, independent of the task page. Missing from older daemons means unavailable, not a zero or guessed quality grade."
         },
         "sequence": {
           "description": "Canonical audit revision; paginated readers must not combine revisions.",
@@ -14650,6 +14936,113 @@
         "occurrences",
         "schedule",
         "usedTokens"
+      ],
+      "type": "object"
+    },
+    "OrganizationScorecard": {
+      "properties": {
+        "acceptedResults": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "attempts": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "blockedAttempts": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "checksFailed": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "checksPassed": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "failedAttempts": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "model": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "modelRequests": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "ownerId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "projectId": {
+          "type": "string"
+        },
+        "provider": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/OrganizationProviderEvidence"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reportedModelRequests": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "reportedTokens": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "uncertainAttempts": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "workflowRunId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "acceptedResults",
+        "attempts",
+        "blockedAttempts",
+        "checksFailed",
+        "checksPassed",
+        "failedAttempts",
+        "modelRequests",
+        "projectId",
+        "reportedModelRequests",
+        "reportedTokens",
+        "uncertainAttempts"
+      ],
+      "type": "object"
+    },
+    "OrganizationScorecards": {
+      "properties": {
+        "entries": {
+          "items": {
+            "$ref": "#/definitions/OrganizationScorecard"
+          },
+          "type": "array"
+        },
+        "truncated": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "entries",
+        "truncated"
       ],
       "type": "object"
     },
@@ -15412,6 +15805,117 @@
         {
           "additionalProperties": false,
           "properties": {
+            "discussion": {
+              "$ref": "#/definitions/OrganizationDiscussion"
+            },
+            "expectedRevision": {
+              "format": "int64",
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "id": {
+              "type": "string"
+            },
+            "label": {
+              "type": "string"
+            },
+            "projectId": {
+              "type": "string"
+            },
+            "type": {
+              "enum": [
+                "putDiscussion"
+              ],
+              "title": "PutDiscussionOrganizationWorkflowMutationType",
+              "type": "string"
+            }
+          },
+          "required": [
+            "discussion",
+            "id",
+            "label",
+            "projectId",
+            "type"
+          ],
+          "title": "PutDiscussionOrganizationWorkflowMutation",
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "config": {
+              "$ref": "#/definitions/OrganizationScheduleConfig"
+            },
+            "goal": {
+              "$ref": "#/definitions/OrganizationGoal"
+            },
+            "id": {
+              "type": "string"
+            },
+            "preview": {
+              "$ref": "#/definitions/OrganizationWorkflowPreview"
+            },
+            "trigger": {
+              "$ref": "#/definitions/OrganizationWorkflowTrigger"
+            },
+            "type": {
+              "enum": [
+                "createSupervision"
+              ],
+              "title": "CreateSupervisionOrganizationWorkflowMutationType",
+              "type": "string"
+            },
+            "workType": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "config",
+            "goal",
+            "id",
+            "preview",
+            "trigger",
+            "type",
+            "workType"
+          ],
+          "title": "CreateSupervisionOrganizationWorkflowMutation",
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "action": {
+              "$ref": "#/definitions/OrganizationWorkflowControl"
+            },
+            "expectedRevision": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "id": {
+              "type": "string"
+            },
+            "type": {
+              "enum": [
+                "controlSupervision"
+              ],
+              "title": "ControlSupervisionOrganizationWorkflowMutationType",
+              "type": "string"
+            }
+          },
+          "required": [
+            "action",
+            "expectedRevision",
+            "id",
+            "type"
+          ],
+          "title": "ControlSupervisionOrganizationWorkflowMutation",
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
             "config": {
               "$ref": "#/definitions/OrganizationScheduleConfig"
             },
@@ -15853,6 +16357,16 @@
     "OrganizationWorkflowTemplate": {
       "additionalProperties": false,
       "properties": {
+        "discussion": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/OrganizationDiscussion"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "id": {
           "type": "string"
         },

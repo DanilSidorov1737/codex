@@ -70,11 +70,13 @@ export type { OrganizationCheckpointContent } from "./OrganizationCheckpointCont
 export type { OrganizationControl } from "./OrganizationControl";
 export type { OrganizationControlHistory } from "./OrganizationControlHistory";
 export type { OrganizationControlValue } from "./OrganizationControlValue";
+export type { OrganizationDiscussion } from "./OrganizationDiscussion";
 export type { OrganizationExecutionMutation } from "./OrganizationExecutionMutation";
 export type { OrganizationExecutionScope } from "./OrganizationExecutionScope";
 export type { OrganizationExecutionView } from "./OrganizationExecutionView";
 export type { OrganizationGlobalUsage } from "./OrganizationGlobalUsage";
 export type { OrganizationGoal } from "./OrganizationGoal";
+export type { OrganizationHunkSelection } from "./OrganizationHunkSelection";
 export type { OrganizationInventory } from "./OrganizationInventory";
 export type { OrganizationMcpCapability } from "./OrganizationMcpCapability";
 export type { OrganizationMembership } from "./OrganizationMembership";
@@ -95,6 +97,7 @@ export type { OrganizationProviderEvidence } from "./OrganizationProviderEvidenc
 export type { OrganizationProviderObservation } from "./OrganizationProviderObservation";
 export type { OrganizationRecord } from "./OrganizationRecord";
 export type { OrganizationRecordKind } from "./OrganizationRecordKind";
+export type { OrganizationReplanItem } from "./OrganizationReplanItem";
 export type { OrganizationReport } from "./OrganizationReport";
 export type { OrganizationReportTotals } from "./OrganizationReportTotals";
 export type { OrganizationRoleVersion } from "./OrganizationRoleVersion";
@@ -105,6 +108,8 @@ export type { OrganizationScheduleMutation } from "./OrganizationScheduleMutatio
 export type { OrganizationScheduleOccurrence } from "./OrganizationScheduleOccurrence";
 export type { OrganizationScheduleState } from "./OrganizationScheduleState";
 export type { OrganizationScheduleView } from "./OrganizationScheduleView";
+export type { OrganizationScorecard } from "./OrganizationScorecard";
+export type { OrganizationScorecards } from "./OrganizationScorecards";
 export type { OrganizationSharedCeilings } from "./OrganizationSharedCeilings";
 export type { OrganizationSharedLimit } from "./OrganizationSharedLimit";
 export type { OrganizationSharedUsage } from "./OrganizationSharedUsage";

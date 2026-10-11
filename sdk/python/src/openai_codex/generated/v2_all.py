@@ -3099,6 +3099,18 @@ class OrganizationCheckpointContent(BaseModel):
     remaining_steps: Annotated[list[str], Field(alias="remainingSteps")]
 
 
+class KnowledgeOrganizationControlValue(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    body_sha256: Annotated[str, Field(alias="bodySha256")]
+    note_id: Annotated[str, Field(alias="noteId")]
+    reason: str
+    retired: bool
+    type: Annotated[Literal["knowledge"], Field(title="KnowledgeOrganizationControlValueType")]
+
+
 class PriorityOrganizationControlValue(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
@@ -3108,6 +3120,30 @@ class PriorityOrganizationControlValue(BaseModel):
     task_id: Annotated[str, Field(alias="taskId")]
     task_revision: Annotated[int, Field(alias="taskRevision")]
     type: Annotated[Literal["priority"], Field(title="PriorityOrganizationControlValueType")]
+
+
+class OrganizationDiscussion(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    conclusion_owner_id: Annotated[str, Field(alias="conclusionOwnerId")]
+    participants: list[str]
+    rounds: Annotated[int, Field(ge=0)]
+    topic: str
+
+
+class ApplyReplanOrganizationExecutionMutation(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    expected_revision: Annotated[int, Field(alias="expectedRevision")]
+    id: str
+    task_id: Annotated[str, Field(alias="taskId")]
+    type: Annotated[
+        Literal["applyReplan"], Field(title="ApplyReplanOrganizationExecutionMutationType")
+    ]
 
 
 class HandoffOrganizationExecutionMutation(BaseModel):
@@ -3171,23 +3207,6 @@ class RequestChangesOrganizationExecutionMutation(BaseModel):
     type: Annotated[
         Literal["requestChanges"], Field(title="RequestChangesOrganizationExecutionMutationType")
     ]
-
-
-class ApplyOrganizationExecutionMutation(BaseModel):
-    model_config = ConfigDict(
-        extra="forbid",
-        populate_by_name=True,
-    )
-    digest: str
-    expected_revision: Annotated[int, Field(alias="expectedRevision")]
-    paths: Annotated[
-        list[str] | None,
-        Field(
-            description="Omit to apply all accepted artifacts. Explicit selection must be nonempty and unique; the receipt records exactly these whole files."
-        ),
-    ] = None
-    task_id: Annotated[str, Field(alias="taskId")]
-    type: Annotated[Literal["apply"], Field(title="ApplyOrganizationExecutionMutationType")]
 
 
 class OrganizationExecutionScope(BaseModel):
@@ -3268,6 +3287,20 @@ class OrganizationGoal(BaseModel):
     objective: str
     parent_id: Annotated[str | None, Field(alias="parentId")] = None
     revision: int
+
+
+class OrganizationHunkSelection(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    indices: Annotated[
+        list[Indice],
+        Field(description="Zero-based indices in the canonical diffy's complete patch, ascending."),
+    ]
+    output_sha256: Annotated[str, Field(alias="outputSha256")]
+    patch_sha256: Annotated[str, Field(alias="patchSha256")]
+    path: str
 
 
 class OrganizationMcpCapability(BaseModel):
@@ -3524,6 +3557,20 @@ class OrganizationRecordKind(Enum):
     presets = "presets"
     controls = "controls"
     control_history = "controlHistory"
+    notes = "notes"
+
+
+class OrganizationReplanItem(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    checkpoint_id: Annotated[str, Field(alias="checkpointId")]
+    expected_owner_revision: Annotated[int, Field(alias="expectedOwnerRevision")]
+    expected_revision: Annotated[int, Field(alias="expectedRevision")]
+    instructions: str
+    owner_id: Annotated[str, Field(alias="ownerId")]
+    task_id: Annotated[str, Field(alias="taskId")]
 
 
 class OrganizationReportTotals(BaseModel):
@@ -3627,6 +3674,35 @@ class OrganizationScheduleState(Enum):
     cancelled = "cancelled"
     completed = "completed"
     blocked = "blocked"
+
+
+class OrganizationScorecard(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    accepted_results: Annotated[int, Field(alias="acceptedResults")]
+    attempts: int
+    blocked_attempts: Annotated[int, Field(alias="blockedAttempts")]
+    checks_failed: Annotated[int, Field(alias="checksFailed")]
+    checks_passed: Annotated[int, Field(alias="checksPassed")]
+    failed_attempts: Annotated[int, Field(alias="failedAttempts")]
+    model: str | None = None
+    model_requests: Annotated[int, Field(alias="modelRequests")]
+    owner_id: Annotated[str | None, Field(alias="ownerId")] = None
+    project_id: Annotated[str, Field(alias="projectId")]
+    provider: OrganizationProviderEvidence | None = None
+    reported_model_requests: Annotated[int, Field(alias="reportedModelRequests")]
+    reported_tokens: Annotated[int, Field(alias="reportedTokens")]
+    uncertain_attempts: Annotated[int, Field(alias="uncertainAttempts")]
+    workflow_run_id: Annotated[str | None, Field(alias="workflowRunId")] = None
+
+
+class OrganizationScorecards(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    entries: list[OrganizationScorecard]
+    truncated: bool
 
 
 class OrganizationSharedCeilings(BaseModel):
@@ -3848,6 +3924,35 @@ class OrganizationWorkflowKind(Enum):
     series = "series"
 
 
+class PutDiscussionOrganizationWorkflowMutation(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    discussion: OrganizationDiscussion
+    expected_revision: Annotated[int | None, Field(alias="expectedRevision")] = None
+    id: str
+    label: str
+    project_id: Annotated[str, Field(alias="projectId")]
+    type: Annotated[
+        Literal["putDiscussion"], Field(title="PutDiscussionOrganizationWorkflowMutationType")
+    ]
+
+
+class ControlSupervisionOrganizationWorkflowMutation(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    action: OrganizationWorkflowControl
+    expected_revision: Annotated[int, Field(alias="expectedRevision")]
+    id: str
+    type: Annotated[
+        Literal["controlSupervision"],
+        Field(title="ControlSupervisionOrganizationWorkflowMutationType"),
+    ]
+
+
 class ControlSeriesOrganizationWorkflowMutation(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
@@ -3919,6 +4024,7 @@ class OrganizationWorkflowTemplate(BaseModel):
         extra="forbid",
         populate_by_name=True,
     )
+    discussion: OrganizationDiscussion | None = None
     id: str
     items: list[OrganizationPlanItem]
     label: str
@@ -9925,10 +10031,36 @@ class OrganizationApplication(BaseModel):
         populate_by_name=True,
     )
     digest: str
+    hunks: list[OrganizationHunkSelection] | None = None
     id: str
     paths: list[str]
     receipt: str | None = None
     state: OrganizationApplicationState
+
+
+class ReplanOrganizationControlValue(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    applied_handoff_ids: Annotated[list[str], Field(alias="appliedHandoffIds")]
+    id: str
+    items: list[OrganizationReplanItem]
+    project_id: Annotated[str, Field(alias="projectId")]
+    reason: str
+    type: Annotated[Literal["replan"], Field(title="ReplanOrganizationControlValueType")]
+
+
+class SupervisionOrganizationControlValue(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    goal: OrganizationGoal
+    series_id: Annotated[str, Field(alias="seriesId")]
+    state: OrganizationWorkflowState
+    type: Annotated[Literal["supervision"], Field(title="SupervisionOrganizationControlValueType")]
+    work_type: Annotated[str, Field(alias="workType")]
 
 
 class GlobalOrganizationControlValue(BaseModel):
@@ -9955,7 +10087,10 @@ class ProjectOrganizationControlValue(BaseModel):
 
 class OrganizationControlValue(
     RootModel[
-        GlobalOrganizationControlValue
+        KnowledgeOrganizationControlValue
+        | ReplanOrganizationControlValue
+        | SupervisionOrganizationControlValue
+        | GlobalOrganizationControlValue
         | ProjectOrganizationControlValue
         | PriorityOrganizationControlValue
     ]
@@ -9964,7 +10099,10 @@ class OrganizationControlValue(
         populate_by_name=True,
     )
     root: (
-        GlobalOrganizationControlValue
+        KnowledgeOrganizationControlValue
+        | ReplanOrganizationControlValue
+        | SupervisionOrganizationControlValue
+        | GlobalOrganizationControlValue
         | ProjectOrganizationControlValue
         | PriorityOrganizationControlValue
     )
@@ -9981,9 +10119,28 @@ class AuthorizeOrganizationExecutionMutation(BaseModel):
     type: Annotated[Literal["authorize"], Field(title="AuthorizeOrganizationExecutionMutationType")]
 
 
+class ApplyOrganizationExecutionMutation(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    digest: str
+    expected_revision: Annotated[int, Field(alias="expectedRevision")]
+    hunks: list[OrganizationHunkSelection] | None = None
+    paths: Annotated[
+        list[str] | None,
+        Field(
+            description="Omit to apply all accepted artifacts. Explicit selection must be nonempty and unique; the receipt records exactly these whole files."
+        ),
+    ] = None
+    task_id: Annotated[str, Field(alias="taskId")]
+    type: Annotated[Literal["apply"], Field(title="ApplyOrganizationExecutionMutationType")]
+
+
 class OrganizationExecutionMutation(
     RootModel[
-        HandoffOrganizationExecutionMutation
+        ApplyReplanOrganizationExecutionMutation
+        | HandoffOrganizationExecutionMutation
         | AuthorizeOrganizationExecutionMutation
         | StopOrganizationExecutionMutation
         | DecideApprovalOrganizationExecutionMutation
@@ -9996,7 +10153,8 @@ class OrganizationExecutionMutation(
         populate_by_name=True,
     )
     root: (
-        HandoffOrganizationExecutionMutation
+        ApplyReplanOrganizationExecutionMutation
+        | HandoffOrganizationExecutionMutation
         | AuthorizeOrganizationExecutionMutation
         | StopOrganizationExecutionMutation
         | DecideApprovalOrganizationExecutionMutation
@@ -10159,6 +10317,14 @@ class PresetOrganizationRecord(BaseModel):
     type: Annotated[Literal["preset"], Field(title="PresetOrganizationRecordType")]
 
 
+class NoteOrganizationRecord(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    data: OrganizationNote
+    type: Annotated[Literal["note"], Field(title="NoteOrganizationRecordType")]
+
+
 class OrganizationReport(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
@@ -10173,6 +10339,12 @@ class OrganizationReport(BaseModel):
     ] = None
     next_cursor: Annotated[str | None, Field(alias="nextCursor")] = None
     project_id: Annotated[str | None, Field(alias="projectId")] = None
+    scorecards: Annotated[
+        OrganizationScorecards | None,
+        Field(
+            description="Whole selected store/project, independent of the task page. Missing from older daemons means unavailable, not a zero or guessed quality grade."
+        ),
+    ] = None
     sequence: Annotated[
         int,
         Field(
@@ -12652,6 +12824,7 @@ class OrganizationRecord(
         | PresetOrganizationRecord
         | ControlOrganizationRecord
         | ControlHistoryOrganizationRecord
+        | NoteOrganizationRecord
     ]
 ):
     model_config = ConfigDict(
@@ -12667,7 +12840,25 @@ class OrganizationRecord(
         | PresetOrganizationRecord
         | ControlOrganizationRecord
         | ControlHistoryOrganizationRecord
+        | NoteOrganizationRecord
     )
+
+
+class CreateSupervisionOrganizationWorkflowMutation(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    config: OrganizationScheduleConfig
+    goal: OrganizationGoal
+    id: str
+    preview: OrganizationWorkflowPreview
+    trigger: OrganizationWorkflowTrigger
+    type: Annotated[
+        Literal["createSupervision"],
+        Field(title="CreateSupervisionOrganizationWorkflowMutationType"),
+    ]
+    work_type: Annotated[str, Field(alias="workType")]
 
 
 class CreateSeriesOrganizationWorkflowMutation(BaseModel):
@@ -12695,7 +12886,10 @@ class RunOrganizationWorkflowMutation(BaseModel):
 
 class OrganizationWorkflowMutation(
     RootModel[
-        CreateSeriesOrganizationWorkflowMutation
+        PutDiscussionOrganizationWorkflowMutation
+        | CreateSupervisionOrganizationWorkflowMutation
+        | ControlSupervisionOrganizationWorkflowMutation
+        | CreateSeriesOrganizationWorkflowMutation
         | ControlSeriesOrganizationWorkflowMutation
         | PutOrganizationWorkflowMutation
         | RunOrganizationWorkflowMutation
@@ -12707,7 +12901,10 @@ class OrganizationWorkflowMutation(
         populate_by_name=True,
     )
     root: (
-        CreateSeriesOrganizationWorkflowMutation
+        PutDiscussionOrganizationWorkflowMutation
+        | CreateSupervisionOrganizationWorkflowMutation
+        | ControlSupervisionOrganizationWorkflowMutation
+        | CreateSeriesOrganizationWorkflowMutation
         | ControlSeriesOrganizationWorkflowMutation
         | PutOrganizationWorkflowMutation
         | RunOrganizationWorkflowMutation

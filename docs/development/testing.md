@@ -2531,3 +2531,14 @@ native registry, active-agent capacity, hardware telemetry or provider pilots.
 Only inactive rebuildable target metadata/test executables were removed for disk
 headroom, with hashes/bytes in editor-derived-*.json. No qualified asset, native
 state, grant, result, bundle, counter or receipt was removed.
+
+Backend workspace checks pass 7/7 (`editor-workspace-tests.log`), including
+verified partial hunk output, stale preview/output hash refusal, changed originals
+after preparation and no writes on refusal. Stable/experimental schema writers
+each pass and all four generated/precomputed comparisons pass
+(`editor-schema-{stable,experimental,comparisons}.log`). SDK regeneration from
+sdk/python with the existing .venv and documented generate-types command passes;
+`python -m pytest tests/test_contract_generation.py tests/test_public_api_signatures.py`
+passes 25 (`editor-sdk-generation.log`, `editor-sdk-contracts.log`). Latest distinct
+selected automated set: 310 state + 374 protocol + 69 TUI/editor + 7 workspace +
+4 schema + 25 SDK = **789**. Native package qualification is still pending.
