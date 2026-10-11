@@ -11,6 +11,14 @@ pub(super) enum Kind {
     Task,
     Authorize(OrganizationTask),
     Schedule(OrganizationTask),
+    WorkflowSave {
+        project_id: String,
+        items: Vec<OrganizationPlanItem>,
+    },
+    WorkflowRun {
+        template: OrganizationWorkflowTemplate,
+        task: OrganizationTask,
+    },
     Apply {
         task: OrganizationTask,
         result: OrganizationTaskResult,
@@ -161,6 +169,74 @@ mod tests {
             assert!(form.command().is_err());
             set(&mut form, index, &old);
         }
+        for (w, h) in [(1, 1), (50, 20), (160, 48)] {
+            let area = Rect::new(0, 0, w, h);
+            form.render(area, &mut Buffer::empty(area));
+        }
+    }
+
+    #[test]
+    fn workflow_forms_save_content_only_and_preview_fixed_scopes_with_stable_identity() {
+        let items = vec![OrganizationPlanItem {
+            key: "inspect".into(),
+            owner_id: "agent".into(),
+            instructions: "Inspect café".into(),
+            criteria: vec!["Cited".into()],
+            prerequisites: vec![],
+        }];
+        let mut form = Form::new(
+            Kind::WorkflowSave {
+                project_id: "project".into(),
+                items: items.clone(),
+            },
+            &[],
+            None,
+            "model",
+        );
+        set(&mut form, 0, "Research café");
+        let Command::Workflow(OrganizationWorkflowMutation::Put {
+            id,
+            project_id,
+            items: saved,
+            ..
+        }) = form.command().unwrap()
+        else {
+            panic!("expected content-only template")
+        };
+        assert_eq!(project_id, "project");
+        assert_eq!(saved, items);
+        let Command::Workflow(OrganizationWorkflowMutation::Put { id: again, .. }) =
+            form.command().unwrap()
+        else {
+            panic!("expected template")
+        };
+        assert_eq!(id, again);
+        let template = OrganizationWorkflowTemplate {
+            id,
+            project_id,
+            label: "Research café".into(),
+            revision: 3,
+            items,
+        };
+        let mut form = Form::new(
+            Kind::WorkflowRun {
+                template,
+                task: task(),
+            },
+            &[],
+            None,
+            "model",
+        );
+        set(&mut form, 0, "oracle.py");
+        set(&mut form, 1, "oracle.py");
+        set(&mut form, 2, "report.txt");
+        set(&mut form, 3, "[[\"python3\",\"oracle.py\"]]");
+        let Command::WorkflowPreview(request) = form.command().unwrap() else {
+            panic!("expected read-only preview")
+        };
+        assert_eq!(request.expected_revision, 3);
+        assert_eq!(request.scopes[0].key, "inspect");
+        assert!(request.scopes[0].scope.require_tool_approval);
         for (w, h) in [(1, 1), (50, 20), (160, 48)] {
             let area = Rect::new(0, 0, w, h);
             form.render(area, &mut Buffer::empty(area));
@@ -412,6 +488,18 @@ impl Form {
                 Field::select("Owner", optional(agents), owner),
                 Field::text("Completion criteria", "One criterion per line", ""),
             ],
+            Kind::WorkflowSave { items, .. } => vec![
+                Field::text(
+                    "Workflow name",
+                    "Reusable template; saving starts no work",
+                    "",
+                ),
+                Field::text(
+                    "Tasks (JSON)",
+                    "Keys, assignments, instructions, criteria and prerequisite keys",
+                    &serde_json::to_string_pretty(items).unwrap_or_default(),
+                ),
+            ],
             Kind::Task => vec![
                 Field::select(
                     "Project",
@@ -430,7 +518,7 @@ impl Form {
                 Field::text("Acceptance criteria", "One criterion per line", ""),
                 Field::text("Prerequisites", "Optional task IDs, one per line", ""),
             ],
-            Kind::Authorize(task) | Kind::Schedule(task) => {
+            Kind::Authorize(task) | Kind::Schedule(task) | Kind::WorkflowRun { task, .. } => {
                 let model = records
                     .iter()
                     .find_map(|r| match r {
@@ -557,11 +645,13 @@ impl Form {
             Kind::Task => "New task",
             Kind::Authorize(_) => "Authorize task",
             Kind::Schedule(_) => "Create recurring schedule",
+            Kind::WorkflowSave { .. } => "Save workflow template",
+            Kind::WorkflowRun { .. } => "Preview workflow · scope for each step",
             Kind::Apply { .. } => "Select files to Apply",
         }
     }
     pub(super) fn prefill_scope(&mut self, scope: &OrganizationExecutionScope) {
-        if !matches!(&self.kind, Kind::Schedule(_)) {
+        if !matches!(&self.kind, Kind::Schedule(_) | Kind::WorkflowRun { .. }) {
             return;
         }
         let values = [
@@ -715,6 +805,17 @@ impl Form {
                     criteria: criteria(4)?,
                 }
             }
+            Kind::WorkflowSave { project_id, .. } => {
+                Command::Workflow(OrganizationWorkflowMutation::Put {
+                    id: self.project_key.clone(),
+                    expected_revision: None,
+                    project_id: project_id.clone(),
+                    label: required(0)?,
+                    items: serde_json::from_str(&value(1)).map_err(|e| {
+                        anyhow::anyhow!("Tasks must be a plan-item JSON array: {e}")
+                    })?,
+                })
+            }
             Kind::Task => Command::Definition(OrganizationMutation::PutTask {
                 id: None,
                 expected_revision: None,
@@ -725,7 +826,7 @@ impl Form {
                 criteria: criteria(4)?,
                 prerequisites: lines(5),
             }),
-            Kind::Authorize(task) | Kind::Schedule(task) => {
+            Kind::Authorize(task) | Kind::Schedule(task) | Kind::WorkflowRun { task, .. } => {
                 let number = |i: usize| -> anyhow::Result<u32> {
                     value(i).parse().map_err(|_| {
                         anyhow::anyhow!("{} must be a positive integer", self.fields[i].label)
@@ -781,7 +882,21 @@ impl Form {
                     !scope.auto_accept_children || !scope.checks.is_empty(),
                     "Checked child acceptance requires declared checks"
                 );
-                if matches!(&self.kind, Kind::Schedule(_)) {
+                if let Kind::WorkflowRun { template, .. } = &self.kind {
+                    Command::WorkflowPreview(OrganizationWorkflowPreviewRequest {
+                        id: self.project_key.clone(),
+                        template_id: template.id.clone(),
+                        expected_revision: template.revision,
+                        scopes: template
+                            .items
+                            .iter()
+                            .map(|item| OrganizationWorkflowScope {
+                                key: item.key.clone(),
+                                scope: scope.clone(),
+                            })
+                            .collect(),
+                    })
+                } else if matches!(&self.kind, Kind::Schedule(_)) {
                     let config = OrganizationScheduleConfig {
                         label: required(14)?,
                         interval_seconds: number(15)?,

@@ -76,7 +76,7 @@ async fn background_requests_survive_startup_overlap_and_cancelled_dashboard() {
                             "organization/execution/read" | "organization/execution/mutate" => {
                                 json!({"view": view("one")})
                             }
-                            "organization/schedule/list" => json!({"data":[],"nextCursor":null}),
+                            "organization/schedule/list" | "organization/workflow/list" => json!({"data":[],"nextCursor":null}),
                             "project/create" => {
                                 let params = request.params.as_ref().unwrap();
                                 assert_eq!(params["name"], "Native project");
@@ -296,8 +296,10 @@ fn dashboard() -> Dashboard {
         preferences: Preferences::default(),
         path: PathBuf::from("unused"),
         schedule_view: false,
+        workflow_view: false,
         snapshot: Snapshot {
             schedules: vec![],
+            workflows: vec![],
             records: vec![
                 OrganizationRecord::Node(node("owner", None)),
                 OrganizationRecord::Task(task("one")),
@@ -337,6 +339,126 @@ fn dashboard() -> Dashboard {
         frame: FrameRequester::test_dummy(),
         is_done: false,
     }
+}
+
+#[tokio::test]
+async fn workflow_views_save_prerequisite_closure_and_freeze_preview_confirmation() {
+    let mut d = dashboard();
+    let preferences = tempfile::tempdir().unwrap();
+    d.path = preferences.path().join("layouts.json");
+    let (commands, mut rx) = mpsc::channel(16);
+    d.commands = commands;
+    let (updates, receiver) = mpsc::channel(16);
+    d.updates = receiver;
+    if let OrganizationRecord::Task(task) = &mut d.snapshot.records[2] {
+        task.prerequisites = vec!["one".into()];
+    }
+    d.selected = Some("two".into());
+    let (project_id, items) = d.workflow_items().unwrap();
+    assert_eq!(project_id, "project");
+    assert_eq!(items.len(), 2);
+    assert_eq!(
+        items
+            .iter()
+            .find(|item| item.key == "two")
+            .unwrap()
+            .prerequisites,
+        vec!["one".to_string()]
+    );
+    let template = OrganizationWorkflowTemplate {
+        id: "template".into(),
+        project_id,
+        label: "Research café\x1b[31m".into(),
+        revision: 2,
+        items,
+    };
+    d.snapshot
+        .workflows
+        .push(OrganizationWorkflowView::Template {
+            template: template.clone(),
+        });
+    d.workflow_view = true;
+    d.selected = Some("workflow:template".into());
+    d.rebuild();
+    assert!(d.rows.iter().any(|row| row.id == "workflow:template"));
+    d.open_form('s');
+    d.form
+        .as_mut()
+        .unwrap()
+        .prefill_scope(&OrganizationExecutionScope {
+            input_files: vec!["oracle.py".into()],
+            immutable_files: vec!["oracle.py".into()],
+            artifacts: vec!["report.txt".into()],
+            checks: vec![],
+            model: "model".into(),
+            max_tokens: 100,
+            max_seconds: 120,
+            max_model_requests: 2,
+            max_attempts: 1,
+            require_tool_approval: true,
+            delegates: vec![],
+            max_children: 0,
+            auto_accept_children: false,
+            not_before: None,
+        });
+    let Command::WorkflowPreview(request) = d.form.as_ref().unwrap().command().unwrap() else {
+        panic!("expected preview")
+    };
+    let preview = OrganizationWorkflowPreview {
+        id: request.id.clone(),
+        template,
+        project_revision: 3,
+        node_revisions: BTreeMap::from([("owner".into(), 1)]),
+        policy_version: 2,
+        scopes: request.scopes,
+        max_tokens: 200,
+        max_model_requests: 4,
+    };
+    d.key(KeyEvent::new(
+        KeyCode::F(6),
+        crossterm::event::KeyModifiers::NONE,
+    ));
+    assert!(matches!(
+        rx.try_recv().unwrap(),
+        Command::WorkflowPreview(_)
+    ));
+    assert!(d.confirmation.is_none());
+    updates
+        .send(Update::WorkflowPreview(Box::new(preview.clone())))
+        .await
+        .unwrap();
+    d.update();
+    assert!(
+        matches!(&d.confirmation, Some(Command::Workflow(OrganizationWorkflowMutation::Run { preview: captured })) if **captured == preview)
+    );
+    let text = d.details();
+    assert!(text.contains("200 tokens / 4 requests"));
+    assert!(text.contains("Check passes"));
+    for preset in [Preset::Projects, Preset::Operations] {
+        d.preferences.preset = preset;
+        for (w, h) in [(1, 1), (50, 20), (160, 48)] {
+            let area = Rect::new(0, 0, w, h);
+            let mut buffer = Buffer::empty(area);
+            d.render(area, &mut buffer);
+            assert!(
+                buffer
+                    .content
+                    .iter()
+                    .all(|cell| !cell.symbol().contains('\x1b'))
+            );
+        }
+    }
+    d.confirmation = None;
+    d.form = None;
+    updates
+        .send(Update::WorkflowPreview(Box::new(preview)))
+        .await
+        .unwrap();
+    d.update();
+    assert!(
+        d.confirmation.is_none(),
+        "closed drafts cannot be reopened by late previews"
+    );
 }
 
 #[tokio::test]
@@ -708,6 +830,7 @@ async fn refreshed_snapshot_preserves_selection_but_removes_deleted_selection() 
     updates
         .send(Update::Snapshot(Snapshot {
             schedules: vec![],
+            workflows: vec![],
             records: vec![OrganizationRecord::Task(task("one"))],
         }))
         .await
@@ -718,6 +841,7 @@ async fn refreshed_snapshot_preserves_selection_but_removes_deleted_selection() 
     updates
         .send(Update::Snapshot(Snapshot {
             schedules: vec![],
+            workflows: vec![],
             records: vec![OrganizationRecord::Task(task("one"))],
         }))
         .await
@@ -734,6 +858,7 @@ async fn refreshed_snapshot_preserves_selection_but_removes_deleted_selection() 
     updates
         .send(Update::Snapshot(Snapshot {
             schedules: vec![],
+            workflows: vec![],
             records: vec![OrganizationRecord::Task(task("new"))],
         }))
         .await
@@ -924,6 +1049,7 @@ async fn actual_dirty_editor_blocks_host_exit_and_owner_apply_dispatch() {
     updates
         .send(Update::Snapshot(Snapshot {
             schedules: vec![],
+            workflows: vec![],
             records: d.snapshot.records.clone(),
         }))
         .await

@@ -74,3 +74,14 @@ all generated JSON/TypeScript/precomputed/SDK contracts were refreshed. An initi
 negative test used the success-only client helper: the server correctly denied the
 request; the test now reads and asserts the actual JSON-RPC error (-32602).
 Full CLI/UI build and physical workflow qualification remain in progress.
+
+Dashboard checkpoint: Projects lists templates/runs; `w` opens workflow/task
+navigation in Projects or Operations, `W` saves the selected task's prerequisite
+closure, and `s` previews a selected template with a reviewed common per-step
+scope. F6 requests a read-only canonical preview; `y` authorizes that exact frozen
+payload. Late responses cannot reopen closed/changed drafts. Inspectors display
+assignments, criteria, dependencies, fixed ceilings and canonical task states;
+run tasks use existing approval/review/Neovim controls. The Operations hierarchy
+remains the default. Thirty native TUI/official-Neovim tests passed, including
+save/preview/frozen identity, late response and narrow/untrusted-content checks.
+Physical interaction and package qualification are still pending.

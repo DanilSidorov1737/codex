@@ -122,6 +122,26 @@ impl Dashboard {
                 },
             ));
         }
+        if matches!(
+            self.preferences.preset,
+            Preset::Projects | Preset::Operations
+        ) {
+            lines.push(Line::default());
+            lines.push(Line::styled(
+                " w  Templates / runs",
+                if self.workflow_view {
+                    Style::default()
+                        .fg(foreground(BLUE))
+                        .bg(background(SELECTED))
+                } else {
+                    Style::default().fg(foreground(MUTED))
+                },
+            ));
+            lines.push(Line::styled(
+                " S  Schedules",
+                Style::default().fg(foreground(MUTED)),
+            ));
+        }
         if self.preferences.preset == Preset::Workspace {
             lines.extend([
                 Line::default(),
@@ -265,7 +285,9 @@ impl Dashboard {
 
     fn rows_view(&self, area: Rect, buffer: &mut Buffer, cards: bool) {
         let pane = &self.preferences.panes[self.preferences.preset.index()];
-        let title = if self.schedule_view {
+        let title = if self.workflow_view {
+            "Workflows · w returns to default view"
+        } else if self.schedule_view {
             "Schedules · S returns to default view"
         } else if cards {
             "Hierarchy tree"
@@ -663,7 +685,9 @@ impl Dashboard {
                 _ => self.rows_view(sections[1], buffer, false),
             }
             if pane.inspector {
-                let title = if self.selected_schedule().is_some() {
+                let title = if self.selected_workflow().is_some() {
+                    "Workflow Inspector"
+                } else if self.selected_schedule().is_some() {
                     "Schedule Inspector"
                 } else {
                     match self.preferences.preset {
@@ -695,7 +719,9 @@ impl Dashboard {
                         pane.inspector_focus,
                     ))
                     .render(right[0], buffer);
-                let actions = if self.selected_schedule().is_some() {
+                let actions = if self.selected_workflow().is_some() {
+                    "[s] Preview template run\n[w] Workflows / default view\n[W] Save selected task chain\nRun tasks: select approval/result"
+                } else if self.selected_schedule().is_some() {
                     "[p] Pause       [u] Resume\n[x] Cancel      [f] Refresh\n[S] Schedules / default view\nRun approvals and results: select task"
                 } else if self.preferences.preset == Preset::Workspace {
                     "[t] Follow AI   [d] Live Diff\n[o] Independent Editing\n[e] Editor focus   [n] Next file\nCtrl-G returns host focus"
@@ -733,7 +759,7 @@ impl Dashboard {
         } else {
             [
                 "N project · T task · G goal · U agent · s authorize · ↑↓ select · Tab focus · / search · f refresh",
-                "R recurring · S schedules · p pause · u resume · x cancel · m/M memory · v accept · A Apply · q Console",
+                "W save workflow · w workflows · s preview/authorize · R recurring · S schedules · m/M memory · v accept · A Apply · q Console",
             ]
         };
         Paragraph::new(vec![

@@ -26,6 +26,9 @@ use crate::tui::{FrameRequester, Tui, TuiEvent};
 mod form;
 #[path = "organization_view.rs"]
 mod view;
+#[path = "organization_workflow.rs"]
+mod workflow;
+use workflow::workflow_id;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -151,6 +154,7 @@ impl Preferences {
 struct Snapshot {
     records: Vec<OrganizationRecord>,
     schedules: Vec<OrganizationScheduleView>,
+    workflows: Vec<OrganizationWorkflowView>,
 }
 enum Command {
     Refresh,
@@ -159,6 +163,8 @@ enum Command {
     Definition(OrganizationMutation),
     Execution(OrganizationExecutionMutation),
     Schedule(OrganizationScheduleMutation),
+    Workflow(OrganizationWorkflowMutation),
+    WorkflowPreview(OrganizationWorkflowPreviewRequest),
     Project {
         params: ProjectCreateParams,
         goal_id: Option<String>,
@@ -177,6 +183,8 @@ enum Update {
     Changed,
     Saved(OrganizationRecord),
     ScheduleSaved(Box<OrganizationScheduleView>, bool),
+    WorkflowSaved(Box<OrganizationWorkflowView>),
+    WorkflowPreview(Box<OrganizationWorkflowPreview>),
 }
 
 fn request_id() -> RequestId {
@@ -245,7 +253,40 @@ async fn load(handle: &AppServerRequestHandle) -> anyhow::Result<Snapshot> {
         );
         cursor = response.next_cursor;
     }
-    Ok(Snapshot { records, schedules })
+    let mut workflows = Vec::new();
+    for kind in [
+        OrganizationWorkflowKind::Templates,
+        OrganizationWorkflowKind::Runs,
+    ] {
+        let mut cursor = None;
+        for page in 0..10 {
+            let response: OrganizationWorkflowListResponse = handle
+                .request_typed(ClientRequest::OrganizationWorkflowList {
+                    request_id: request_id(),
+                    params: OrganizationWorkflowListParams {
+                        kind,
+                        project_id: None,
+                        cursor: cursor.clone(),
+                        limit: Some(200),
+                    },
+                })
+                .await?;
+            workflows.extend(response.data);
+            if response.next_cursor.is_none() {
+                break;
+            }
+            anyhow::ensure!(
+                page < 9 && response.next_cursor != cursor,
+                "layout workflow limit reached (2,000 per kind); use paginated CLI inspection"
+            );
+            cursor = response.next_cursor;
+        }
+    }
+    Ok(Snapshot {
+        records,
+        schedules,
+        workflows,
+    })
 }
 
 async fn worker(
@@ -351,6 +392,29 @@ async fn worker(
                         .await?;
                     updates
                         .send(Update::Detail(Box::new(response.view)))
+                        .await?;
+                    updates.send(Update::Changed).await?;
+                }
+                Command::WorkflowPreview(request) => {
+                    let response: OrganizationWorkflowPreviewResponse = handle
+                        .request_typed(ClientRequest::OrganizationWorkflowPreview {
+                            request_id: request_id(),
+                            params: OrganizationWorkflowPreviewParams { request },
+                        })
+                        .await?;
+                    updates
+                        .send(Update::WorkflowPreview(Box::new(response.preview)))
+                        .await?;
+                }
+                Command::Workflow(mutation) => {
+                    let response: OrganizationWorkflowMutateResponse = handle
+                        .request_typed(ClientRequest::OrganizationWorkflowMutate {
+                            request_id: request_id(),
+                            params: OrganizationWorkflowMutateParams { mutation },
+                        })
+                        .await?;
+                    updates
+                        .send(Update::WorkflowSaved(Box::new(response.view)))
                         .await?;
                     updates.send(Update::Changed).await?;
                 }
@@ -462,6 +526,7 @@ pub(crate) struct Dashboard {
     path: PathBuf,
     snapshot: Snapshot,
     schedule_view: bool,
+    workflow_view: bool,
     rows: Vec<Row>,
     selected: Option<String>,
     collapsed: BTreeSet<String>,
@@ -549,6 +614,7 @@ impl Dashboard {
             path,
             snapshot: Snapshot::default(),
             schedule_view: false,
+            workflow_view: false,
             rows: Vec::new(),
             selected: None,
             collapsed: BTreeSet::new(),
@@ -605,6 +671,7 @@ impl Dashboard {
         }
         self.preferences.preset = preset;
         self.schedule_view = false;
+        self.workflow_view = false;
         self.search.clear();
         self.selected = None;
         self.rebuild();
@@ -613,7 +680,10 @@ impl Dashboard {
     }
     fn rebuild(&mut self) {
         let search = self.search.to_lowercase();
-        self.rows = if self.preferences.preset == Preset::Operations && !self.schedule_view {
+        self.rows = if self.preferences.preset == Preset::Operations
+            && !self.schedule_view
+            && !self.workflow_view
+        {
             let nodes: Vec<_> = self
                 .snapshot
                 .records
@@ -687,10 +757,12 @@ impl Dashboard {
                         || r.id.contains(&search)
                 })
                 .collect();
-            if self.schedule_view {
+            if self.schedule_view || self.workflow_view {
                 rows.clear();
             }
-            if self.schedule_view || self.preferences.preset == Preset::Projects {
+            if self.schedule_view
+                || (self.preferences.preset == Preset::Projects && !self.workflow_view)
+            {
                 rows.extend(self.snapshot.schedules.iter().filter_map(|v| {
                     let s = &v.schedule;
                     let label = format!(
@@ -709,6 +781,67 @@ impl Dashboard {
                         label,
                     })
                 }));
+            }
+            if self.workflow_view
+                || (self.preferences.preset == Preset::Projects && !self.schedule_view)
+            {
+                rows.extend(self.snapshot.workflows.iter().filter_map(|view| {
+                    let (id, label) = match view {
+                        OrganizationWorkflowView::Template { template } => (
+                            format!("workflow:{}", template.id),
+                            format!(
+                                "Template: {} · {} steps · revision {}",
+                                template.label,
+                                template.items.len(),
+                                template.revision
+                            ),
+                        ),
+                        OrganizationWorkflowView::Run { run, tasks } => (
+                            format!("run:{}", run.id),
+                            format!(
+                                "Run: {} · {}/{} accepted · {} blocked",
+                                run.preview.template.label,
+                                tasks.iter().filter(|task| task.state == "accepted").count(),
+                                tasks.len(),
+                                tasks
+                                    .iter()
+                                    .filter(|task| task.prerequisites.iter().any(|id| tasks
+                                        .iter()
+                                        .any(|p| &p.id == id && p.state != "accepted")))
+                                    .count()
+                            ),
+                        ),
+                    };
+                    (search.is_empty()
+                        || label.to_lowercase().contains(&search)
+                        || id.contains(&search))
+                    .then_some(Row { id, label })
+                }));
+            }
+            if self.workflow_view {
+                for view in &self.snapshot.workflows {
+                    if let OrganizationWorkflowView::Run { run, tasks } = view {
+                        for item in &run.preview.template.items {
+                            if let Some(task) =
+                                tasks.iter().find(|task| task.id == run.task_ids[&item.key])
+                            {
+                                let label = format!(
+                                    "  [{}] {} · {} · {}",
+                                    task.state, run.preview.template.label, item.key, item.owner_id
+                                );
+                                if search.is_empty()
+                                    || label.to_lowercase().contains(&search)
+                                    || task.id.contains(&search)
+                                {
+                                    rows.push(Row {
+                                        id: task.id.clone(),
+                                        label,
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
             }
             rows
         };
@@ -980,6 +1113,13 @@ impl Dashboard {
     }
     fn open_form(&mut self, key: char) {
         let kind = match key {
+            'W' => match self.workflow_items() {
+                Ok((project_id, items)) => form::Kind::WorkflowSave { project_id, items },
+                Err(e) => {
+                    self.message = e.to_string();
+                    return;
+                }
+            },
             'R' => match self.record() {
                 Some(OrganizationRecord::Task(task)) if task.prerequisites.is_empty() => {
                     form::Kind::Schedule(task.clone())
@@ -1023,6 +1163,27 @@ impl Dashboard {
             'G' => form::Kind::Goal,
             'N' => form::Kind::Project,
             'T' => form::Kind::Task,
+            's' if self.selected_template().is_some() => {
+                let Some(template) = self.selected_template().cloned() else {
+                    return;
+                };
+                let Some(item) = template.items.first() else {
+                    self.message = "Workflow has no tasks; refresh before starting".into();
+                    return;
+                };
+                let task = OrganizationTask {
+                    id: String::new(),
+                    project_id: template.project_id.clone(),
+                    goal_id: None,
+                    owner_id: item.owner_id.clone(),
+                    instructions: item.instructions.clone(),
+                    criteria: item.criteria.clone(),
+                    prerequisites: vec![],
+                    state: "proposed".into(),
+                    revision: 1,
+                };
+                form::Kind::WorkflowRun { template, task }
+            }
             's' => match self.record() {
                 Some(OrganizationRecord::Task(task))
                     if matches!(
@@ -1218,6 +1379,10 @@ impl Dashboard {
             match key.code {
                 KeyCode::Esc => self.form = None,
                 KeyCode::F(6) => match form.command() {
+                    Ok(Command::WorkflowPreview(request)) => {
+                        self.send(Command::WorkflowPreview(request));
+                        self.message = "Loading exact workflow preview; no work authorized".into();
+                    }
                     Ok(command) => {
                         self.confirmation = Some(command);
                         self.scroll = 0;
@@ -1406,7 +1571,9 @@ impl Dashboard {
             KeyCode::PageDown => self.scroll = self.scroll.saturating_add(10),
             KeyCode::PageUp => self.scroll = self.scroll.saturating_sub(10),
             KeyCode::Left | KeyCode::Right | KeyCode::Enter
-                if self.preferences.preset == Preset::Operations && !self.schedule_view =>
+                if self.preferences.preset == Preset::Operations
+                    && !self.schedule_view
+                    && !self.workflow_view =>
             {
                 if let Some(id) = &self.selected {
                     if key.code == KeyCode::Left
@@ -1424,8 +1591,19 @@ impl Dashboard {
                 self.changes = false;
             }
             KeyCode::Char('f') => self.send(Command::Refresh),
+            KeyCode::Char('w') => {
+                self.workflow_view = !self.workflow_view;
+                self.schedule_view = false;
+                self.selected = None;
+                self.search.clear();
+                self.rebuild();
+                self.inspect();
+                self.message =
+                    "Workflows · W saves selected task chain · s previews selected template".into();
+            }
             KeyCode::Char('S') => {
                 self.schedule_view = !self.schedule_view;
+                self.workflow_view = false;
                 self.search.clear();
                 self.selected = None;
                 self.rebuild();
@@ -1433,7 +1611,7 @@ impl Dashboard {
             }
             KeyCode::Char('m') => self.open_memory(false),
             KeyCode::Char('M') => self.open_memory(true),
-            KeyCode::Char(c @ ('U' | 'G' | 'N' | 'T' | 's' | 'A' | 'R')) => self.open_form(c),
+            KeyCode::Char(c @ ('U' | 'G' | 'N' | 'T' | 's' | 'A' | 'R' | 'W')) => self.open_form(c),
             KeyCode::Char('n') if self.preferences.preset == Preset::Review => {
                 if let Some(result) = self
                     .detail
@@ -1510,6 +1688,27 @@ impl Dashboard {
                     self.rebuild();
                     self.inspect();
                 }
+                Update::WorkflowPreview(preview) => {
+                    // Ignore a late response after the owner closes/changes the draft.
+                    if self.form.as_ref().is_some_and(|form| matches!(form.command(), Ok(Command::WorkflowPreview(request)) if request.id == preview.id && request.template_id == preview.template.id && request.scopes == preview.scopes)) {
+                        self.confirmation = Some(Command::Workflow(OrganizationWorkflowMutation::Run { preview }));
+                        self.scroll = 0;
+                        self.pane().inspector = true;
+                        self.confirmation_text = clean(&self.details());
+                        self.message = "Review exact workflow tasks/scopes · y start · Esc back".into();
+                    }
+                }
+                Update::WorkflowSaved(view) => {
+                    let id = workflow_id(&view);
+                    self.snapshot.workflows.retain(|v| workflow_id(v) != id);
+                    self.snapshot.workflows.push(*view);
+                    self.selected = Some(id);
+                    self.workflow_view = true;
+                    self.schedule_view = false;
+                    self.search.clear();
+                    self.rebuild();
+                    self.inspect();
+                }
                 Update::ScheduleSaved(view, created) => {
                     if created {
                         self.selected = Some(format!("schedule:{}", view.schedule.id));
@@ -1520,6 +1719,7 @@ impl Dashboard {
                     self.snapshot.schedules.push(*view);
                     if created {
                         self.schedule_view = true;
+                        self.workflow_view = false;
                         self.search.clear();
                     }
                     self.rebuild();
@@ -1529,7 +1729,7 @@ impl Dashboard {
         }
     }
     fn details(&self) -> String {
-        let mut text = String::new();
+        let mut text = self.workflow_details();
         if let Some(view) = self.selected_schedule() {
             let s = &view.schedule;
             text = format!(
@@ -1754,6 +1954,7 @@ impl Dashboard {
                 Command::Execution(m) => serde_json::to_string_pretty(m),
                 Command::Definition(m) => serde_json::to_string_pretty(m),
                 Command::Schedule(m) => serde_json::to_string_pretty(m),
+                Command::Workflow(m) => serde_json::to_string_pretty(m),
                 Command::Project {
                     params,
                     goal_id,
@@ -1796,6 +1997,9 @@ impl Dashboard {
                 } else {
                     text.push_str("Cost estimate unavailable: no matching owner price quote.\n");
                 }
+            }
+            if let Command::Workflow(OrganizationWorkflowMutation::Run { preview }) = command {
+                text.push_str(&format!("\nAuthorizes {} fresh tasks in background. Fixed per-step grants sum to {} tokens / {} requests.\nPrerequisites require owner acceptance. Expired/failed/interrupted grants block work; no automatic restart or Apply.\nToken ceilings allow already-admitted usage; cost estimate unavailable.\n", preview.template.items.len(), preview.max_tokens, preview.max_model_requests));
             }
             text = format!(
                 "EXACT OWNER DECISION (y confirms)\n{}\n\n{text}",
