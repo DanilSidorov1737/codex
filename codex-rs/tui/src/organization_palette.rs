@@ -326,6 +326,30 @@ const ACTIONS: &[Action] = &[
         code: KeyCode::Char('V'),
         context: "select preset; fresh identities; exact owner confirmation",
     },
+    Action {
+        title: "Save private Neovim session checkpoint",
+        shortcut: "F7",
+        code: KeyCode::F(7),
+        context: "Workspace host focus; original files/splits/cursors/unsaved text",
+    },
+    Action {
+        title: "Restore native Neovim session",
+        shortcut: "F8",
+        code: KeyCode::F(8),
+        context: "Workspace host focus; explicit choice for unsaved recovery",
+    },
+    Action {
+        title: "Select exact accepted hunks to Apply",
+        shortcut: "h",
+        code: KeyCode::Char('h'),
+        context: "accepted result; one durable application",
+    },
+    Action {
+        title: "Propose accepted artifact to native buffer",
+        shortcut: "B",
+        code: KeyCode::Char('B'),
+        context: "Workspace host focus; pinned clean original; native undo; explicit save",
+    },
 ];
 
 impl Palette {
@@ -389,7 +413,7 @@ mod tests {
     #[test]
     fn search_matches_context_and_dispatches_only_on_enter() {
         let mut palette = Palette::new();
-        for c in "apply accepted".chars() {
+        for c in "files accepted".chars() {
             assert_eq!(palette.key(KeyCode::Char(c).into()), None);
         }
         assert_eq!(palette.actions().len(), 1);

@@ -24,6 +24,12 @@ const MAX_MESSAGE: usize = 16 * 1024 * 1024;
 const MAX_COLUMNS: u16 = 512;
 const MAX_ROWS: u16 = 256;
 
+mod session;
+pub(crate) use session::{BufferProposal, Session};
+#[cfg(test)]
+#[path = "organization_editor/session_tests.rs"]
+mod session_tests;
+
 struct Limited<R> {
     inner: R,
     remaining: usize,
@@ -63,6 +69,7 @@ pub(crate) struct Selection {
 }
 
 pub(crate) struct Editor {
+    identity: String,
     child: Child,
     writer: Option<mpsc::SyncSender<Value>>,
     reader: Option<mpsc::Receiver<Result<Value, String>>>,
@@ -91,6 +98,22 @@ impl Drop for Editor {
     }
 }
 impl Editor {
+    fn guarded_lua(&mut self, script: &str, args: Vec<Value>) -> Result<Value> {
+        // Expected path/revision refusals leave the actual editor usable.
+        // Transport/decoding/timeouts still use rpc's fatal uncertainty fence.
+        let wrapped = format!(
+            "local ok,r=pcall(function(...) {script}\nend,...); return {{ok=ok,value=ok and r or vim.NIL,error=ok and vim.NIL or tostring(r)}}"
+        );
+        let value = self.rpc("nvim_exec_lua", vec![wrapped.into(), Value::Array(args)])?;
+        ensure!(
+            map_get(&value, "ok").and_then(Value::as_bool) == Some(true),
+            "Native editor action refused or incomplete: {:?}",
+            map_get(&value, "error")
+        );
+        map_get(&value, "value")
+            .cloned()
+            .context("native editor action result missing")
+    }
     pub(crate) fn start(frame: FrameRequester) -> Result<Self> {
         let config =
             std::env::var_os("CODEX_ORGANIZATION_NVIM_CONFIG").map(std::path::PathBuf::from);
@@ -177,6 +200,7 @@ impl Editor {
             }
         });
         let mut editor = Self {
+            identity: uuid::Uuid::new_v4().to_string(),
             child,
             writer: Some(writer),
             reader: Some(reader),
@@ -192,6 +216,13 @@ impl Editor {
             mode: "normal".into(),
             frozen: None,
         };
+        editor.rpc("nvim_exec_lua", vec![r#"
+vim.api.nvim_create_autocmd({'BufReadPost','BufWritePost'}, {group=vim.api.nvim_create_augroup('CodexSessionBases',{clear=true}), callback=function(a)
+ local name=vim.api.nvim_buf_get_name(a.buf)
+ local ok,lines=pcall(vim.fn.readfile,name,'b')
+ if ok then vim.b[a.buf].codex_session_base=vim.fn.sha256(table.concat(lines,'\n')) end
+end})
+"#.into(), Value::Array(vec![])])?;
         let info = editor.rpc("nvim_get_api_info", vec![])?;
         let metadata = array(&info)?
             .get(1)

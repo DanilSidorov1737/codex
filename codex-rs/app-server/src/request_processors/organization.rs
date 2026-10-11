@@ -446,7 +446,7 @@ impl OrganizationRequestProcessor {
                         .request_changes(&task_id, expected_revision, &instructions)
                         .await?
                 }
-                OrganizationExecutionMutation::Apply {task_id,expected_revision,digest,paths} => {
+                OrganizationExecutionMutation::Apply {task_id,expected_revision,digest,paths,hunks} => {
                     let _application = self.application_lock.clone().acquire_owned().await?;
                     let mut no_intent = false;
                     let prepared = async {
@@ -460,7 +460,7 @@ impl OrganizationRequestProcessor {
                         let codex_protocol::organization::OrganizationRecord::Project(project)=store.read_definition(codex_protocol::organization::OrganizationRecordKind::Projects,&view.task.project_id).await? else {anyhow::bail!("invalid project record")};
                         anyhow::ensure!(linked.roots.iter().map(|r|&r.path).eq(project.roots.iter()),"project roots changed");
                         let source=view.attempts.iter().find(|a|a.id==result.attempt_id).and_then(|a|a.workspace.as_deref()).context("accepted workspace missing")?;
-                        crate::organization_workspace::PreparedApplication::prepare(&self.config,std::path::Path::new(project.roots.first().context("project root missing")?),std::path::Path::new(source),&result,paths.as_deref())
+                        crate::organization_workspace::PreparedApplication::prepare_hunks(&self.config,std::path::Path::new(project.roots.first().context("project root missing")?),std::path::Path::new(source),&result,paths.as_deref(),hunks.as_deref())
                     }.await;
                     let prepared = match prepared {
                         Ok(prepared) => prepared,
@@ -476,7 +476,7 @@ impl OrganizationRequestProcessor {
                             return Err(error);
                         }
                     };
-                    let intent=store.begin_application(&task_id,expected_revision,&digest,paths.as_deref()).await?;
+                    let intent=store.begin_application_hunks(&task_id,expected_revision,&digest,paths.as_deref(),hunks.as_deref()).await?;
                     let applied=tokio::task::spawn_blocking(move||{
                         // A disconnected/cancelled owner RPC must not release
                         // serialization while its native file writes still run.

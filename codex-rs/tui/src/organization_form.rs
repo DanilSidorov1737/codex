@@ -5,6 +5,12 @@ use crossterm::event::KeyModifiers;
 use ratatui::layout::Margin;
 
 pub(super) enum Kind {
+    RestoreEditor(Box<crate::organization_editor::Session>),
+    HunkApply {
+        task: OrganizationTask,
+        result: OrganizationTaskResult,
+        files: Vec<HunkFile>,
+    },
     Agent,
     Group,
     NodeEdit(OrganizationNode),
@@ -74,6 +80,12 @@ pub(super) enum Kind {
     },
 }
 
+pub(super) struct HunkFile {
+    pub(super) path: String,
+    pub(super) base: String,
+    pub(super) artifact: String,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -94,6 +106,131 @@ mod tests {
             state: "proposed".into(),
             revision: 7,
         }
+    }
+
+    #[test]
+    fn discussion_and_knowledge_forms_capture_scope_and_start_no_execution() {
+        let agent = OrganizationNode {
+            id: "agent".into(),
+            parent_id: None,
+            kind: OrganizationNodeKind::Agent,
+            label: "Arbitrary contributor".into(),
+            role_version_id: None,
+            model: None,
+            enabled: true,
+            revision: 1,
+        };
+        let project = OrganizationProjectPlan {
+            id: "project".into(),
+            name: "Local".into(),
+            roots: vec!["/tmp/project".into()],
+            goal_id: None,
+            owner_id: Some("agent".into()),
+            criteria: vec![],
+            revision: 1,
+        };
+        let records = vec![
+            OrganizationRecord::Node(agent),
+            OrganizationRecord::Project(project),
+        ];
+        let mut form = Form::new(Kind::Discussion, &records, Some(&records[1]), "model");
+        set(&mut form, 1, "Reviewed debate");
+        set(&mut form, 2, "Retain dissent");
+        let Command::Workflow(OrganizationWorkflowMutation::PutDiscussion { discussion, .. }) =
+            form.command().unwrap()
+        else {
+            panic!("template only")
+        };
+        assert_eq!(discussion.participants, vec!["agent"]);
+        assert_eq!(discussion.plan_items().unwrap().len(), 2);
+        form.fields[6].choice = 1;
+        assert!(
+            form.command().is_err(),
+            "duplicate participants refuse before saving"
+        );
+        let mut knowledge = Form::new(
+            Kind::Knowledge {
+                note_id: "private-note".into(),
+                body_sha256: "a".repeat(64),
+                previous: Some(OrganizationControl {
+                    id: "knowledge:private-note".into(),
+                    revision: 8,
+                    value: OrganizationControlValue::Knowledge {
+                        note_id: "private-note".into(),
+                        body_sha256: "a".repeat(64),
+                        retired: true,
+                        reason: "prior".into(),
+                    },
+                }),
+            },
+            &[],
+            None,
+            "model",
+        );
+        assert!(knowledge.command().is_err());
+        set(&mut knowledge, 1, "Reviewed correction");
+        knowledge.fields[0].choice = 1;
+        assert!(
+            matches!(knowledge.command().unwrap(),Command::Definition(OrganizationMutation::SetControl {expected_revision:Some(8),value:OrganizationControlValue::Knowledge {note_id,retired:false,..}}) if note_id=="private-note")
+        );
+    }
+
+    #[test]
+    fn hunk_form_pins_exact_result_indices_and_output_without_loading_later_state() {
+        let middle = (0..30)
+            .map(|i| format!("context {i}\n"))
+            .collect::<String>();
+        let base = format!("old first\n{middle}old last\n");
+        let artifact = format!("new first\n{middle}new last\n");
+        let result = OrganizationTaskResult {
+            attempt_id: "attempt".into(),
+            artifacts: vec![OrganizationArtifactEvidence {
+                path: "file.txt".into(),
+                sha256: "a".repeat(64),
+                bytes: artifact.len() as u64,
+            }],
+            artifact_bases: vec![],
+            checks: vec![],
+            digest: "pinned-result".into(),
+            accepted: true,
+        };
+        let mut form = Form::new(
+            Kind::HunkApply {
+                task: task(),
+                result,
+                files: vec![HunkFile {
+                    path: "file.txt".into(),
+                    base: base.clone(),
+                    artifact: artifact.clone(),
+                }],
+            },
+            &[],
+            None,
+            "model",
+        );
+        assert!(form.command().is_err());
+        form.key(KeyCode::Char(' ').into());
+        let Command::Execution(OrganizationExecutionMutation::Apply {
+            task_id,
+            expected_revision: 7,
+            digest,
+            hunks: Some(hunks),
+            ..
+        }) = form.command().unwrap()
+        else {
+            panic!("hunk apply")
+        };
+        assert_eq!(task_id, "original-task");
+        assert_eq!(digest, "pinned-result");
+        assert_eq!(hunks[0].indices, vec![0]);
+        use sha2::{Digest, Sha256};
+        assert_eq!(
+            hunks[0].output_sha256,
+            format!(
+                "{:x}",
+                Sha256::digest(format!("new first\n{middle}old last\n").as_bytes())
+            )
+        );
     }
 
     #[test]
@@ -911,6 +1048,7 @@ mod tests {
             expected_revision,
             digest,
             paths,
+            ..
         }) = form.command().unwrap()
         else {
             panic!("missing apply")
@@ -1128,6 +1266,11 @@ impl Form {
             .or_else(|| project.and_then(|p| p.goal_id.as_deref()));
         let owner = project.and_then(|p| p.owner_id.as_deref());
         let mut fields = match &kind {
+            Kind::RestoreEditor(session)=>vec![Field::select("Restore choice",vec![("false".into(),format!("{} · saved files only; retain unsaved checkpoint",session.summary())),("true".into(),"Explicitly recover unsaved text into native buffers; files on disk stay untouched".into())],None)],
+            Kind::HunkApply {files,..}=>files.iter().flat_map(|file| {
+                let patch=diffy::create_patch(&file.base,&file.artifact);
+                patch.hunks().iter().enumerate().map(|(index,hunk)|Field::select(format!("{} · hunk {} · original line {}",file.path,index+1,hunk.old_range().start()),vec![(String::new(),"[ ] Preserve this hunk".into()),("true".into(),format!("[x] Apply hunk {} ({} original / {} new lines)",index+1,hunk.old_range().len(),hunk.new_range().len()))],None)).collect::<Vec<_>>()
+            }).collect(),
             Kind::Knowledge { .. }=>vec![
                 Field::select("Knowledge state",vec![("true".into(),"Retire from fresh retrieval; retain history".into()),("false".into(),"Restore original visibility; superseded notes stay superseded".into())],None),
                 Field::text("Owner review reason","Record stale, conflicting or duplicate evidence; corrections use O promotion; no new visibility is granted",""),
@@ -1404,21 +1547,21 @@ impl Form {
         if matches!(&kind, Kind::Replan { .. }) {
             fields.push(Field::text("Why replan", "Saving starts no work; separate exact review applies the delta under original grants", ""));
         }
-        if let Kind::WorkflowRun { template } | Kind::WorkflowSeries { template, .. } = &kind {
-            if template.discussion.is_some() {
-                for (index, item) in template.items.iter().enumerate() {
-                    fields[index * 14].input.set_text_clearing_elements(
-                        &item
-                            .prerequisites
-                            .iter()
-                            .map(|key| format!("discussion/{key}.json"))
-                            .collect::<Vec<_>>()
-                            .join("\n"),
-                    );
-                    fields[index * 14 + 2]
-                        .input
-                        .set_text_clearing_elements(&format!("discussion/{}.json", item.key));
-                }
+        if let Kind::WorkflowRun { template } | Kind::WorkflowSeries { template, .. } = &kind
+            && template.discussion.is_some()
+        {
+            for (index, item) in template.items.iter().enumerate() {
+                fields[index * 14].input.set_text_clearing_elements(
+                    &item
+                        .prerequisites
+                        .iter()
+                        .map(|key| format!("discussion/{key}.json"))
+                        .collect::<Vec<_>>()
+                        .join("\n"),
+                );
+                fields[index * 14 + 2]
+                    .input
+                    .set_text_clearing_elements(&format!("discussion/{}.json", item.key));
             }
         }
         if matches!(&kind, Kind::Schedule(_)) {
@@ -1500,6 +1643,8 @@ impl Form {
     }
     pub(super) fn title(&self) -> &'static str {
         match self.kind {
+            Kind::RestoreEditor(_) => "Restore actual Neovim session · exact owner choice",
+            Kind::HunkApply { .. } => "Select exact accepted hunks · one durable Apply",
             Kind::Agent => "New agent",
             Kind::Group => "New group",
             Kind::NodeEdit(_) => "Edit node / hierarchy / state",
@@ -1759,6 +1904,52 @@ impl Form {
             Ok(lines(i))
         };
         Ok(match &self.kind {
+            Kind::RestoreEditor(session) => {
+                Command::RestoreEditor(session.clone(), required(0)?.parse()?)
+            }
+            Kind::HunkApply {
+                task,
+                result,
+                files,
+            } => {
+                use sha2::{Digest, Sha256};
+                anyhow::ensure!(result.accepted, "Accept the exact result first");
+                let mut offset = 0;
+                let mut selections = Vec::new();
+                for file in files {
+                    let count = diffy::create_patch(&file.base, &file.artifact)
+                        .hunks()
+                        .len();
+                    let indices: Vec<_> = (0..count)
+                        .filter(|i| value(offset + i) == "true")
+                        .map(|i| i as u32)
+                        .collect();
+                    offset += count;
+                    if indices.is_empty() {
+                        continue;
+                    }
+                    let (patch, output) = codex_protocol::organization_execution::selected_hunks(
+                        &file.base,
+                        &file.artifact,
+                        &indices,
+                    )
+                    .map_err(anyhow::Error::msg)?;
+                    selections.push(OrganizationHunkSelection {
+                        path: file.path.clone(),
+                        indices,
+                        patch_sha256: format!("{:x}", Sha256::digest(patch.as_bytes())),
+                        output_sha256: format!("{:x}", Sha256::digest(output.as_bytes())),
+                    });
+                }
+                anyhow::ensure!(!selections.is_empty(), "Select at least one hunk");
+                Command::Execution(OrganizationExecutionMutation::Apply {
+                    task_id: task.id.clone(),
+                    expected_revision: task.revision,
+                    digest: result.digest.clone(),
+                    paths: Some(selections.iter().map(|s| s.path.clone()).collect()),
+                    hunks: Some(selections),
+                })
+            }
             Kind::Knowledge {
                 note_id,
                 body_sha256,
@@ -1945,6 +2136,7 @@ impl Form {
                     task_id: task.id.clone(),
                     expected_revision: task.revision,
                     digest: result.digest.clone(),
+                    hunks: None,
                     paths: Some(
                         result
                             .application_paths(Some(&paths))

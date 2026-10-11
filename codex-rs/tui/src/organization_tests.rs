@@ -203,26 +203,31 @@ fn node(id: &str, parent: Option<&str>) -> OrganizationNode {
 
 #[test]
 fn deep_tree_search_crosses_collapsed_branches_and_keeps_stable_ids() {
-    let nodes: Vec<_> = (0..1000)
+    let nodes: Vec<_> = (0..10000)
         .map(|i| {
             node(
-                &format!("n{i:04}"),
+                &format!("n{i:05}"),
                 if i == 0 { None } else { Some("unused") },
             )
         })
         .enumerate()
         .map(|(i, mut n)| {
-            n.parent_id = (i > 0).then(|| format!("n{:04}", i - 1));
+            n.parent_id = (i > 0).then(|| format!("n{:05}", i - 1));
             n
         })
         .collect();
-    let collapsed = BTreeSet::from(["n0000".to_string()]);
+    let measured = std::time::Instant::now();
+    let collapsed = BTreeSet::from(["n00000".to_string()]);
     assert_eq!(tree(&nodes, &collapsed, "").len(), 1);
-    let found = tree(&nodes, &collapsed, "n0999");
+    let found = tree(&nodes, &collapsed, "n09999");
     assert_eq!(found.len(), 1);
-    assert_eq!(found[0].id, "n0999");
+    assert_eq!(found[0].id, "n09999");
     assert!(found[0].label.len() < 100);
-    assert_eq!(tree(&nodes, &BTreeSet::new(), "").len(), 1000);
+    assert_eq!(tree(&nodes, &BTreeSet::new(), "").len(), 10000);
+    eprintln!(
+        "registry_tree_measurement: 10000-deep nodes; collapse/search/full traversal {:?}",
+        measured.elapsed()
+    );
 }
 
 #[test]
@@ -787,9 +792,10 @@ async fn workflow_controls_capture_run_revision_and_need_explicit_confirmation()
         "taskIds":{}, "preview":{"id":"run-id", "template":{"id":"template", "projectId":"project", "revision":1, "label":"Workflow", "items":[]},
             "projectRevision":1, "nodeRevisions":{}, "policyVersion":2, "scopes":[], "maxTokens":100, "maxModelRequests":2}
     })).unwrap();
-    d.snapshot
-        .workflows
-        .push(OrganizationWorkflowView::Run { run, tasks: vec![] });
+    d.snapshot.workflows.push(OrganizationWorkflowView::Run {
+        run: Box::new(run),
+        tasks: vec![],
+    });
     d.projection = Projection::Workflows;
     d.selected = Some("run:run-id".into());
     d.decision('u');
@@ -1606,6 +1612,7 @@ async fn selective_apply_confirmation_keeps_captured_paths_task_and_revision() {
         expected_revision,
         digest,
         paths,
+        ..
     }) = rx.try_recv().unwrap()
     else {
         panic!("missing apply")
@@ -1778,6 +1785,28 @@ async fn owner_controls_discover_capture_and_confirm_without_early_authority() {
     }
     d.key(KeyCode::F(11).into());
     assert_eq!(d.projection, Projection::Default);
+}
+
+#[test]
+fn scorecard_rendering_keeps_legacy_dimensions_unavailable_and_captured_scope() {
+    let mut report = empty_report();
+    let text = reporting::text(&report, &reporting::Focus::All, None);
+    assert!(text.contains("Scorecards unavailable"));
+    let card:OrganizationScorecard=serde_json::from_value(serde_json::json!({"projectId":"project","workflowRunId":null,"ownerId":null,"provider":null,"model":"captured-model","attempts":2,"acceptedResults":1,"failedAttempts":0,"blockedAttempts":1,"uncertainAttempts":0,"checksPassed":1,"checksFailed":0,"reportedTokens":22,"modelRequests":2,"reportedModelRequests":2})).unwrap();
+    report.scorecards = Some(OrganizationScorecards {
+        entries: vec![card],
+        truncated: true,
+    });
+    let text = reporting::text(&report, &reporting::Focus::Project("project".into()), None);
+    assert!(text.contains("unavailable (historical)/captured-model"));
+    assert!(text.contains("22 reported tokens"));
+    assert!(text.contains("truncated at 2,000"));
+    let other = reporting::text(
+        &report,
+        &reporting::Focus::Agent("current-receiver".into()),
+        None,
+    );
+    assert!(!other.contains("captured-model"));
 }
 
 #[test]

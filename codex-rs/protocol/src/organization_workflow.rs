@@ -206,7 +206,7 @@ pub enum OrganizationWorkflowView {
         template: OrganizationWorkflowTemplate,
     },
     Run {
-        run: OrganizationWorkflowRun,
+        run: Box<OrganizationWorkflowRun>,
         tasks: Vec<OrganizationTask>,
     },
     Limit {

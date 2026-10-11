@@ -114,3 +114,14 @@ The new finite policies, atomic checkpoint replans, typed discussions, scoped
 knowledge retirement/history and captured scorecards are described in
 [reviewed autonomy](reviewed-autonomy.md). Generated contracts, production
 Clippy/package and fresh physical checks follow; tasks 16–20 remain in progress.
+
+Tasks 16–18 are implemented with native package qualification pending; see
+[Neovim sessions and hunks](neovim-sessions-and-hunks.md). Full state 310,
+protocol 374 and targeted TUI/official-Neovim 69 pass. The stale-proposal test
+found an expected native refusal incorrectly invalidating the editor; guarded
+Lua now retains the editor while transport/timeouts still fence uncertainty.
+Palette tests preserve layout ordering and unambiguous discovery. A 10,000-deep
+node tree completes collapse/search/full traversal in 124–279 ms in these test
+runs. The node/goal loader now permits 10,000 records, retaining 2,000 for other
+record types and default-two/max-four active execution. Task 19 still needs native
+stored-registry measurements; task 20 needs complete fresh native qualification.

@@ -604,6 +604,18 @@ impl OrganizationStore {
         digest: &str,
         paths: Option<&[String]>,
     ) -> Result<OrganizationApplication> {
+        self.begin_application_hunks(task_id, revision, digest, paths, None)
+            .await
+    }
+
+    pub async fn begin_application_hunks(
+        &self,
+        task_id: &str,
+        revision: i64,
+        digest: &str,
+        paths: Option<&[String]>,
+        hunks: Option<&[codex_protocol::organization_execution::OrganizationHunkSelection]>,
+    ) -> Result<OrganizationApplication> {
         let mut tx = self.pool.begin_with("BEGIN IMMEDIATE").await?;
         let task = read_task(&mut tx, task_id).await?;
         ensure!(
@@ -633,6 +645,13 @@ impl OrganizationStore {
             paths: result
                 .application_paths(paths)
                 .map_err(anyhow::Error::msg)?,
+            hunks: hunks
+                .map(|h| {
+                    result
+                        .application_hunks(paths, Some(h))
+                        .map_err(anyhow::Error::msg)
+                })
+                .transpose()?,
             state: OrganizationApplicationState::Pending,
             receipt: None,
         };

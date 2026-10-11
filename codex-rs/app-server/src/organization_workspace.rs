@@ -42,12 +42,13 @@ pub(crate) struct PreparedApplication {
     files: Vec<(String, Vec<u8>, Option<String>)>,
 }
 impl PreparedApplication {
-    pub(crate) fn prepare(
+    pub(crate) fn prepare_hunks(
         config: &Config,
         project: &Path,
         source: &Path,
         result: &codex_protocol::organization_execution::OrganizationTaskResult,
         paths: Option<&[String]>,
+        hunks: Option<&[codex_protocol::organization_execution::OrganizationHunkSelection]>,
     ) -> Result<Self> {
         ensure!(
             cfg!(target_os = "linux"),
@@ -56,6 +57,9 @@ impl PreparedApplication {
         ensure!(result.accepted, "unaccepted result cannot be applied");
         let paths = result
             .application_paths(paths)
+            .map_err(anyhow::Error::msg)?;
+        let selected_hunks = result
+            .application_hunks(Some(&paths), hunks)
             .map_err(anyhow::Error::msg)?;
         ensure!(
             std::fs::canonicalize(project)? == project && std::fs::canonicalize(source)? == source,
@@ -94,7 +98,7 @@ impl PreparedApplication {
                     .any(|root| destination.starts_with(root) || root.starts_with(&destination)),
                 "protected state destination rejected"
             );
-            let bytes = read_relative(source, &artifact.path)?;
+            let mut bytes = read_relative(source, &artifact.path)?;
             total += bytes.len() as u64;
             ensure!(total <= MAX_INPUT_BYTES, "application exceeds 64 MiB");
             ensure!(
@@ -106,6 +110,26 @@ impl PreparedApplication {
                 current_base(project, &artifact.path)? == base.sha256,
                 "original file changed since task snapshot"
             );
+            if let Some(selection) = selected_hunks.iter().find(|s| s.path == artifact.path) {
+                ensure!(
+                    base.sha256.is_some(),
+                    "hunk Apply requires an existing original base"
+                );
+                let original = read_relative(project, &artifact.path)?;
+                let (patch, output) = codex_protocol::organization_execution::selected_hunks(
+                    std::str::from_utf8(&original)?,
+                    std::str::from_utf8(&bytes)?,
+                    &selection.indices,
+                )
+                .map_err(anyhow::Error::msg)?;
+                ensure!(
+                    format!("{:x}", Sha256::digest(patch.as_bytes())) == selection.patch_sha256
+                        && format!("{:x}", Sha256::digest(output.as_bytes()))
+                            == selection.output_sha256,
+                    "hunk preview changed; recapture exact selection"
+                );
+                bytes = output.into_bytes();
+            }
             files.push((artifact.path.clone(), bytes, base.sha256.clone()));
         }
         Ok(Self {
@@ -861,6 +885,94 @@ fn current_uid() -> u32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[tokio::test]
+    async fn exact_hunk_application_rejects_stale_hashes_and_preserves_unselected_changes()
+    -> Result<()> {
+        use codex_protocol::organization_execution::*;
+        let home = tempfile::tempdir()?;
+        let project = tempfile::tempdir()?;
+        let source = tempfile::tempdir()?;
+        let config = codex_core::config::ConfigBuilder::default()
+            .codex_home(home.path().to_path_buf())
+            .build()
+            .await?;
+        let middle = (0..30)
+            .map(|i| format!("context {i}\n"))
+            .collect::<String>();
+        let base = format!("old first\n{middle}old last\n");
+        let artifact = format!("new first\n{middle}new last\n");
+        write_relative(project.path(), "file.txt", base.as_bytes())?;
+        write_relative(source.path(), "file.txt", artifact.as_bytes())?;
+        let hash = |s: &str| format!("{:x}", Sha256::digest(s.as_bytes()));
+        let result = OrganizationTaskResult {
+            attempt_id: "attempt".into(),
+            digest: "accepted".into(),
+            accepted: true,
+            checks: vec![],
+            artifacts: vec![OrganizationArtifactEvidence {
+                path: "file.txt".into(),
+                bytes: artifact.len() as u64,
+                sha256: hash(&artifact),
+            }],
+            artifact_bases: vec![OrganizationArtifactBase {
+                path: "file.txt".into(),
+                sha256: Some(hash(&base)),
+            }],
+        };
+        let (patch, output) = selected_hunks(&base, &artifact, &[0]).map_err(anyhow::Error::msg)?;
+        let selection = OrganizationHunkSelection {
+            path: "file.txt".into(),
+            indices: vec![0],
+            patch_sha256: hash(&patch),
+            output_sha256: hash(&output),
+        };
+        let paths = vec!["file.txt".into()];
+        let mut stale = selection.clone();
+        stale.output_sha256 = "0".repeat(64);
+        assert!(
+            PreparedApplication::prepare_hunks(
+                &config,
+                project.path(),
+                source.path(),
+                &result,
+                Some(&paths),
+                Some(&[stale])
+            )
+            .is_err()
+        );
+        assert_eq!(read_relative(project.path(), "file.txt")?, base.as_bytes());
+        let prepared = PreparedApplication::prepare_hunks(
+            &config,
+            project.path(),
+            source.path(),
+            &result,
+            Some(&paths),
+            Some(std::slice::from_ref(&selection)),
+        )?;
+        write_relative(project.path(), "file.txt", b"external owner change")?;
+        assert!(prepared.apply().is_err());
+        assert_eq!(
+            read_relative(project.path(), "file.txt")?,
+            b"external owner change"
+        );
+        write_relative(project.path(), "file.txt", base.as_bytes())?;
+        PreparedApplication::prepare_hunks(
+            &config,
+            project.path(),
+            source.path(),
+            &result,
+            Some(&paths),
+            Some(&[selection]),
+        )?
+        .apply()?;
+        assert_eq!(
+            read_relative(project.path(), "file.txt")?,
+            output.as_bytes()
+        );
+        assert!(output.ends_with("old last\n"));
+        Ok(())
+    }
 
     #[test]
     fn checkpoint_copies_only_granted_bytes_preserving_even_missing_output_bases() -> Result<()> {

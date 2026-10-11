@@ -532,6 +532,7 @@ Path('report.txt').write_text('checked background artifact')
                     expected_revision: accepted.task.revision,
                     digest: result.digest.clone(),
                     paths: Some(invalid),
+                    hunks: None,
                 }
             )
             .await?
@@ -564,6 +565,7 @@ Path('report.txt').write_text('checked background artifact')
                 expected_revision: accepted.task.revision,
                 digest: result.digest.clone(),
                 paths: selective.then(|| vec!["report.txt".into()]),
+                hunks: None,
             }
         )
         .await?
@@ -584,6 +586,7 @@ Path('report.txt').write_text('checked background artifact')
                 expected_revision: accepted.task.revision,
                 digest: result.digest.clone(),
                 paths: selective.then(|| vec!["report.txt".into()]),
+                hunks: None,
             }
         )
         .await?
@@ -598,6 +601,7 @@ Path('report.txt').write_text('checked background artifact')
             expected_revision: accepted.task.revision,
             digest: result.digest.clone(),
             paths: selective.then(|| vec!["report.txt".into()]),
+            hunks: None,
         },
     )
     .await?;
@@ -633,6 +637,7 @@ Path('report.txt').write_text('checked background artifact')
                 expected_revision: accepted.task.revision,
                 digest: result.digest,
                 paths: None,
+                hunks: None,
             }
         )
         .await?

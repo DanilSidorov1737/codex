@@ -27,7 +27,7 @@ paused and owned services are stopped. Preserve `operations-batch/controls/`,
 both accepted unapplied results and the cancelled zero-usage probe; never replay
 setup/decisions or reset ceilings. Next work is tasks 10–15 bounded policy/goal
 supervision, replanning, discussions, knowledge maintenance and scorecards.
-Tasks 10–15 now pass 310 full state, 373 full protocol and 63 targeted TUI/editor checks; native qualification and generated contracts remain pending. See reviewed-autonomy.md. Tasks 16–20 are in progress.
+Tasks 10–15 now pass 310 full state, 373 full protocol and 63 targeted TUI/editor checks; native qualification and generated contracts remain pending. See reviewed-autonomy.md. Tasks 16–18 are implemented and pass 69 targeted real-editor/TUI checks; native package qualification is pending. The full state/protocol reruns pass 310/374. Task 19 has measured 10,000-node traversal and expanded only dormant node/goal loading; native registry and task 20 full qualification remain. See neovim-sessions-and-hunks.md.
 [Batch checkpoint](next-twenty.md) is authoritative
 for remaining work; [host runbook](unattended-host-qualification.md) describes the
 unavailable logout/reboot checks. Preserve all fresh operations-batch fixtures

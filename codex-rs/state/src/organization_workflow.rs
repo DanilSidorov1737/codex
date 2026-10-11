@@ -315,7 +315,10 @@ impl OrganizationStore {
                 for task_id in run.task_ids.values() {
                     tasks.push(read_task(&mut tx, task_id).await?);
                 }
-                OrganizationWorkflowView::Run { run, tasks }
+                OrganizationWorkflowView::Run {
+                    run: Box::new(run),
+                    tasks,
+                }
             }
             OrganizationWorkflowMutation::SetLimits {
                 project_id,
@@ -435,7 +438,10 @@ impl OrganizationStore {
                     for item in &run.preview.template.items {
                         tasks.push(read_task(&mut tx, &run.task_ids[&item.key]).await?);
                     }
-                    OrganizationWorkflowView::Run { run, tasks }
+                    OrganizationWorkflowView::Run {
+                        run: Box::new(run),
+                        tasks,
+                    }
                 }
                 OrganizationWorkflowKind::Series => {
                     super::workflow_series::view_in(&mut tx, serde_json::from_str(&data)?).await?
@@ -766,5 +772,8 @@ pub(super) async fn run_in(
         .execute(&mut **tx)
         .await?;
     owner_event(tx, "workflow/run", &run.id).await?;
-    Ok(OrganizationWorkflowView::Run { run, tasks })
+    Ok(OrganizationWorkflowView::Run {
+        run: Box::new(run),
+        tasks,
+    })
 }

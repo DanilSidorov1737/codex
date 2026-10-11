@@ -1,6 +1,7 @@
 //! Owner organization layouts. All authority stays in the existing app-server.
 //! One bounded loader serves every preset; sleeping definitions create no model sessions.
 
+use anyhow::Context;
 use std::borrow::Cow;
 use std::collections::{BTreeMap, BTreeSet};
 use std::io::{Read, Write};
@@ -169,6 +170,8 @@ struct Snapshot {
     report: Option<OrganizationReport>,
 }
 enum Command {
+    RestoreEditor(Box<crate::organization_editor::Session>, bool),
+    BufferProposal(Box<crate::organization_editor::BufferProposal>),
     Refresh,
     Summary(String, reporting::Focus),
     Inventory(String),
@@ -247,7 +250,15 @@ async fn load(handle: &AppServerRequestHandle) -> anyhow::Result<Snapshot> {
         OrganizationRecordKind::Controls,
     ] {
         let mut cursor = None;
-        for page in 0..10 {
+        let pages = if matches!(
+            kind,
+            OrganizationRecordKind::Nodes | OrganizationRecordKind::Goals
+        ) {
+            50
+        } else {
+            10
+        };
+        for page in 0..pages {
             let response: OrganizationListResponse = handle
                 .request_typed(ClientRequest::OrganizationList {
                     request_id: request_id(),
@@ -263,8 +274,8 @@ async fn load(handle: &AppServerRequestHandle) -> anyhow::Result<Snapshot> {
                 break;
             }
             anyhow::ensure!(
-                page < 9 && response.next_cursor != cursor,
-                "layout record limit reached (2,000 per kind); use paginated CLI inspection"
+                page + 1 < pages && response.next_cursor != cursor,
+                "layout record limit reached (10,000 nodes/goals; 2,000 other records per kind); use paginated CLI inspection"
             );
             cursor = response.next_cursor;
         }
@@ -349,6 +360,9 @@ async fn worker(
         let mut apply_rejected = false;
         let operation = async {
             match command {
+                Command::RestoreEditor(..) | Command::BufferProposal(..) => {
+                    anyhow::bail!("native editor actions must stay on the frontend")
+                }
                 Command::Summary(id, focus) => {
                     let report = reporting::load(&handle, focus.project_id())
                         .await
@@ -787,11 +801,254 @@ pub(crate) struct Dashboard {
 
 impl Drop for Dashboard {
     fn drop(&mut self) {
+        // Never replace an earlier unsaved recovery checkpoint on automatic exit.
+        // Explicit F7 is the owner's choice to advance the checkpoint.
+        if !self.applying {
+            let roots = self.project_roots();
+            if let Some(home) = self.path.parent() {
+                let previous = crate::organization_editor::Session::load(home, &roots);
+                if (previous.as_ref().is_ok_and(|s| !s.has_unsaved())
+                    || !home.join("organization-editor-session.json").exists())
+                    && let Some(editor) = &mut self.editor
+                    && let Err(error) = editor.save_session(home, &roots)
+                {
+                    tracing::warn!(%error,"Native editor exit checkpoint retained or unavailable");
+                }
+            }
+        }
         self.worker.abort();
     }
 }
 
 impl Dashboard {
+    fn project_roots(&self) -> Vec<PathBuf> {
+        self.snapshot
+            .records
+            .iter()
+            .filter_map(|r| match r {
+                OrganizationRecord::Project(p) => Some(p.roots.iter().map(PathBuf::from)),
+                _ => None,
+            })
+            .flatten()
+            .collect()
+    }
+
+    fn editor_session(&mut self, restore: bool) {
+        let result = (|| -> anyhow::Result<()> {
+            anyhow::ensure!(
+                !self.applying,
+                "Application outcome pending; editor actions wait for reconciliation"
+            );
+            let roots = self.project_roots();
+            let home = self.path.parent().context("owner home missing")?;
+            if restore {
+                let session = crate::organization_editor::Session::load(home, &roots)?;
+                self.form = Some(form::Form::new(
+                    form::Kind::RestoreEditor(Box::new(session)),
+                    &self.snapshot.records,
+                    self.record(),
+                    &self.model,
+                ));
+            } else {
+                let session = self
+                    .editor
+                    .as_mut()
+                    .context("open original project files in Neovim first")?
+                    .save_session(home, &roots)?;
+                self.message = format!(
+                    "Private native checkpoint saved: {} · F8 explicit restore",
+                    session.summary()
+                );
+            }
+            Ok(())
+        })();
+        if let Err(error) = result {
+            self.message = error.to_string();
+            self.message_is_error = true;
+        }
+    }
+
+    fn hunk_form(&mut self) {
+        let result = (|| -> anyhow::Result<()> {
+            anyhow::ensure!(
+                !self.applying,
+                "Application outcome pending; editor actions wait for reconciliation"
+            );
+            use sha2::{Digest, Sha256};
+            let view = self
+                .detail
+                .as_ref()
+                .filter(|v| Some(&v.task.id) == self.selected.as_ref())
+                .context("select an accepted task and wait for details")?;
+            let result = view
+                .result
+                .as_ref()
+                .filter(|r| r.accepted)
+                .context("accept the exact result first")?;
+            anyhow::ensure!(
+                view.applications.is_empty(),
+                "Application already recorded; inspect its receipt"
+            );
+            let project = self.selected_project().context("project unavailable")?;
+            let root = Path::new(project.roots.first().context("project root missing")?);
+            let workspace = view
+                .attempts
+                .iter()
+                .find(|a| a.id == result.attempt_id)
+                .and_then(|a| a.workspace.as_ref())
+                .context("accepted workspace missing")?;
+            let home = self.path.parent().context("owner home missing")?;
+            let mut files = Vec::new();
+            let mut count = 0;
+            for artifact in &result.artifacts {
+                anyhow::ensure!(
+                    artifact.bytes <= 1024 * 1024,
+                    "hunk preview supports files up to 1 MiB"
+                );
+                let base_evidence = result
+                    .artifact_bases
+                    .iter()
+                    .find(|b| b.path == artifact.path)
+                    .context("base evidence missing")?;
+                let original =
+                    codex_utils_path::open_relative_regular_file(root, Path::new(&artifact.path))?;
+                anyhow::ensure!(
+                    original.metadata()?.len() <= 1024 * 1024,
+                    "original exceeds 1 MiB"
+                );
+                let mut base = String::new();
+                original.take(1024 * 1024 + 1).read_to_string(&mut base)?;
+                anyhow::ensure!(
+                    Some(format!("{:x}", Sha256::digest(base.as_bytes()))) == base_evidence.sha256,
+                    "original changed since task snapshot"
+                );
+                let preview =
+                    Preview::new(home, Path::new(workspace), &artifact.path, Some(artifact))?;
+                let modified = std::fs::read_to_string(preview.path())?;
+                anyhow::ensure!(
+                    !base.contains('\0') && !modified.contains('\0'),
+                    "binary hunk preview unavailable"
+                );
+                let hunks = diffy::create_patch(&base, &modified).hunks().len();
+                count += hunks;
+                if hunks > 0 {
+                    files.push(form::HunkFile {
+                        path: artifact.path.clone(),
+                        base,
+                        artifact: modified,
+                    });
+                }
+            }
+            anyhow::ensure!(
+                (1..=256).contains(&count),
+                "select a result with 1–256 changed UTF-8 hunks"
+            );
+            self.form = Some(form::Form::new(
+                form::Kind::HunkApply {
+                    task: view.task.clone(),
+                    result: result.clone(),
+                    files,
+                },
+                &self.snapshot.records,
+                self.record(),
+                &self.model,
+            ));
+            Ok(())
+        })();
+        if let Err(error) = result {
+            self.message = error.to_string();
+            self.message_is_error = true;
+        }
+    }
+
+    fn buffer_proposal(&mut self) {
+        let proposal = (|| -> anyhow::Result<crate::organization_editor::BufferProposal> {
+            anyhow::ensure!(
+                !self.applying,
+                "Application outcome pending; editor actions wait for reconciliation"
+            );
+            use sha2::{Digest, Sha256};
+            let view = self
+                .detail
+                .as_ref()
+                .filter(|v| Some(&v.task.id) == self.selected.as_ref())
+                .context("select an accepted task")?;
+            let result = view
+                .result
+                .as_ref()
+                .filter(|r| r.accepted)
+                .context("accept the exact result first")?;
+            let project = self.selected_project().context("project unavailable")?;
+            let root = PathBuf::from(project.roots.first().context("project root missing")?);
+            let workspace = view
+                .attempts
+                .iter()
+                .find(|a| a.id == result.attempt_id)
+                .and_then(|a| a.workspace.as_ref())
+                .context("accepted workspace missing")?
+                .clone();
+            let pin = self
+                .editor
+                .as_mut()
+                .context("open a writable original buffer in actual Neovim first")?
+                .pin_buffer()?;
+            let artifact = result
+                .artifacts
+                .iter()
+                .find(|a| root.join(&a.path) == Path::new(&pin.path))
+                .context("current buffer is not an accepted artifact in this project")?;
+            anyhow::ensure!(artifact.bytes <= 1024 * 1024, "proposal exceeds 1 MiB");
+            let current =
+                codex_utils_path::open_relative_regular_file(&root, Path::new(&artifact.path))?;
+            let mut bytes = Vec::new();
+            current.take(1024 * 1024 + 1).read_to_end(&mut bytes)?;
+            let hash = format!("{:x}", Sha256::digest(&bytes));
+            anyhow::ensure!(
+                hash == pin.sha256,
+                "native text differs from the current original; reload or reconcile it first"
+            );
+            let known_base = result
+                .artifact_bases
+                .iter()
+                .any(|b| b.path == artifact.path && b.sha256.as_ref() == Some(&hash))
+                || view.applications.iter().any(|a| {
+                    a.state == OrganizationApplicationState::Completed
+                        && a.hunks
+                            .as_deref()
+                            .unwrap_or_default()
+                            .iter()
+                            .any(|h| h.path == artifact.path && h.output_sha256 == hash)
+                });
+            anyhow::ensure!(
+                known_base,
+                "original no longer matches its task base or completed hunk receipt; reconcile owner changes first"
+            );
+            let preview = Preview::new(
+                self.path.parent().context("owner home missing")?,
+                Path::new(&workspace),
+                &artifact.path,
+                Some(artifact),
+            )?;
+            let text = std::fs::read_to_string(preview.path())?;
+            Ok(crate::organization_editor::BufferProposal {
+                pin,
+                text,
+                result_digest: result.digest.clone(),
+                artifact_sha256: artifact.sha256.clone(),
+            })
+        })();
+        match proposal {
+            Ok(proposal) => {
+                self.confirmation = Some(Command::BufferProposal(Box::new(proposal)));
+                self.confirmation_text = clean(&self.details());
+                self.message="Review the exact pinned native-buffer proposal · y changes buffer · Esc cancels · native undo · save separately".into();
+            }
+            Err(error) => {
+                self.message = error.to_string();
+                self.message_is_error = true;
+            }
+        }
+    }
     pub(crate) fn open_palette(&mut self) {
         self.palette = Some(palette::Palette::new());
         self.message =
@@ -2073,6 +2330,18 @@ impl Dashboard {
             }
             if self.confirmation.is_none() && self.input.is_none() && self.form.is_none() {
                 match key.code {
+                    KeyCode::F(7) => {
+                        self.editor_session(false);
+                        return;
+                    }
+                    KeyCode::F(8) => {
+                        self.editor_session(true);
+                        return;
+                    }
+                    KeyCode::Char('B') => {
+                        self.buffer_proposal();
+                        return;
+                    }
                     KeyCode::Char('Q') => {
                         self.selection_task();
                         return;
@@ -2093,6 +2362,43 @@ impl Dashboard {
         if self.confirmation.is_some() {
             match key.code {
                 KeyCode::Char('y') => {
+                    if matches!(
+                        &self.confirmation,
+                        Some(Command::RestoreEditor(..) | Command::BufferProposal(..))
+                    ) {
+                        let Some(command) = self.confirmation.take() else {
+                            return;
+                        };
+                        let result = (|| -> anyhow::Result<()> {
+                            anyhow::ensure!(
+                                !self.applying,
+                                "Application outcome pending; editor actions wait for reconciliation"
+                            );
+                            let roots = self.project_roots();
+                            if let Command::BufferProposal(proposal) = &command {
+                                proposal.verify_original(&roots)?;
+                            }
+                            if self.editor.is_none() {
+                                self.editor = Some(Editor::start(self.frame.clone())?);
+                            }
+                            let editor = self.editor.as_mut().context("editor unavailable")?;
+                            match command {
+                                Command::RestoreEditor(session, recover) => {
+                                    editor.restore_session(&session, &roots, recover)?
+                                }
+                                Command::BufferProposal(proposal) => {
+                                    editor.apply_buffer_proposal(&proposal)?
+                                }
+                                _ => unreachable!(),
+                            }
+                            Ok(())
+                        })();
+                        self.form = None;
+                        self.following = false;
+                        self.message=match result {Ok(())=>"Native editor decision applied; inspect buffers, undo or save explicitly".into(),Err(error)=>format!("Native editor decision refused or incomplete: {error}")};
+                        return;
+                    }
+
                     if let Some(selection) = self.selection_confirmation.clone()
                         && let Err(error) = self.validate_selection(&selection)
                     {
@@ -2561,6 +2867,7 @@ impl Dashboard {
                 self.report_request = Some(id.clone());
                 self.send(Command::Summary(id, focus));
             }
+            KeyCode::Char('h') => self.hunk_form(),
             KeyCode::Char('C') => {
                 self.report_text = Some("Loading configured capabilities…".into());
                 self.scroll = 0;
@@ -3071,6 +3378,12 @@ impl Dashboard {
         }
         if let Some(command) = &self.confirmation {
             let value = match command {
+                Command::RestoreEditor(session, recover) => serde_json::to_string_pretty(
+                    &serde_json::json!({"nativeSession":session,"recoverUnsaved":recover,"writesOriginalFiles":false}),
+                ),
+                Command::BufferProposal(proposal) => serde_json::to_string_pretty(
+                    &serde_json::json!({"nativeBuffer":proposal.pin,"acceptedResult":proposal.result_digest,"proposalSha256":proposal.artifact_sha256,"writesOriginalFiles":false,"undo":"native Neovim undo; save is separate"}),
+                ),
                 Command::Execution(m) => serde_json::to_string_pretty(m),
                 Command::Definition(m) => serde_json::to_string_pretty(m),
                 Command::Schedule(m) => serde_json::to_string_pretty(m),
@@ -3103,7 +3416,7 @@ impl Dashboard {
             ) {
                 // The form's payload is frozen independently of later selection.
                 text.clear();
-                text.push_str("\nOnly the selected whole files will be replaced; unselected files remain unchanged.\nOne Apply per accepted result, including uncertain outcomes; inspect the receipt before reconciliation.\nRecorded checks describe the full isolated result, not the installed subset.\n");
+                text.push_str("\nOnly the selected whole files will be replaced when no hunk selection is present; captured exact hunks replace their selected changes. Unselected files and hunks remain unchanged.\nOne Apply per accepted result, including uncertain outcomes; inspect the receipt before reconciliation.\nRecorded checks describe the full isolated result, not the installed subset.\n");
             }
             if matches!(
                 command,

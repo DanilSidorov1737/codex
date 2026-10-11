@@ -638,14 +638,36 @@ async fn host_evidence_and_owner_digest_gate_result_acceptance() -> Result<()> {
             .applications
             .is_empty()
     );
+    let hunk = codex_protocol::organization_execution::OrganizationHunkSelection {
+        path: selected[0].clone(),
+        indices: vec![0],
+        patch_sha256: "a".repeat(64),
+        output_sha256: "b".repeat(64),
+    };
+    let mut invalid_hunk = hunk.clone();
+    invalid_hunk.indices = vec![0, 0];
+    assert!(
+        store
+            .begin_application_hunks(
+                &attempt.task_id,
+                view.task.revision,
+                &result.digest,
+                Some(&selected),
+                Some(&[invalid_hunk])
+            )
+            .await
+            .is_err()
+    );
     let application = store
-        .begin_application(
+        .begin_application_hunks(
             &attempt.task_id,
             view.task.revision,
             &result.digest,
             Some(&selected),
+            Some(std::slice::from_ref(&hunk)),
         )
         .await?;
+    assert_eq!(application.hunks, Some(vec![hunk]));
     assert_eq!(application.paths, selected);
     assert_eq!(
         store.execution_view(&attempt.task_id).await?.applications[0].state,

@@ -2506,3 +2506,28 @@ The first discussion test failed because its fixture retained stopped attempt
 capacity; explicit release now matches production, and the complete rerun passes.
 No paid calls ran. These are implementation checks; fresh physical qualification,
 contract generation and production Clippy remain pending.
+
+## Editor/session/hunk implementation regression
+
+Offline locked dev-small runs pass full state 310 (`editor-full-state-v2.log`),
+full protocol 374 (`editor-full-protocol-v2.log`) and 69 selected organization
+TUI/official-Neovim checks (`editor-tui-tests-v3.log`). Logs remain under
+operations-batch. New tests cover canonical hunk selection/newline edges, pinned
+application intent and uncertain recovery, typed forms, captured scorecards, real
+native split/cursor/unsaved/undo restoration, private original-base checks and
+buffer identity/tick/text/dirty/restart guards. Source writes advance the native
+checkpoint base via BufWritePost. No original file is written by unsaved recovery
+or buffer proposals. Expected native refusals leave the editor usable; RPC
+transport failures still fence unknown outcomes. The initial TUI run had three
+failures: two palette assumptions after adding actions and one stale native RPC
+refusal invalidating the editor. The corrected full selection passes unchanged
+safety assertions. The initial state compile found two fixtures needing explicit
+unboxing after reducing the workflow-view enum size; corrected full state passes.
+Production CLI Clippy passed with warnings denied before the guarded-RPC/loader
+correction (`editor-cli-clippy-v6.log`); final production checks/package follow.
+10,000-deep tree collapse/search/full traversal measured 123.504 and 279.183 ms
+under concurrent test load. These are Rust projection measurements, not stored
+native registry, active-agent capacity, hardware telemetry or provider pilots.
+Only inactive rebuildable target metadata/test executables were removed for disk
+headroom, with hashes/bytes in editor-derived-*.json. No qualified asset, native
+state, grant, result, bundle, counter or receipt was removed.

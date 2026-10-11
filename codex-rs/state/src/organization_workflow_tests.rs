@@ -935,7 +935,7 @@ async fn control(
     else {
         panic!("expected run")
     };
-    Ok(run)
+    Ok(*run)
 }
 
 #[tokio::test]
@@ -981,7 +981,7 @@ async fn whole_run_controls_persist_reject_stale_versions_and_never_reset_grants
     let OrganizationWorkflowView::Run { run: persisted, .. } = &views[0] else {
         panic!("expected run")
     };
-    assert_eq!(persisted, &paused);
+    assert_eq!(persisted.as_ref(), &paused);
     let resumed = control(&store, persisted, OrganizationWorkflowControl::Resume).await?;
     for (task, before) in tasks.iter().zip(&grants) {
         let after = store.execution_view(&task.id).await?;

@@ -259,6 +259,42 @@ pub struct OrganizationTaskResult {
 }
 
 impl OrganizationTaskResult {
+    pub fn application_hunks(
+        &self,
+        paths: Option<&[String]>,
+        requested: Option<&[OrganizationHunkSelection]>,
+    ) -> Result<Vec<OrganizationHunkSelection>, &'static str> {
+        let Some(requested) = requested else {
+            return Ok(Vec::new());
+        };
+        let paths = self.application_paths(paths)?;
+        if requested.is_empty() || requested.len() != paths.len() {
+            return Err("hunk selection must cover exactly the selected paths");
+        }
+        let mut ordered = Vec::new();
+        for path in paths {
+            let selected: Vec<_> = requested.iter().filter(|s| s.path == path).collect();
+            if selected.len() != 1 {
+                return Err("duplicate or missing hunk path");
+            }
+            let selection = selected[0];
+            if !(1..=256).contains(&selection.indices.len())
+                || selection.indices.windows(2).any(|w| w[0] >= w[1])
+                || [&selection.patch_sha256, &selection.output_sha256]
+                    .iter()
+                    .any(|s| {
+                        s.len() != 64
+                            || !s
+                                .bytes()
+                                .all(|c| c.is_ascii_digit() || (b'a'..=b'f').contains(&c))
+                    })
+            {
+                return Err("invalid hunk indices or hashes");
+            }
+            ordered.push(selection.clone());
+        }
+        Ok(ordered)
+    }
     /// Validate owner selection and keep the accepted artifact order. Omission
     /// retains the original apply-all contract; an explicit empty set is rejected.
     pub fn application_paths(
@@ -357,8 +393,74 @@ pub struct OrganizationApplication {
     pub id: String,
     pub digest: String,
     pub paths: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub hunks: Option<Vec<OrganizationHunkSelection>>,
     pub state: OrganizationApplicationState,
     pub receipt: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct OrganizationHunkSelection {
+    pub path: String,
+    pub patch_sha256: String,
+    /// Zero-based indices in the canonical diffy's complete patch, ascending.
+    pub indices: Vec<u32>,
+    pub output_sha256: String,
+}
+
+/// Shared canonical UTF-8 selection. All ranges refer to the unchanged base;
+/// no fuzzy application, offset guessing or client-supplied patch is accepted.
+pub fn selected_hunks(
+    base: &str,
+    artifact: &str,
+    indices: &[u32],
+) -> Result<(String, String), &'static str> {
+    if base.len() > 1024 * 1024
+        || artifact.len() > 1024 * 1024
+        || base.contains('\0')
+        || artifact.contains('\0')
+    {
+        return Err("hunk Apply supports nonbinary UTF-8 files up to 1 MiB");
+    }
+    let patch = diffy::create_patch(base, artifact);
+    if indices.is_empty()
+        || indices.len() > 256
+        || indices.windows(2).any(|w| w[0] >= w[1])
+        || indices.iter().any(|i| *i as usize >= patch.hunks().len())
+    {
+        return Err("select 1–256 existing distinct hunks in ascending order");
+    }
+    let lines: Vec<_> = base.split_inclusive('\n').collect();
+    let mut cursor = 0;
+    let mut output = String::new();
+    for index in indices {
+        let hunk = &patch.hunks()[*index as usize];
+        let range = hunk.old_range();
+        let start = if range.is_empty() {
+            range.start()
+        } else {
+            range.start().saturating_sub(1)
+        };
+        if start < cursor || start + range.len() > lines.len() {
+            return Err("invalid canonical hunk range");
+        }
+        for line in &lines[cursor..start] {
+            output.push_str(line)
+        }
+        for line in hunk.lines() {
+            match line {
+                diffy::Line::Context(line) | diffy::Line::Insert(line) => output.push_str(line),
+                diffy::Line::Delete(_) => {}
+            }
+        }
+        cursor = start + range.len();
+    }
+    for line in &lines[cursor..] {
+        output.push_str(line)
+    }
+    Ok((patch.to_string(), output))
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
@@ -436,6 +538,9 @@ pub enum OrganizationExecutionMutation {
         #[serde(default, skip_serializing_if = "Option::is_none")]
         #[ts(optional)]
         paths: Option<Vec<String>>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[ts(optional)]
+        hunks: Option<Vec<OrganizationHunkSelection>>,
     },
 }
 
@@ -507,5 +612,30 @@ impl OrganizationExecutionMutation {
             | Self::Apply { task_id, .. } => task_id,
             Self::Handoff { task_id, .. } | Self::ApplyReplan { task_id, .. } => task_id,
         }
+    }
+}
+
+#[cfg(test)]
+mod hunk_tests {
+    use super::*;
+    #[test]
+    fn exact_hunks_preserve_unselected_context_and_newline_edge_cases() {
+        let middle = (0..30)
+            .map(|i| format!("context {i}\n"))
+            .collect::<String>();
+        let base = format!("wrong first\n{middle}wrong last");
+        let artifact = format!("correct first\n{middle}correct last\n");
+        let (_, first) = selected_hunks(&base, &artifact, &[0]).unwrap();
+        assert_eq!(first, format!("correct first\n{middle}wrong last"));
+        assert_eq!(
+            selected_hunks(&base, &artifact, &[0, 1]).unwrap().1,
+            artifact
+        );
+        assert_eq!(selected_hunks("", "new\n", &[0]).unwrap().1, "new\n");
+        assert_eq!(selected_hunks("gone\n", "", &[0]).unwrap().1, "");
+        for indices in [vec![], vec![1, 0], vec![0, 0], vec![2]] {
+            assert!(selected_hunks(&base, &artifact, &indices).is_err());
+        }
+        assert!(selected_hunks("binary\0", "text", &[0]).is_err());
     }
 }

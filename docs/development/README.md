@@ -1,6 +1,7 @@
 # Codex CLI fork development
 
 Current approved work: [next twenty tasks](next-twenty.md);
+native sessions/hunks/buffers: [editor contracts](neovim-sessions-and-hunks.md);
 finite policy/replan/discussion/knowledge contracts: [reviewed autonomy](reviewed-autonomy.md); read its checkpoint
 and current status. The completed autonomy batch below is the protected baseline.
 
