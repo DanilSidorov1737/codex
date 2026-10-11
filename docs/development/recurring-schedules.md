@@ -14,7 +14,9 @@ parser or dependency is needed for bounded UTC intervals.
   schedule. Agents and network clients cannot administer schedules.
 - Each schedule has a stable owner-selected UUID, first UTC epoch time, interval,
   end time, run count, aggregate reported-token ceiling and request ceiling.
-  Limits are finite: at most 31 days, 1,000 issued runs and 128 live schedules.
+  Limits are finite: intervals of 10 seconds–31 days, at most 31 days of duration,
+  1,000 issued runs and 128 live schedules. The daemon polls about every 5 seconds;
+  start times are best effort within their interval, rather than real-time timers.
   Per-run task/delegation limits and exact native approvals remain enforced.
 - Each occurrence has a unique (schedule, due time) identity and a fresh task and
   root grant. Occurrence creation, authorization and advancement commit together.
@@ -54,6 +56,24 @@ Use fresh deterministic local fixtures; no new paid pilots are required.
 3. Existing dashboard forms, inspectors and controls; no sixth layout.
 4. Automated checks, full package and physical qualification, Ponytail/correctness
    review, evidence, current status/roadmap and logical local commits.
+
+## Current storage checkpoint
+
+Implemented schedule/occurrence DTOs and migration 7, atomic materialization,
+scope snapshots and revision checks, missed-run skipping, nonoverlap, finite
+limits and schedule fences around existing model/tool/coordination paths.
+Existing authorization and stop logic now have transaction helpers so occurrence
+creation and revoke/approval supersession use the same validation as ordinary
+tasks. Scheduled roots and children cannot bypass the series by reauthorization.
+Late usage remains accounted after pause. Unresolved usage and uncertain effects
+block automatic recurrence rather than granting another budget.
+
+The full state suite passed 265 tests (five new schedule scenarios); protocol
+passed 371 tests after adding the wire-contract scenario. Production-library
+Clippy passed with warnings denied after boxing the large create-scope payload;
+affected format checks and final-source qualification remain in progress.
+Initial compile/fixture errors are retained under the qualification directory.
+API/CLI/TUI integration and physical qualification are not yet complete.
 
 Calendar/cron/timezone rules, infinite schedules, automatic original-workspace
 Apply, external effects, distributed workers and workflow templates remain later

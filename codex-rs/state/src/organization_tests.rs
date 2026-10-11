@@ -1528,3 +1528,5 @@ async fn goal_project_task_graph_validation_is_atomic_and_durable() -> Result<()
     store.close().await;
     Ok(())
 }
+#[path = "organization_schedule_tests.rs"]
+mod schedules;

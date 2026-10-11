@@ -44,6 +44,7 @@ pub mod openai_models;
 pub mod organization;
 pub mod organization_coordination;
 pub mod organization_execution;
+pub mod organization_schedule;
 pub mod parse_command;
 mod permission_profile_intersection;
 mod permission_profile_snapshot;

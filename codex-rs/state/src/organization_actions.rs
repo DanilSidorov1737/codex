@@ -442,59 +442,7 @@ impl OrganizationStore {
     /// stale tools/approvals cannot revive the previous attempt.
     pub async fn stop_task(&self, task_id: &str, revision: i64, cancel: bool) -> Result<()> {
         let mut tx = self.pool.begin_with("BEGIN IMMEDIATE").await?;
-        let mut task = read_task(&mut tx, task_id).await?;
-        ensure!(task.revision == revision, "task revision conflict");
-        ensure!(
-            matches!(
-                task.state.as_str(),
-                "queued"
-                    | "running"
-                    | "waitingApproval"
-                    | "waitingDependency"
-                    | "paused"
-                    | "needsReconciliation"
-            ),
-            "task cannot be stopped in its current state"
-        );
-        let state = if cancel {
-            OrganizationTaskState::Cancelled
-        } else {
-            OrganizationTaskState::Paused
-        };
-        let grants: Vec<String> = sqlx::query_scalar(
-            "SELECT data FROM organization_authorizations WHERE task_id=? AND revoked=0",
-        )
-        .bind(task_id)
-        .fetch_all(&mut *tx)
-        .await?;
-        for data in grants {
-            let mut authorization: OrganizationTaskAuthorization = serde_json::from_str(&data)?;
-            authorization.revoked = true;
-            sqlx::query("UPDATE organization_authorizations SET revoked=1,data=? WHERE id=?")
-                .bind(serde_json::to_string(&authorization)?)
-                .bind(&authorization.id)
-                .execute(&mut *tx)
-                .await?;
-        }
-        let attempts: Vec<String> = sqlx::query_scalar("SELECT data FROM organization_attempts WHERE task_id=? AND state IN ('running','waitingApproval','waitingDependency','needsReconciliation')").bind(task_id).fetch_all(&mut *tx).await?;
-        for data in attempts {
-            let mut attempt: OrganizationTaskAttempt = serde_json::from_str(&data)?;
-            attempt.state = state;
-            attempt.lease_until = 0;
-            write_attempt(&mut tx, &attempt).await?;
-            supersede_approvals(&mut tx, &attempt.id).await?;
-        }
-        set_task_state(&mut tx, &mut task, state).await?;
-        owner_event(
-            &mut tx,
-            if cancel {
-                "task/cancelled"
-            } else {
-                "task/paused"
-            },
-            task_id,
-        )
-        .await?;
+        stop_task_in(&mut tx, task_id, revision, cancel).await?;
         tx.commit().await?;
         Ok(())
     }
@@ -884,4 +832,66 @@ fn valid_hash(hash: &str) -> bool {
         && hash
             .bytes()
             .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
+}
+
+pub(super) async fn stop_task_in(
+    tx: &mut Transaction<'_, Sqlite>,
+    task_id: &str,
+    revision: i64,
+    cancel: bool,
+) -> Result<()> {
+    let mut task = read_task(tx, task_id).await?;
+    ensure!(task.revision == revision, "task revision conflict");
+    ensure!(
+        matches!(
+            task.state.as_str(),
+            "queued"
+                | "running"
+                | "waitingApproval"
+                | "waitingDependency"
+                | "paused"
+                | "needsReconciliation"
+        ),
+        "task cannot be stopped in its current state"
+    );
+    let state = if cancel {
+        OrganizationTaskState::Cancelled
+    } else {
+        OrganizationTaskState::Paused
+    };
+    let grants: Vec<String> = sqlx::query_scalar(
+        "SELECT data FROM organization_authorizations WHERE task_id=? AND revoked=0",
+    )
+    .bind(task_id)
+    .fetch_all(&mut **tx)
+    .await?;
+    for data in grants {
+        let mut authorization: OrganizationTaskAuthorization = serde_json::from_str(&data)?;
+        authorization.revoked = true;
+        sqlx::query("UPDATE organization_authorizations SET revoked=1,data=? WHERE id=?")
+            .bind(serde_json::to_string(&authorization)?)
+            .bind(&authorization.id)
+            .execute(&mut **tx)
+            .await?;
+    }
+    let attempts: Vec<String> = sqlx::query_scalar("SELECT data FROM organization_attempts WHERE task_id=? AND state IN ('running','waitingApproval','waitingDependency','needsReconciliation')").bind(task_id).fetch_all(&mut **tx).await?;
+    for data in attempts {
+        let mut attempt: OrganizationTaskAttempt = serde_json::from_str(&data)?;
+        attempt.state = state;
+        attempt.lease_until = 0;
+        write_attempt(tx, &attempt).await?;
+        supersede_approvals(tx, &attempt.id).await?;
+    }
+    set_task_state(tx, &mut task, state).await?;
+    owner_event(
+        tx,
+        if cancel {
+            "task/cancelled"
+        } else {
+            "task/paused"
+        },
+        task_id,
+    )
+    .await?;
+    Ok(())
 }

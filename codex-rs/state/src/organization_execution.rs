@@ -20,117 +20,10 @@ impl OrganizationStore {
         scope: OrganizationExecutionScope,
         now: i64,
     ) -> Result<OrganizationTaskAuthorization> {
-        validate_scope(&scope)?;
-        ensure!(now >= 0, "invalid authorization time");
-        ensure!(
-            scope
-                .not_before
-                .is_none_or(|time| time >= 0 && time <= now.saturating_add(31 * 86400)),
-            "one-shot schedule must be within 31 days"
-        );
         let mut tx = self.pool.begin_with("BEGIN IMMEDIATE").await?;
-        let mut task = read_task(&mut tx, task_id).await?;
-        ensure!(task.revision == expected_revision, "task revision conflict");
-        let occupied: i64 = sqlx::query_scalar(
-            "SELECT count(*) FROM organization_attempts WHERE task_id=? AND occupied=1",
-        )
-        .bind(task_id)
-        .fetch_one(&mut *tx)
-        .await?;
-        ensure!(
-            occupied == 0,
-            "previous task runtime has not stopped; wait for cleanup or reconcile after restart"
-        );
-        ensure!(
-            matches!(
-                task.state.as_str(),
-                "proposed" | "paused" | "failed" | "needsReconciliation"
-            ),
-            "task cannot be authorized in its current state"
-        );
-        let node = read_node(&mut tx, &task.owner_id).await?;
-        ensure!(
-            node.kind == OrganizationNodeKind::Agent && node.enabled,
-            "task owner is disabled or not an agent"
-        );
-        ensure!(
-            ancestors_enabled(&mut tx, &node.id).await?,
-            "task owner subtree is paused"
-        );
-        ensure!(
-            node.model
-                .as_ref()
-                .is_none_or(|model| model == &scope.model),
-            "authorization model differs from the agent selection"
-        );
-        let project = read_project(&mut tx, &task.project_id).await?;
-        ensure!(
-            project.roots.len() == 1 && Path::new(&project.roots[0]).is_absolute(),
-            "execution requires one linked local project root"
-        );
-        for delegate in &scope.delegates {
-            let delegate = read_node(&mut tx, delegate).await?;
-            ensure!(
-                delegate.kind == OrganizationNodeKind::Agent,
-                "delegate must be a configured agent"
-            );
-        }
-        let old: Option<String> =
-            sqlx::query_scalar("SELECT authorization_id FROM organization_tasks WHERE id = ?")
-                .bind(task_id)
-                .fetch_one(&mut *tx)
-                .await?;
-        if let Some(id) = old {
-            let data: String =
-                sqlx::query_scalar("SELECT data FROM organization_authorizations WHERE id=?")
-                    .bind(&id)
-                    .fetch_one(&mut *tx)
-                    .await?;
-            let mut previous: OrganizationTaskAuthorization = serde_json::from_str(&data)?;
-            previous.revoked = true;
-            sqlx::query("UPDATE organization_authorizations SET revoked=1,data=? WHERE id=?")
-                .bind(serde_json::to_string(&previous)?)
-                .bind(id)
-                .execute(&mut *tx)
-                .await?;
-        }
-        let authorization = OrganizationTaskAuthorization {
-            id: Uuid::now_v7().to_string(),
-            task_id: task.id.clone(),
-            node_revision: node.revision,
-            project_revision: project.revision,
-            expires_at: scope
-                .not_before
-                .unwrap_or(now)
-                .max(now)
-                .checked_add(i64::from(scope.max_seconds) * i64::from(scope.max_attempts) + 3600)
-                .context("authorization expiry overflow")?,
-            scope,
-            revoked: false,
-            policy_version: ORGANIZATION_POLICY_VERSION,
-            parent_attempt_id: None,
-            root_authorization_id: None,
-        };
-        sqlx::query(
-            "INSERT INTO organization_authorizations(id,task_id,expires_at,data) VALUES (?,?,?,?)",
-        )
-        .bind(&authorization.id)
-        .bind(task_id)
-        .bind(authorization.expires_at)
-        .bind(serde_json::to_string(&authorization)?)
-        .execute(&mut *tx)
-        .await?;
-        sqlx::query("UPDATE organization_authorizations SET root_id=id WHERE id=?")
-            .bind(&authorization.id)
-            .execute(&mut *tx)
-            .await?;
-        sqlx::query("UPDATE organization_tasks SET authorization_id = ? WHERE id = ?")
-            .bind(&authorization.id)
-            .bind(task_id)
-            .execute(&mut *tx)
-            .await?;
-        set_task_state(&mut tx, &mut task, OrganizationTaskState::Queued).await?;
-        owner_event(&mut tx, "task/authorize", &authorization.id).await?;
+        super::schedule::reject_occurrence_reauthorization(&mut tx, task_id).await?;
+        let authorization =
+            authorize_task_in(&mut tx, task_id, expected_revision, scope, now).await?;
         tx.commit().await?;
         Ok(authorization)
     }
@@ -175,6 +68,9 @@ impl OrganizationStore {
                 || node.revision != authorization.node_revision
                 || project.revision != authorization.project_revision
                 || !ancestors_enabled(&mut tx, &node.id).await?
+                || super::schedule::check_schedule_fence(&mut tx, &authorization, now, true)
+                    .await
+                    .is_err()
                 || super::coordination::check_parent_grants(&mut tx, &authorization, now)
                     .await
                     .is_err()
@@ -243,6 +139,7 @@ impl OrganizationStore {
     ) -> Result<(u32, i64)> {
         let mut tx = self.pool.begin_with("BEGIN IMMEDIATE").await?;
         let (mut attempt, authorization) = check_fence(&mut tx, attempt_id, worker_id, now).await?;
+        super::schedule::check_schedule_fence(&mut tx, &authorization, now, true).await?;
         ensure!(
             attempt.model_requests == attempt.reported_model_requests,
             "prior model usage is unresolved; reconcile before further inference"
@@ -423,7 +320,7 @@ impl OrganizationStore {
     }
 }
 
-fn validate_scope(scope: &OrganizationExecutionScope) -> Result<()> {
+pub(super) fn validate_scope(scope: &OrganizationExecutionScope) -> Result<()> {
     ensure!(
         !scope.auto_accept_children || !scope.checks.is_empty(),
         "automatic internal acceptance requires owner-declared checks"
@@ -600,6 +497,7 @@ pub(super) async fn check_live_fence(
         "host policy changed; owner reauthorization required"
     );
     super::coordination::check_parent_grants(tx, &authorization, now).await?;
+    super::schedule::check_schedule_fence(tx, &authorization, now, false).await?;
     ensure!(
         now >= attempt.started_at
             && now
@@ -654,4 +552,134 @@ async fn event_as(
         .execute(&mut **tx)
         .await?;
     Ok(())
+}
+
+// Shared by owner task authorization and atomic schedule materialization.
+pub(super) async fn authorize_task_in(
+    tx: &mut Transaction<'_, Sqlite>,
+    task_id: &str,
+    expected_revision: i64,
+    scope: OrganizationExecutionScope,
+    now: i64,
+) -> Result<OrganizationTaskAuthorization> {
+    validate_scope(&scope)?;
+    ensure!(now >= 0, "invalid authorization time");
+    ensure!(
+        scope
+            .not_before
+            .is_none_or(|time| time >= 0 && time <= now.saturating_add(31 * 86400)),
+        "one-shot schedule must be within 31 days"
+    );
+    let mut task = read_task(tx, task_id).await?;
+    ensure!(task.revision == expected_revision, "task revision conflict");
+    let occupied: i64 = sqlx::query_scalar(
+        "SELECT count(*) FROM organization_attempts WHERE task_id=? AND occupied=1",
+    )
+    .bind(task_id)
+    .fetch_one(&mut **tx)
+    .await?;
+    ensure!(
+        occupied == 0,
+        "previous task runtime has not stopped; wait for cleanup or reconcile after restart"
+    );
+    ensure!(
+        matches!(
+            task.state.as_str(),
+            "proposed" | "paused" | "failed" | "needsReconciliation"
+        ),
+        "task cannot be authorized in its current state"
+    );
+    let (node, project) = scope_definitions(tx, &task, &scope).await?;
+    let old: Option<String> =
+        sqlx::query_scalar("SELECT authorization_id FROM organization_tasks WHERE id = ?")
+            .bind(task_id)
+            .fetch_one(&mut **tx)
+            .await?;
+    if let Some(id) = old {
+        let data: String =
+            sqlx::query_scalar("SELECT data FROM organization_authorizations WHERE id=?")
+                .bind(&id)
+                .fetch_one(&mut **tx)
+                .await?;
+        let mut previous: OrganizationTaskAuthorization = serde_json::from_str(&data)?;
+        previous.revoked = true;
+        sqlx::query("UPDATE organization_authorizations SET revoked=1,data=? WHERE id=?")
+            .bind(serde_json::to_string(&previous)?)
+            .bind(id)
+            .execute(&mut **tx)
+            .await?;
+    }
+    let authorization = OrganizationTaskAuthorization {
+        id: Uuid::now_v7().to_string(),
+        task_id: task.id.clone(),
+        node_revision: node.revision,
+        project_revision: project.revision,
+        expires_at: scope
+            .not_before
+            .unwrap_or(now)
+            .max(now)
+            .checked_add(i64::from(scope.max_seconds) * i64::from(scope.max_attempts) + 3600)
+            .context("authorization expiry overflow")?,
+        scope,
+        revoked: false,
+        policy_version: ORGANIZATION_POLICY_VERSION,
+        parent_attempt_id: None,
+        root_authorization_id: None,
+    };
+    sqlx::query(
+        "INSERT INTO organization_authorizations(id,task_id,expires_at,data) VALUES (?,?,?,?)",
+    )
+    .bind(&authorization.id)
+    .bind(task_id)
+    .bind(authorization.expires_at)
+    .bind(serde_json::to_string(&authorization)?)
+    .execute(&mut **tx)
+    .await?;
+    sqlx::query("UPDATE organization_authorizations SET root_id=id WHERE id=?")
+        .bind(&authorization.id)
+        .execute(&mut **tx)
+        .await?;
+    sqlx::query("UPDATE organization_tasks SET authorization_id = ? WHERE id = ?")
+        .bind(&authorization.id)
+        .bind(task_id)
+        .execute(&mut **tx)
+        .await?;
+    set_task_state(tx, &mut task, OrganizationTaskState::Queued).await?;
+    owner_event(tx, "task/authorize", &authorization.id).await?;
+    Ok(authorization)
+}
+
+pub(super) async fn scope_definitions(
+    tx: &mut Transaction<'_, Sqlite>,
+    task: &OrganizationTask,
+    scope: &OrganizationExecutionScope,
+) -> Result<(OrganizationNode, OrganizationProjectPlan)> {
+    let node = read_node(tx, &task.owner_id).await?;
+    ensure!(
+        node.kind == OrganizationNodeKind::Agent && node.enabled,
+        "task owner is disabled or not an agent"
+    );
+    ensure!(
+        ancestors_enabled(tx, &node.id).await?,
+        "task owner subtree is paused"
+    );
+    ensure!(
+        node.model
+            .as_ref()
+            .is_none_or(|model| model == &scope.model),
+        "authorization model differs from the agent selection"
+    );
+    let project = read_project(tx, &task.project_id).await?;
+    ensure!(
+        project.roots.len() == 1 && Path::new(&project.roots[0]).is_absolute(),
+        "execution requires one linked local project root"
+    );
+    for delegate in &scope.delegates {
+        let delegate = read_node(tx, delegate).await?;
+        ensure!(
+            delegate.kind == OrganizationNodeKind::Agent,
+            "delegate must be a configured agent"
+        );
+    }
+    Ok((node, project))
 }
