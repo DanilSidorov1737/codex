@@ -111,6 +111,12 @@ pub enum OrganizationRecord {
 #[serde(tag = "type", rename_all = "camelCase", deny_unknown_fields)]
 pub enum OrganizationMutation {
     #[serde(rename_all = "camelCase")]
+    PromoteNote {
+        source_id: String,
+        group_id: Option<String>,
+        body: String,
+    },
+    #[serde(rename_all = "camelCase")]
     PutNode {
         id: Option<String>,
         #[ts(type = "number | null")]

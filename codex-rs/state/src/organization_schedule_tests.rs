@@ -439,7 +439,16 @@ async fn recurring_migration_validation_and_pagination_preserve_existing_state()
     sqlx::query("DROP VIEW organization_shared_usage")
         .execute(&store.pool)
         .await?;
+    sqlx::query("DROP VIEW organization_project_run_usage")
+        .execute(&store.pool)
+        .await?;
+    sqlx::query("DROP TABLE organization_workflow_occurrences")
+        .execute(&store.pool)
+        .await?;
     sqlx::query("DROP TABLE organization_shared_limits")
+        .execute(&store.pool)
+        .await?;
+    sqlx::query("DROP TABLE organization_workflow_series")
         .execute(&store.pool)
         .await?;
     sqlx::query("DROP TABLE organization_handoffs")

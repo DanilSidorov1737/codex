@@ -77,6 +77,9 @@ enum Action {
         /// Search this agent's private notes instead of project-shared notes.
         #[arg(long)]
         agent_id: Option<String>,
+        /// Search owner-promoted team notes visible to this agent.
+        #[arg(long, requires = "agent_id")]
+        team: bool,
     },
     /// List nodes, roles, goals, projects, tasks or memberships as JSON.
     List {
@@ -195,9 +198,12 @@ pub(crate) async fn run(
             project_id,
             query,
             agent_id,
+            team,
         } => OrganizationCommandAction::MemorySearch(OrganizationMemorySearchParams {
             project_id,
-            scope: if agent_id.is_some() {
+            scope: if team {
+                OrganizationNoteScope::Team
+            } else if agent_id.is_some() {
                 OrganizationNoteScope::Agent
             } else {
                 OrganizationNoteScope::Project

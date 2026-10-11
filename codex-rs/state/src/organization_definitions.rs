@@ -29,6 +29,14 @@ impl OrganizationStore {
         };
         let mut tx = self.pool.begin_with("BEGIN IMMEDIATE").await?;
         let (operation, record) = match mutation {
+            OrganizationMutation::PromoteNote {
+                source_id,
+                group_id,
+                body,
+            } => {
+                super::coordination::promote_note(&mut tx, &source_id, group_id, body).await?;
+                ("note/promote", None)
+            }
             OrganizationMutation::PutNode {
                 id,
                 expected_revision,

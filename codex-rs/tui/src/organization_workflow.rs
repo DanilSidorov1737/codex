@@ -3,6 +3,7 @@ use super::*;
 
 pub(super) fn workflow_id(view: &OrganizationWorkflowView) -> String {
     match view {
+        OrganizationWorkflowView::Series { series, .. } => format!("series:{}", series.id),
         OrganizationWorkflowView::Template { template } => format!("workflow:{}", template.id),
         OrganizationWorkflowView::Run { run, .. } => format!("run:{}", run.id),
         OrganizationWorkflowView::Limit { limit, .. } => format!("limit:{}", limit.id),
@@ -117,6 +118,32 @@ impl Dashboard {
             return String::new();
         };
         let (template, run) = match view {
+            OrganizationWorkflowView::Series { series, usage } => {
+                return format!(
+                    "Workflow series: {}\n{}\nState: {} · revision {}\nTrigger: {:?}\nNext due: {}\nEnd: {}\nIssued: {} / {} · skipped: {}\nReported tokens: {} / {}\nRequests: {} / {}\n{}\n\np pauses future invocations; current runs use their own controls.\nu resumes future invocations without resetting usage.\nx cancels unfinished series work. No automatic acceptance or Apply.\nCreate finite series with owner workflow-mutate JSON.\n",
+                    series.config.label,
+                    series.id,
+                    series.state.as_str(),
+                    series.revision,
+                    series.trigger,
+                    series
+                        .next_run_at
+                        .map(utc_time)
+                        .unwrap_or_else(|| "None".into()),
+                    utc_time(series.config.ends_at),
+                    series.issued_runs,
+                    series.config.max_runs,
+                    series.skipped_runs,
+                    usage.reported_tokens,
+                    series.config.max_tokens,
+                    usage.model_requests,
+                    series.config.max_model_requests,
+                    series
+                        .reason
+                        .as_deref()
+                        .unwrap_or("Pinned scopes; one active invocation")
+                );
+            }
             OrganizationWorkflowView::Limit { limit, usage } => {
                 return format!(
                     "Shared resource limits: {}\nProject: {}\nWorkflow run: {}\nRevision: {}\n\nReported tokens: {} / {}\nAdmitted model requests: {} / {}\nActive executions: {} / {}\n\nb edits these exact limits. Consumed usage includes historical root grants and is never reset by pause, handoff or reauthorization. A token ceiling stops new admission after reported usage; in-flight requests may exceed it. Cost estimates are not monetary caps.\n",

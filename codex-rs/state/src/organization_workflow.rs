@@ -86,94 +86,23 @@ impl OrganizationStore {
                 owner_event(&mut tx, "workflow/put", &template.id).await?;
                 OrganizationWorkflowView::Template { template }
             }
-            OrganizationWorkflowMutation::Run { preview } => {
-                let fresh = preview_in(
-                    &mut tx,
-                    OrganizationWorkflowPreviewRequest {
-                        id: preview.id.clone(),
-                        template_id: preview.template.id.clone(),
-                        expected_revision: preview.template.revision,
-                        scopes: preview.scopes.clone(),
-                        shared_limits: preview.shared_limits.clone(),
-                    },
-                )
-                .await?;
-                ensure!(
-                    *preview == fresh,
-                    "workflow preview changed; inspect a fresh preview before authorizing"
-                );
-                let exists: i64 = sqlx::query_scalar(
-                    "SELECT EXISTS(SELECT 1 FROM organization_workflow_runs WHERE id=?)",
-                )
-                .bind(&preview.id)
-                .fetch_one(&mut *tx)
-                .await?;
-                ensure!(
-                    exists == 0,
-                    "workflow run ID already exists; inspect it instead of retrying"
-                );
-                let project = read_project(&mut tx, &preview.template.project_id).await?;
-                let mut run = OrganizationWorkflowRun {
-                    id: preview.id.clone(),
-                    preview: *preview,
-                    task_ids: BTreeMap::new(),
-                    created_at: now,
-                    revision: 1,
-                    state: OrganizationWorkflowState::Active,
-                };
-                // FK parent precedes tasks; all rows are invisible until this transaction commits.
-                sqlx::query("INSERT INTO organization_workflow_runs(id,template_id,project_id,data) VALUES (?,?,?,?)")
-                    .bind(&run.id).bind(&run.preview.template.id).bind(&project.id).bind(serde_json::to_string(&run)?).execute(&mut *tx).await?;
-                if let Some(limits) = &run.preview.shared_limits {
-                    Self::shared_limits_in(
-                        &mut tx,
-                        project.id.clone(),
-                        Some(run.id.clone()),
-                        None,
-                        limits.max_tokens,
-                        limits.max_model_requests,
-                        limits.max_active,
-                    )
-                    .await?;
-                }
-                let mut tasks = Vec::new();
-                for (item, step) in run.preview.template.items.iter().zip(&run.preview.scopes) {
-                    let task = OrganizationTask {
-                        id: Uuid::now_v7().to_string(),
-                        project_id: project.id.clone(),
-                        goal_id: project.goal_id.clone(),
-                        owner_id: item.owner_id.clone(),
-                        instructions: item.instructions.clone(),
-                        criteria: item.criteria.clone(),
-                        prerequisites: item
-                            .prerequisites
-                            .iter()
-                            .map(|key| run.task_ids[key].clone())
-                            .collect(),
-                        state: "proposed".into(),
-                        revision: 1,
-                    };
-                    sqlx::query("INSERT INTO organization_tasks(id,project_id,goal_id,owner_id,revision,state,data) VALUES (?,?,?,?,1,'proposed',?)")
-                        .bind(&task.id).bind(&task.project_id).bind(&task.goal_id).bind(&task.owner_id)
-                        .bind(serde_json::to_string(&OrganizationRecord::Task(task.clone()))?).execute(&mut *tx).await?;
-                    for id in &task.prerequisites {
-                        sqlx::query("INSERT INTO organization_task_dependencies(task_id,prerequisite_id) VALUES (?,?)")
-                            .bind(&task.id).bind(id).execute(&mut *tx).await?;
-                    }
-                    let grant =
-                        authorize_task_in(&mut tx, &task.id, 1, step.scope.clone(), now).await?;
-                    sqlx::query("INSERT INTO organization_workflow_tasks(run_id,step_key,task_id,authorization_id) VALUES (?,?,?,?)")
-                        .bind(&run.id).bind(&item.key).bind(&task.id).bind(&grant.id).execute(&mut *tx).await?;
-                    run.task_ids.insert(item.key.clone(), task.id.clone());
-                    tasks.push(read_task(&mut tx, &task.id).await?);
-                }
-                sqlx::query("UPDATE organization_workflow_runs SET data=? WHERE id=?")
-                    .bind(serde_json::to_string(&run)?)
-                    .bind(&run.id)
-                    .execute(&mut *tx)
-                    .await?;
-                owner_event(&mut tx, "workflow/run", &run.id).await?;
-                OrganizationWorkflowView::Run { run, tasks }
+            OrganizationWorkflowMutation::Run { preview } => run_in(&mut tx, preview, now).await?,
+            OrganizationWorkflowMutation::CreateSeries {
+                id,
+                preview,
+                config,
+                trigger,
+            } => {
+                super::workflow_series::create_in(&mut tx, id, preview, config, trigger, now)
+                    .await?
+            }
+            OrganizationWorkflowMutation::ControlSeries {
+                id,
+                expected_revision,
+                action,
+            } => {
+                super::workflow_series::control_in(&mut tx, id, expected_revision, action, now)
+                    .await?
             }
             OrganizationWorkflowMutation::Control {
                 id,
@@ -351,6 +280,9 @@ impl OrganizationStore {
             OrganizationWorkflowKind::Runs => {
                 "SELECT id,data FROM organization_workflow_runs WHERE (? IS NULL OR project_id=?) AND (? IS NULL OR id>?) ORDER BY id LIMIT ?"
             }
+            OrganizationWorkflowKind::Series => {
+                "SELECT id,data FROM organization_workflow_series WHERE (? IS NULL OR project_id=?) AND (? IS NULL OR id>?) ORDER BY id LIMIT ?"
+            }
             OrganizationWorkflowKind::Limits => {
                 "SELECT id,data FROM organization_shared_limits WHERE (? IS NULL OR project_id=?) AND (? IS NULL OR id>?) ORDER BY id LIMIT ?"
             }
@@ -378,6 +310,9 @@ impl OrganizationStore {
                         tasks.push(read_task(&mut tx, &run.task_ids[&item.key]).await?);
                     }
                     OrganizationWorkflowView::Run { run, tasks }
+                }
+                OrganizationWorkflowKind::Series => {
+                    super::workflow_series::view_in(&mut tx, serde_json::from_str(&data)?).await?
                 }
                 OrganizationWorkflowKind::Limits => {
                     let limit: OrganizationSharedLimit = serde_json::from_str(&data)?;
@@ -440,6 +375,29 @@ impl OrganizationStore {
                 inputs.push((result, serde_json::from_str(&data)?));
             }
         }
+        let source: Option<String> = sqlx::query_scalar("SELECT s.data FROM organization_workflow_occurrences o JOIN organization_workflow_series s ON s.id=o.series_id WHERE o.run_id=?").bind(&run.id).fetch_optional(&mut *tx).await?;
+        if let Some(source) = source {
+            let series: OrganizationWorkflowSeries = serde_json::from_str(&source)?;
+            if let OrganizationWorkflowTrigger::Accepted {
+                task_id,
+                authorization_id,
+            } = series.trigger
+            {
+                let data: String = sqlx::query_scalar("SELECT r.data FROM organization_results r JOIN organization_attempts p ON p.id=r.attempt_id JOIN organization_tasks t ON t.id=p.task_id WHERE t.id=? AND t.project_id=? AND t.authorization_id=? AND p.authorization_id=t.authorization_id AND t.state='accepted' AND r.digest=? AND json_extract(r.data,'$.accepted')=1").bind(task_id).bind(&task.project_id).bind(authorization_id).bind(series.source_result_digest.context("trigger result digest missing")?).fetch_one(&mut *tx).await?;
+                let mut result: OrganizationTaskResult = serde_json::from_str(&data)?;
+                result
+                    .artifacts
+                    .retain(|artifact| scope.input_files.contains(&artifact.path));
+                if !result.artifacts.is_empty() {
+                    let data: String =
+                        sqlx::query_scalar("SELECT data FROM organization_attempts WHERE id=?")
+                            .bind(&result.attempt_id)
+                            .fetch_one(&mut *tx)
+                            .await?;
+                    inputs.push((result, serde_json::from_str(&data)?));
+                }
+            }
+        }
         Ok(inputs)
     }
 }
@@ -461,7 +419,7 @@ pub(super) async fn check_workflow_dispatch(
     Ok(())
 }
 
-async fn preview_in(
+pub(super) async fn preview_in(
     tx: &mut Transaction<'_, Sqlite>,
     request: OrganizationWorkflowPreviewRequest,
 ) -> Result<OrganizationWorkflowPreview> {
@@ -571,4 +529,108 @@ pub(super) async fn reject_workflow_reauthorization(
         "workflow invocation limits cannot be reset; review a fresh workflow run instead"
     );
     Ok(())
+}
+
+pub(super) async fn run_in(
+    tx: &mut Transaction<'_, Sqlite>,
+    preview: Box<OrganizationWorkflowPreview>,
+    now: i64,
+) -> Result<OrganizationWorkflowView> {
+    let fresh = preview_in(
+        tx,
+        OrganizationWorkflowPreviewRequest {
+            id: preview.id.clone(),
+            template_id: preview.template.id.clone(),
+            expected_revision: preview.template.revision,
+            scopes: preview.scopes.clone(),
+            shared_limits: preview.shared_limits.clone(),
+        },
+    )
+    .await?;
+    ensure!(
+        *preview == fresh,
+        "workflow preview changed; inspect a fresh preview before authorizing"
+    );
+    let exists: i64 =
+        sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM organization_workflow_runs WHERE id=?)")
+            .bind(&preview.id)
+            .fetch_one(&mut **tx)
+            .await?;
+    ensure!(
+        exists == 0,
+        "workflow run ID already exists; inspect it instead of retrying"
+    );
+    let project = read_project(tx, &preview.template.project_id).await?;
+    let mut run = OrganizationWorkflowRun {
+        id: preview.id.clone(),
+        preview: *preview,
+        task_ids: BTreeMap::new(),
+        created_at: now,
+        revision: 1,
+        state: OrganizationWorkflowState::Active,
+    };
+    // FK parent precedes tasks; all rows are invisible until this transaction commits.
+    sqlx::query(
+        "INSERT INTO organization_workflow_runs(id,template_id,project_id,data) VALUES (?,?,?,?)",
+    )
+    .bind(&run.id)
+    .bind(&run.preview.template.id)
+    .bind(&project.id)
+    .bind(serde_json::to_string(&run)?)
+    .execute(&mut **tx)
+    .await?;
+    if let Some(limits) = &run.preview.shared_limits {
+        OrganizationStore::shared_limits_in(
+            tx,
+            project.id.clone(),
+            Some(run.id.clone()),
+            None,
+            limits.max_tokens,
+            limits.max_model_requests,
+            limits.max_active,
+        )
+        .await?;
+    }
+    let mut tasks = Vec::new();
+    for (item, step) in run.preview.template.items.iter().zip(&run.preview.scopes) {
+        let task = OrganizationTask {
+            id: Uuid::now_v7().to_string(),
+            project_id: project.id.clone(),
+            goal_id: project.goal_id.clone(),
+            owner_id: item.owner_id.clone(),
+            instructions: item.instructions.clone(),
+            criteria: item.criteria.clone(),
+            prerequisites: item
+                .prerequisites
+                .iter()
+                .map(|key| run.task_ids[key].clone())
+                .collect(),
+            state: "proposed".into(),
+            revision: 1,
+        };
+        sqlx::query("INSERT INTO organization_tasks(id,project_id,goal_id,owner_id,revision,state,data) VALUES (?,?,?,?,1,'proposed',?)")
+                        .bind(&task.id).bind(&task.project_id).bind(&task.goal_id).bind(&task.owner_id)
+                        .bind(serde_json::to_string(&OrganizationRecord::Task(task.clone()))?).execute(&mut **tx).await?;
+        for id in &task.prerequisites {
+            sqlx::query(
+                "INSERT INTO organization_task_dependencies(task_id,prerequisite_id) VALUES (?,?)",
+            )
+            .bind(&task.id)
+            .bind(id)
+            .execute(&mut **tx)
+            .await?;
+        }
+        let grant = authorize_task_in(tx, &task.id, 1, step.scope.clone(), now).await?;
+        sqlx::query("INSERT INTO organization_workflow_tasks(run_id,step_key,task_id,authorization_id) VALUES (?,?,?,?)")
+                        .bind(&run.id).bind(&item.key).bind(&task.id).bind(&grant.id).execute(&mut **tx).await?;
+        run.task_ids.insert(item.key.clone(), task.id.clone());
+        tasks.push(read_task(tx, &task.id).await?);
+    }
+    sqlx::query("UPDATE organization_workflow_runs SET data=? WHERE id=?")
+        .bind(serde_json::to_string(&run)?)
+        .bind(&run.id)
+        .execute(&mut **tx)
+        .await?;
+    owner_event(tx, "workflow/run", &run.id).await?;
+    Ok(OrganizationWorkflowView::Run { run, tasks })
 }

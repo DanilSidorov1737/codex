@@ -159,3 +159,36 @@ The planner/layout/config checkpoint `59e309181d` passes **51 TUI/editor tests**
 including actual official Neovim loading the explicitly selected owner config
 and its bundled matchit plugin without modifying the config. Physical planner,
 customization and native LSP qualification remain in progress.
+
+## Recurrence, internal triggers and shared knowledge checkpoint
+
+Items 6/7 reuse atomic `run_in` for exact pinned workflow previews. Owner
+`workflow-mutate` now accepts `createSeries` (id, preview, finite ScheduleConfig,
+trigger) and versioned `controlSeries`. `workflow-list series` and the existing
+Projects/Operations workflow view expose settings, consumption and p/u/x controls.
+Interval triggers skip past/overlapping due times. Accepted triggers pin a task
+and its current grant in the same project, wait for exact acceptance and issue
+one deduplicated follow-up. The source's accepted digest is captured; only
+explicitly declared inputs import its verified artifacts, with original bases.
+Every invocation gets new task/grant identities; native root-ledger projections
+retain total series consumption. At most 128 live series, 1–32 steps/invocation,
+31 days, 1–1000 interval invocations, one active invocation and existing global
+caps. Series pause affects future invocations; current runs use run controls.
+Cancel fences unfinished work. Unknown usage, failed work or definition drift
+block continuation; no automatic replay, acceptance or Apply. Source/creation
+and three meaningful concurrency/acceptance/restart tests pass in the **60-test
+organization state suite**. Physical/new-package qualification remains pending.
+
+Item 8 adds explicit owner `promoteNote` (sourceId, optional groupId, reviewed
+body). Null group selects project visibility; a configured enabled group selects
+team visibility. Immutable source/task/attempt/author provenance is preserved.
+Correcting an owner-reviewed note in the same visibility creates a new version
+and hides the previous version from retrieval, retaining history. Stale versions
+refuse correction. Team retrieval filters project and current hierarchy/group
+membership before decoding notes; agents cannot publish team knowledge.
+Existing 128-note/project and 4 KiB limits include history. CLI memory-search
+`--team --agent-id ID`, TUI J team search and O promotion of the latest search
+match reuse existing owner API/forms. Notes stay untrusted context and grant no
+permissions. **61 organization state tests pass**, including agent-write denial,
+project/outsider isolation, exact provenance, corrections and revoked membership
+across restart. New UI and physical qualification remain pending.

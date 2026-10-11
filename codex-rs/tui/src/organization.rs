@@ -279,6 +279,7 @@ async fn load(handle: &AppServerRequestHandle) -> anyhow::Result<Snapshot> {
         OrganizationWorkflowKind::Templates,
         OrganizationWorkflowKind::Runs,
         OrganizationWorkflowKind::Limits,
+        OrganizationWorkflowKind::Series,
     ] {
         let mut cursor = None;
         for page in 0..10 {
@@ -895,6 +896,17 @@ impl Dashboard {
             {
                 rows.extend(self.snapshot.workflows.iter().filter_map(|view| {
                     let (id, label) = match view {
+                        OrganizationWorkflowView::Series { series, usage } => (
+                            format!("series:{}", series.id),
+                            format!(
+                                "Series: {} · {} · {}/{} issued · {} requests",
+                                series.config.label,
+                                series.state.as_str(),
+                                series.issued_runs,
+                                series.config.max_runs,
+                                usage.model_requests
+                            ),
+                        ),
                         OrganizationWorkflowView::Limit { limit, usage } => (
                             format!("limit:{}", limit.id),
                             format!(
@@ -1159,6 +1171,22 @@ impl Dashboard {
                     action,
                 })
             })
+        } else if let Some(OrganizationWorkflowView::Series { series, .. }) =
+            self.selected_workflow()
+        {
+            let action = match key {
+                'p' => Some(OrganizationWorkflowControl::Pause),
+                'u' => Some(OrganizationWorkflowControl::Resume),
+                'x' => Some(OrganizationWorkflowControl::Cancel),
+                _ => None,
+            };
+            action.map(|action| {
+                Command::Workflow(OrganizationWorkflowMutation::ControlSeries {
+                    id: series.id.clone(),
+                    expected_revision: series.revision,
+                    action,
+                })
+            })
         } else if let Some(OrganizationWorkflowView::Run { run, .. }) = self.selected_workflow() {
             let action = match key {
                 'p' => Some(OrganizationWorkflowControl::Pause),
@@ -1272,6 +1300,10 @@ impl Dashboard {
                         Some(run.id.clone()),
                     )),
                     Some(OrganizationWorkflowView::Limit { limit, .. }) => {
+                        if limit.series_id.is_some() {
+                            self.message="Series ceilings are fixed at creation; use p/u/x series controls. Project limits remain editable.".into();
+                            return;
+                        }
                         Some((limit.project_id.clone(), limit.run_id.clone()))
                     }
                     _ => match self.record() {
@@ -1612,6 +1644,7 @@ impl Dashboard {
                 text.push_str(&format!("Showing {} of {} matching notes (newest first).\n", result.notes.len(), result.matched_count));
                 if result.matched_count == 0 { text.push_str("No matching notes.\n"); }
                 for note in &result.notes {
+                    text.push_str(&format!("Owner reviewed: {} · source: {} · team: {}\n",note.owner_reviewed,note.source_note_id.as_deref().unwrap_or("original"),note.group_id.as_deref().unwrap_or("none")));
                     text.push_str(&format!("\nNote: {}\nAuthor: {}\nTask: {}\nAttempt: {}\nCreated: {} (UTC seconds)\n{}\n",
                         note.id, note.author_id, note.task_id, note.attempt_id, note.created_at, note.body));
                 }
@@ -1843,6 +1876,23 @@ impl Dashboard {
         }
         if self.memory_request.is_some() {
             match key.code {
+                KeyCode::Char('O') => {
+                    if let Some(Ok(result)) = &self.memory_result
+                        && let Some(note) = result.notes.first()
+                    {
+                        self.form = Some(form::Form::new(
+                            form::Kind::PromoteNote(note.clone()),
+                            &self.snapshot.records,
+                            self.record(),
+                            &self.model,
+                        ));
+                        self.memory_request = None;
+                        self.memory_result = None;
+                        self.scroll = 0;
+                    } else {
+                        self.message = "Search for the source note before promoting it".into();
+                    }
+                }
                 KeyCode::Esc => {
                     self.memory_request = None;
                     self.memory_result = None;
@@ -2049,6 +2099,12 @@ impl Dashboard {
             }
             KeyCode::Char('m') => self.open_memory(false),
             KeyCode::Char('M') => self.open_memory(true),
+            KeyCode::Char('J') => {
+                self.open_memory(true);
+                if let Some(request) = &mut self.memory_request {
+                    request.scope = OrganizationNoteScope::Team;
+                }
+            }
             KeyCode::Char(
                 c @ ('U' | 'G' | 'N' | 'T' | 's' | 'A' | 'R' | 'W' | 'H' | 'B' | 'E' | 'L' | 'I'),
             ) => self.open_form(c),

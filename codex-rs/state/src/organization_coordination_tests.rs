@@ -1,4 +1,243 @@
 use super::*;
+
+#[tokio::test]
+async fn owner_promoted_team_knowledge_filters_membership_project_and_correction_history()
+-> Result<()> {
+    let home = Fixture::new();
+    let store = OrganizationStore::open(&home.0).await?;
+    let (worker, attempt) = authorized_attempt(&store, false).await?;
+    let task = store.execution_view(&attempt.task_id).await?.task;
+    let source: OrganizationNote = serde_json::from_value(
+        store
+            .coordinate(
+                &attempt.id,
+                &worker,
+                "private-fact",
+                OrganizationCoordinationCall::WriteNote {
+                    scope: OrganizationNoteScope::Agent,
+                    body: "Draft fact to review".into(),
+                },
+                1001,
+            )
+            .await?,
+    )?;
+    let group = node_from(
+        store
+            .mutate_owner(
+                node_mutation("Custom knowledge group", None, OrganizationNodeKind::Group),
+                None,
+            )
+            .await?,
+    );
+    let outsider = node_from(
+        store
+            .mutate_owner(
+                node_mutation("Outside group", None, OrganizationNodeKind::Agent),
+                None,
+            )
+            .await?,
+    );
+    store
+        .mutate_owner(
+            OrganizationMutation::SetMembership {
+                node_id: task.owner_id.clone(),
+                group_id: group.id.clone(),
+                present: true,
+            },
+            None,
+        )
+        .await?;
+    store
+        .mutate_owner(
+            OrganizationMutation::PromoteNote {
+                source_id: source.id.clone(),
+                group_id: Some(group.id.clone()),
+                body: "Reviewed fact with provenance".into(),
+            },
+            None,
+        )
+        .await?;
+    let found = store
+        .search_memory(
+            &task.project_id,
+            OrganizationNoteScope::Team,
+            Some(&task.owner_id),
+            "Reviewed fact",
+        )
+        .await?;
+    assert_eq!(found.notes.len(), 1);
+    let promoted = &found.notes[0];
+    assert!(promoted.owner_reviewed);
+    assert_eq!(promoted.source_note_id.as_deref(), Some(source.id.as_str()));
+    assert_eq!(promoted.attempt_id, attempt.id);
+    assert_eq!(
+        store
+            .search_memory(
+                &task.project_id,
+                OrganizationNoteScope::Team,
+                Some(&outsider.id),
+                ""
+            )
+            .await?
+            .matched_count,
+        0
+    );
+    assert_eq!(
+        store
+            .search_memory(&task.project_id, OrganizationNoteScope::Project, None, "")
+            .await?
+            .matched_count,
+        0,
+        "team note cannot leak through project scope"
+    );
+    assert_eq!(
+        store
+            .search_memory(
+                &task.project_id,
+                OrganizationNoteScope::Agent,
+                Some(&task.owner_id),
+                ""
+            )
+            .await?
+            .notes[0],
+        source,
+        "promotion preserves private source"
+    );
+    let other_project = execution_project(&store, &task.owner_id).await?;
+    assert_eq!(
+        store
+            .search_memory(
+                &other_project,
+                OrganizationNoteScope::Team,
+                Some(&task.owner_id),
+                ""
+            )
+            .await?
+            .matched_count,
+        0
+    );
+    assert!(
+        store
+            .coordinate(
+                &attempt.id,
+                &worker,
+                "agent-team-write",
+                OrganizationCoordinationCall::WriteNote {
+                    scope: OrganizationNoteScope::Team,
+                    body: "Unreviewed publication".into()
+                },
+                1001
+            )
+            .await
+            .is_err()
+    );
+    let agent_notes: Vec<OrganizationNote> = serde_json::from_value(
+        store
+            .coordinate(
+                &attempt.id,
+                &worker,
+                "agent-team-read",
+                OrganizationCoordinationCall::ReadNotes {
+                    scope: OrganizationNoteScope::Team,
+                },
+                1001,
+            )
+            .await?,
+    )?;
+    assert_eq!(agent_notes, found.notes);
+    store
+        .mutate_owner(
+            OrganizationMutation::PromoteNote {
+                source_id: promoted.id.clone(),
+                group_id: Some(group.id.clone()),
+                body: "Corrected owner fact".into(),
+            },
+            None,
+        )
+        .await?;
+    assert_eq!(
+        store
+            .search_memory(
+                &task.project_id,
+                OrganizationNoteScope::Team,
+                Some(&task.owner_id),
+                "Reviewed fact"
+            )
+            .await?
+            .matched_count,
+        0
+    );
+    let corrected = store
+        .search_memory(
+            &task.project_id,
+            OrganizationNoteScope::Team,
+            Some(&task.owner_id),
+            "",
+        )
+        .await?;
+    assert_eq!(corrected.notes.len(), 1);
+    assert_eq!(
+        corrected.notes[0].source_note_id.as_deref(),
+        Some(promoted.id.as_str())
+    );
+    assert!(
+        store
+            .mutate_owner(
+                OrganizationMutation::PromoteNote {
+                    source_id: promoted.id.clone(),
+                    group_id: Some(group.id.clone()),
+                    body: "Stale correction".into()
+                },
+                None
+            )
+            .await
+            .is_err()
+    );
+    let history: i64 =
+        sqlx::query_scalar("SELECT count(*) FROM organization_notes WHERE project_id=?")
+            .bind(&task.project_id)
+            .fetch_one(&store.pool)
+            .await?;
+    assert_eq!(history, 3);
+    store
+        .mutate_owner(
+            OrganizationMutation::SetMembership {
+                node_id: task.owner_id.clone(),
+                group_id: group.id.clone(),
+                present: false,
+            },
+            None,
+        )
+        .await?;
+    assert_eq!(
+        store
+            .search_memory(
+                &task.project_id,
+                OrganizationNoteScope::Team,
+                Some(&task.owner_id),
+                ""
+            )
+            .await?
+            .matched_count,
+        0
+    );
+    store.close().await;
+    let store = OrganizationStore::open(&home.0).await?;
+    assert_eq!(
+        store
+            .search_memory(
+                &task.project_id,
+                OrganizationNoteScope::Team,
+                Some(&task.owner_id),
+                ""
+            )
+            .await?
+            .matched_count,
+        0,
+        "restart does not restore removed membership"
+    );
+    Ok(())
+}
 use codex_protocol::organization_coordination::*;
 
 #[tokio::test]

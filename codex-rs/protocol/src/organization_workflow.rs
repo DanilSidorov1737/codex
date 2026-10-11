@@ -14,6 +14,7 @@ pub enum OrganizationWorkflowKind {
     Templates,
     Runs,
     Limits,
+    Series,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
@@ -22,6 +23,8 @@ pub struct OrganizationSharedLimit {
     pub id: String,
     pub project_id: String,
     pub run_id: Option<String>,
+    #[serde(default)]
+    pub series_id: Option<String>,
     #[ts(type = "number")]
     pub revision: i64,
     #[ts(type = "number")]
@@ -137,6 +140,10 @@ pub enum OrganizationWorkflowControl {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
 #[serde(tag = "type", rename_all = "camelCase")]
 pub enum OrganizationWorkflowView {
+    Series {
+        series: Box<OrganizationWorkflowSeries>,
+        usage: OrganizationSharedUsage,
+    },
     Template {
         template: OrganizationWorkflowTemplate,
     },
@@ -153,6 +160,20 @@ pub enum OrganizationWorkflowView {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
 #[serde(tag = "type", rename_all = "camelCase", deny_unknown_fields)]
 pub enum OrganizationWorkflowMutation {
+    #[serde(rename_all = "camelCase")]
+    CreateSeries {
+        id: String,
+        preview: Box<OrganizationWorkflowPreview>,
+        config: crate::organization_schedule::OrganizationScheduleConfig,
+        trigger: OrganizationWorkflowTrigger,
+    },
+    #[serde(rename_all = "camelCase")]
+    ControlSeries {
+        id: String,
+        #[ts(type = "number")]
+        expected_revision: i64,
+        action: OrganizationWorkflowControl,
+    },
     #[serde(rename_all = "camelCase")]
     Put {
         id: String,
@@ -183,6 +204,36 @@ pub enum OrganizationWorkflowMutation {
         max_model_requests: u32,
         max_active: u32,
     },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
+#[serde(tag = "type", rename_all = "camelCase", deny_unknown_fields)]
+pub enum OrganizationWorkflowTrigger {
+    Interval,
+    #[serde(rename_all = "camelCase")]
+    Accepted {
+        task_id: String,
+        authorization_id: String,
+    },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct OrganizationWorkflowSeries {
+    pub id: String,
+    pub preview: OrganizationWorkflowPreview,
+    pub config: crate::organization_schedule::OrganizationScheduleConfig,
+    pub trigger: OrganizationWorkflowTrigger,
+    pub state: crate::organization_schedule::OrganizationScheduleState,
+    #[ts(type = "number")]
+    pub revision: i64,
+    #[ts(type = "number | null")]
+    pub next_run_at: Option<i64>,
+    pub issued_runs: u32,
+    pub skipped_runs: u32,
+    pub reason: Option<String>,
+    #[serde(default)]
+    pub source_result_digest: Option<String>,
 }
 
 #[cfg(test)]

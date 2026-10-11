@@ -42,6 +42,7 @@ impl OrganizationStore {
             id,
             project_id,
             run_id,
+            series_id: None,
             revision: previous
                 .unwrap_or(0)
                 .checked_add(1)
@@ -99,7 +100,7 @@ async fn applicable_limits(
     tx: &mut Transaction<'_, Sqlite>,
     grant: &OrganizationTaskAuthorization,
 ) -> Result<Vec<OrganizationSharedLimit>> {
-    let data: Vec<String> = sqlx::query_scalar("SELECT l.data FROM organization_shared_limits l JOIN organization_tasks t ON t.project_id=l.project_id WHERE t.id=? AND (l.run_id IS NULL OR EXISTS(SELECT 1 FROM organization_workflow_tasks w WHERE w.run_id=l.run_id AND w.authorization_id=?))")
+    let data: Vec<String> = sqlx::query_scalar("SELECT l.data FROM organization_shared_limits l JOIN organization_tasks t ON t.project_id=l.project_id WHERE t.id=? AND ((l.run_id IS NULL AND l.series_id IS NULL) OR EXISTS(SELECT 1 FROM organization_workflow_tasks w LEFT JOIN organization_workflow_occurrences o ON o.run_id=w.run_id WHERE w.authorization_id=? AND (w.run_id=l.run_id OR o.series_id=l.series_id)))")
         .bind(&grant.task_id).bind(grant.root_authorization_id.as_ref().unwrap_or(&grant.id)).fetch_all(&mut **tx).await?;
     data.into_iter()
         .map(|data| Ok(serde_json::from_str(&data)?))

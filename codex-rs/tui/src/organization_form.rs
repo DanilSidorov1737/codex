@@ -14,6 +14,7 @@ pub(super) enum Kind {
     Project,
     Task,
     GoalPlan(OrganizationGoal),
+    PromoteNote(OrganizationNote),
     Selection {
         project_id: String,
         selection: crate::organization_editor::Selection,
@@ -111,6 +112,7 @@ mod tests {
             id: "run:r".into(),
             project_id: "p".into(),
             run_id: Some("r".into()),
+            series_id: None,
             revision: 8,
             max_tokens: 100,
             max_model_requests: 2,
@@ -934,6 +936,7 @@ impl Form {
             .or_else(|| project.and_then(|p| p.goal_id.as_deref()));
         let owner = project.and_then(|p| p.owner_id.as_deref());
         let mut fields = match &kind {
+            Kind::PromoteNote(note) => vec![Field::select("Visibility",optional(records.iter().filter_map(|record|match record {OrganizationRecord::Node(node) if node.kind==OrganizationNodeKind::Group && node.enabled=>Some((node.id.clone(),node.label.clone())),_=>None}).collect()),note.group_id.as_deref()),Field::text("Owner-reviewed knowledge", "Blank team selects project visibility; source/task/attempt provenance is retained", &note.body)],
             Kind::Handoff {
                 task, receivers, ..
             } => vec![
@@ -1168,6 +1171,7 @@ impl Form {
             Kind::Project => "New project",
             Kind::Task => "New task",
             Kind::GoalPlan(_) => "Propose goal planner · starts no execution",
+            Kind::PromoteNote(_) => "Promote / correct knowledge · explicit owner review",
             Kind::Selection { .. } => "Propose task from actual Neovim selection",
             Kind::Handoff { .. } => "Resolve blocker / hand off remaining work",
             Kind::Authorize(_) => "Authorize task",
@@ -1401,6 +1405,11 @@ impl Form {
             Ok(lines(i))
         };
         Ok(match &self.kind {
+            Kind::PromoteNote(note) => Command::Definition(OrganizationMutation::PromoteNote {
+                source_id: note.id.clone(),
+                group_id: optional(0),
+                body: required(1)?,
+            }),
             Kind::Handoff {
                 task,
                 checkpoint,

@@ -30,7 +30,7 @@ impl OrganizationStore {
                 ensure!(agent_id.is_none(), "project search cannot select an agent");
                 ""
             }
-            OrganizationNoteScope::Agent => {
+            OrganizationNoteScope::Agent | OrganizationNoteScope::Team => {
                 let id = agent_id.context("agent search requires an agent ID")?;
                 text(id, 256)?;
                 ensure!(
@@ -185,6 +185,10 @@ impl OrganizationStore {
                 serde_json::to_value(child)?
             }
             OrganizationCoordinationCall::WriteNote { scope, body } => {
+                ensure!(
+                    scope != OrganizationNoteScope::Team,
+                    "only the owner can promote team knowledge"
+                );
                 text(&body, 4096)?;
                 let count: i64 = sqlx::query_scalar(
                     "SELECT count(*) FROM organization_notes WHERE project_id=?",
@@ -202,6 +206,9 @@ impl OrganizationStore {
                     scope,
                     body,
                     created_at: now,
+                    group_id: None,
+                    source_note_id: None,
+                    owner_reviewed: false,
                 };
                 sqlx::query("INSERT INTO organization_notes(id,project_id,author_id,scope,data) VALUES (?,?,?,?,?)")
                     .bind(&note.id).bind(&note.project_id).bind(&note.author_id).bind(note_scope(scope))
@@ -212,13 +219,11 @@ impl OrganizationStore {
             OrganizationCoordinationCall::ReadNotes { scope } => {
                 // Filter before deserialization or model context assembly. Agent
                 // notes are private to the agent within this authorized project.
-                let data: Vec<String> = sqlx::query_scalar("SELECT data FROM organization_notes WHERE project_id=? AND scope=? AND (?='project' OR author_id=?) ORDER BY id DESC LIMIT 16")
-                    .bind(&task.project_id).bind(note_scope(scope)).bind(note_scope(scope)).bind(&task.owner_id).fetch_all(&mut *tx).await?;
-                let notes = data
-                    .into_iter()
-                    .map(|data| serde_json::from_str::<OrganizationNote>(&data))
-                    .collect::<std::result::Result<Vec<_>, _>>()?;
-                serde_json::to_value(notes)?
+                serde_json::to_value(
+                    search_notes(&mut tx, &task.project_id, scope, &task.owner_id, "")
+                        .await?
+                        .notes,
+                )?
             }
             OrganizationCoordinationCall::SearchNotes { scope, query } => serde_json::to_value(
                 search_notes(&mut tx, &task.project_id, scope, &task.owner_id, &query).await?,
@@ -403,6 +408,83 @@ impl OrganizationStore {
     }
 }
 
+pub(super) async fn promote_note(
+    tx: &mut Transaction<'_, Sqlite>,
+    source_id: &str,
+    group_id: Option<String>,
+    body: String,
+) -> Result<()> {
+    text(&body, 4096)?;
+    let (data, superseded): (String, Option<String>) =
+        sqlx::query_as("SELECT data,superseded_by FROM organization_notes WHERE id=?")
+            .bind(source_id)
+            .fetch_one(&mut **tx)
+            .await?;
+    ensure!(
+        superseded.is_none(),
+        "source note was corrected; inspect its latest version"
+    );
+    let source: OrganizationNote = serde_json::from_str(&data)?;
+    if let Some(group_id) = &group_id {
+        let node = read_node(tx, group_id).await?;
+        ensure!(
+            node.kind == OrganizationNodeKind::Group
+                && node.enabled
+                && ancestors_enabled(tx, group_id).await?,
+            "knowledge team must be an enabled group"
+        );
+    }
+    let count: i64 =
+        sqlx::query_scalar("SELECT count(*) FROM organization_notes WHERE project_id=?")
+            .bind(&source.project_id)
+            .fetch_one(&mut **tx)
+            .await?;
+    ensure!(count < 128, "project note/history limit exhausted");
+    let scope = if group_id.is_some() {
+        OrganizationNoteScope::Team
+    } else {
+        OrganizationNoteScope::Project
+    };
+    let correction = source.owner_reviewed && source.scope == scope && source.group_id == group_id;
+    let note = OrganizationNote {
+        id: Uuid::now_v7().to_string(),
+        group_id,
+        source_note_id: Some(source.id.clone()),
+        owner_reviewed: true,
+        scope,
+        body,
+        created_at: chrono::Utc::now().timestamp(),
+        ..source
+    };
+    sqlx::query("INSERT INTO organization_notes(id,project_id,author_id,scope,group_id,data) VALUES (?,?,?,?,?,?)").bind(&note.id).bind(&note.project_id).bind(&note.author_id).bind(note_scope(scope)).bind(&note.group_id).bind(serde_json::to_string(&note)?).execute(&mut **tx).await?;
+    if correction {
+        sqlx::query(
+            "UPDATE organization_notes SET superseded_by=? WHERE id=? AND superseded_by IS NULL",
+        )
+        .bind(&note.id)
+        .bind(source_id)
+        .execute(&mut **tx)
+        .await?;
+    }
+    owner_event(tx, "knowledge/promoted", &note.id).await?;
+    Ok(())
+}
+
+async fn team_ids(tx: &mut Transaction<'_, Sqlite>, author_id: &str) -> Result<Vec<String>> {
+    let node = read_node(tx, author_id).await?;
+    if !node.enabled || !ancestors_enabled(tx, author_id).await? {
+        return Ok(vec![]);
+    }
+    let ids:Vec<String>=sqlx::query_scalar("WITH RECURSIVE ancestors(id) AS (SELECT ? UNION SELECT n.parent_id FROM organization_nodes n JOIN ancestors a ON n.id=a.id WHERE n.parent_id IS NOT NULL), affiliated(id) AS (SELECT id FROM ancestors UNION SELECT m.group_id FROM organization_memberships m JOIN ancestors a ON a.id=m.node_id) SELECT n.id FROM organization_nodes n JOIN affiliated a ON a.id=n.id WHERE n.kind='group' AND json_extract(n.data,'$.data.enabled')=1").bind(author_id).fetch_all(&mut **tx).await?;
+    let mut enabled = vec![];
+    for id in ids {
+        if ancestors_enabled(tx, &id).await? {
+            enabled.push(id);
+        }
+    }
+    Ok(enabled)
+}
+
 async fn search_notes(
     tx: &mut Transaction<'_, Sqlite>,
     project_id: &str,
@@ -417,8 +499,13 @@ async fn search_notes(
     let needle = query.trim().to_lowercase();
     // Scope before decoding/matching. ponytail: at most 128 notes/project;
     // use indexed full-text retrieval if that measured storage ceiling grows.
-    let data: Vec<String> = sqlx::query_scalar("SELECT data FROM organization_notes WHERE project_id=? AND scope=? AND (?='project' OR author_id=?) ORDER BY id DESC LIMIT 129")
-        .bind(project_id).bind(note_scope(scope)).bind(note_scope(scope)).bind(author_id)
+    let groups = if scope == OrganizationNoteScope::Team {
+        team_ids(tx, author_id).await?
+    } else {
+        vec![]
+    };
+    let data: Vec<String> = sqlx::query_scalar("SELECT data FROM organization_notes WHERE project_id=? AND scope=? AND superseded_by IS NULL AND (?='project' OR (?='agent' AND author_id=?) OR (?='team' AND group_id IN (SELECT value FROM json_each(?)))) ORDER BY id DESC LIMIT 129")
+        .bind(project_id).bind(note_scope(scope)).bind(note_scope(scope)).bind(note_scope(scope)).bind(author_id).bind(note_scope(scope)).bind(serde_json::to_string(&groups)?)
         .fetch_all(&mut **tx).await?;
     ensure!(data.len() <= 128, "memory storage ceiling exceeded");
     let mut notes = Vec::new();
@@ -442,6 +529,7 @@ fn note_scope(scope: OrganizationNoteScope) -> &'static str {
     match scope {
         OrganizationNoteScope::Project => "project",
         OrganizationNoteScope::Agent => "agent",
+        OrganizationNoteScope::Team => "team",
     }
 }
 

@@ -713,7 +713,16 @@ async fn continuity_migration_from_eight_preserves_existing_authorizations() -> 
     sqlx::query("DROP VIEW organization_shared_usage")
         .execute(&store.pool)
         .await?;
+    sqlx::query("DROP VIEW organization_project_run_usage")
+        .execute(&store.pool)
+        .await?;
+    sqlx::query("DROP TABLE organization_workflow_occurrences")
+        .execute(&store.pool)
+        .await?;
     sqlx::query("DROP TABLE organization_shared_limits")
+        .execute(&store.pool)
+        .await?;
+    sqlx::query("DROP TABLE organization_workflow_series")
         .execute(&store.pool)
         .await?;
     sqlx::query("DROP TABLE organization_handoffs")

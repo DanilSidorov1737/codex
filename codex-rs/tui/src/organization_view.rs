@@ -772,7 +772,7 @@ impl Dashboard {
             .unwrap_or_else(|| self.message.clone());
         let hints = if self.memory_request.is_some() {
             [
-                "Enter searches · / edit query · f refresh · Esc close memory",
+                "Enter searches · O promote/correct latest match · / query · f refresh · Esc close memory",
                 "↑↓ / PageUp / PageDown scroll · Empty query lists recent notes",
             ]
         } else {

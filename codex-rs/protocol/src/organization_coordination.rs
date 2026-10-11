@@ -29,6 +29,7 @@ pub struct OrganizationCheckpointContent {
 pub enum OrganizationNoteScope {
     Project,
     Agent,
+    Team,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
@@ -43,6 +44,12 @@ pub struct OrganizationNote {
     pub body: String,
     #[ts(type = "number")]
     pub created_at: i64,
+    #[serde(default)]
+    pub group_id: Option<String>,
+    #[serde(default)]
+    pub source_note_id: Option<String>,
+    #[serde(default)]
+    pub owner_reviewed: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]

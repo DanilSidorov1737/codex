@@ -63,6 +63,306 @@ fn request(template: &OrganizationWorkflowTemplate) -> OrganizationWorkflowPrevi
     }
 }
 
+fn series_config(runs: u32) -> codex_protocol::organization_schedule::OrganizationScheduleConfig {
+    codex_protocol::organization_schedule::OrganizationScheduleConfig {
+        label: "Finite workflow".into(),
+        interval_seconds: 10,
+        first_run_at: 1001,
+        ends_at: 1100,
+        max_runs: runs,
+        max_tokens: 200,
+        max_model_requests: 3,
+    }
+}
+
+#[tokio::test]
+async fn workflow_series_skip_overlap_cancel_preserve_usage_and_reject_stale_controls() -> Result<()>
+{
+    let home = Fixture::new();
+    let store = OrganizationStore::open(&home.0).await?;
+    let template = fixture(&store).await?;
+    let preview = store.preview_workflow(request(&template)).await?;
+    let id = Uuid::now_v7().to_string();
+    store
+        .mutate_workflow(
+            OrganizationWorkflowMutation::CreateSeries {
+                id: id.clone(),
+                preview: Box::new(preview),
+                config: series_config(3),
+                trigger: OrganizationWorkflowTrigger::Interval,
+            },
+            1000,
+        )
+        .await?;
+    assert_eq!(store.materialize_workflow_series(1001).await?, 1);
+    assert_eq!(store.materialize_workflow_series(1001).await?, 0);
+    assert_eq!(
+        store.materialize_workflow_series(1011).await?,
+        0,
+        "unfinished invocation prevents overlap"
+    );
+    let (series, _) = store
+        .list_workflows(OrganizationWorkflowKind::Series, None, None, 10)
+        .await?;
+    let OrganizationWorkflowView::Series { series, .. } = &series[0] else {
+        panic!("series")
+    };
+    assert_eq!(series.issued_runs, 1);
+    assert_eq!(series.skipped_runs, 1);
+    let worker = Uuid::now_v7().to_string();
+    let attempt = store
+        .claim_task(&worker, &Uuid::now_v7().to_string(), 1012, 2)
+        .await?
+        .unwrap();
+    let (sequence, _) = store
+        .admit_model_request(&attempt.id, &worker, 1012)
+        .await?;
+    store
+        .checkpoint_usage(&attempt.id, &worker, sequence, 15)
+        .await?;
+    assert!(
+        store
+            .mutate_workflow(
+                OrganizationWorkflowMutation::ControlSeries {
+                    id: id.clone(),
+                    expected_revision: 1,
+                    action: OrganizationWorkflowControl::Cancel
+                },
+                1012
+            )
+            .await
+            .is_err()
+    );
+    let original = store
+        .execution_view(&attempt.task_id)
+        .await?
+        .authorization
+        .unwrap();
+    let OrganizationWorkflowView::Series {
+        series: paused,
+        usage,
+    } = store
+        .mutate_workflow(
+            OrganizationWorkflowMutation::ControlSeries {
+                id: id.clone(),
+                expected_revision: series.revision,
+                action: OrganizationWorkflowControl::Pause,
+            },
+            1012,
+        )
+        .await?
+    else {
+        panic!("series")
+    };
+    assert_eq!((usage.model_requests, usage.reported_tokens), (1, 15));
+    assert_eq!(
+        store
+            .execution_view(&attempt.task_id)
+            .await?
+            .authorization
+            .unwrap(),
+        original,
+        "pausing future invocations keeps current work"
+    );
+    assert_eq!(store.materialize_workflow_series(1030).await?, 0);
+    store
+        .mutate_workflow(
+            OrganizationWorkflowMutation::ControlSeries {
+                id,
+                expected_revision: paused.revision,
+                action: OrganizationWorkflowControl::Cancel,
+            },
+            1030,
+        )
+        .await?;
+    assert_eq!(
+        store.execution_view(&attempt.task_id).await?.task.state,
+        "cancelled"
+    );
+    store.close().await;
+    let store = OrganizationStore::open(&home.0).await?;
+    let (series, _) = store
+        .list_workflows(OrganizationWorkflowKind::Series, None, None, 10)
+        .await?;
+    assert!(
+        matches!(&series[0],OrganizationWorkflowView::Series {series,usage} if series.state==codex_protocol::organization_schedule::OrganizationScheduleState::Cancelled && usage.model_requests==1 && usage.reported_tokens==15)
+    );
+    Ok(())
+}
+
+#[tokio::test]
+async fn accepted_trigger_waits_for_exact_acceptance_deduplicates_and_imports_only_scoped_artifacts()
+-> Result<()> {
+    let home = Fixture::new();
+    let store = OrganizationStore::open(&home.0).await?;
+    let template = fixture(&store).await?;
+    let source = execution_task(&store, &template.items[0].owner_id, &template.project_id).await?;
+    let grant = store
+        .authorize_task(&source.id, source.revision, execution_scope(), 1000)
+        .await?;
+    let mut q = request(&template);
+    q.scopes[0].scope.input_files.push("report.txt".into());
+    let preview = store.preview_workflow(q).await?;
+    let id = Uuid::now_v7().to_string();
+    store
+        .mutate_workflow(
+            OrganizationWorkflowMutation::CreateSeries {
+                id: id.clone(),
+                preview: Box::new(preview),
+                config: series_config(1),
+                trigger: OrganizationWorkflowTrigger::Accepted {
+                    task_id: source.id.clone(),
+                    authorization_id: grant.id.clone(),
+                },
+            },
+            1000,
+        )
+        .await?;
+    assert_eq!(store.materialize_workflow_series(1001).await?, 0);
+    let worker = Uuid::now_v7().to_string();
+    let attempt = store
+        .claim_task(&worker, &Uuid::now_v7().to_string(), 1001, 2)
+        .await?
+        .unwrap();
+    let result = store
+        .record_result(
+            &attempt.id,
+            &worker,
+            vec![OrganizationArtifactEvidence {
+                path: "report.txt".into(),
+                sha256: "a".repeat(64),
+                bytes: 3,
+            }],
+            vec![OrganizationCheckEvidence {
+                argv: execution_scope().checks[0].clone(),
+                exit_code: Some(0),
+                output: "state fixture".into(),
+                truncated: false,
+            }],
+            1002,
+        )
+        .await?;
+    assert_eq!(
+        store.materialize_workflow_series(1006).await?,
+        0,
+        "needsReview is not acceptance"
+    );
+    let v = store.execution_view(&source.id).await?;
+    store
+        .accept_result(&source.id, v.task.revision, &result.digest)
+        .await?;
+    let (one, two) = tokio::join!(
+        store.materialize_workflow_series(1011),
+        store.materialize_workflow_series(1011)
+    );
+    assert_eq!(one? + two?, 1, "concurrent polls issue only one follow-up");
+    assert_eq!(store.materialize_workflow_series(1012).await?, 0);
+    let (runs, _) = store
+        .list_workflows(OrganizationWorkflowKind::Runs, None, None, 10)
+        .await?;
+    let OrganizationWorkflowView::Run { run, .. } = &runs[0] else {
+        panic!("run")
+    };
+    let inputs = store.workflow_inputs(&run.task_ids["write"]).await?;
+    assert_eq!(inputs.len(), 1);
+    assert_eq!(inputs[0].0.digest, result.digest);
+    assert_eq!(inputs[0].0.artifacts, result.artifacts);
+    let (series, _) = store
+        .list_workflows(OrganizationWorkflowKind::Series, None, None, 10)
+        .await?;
+    assert!(
+        matches!(&series[0],OrganizationWorkflowView::Series {series,usage} if series.issued_runs==1 && series.source_result_digest.as_deref()==Some(result.digest.as_str()) && usage.model_requests==0)
+    );
+    Ok(())
+}
+
+#[tokio::test]
+async fn series_scope_drift_and_unknown_usage_block_restart_without_replay() -> Result<()> {
+    let home = Fixture::new();
+    let store = OrganizationStore::open(&home.0).await?;
+    let template = fixture(&store).await?;
+    let preview = store.preview_workflow(request(&template)).await?;
+    let id = Uuid::now_v7().to_string();
+    store
+        .mutate_workflow(
+            OrganizationWorkflowMutation::CreateSeries {
+                id: id.clone(),
+                preview: Box::new(preview),
+                config: series_config(2),
+                trigger: OrganizationWorkflowTrigger::Interval,
+            },
+            1000,
+        )
+        .await?;
+    assert_eq!(store.materialize_workflow_series(1001).await?, 1);
+    let worker = Uuid::now_v7().to_string();
+    let attempt = store
+        .claim_task(&worker, &Uuid::now_v7().to_string(), 1002, 2)
+        .await?
+        .unwrap();
+    store
+        .admit_model_request(&attempt.id, &worker, 1002)
+        .await?;
+    store.reconcile_interrupted_attempts().await?;
+    store.reconcile_workflow_series(1020).await?;
+    let (series, _) = store
+        .list_workflows(OrganizationWorkflowKind::Series, None, None, 10)
+        .await?;
+    let OrganizationWorkflowView::Series { series, usage } = &series[0] else {
+        panic!("series")
+    };
+    assert_eq!(
+        series.state,
+        codex_protocol::organization_schedule::OrganizationScheduleState::Blocked
+    );
+    assert_eq!(usage.model_requests, 1);
+    assert!(
+        store
+            .mutate_workflow(
+                OrganizationWorkflowMutation::ControlSeries {
+                    id,
+                    expected_revision: series.revision,
+                    action: OrganizationWorkflowControl::Resume
+                },
+                1020
+            )
+            .await
+            .is_err()
+    );
+    assert_eq!(store.materialize_workflow_series(1020).await?, 0);
+    let template2 = fixture(&store).await?;
+    let preview = store.preview_workflow(request(&template2)).await?;
+    store
+        .mutate_workflow(
+            OrganizationWorkflowMutation::CreateSeries {
+                id: Uuid::now_v7().to_string(),
+                preview: Box::new(preview),
+                config: series_config(2),
+                trigger: OrganizationWorkflowTrigger::Interval,
+            },
+            1000,
+        )
+        .await?;
+    store
+        .mutate_workflow(
+            OrganizationWorkflowMutation::Put {
+                id: template2.id.clone(),
+                expected_revision: Some(template2.revision),
+                project_id: template2.project_id,
+                label: "Changed pinned template".into(),
+                items: template2.items,
+            },
+            1000,
+        )
+        .await?;
+    assert_eq!(
+        store.materialize_workflow_series(1001).await?,
+        0,
+        "changed definitions cannot silently widen future grants"
+    );
+    Ok(())
+}
+
 async fn control(
     store: &OrganizationStore,
     run: &OrganizationWorkflowRun,
@@ -1125,7 +1425,16 @@ async fn workflow_migration_from_seven_preserves_existing_tasks_and_crash_blocks
     sqlx::query("DROP VIEW organization_shared_usage")
         .execute(&store.pool)
         .await?;
+    sqlx::query("DROP VIEW organization_project_run_usage")
+        .execute(&store.pool)
+        .await?;
+    sqlx::query("DROP TABLE organization_workflow_occurrences")
+        .execute(&store.pool)
+        .await?;
     sqlx::query("DROP TABLE organization_shared_limits")
+        .execute(&store.pool)
+        .await?;
+    sqlx::query("DROP TABLE organization_workflow_series")
         .execute(&store.pool)
         .await?;
     sqlx::query("DROP TABLE organization_handoffs")

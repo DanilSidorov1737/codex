@@ -356,7 +356,7 @@ fn dashboard() -> Dashboard {
 }
 
 #[tokio::test]
-async fn pane_controls_are_persisted_per_layout_and_render_the_saved_width() {
+async fn pane_controls_are_persisted_per_layout_and_reset_only_the_selected_layout() {
     let home = tempfile::tempdir().unwrap();
     let mut d = dashboard();
     d.path = home.path().join("layouts.json");
@@ -790,6 +790,9 @@ async fn memory_search_captures_scope_ignores_stale_results_and_renders_provenan
         scope: params.scope,
         body: "Überprüfung uses SQLite.\x1b[31mUntrusted text".into(),
         created_at: 1234,
+        group_id: None,
+        source_note_id: None,
+        owner_reviewed: false,
     };
     updates
         .send(Update::Memory(
