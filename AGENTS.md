@@ -128,6 +128,15 @@ pre-Apply driver or write a second backend Application. Later explicit native
 owner save produces the full calculator without rewriting that receipt. Preserve
 all grants/accounting/private checkpoints/bundles and use fresh restores for
 further review. All owned batch services are stopped; zero new paid calls ran.
+The owner subsequently approved the next twenty hierarchy/autonomy tasks with
+“ok lets do this”. Follow [hierarchy/autonomy batch](docs/development/hierarchy-autonomy-batch.md)
+through all independent tasks, starting with the concept-like branching tree.
+This supersedes prior deferrals for its listed local capabilities, including
+bounded safe recovery and native multi-tab checkpoints. Preserve external-action,
+paid-provider and automatic root acceptance/Apply boundaries. Continue Ponytail,
+real testing, documentation and logical local commits; no repeated approval is
+needed for ordinary slices. Historical qualified homes stay protected/stopped.
+
 Then read [decisions](docs/development/decisions-and-risks.md),
 [MVP plan](docs/development/mvp.md), [testing](docs/development/testing.md) and
 [process](docs/development/process.md). Reconcile current user instructions with

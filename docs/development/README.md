@@ -1,5 +1,8 @@
 # Codex CLI fork development
 
+Current approved work: [hierarchy presentation and deeper local autonomy](hierarchy-autonomy-batch.md).
+Read its checkpoint and status before the completed prior-batch evidence below.
+
 Latest delivery: **tasks 2–20 of the approved [twenty-task batch](next-twenty.md)
 are implemented and qualified**, with **790 selected automated checks** and
 actual CLI/TUI/official-Neovim coding, document, background, crash and fresh full

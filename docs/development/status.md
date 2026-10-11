@@ -1,5 +1,11 @@
 # Current status and resumption instructions
 
+Current approved work: [hierarchy/autonomy batch](hierarchy-autonomy-batch.md),
+approved with “ok lets do this”. Work begins with the branching Operations
+view from the supplied concept, then the remaining local autonomy/editor tasks.
+The completed prior twenty-task batch below is protected historical evidence.
+External integrations and new paid inference remain deferred.
+
 The approved [twenty-task batch](next-twenty.md) has **19 of 20 bounded tasks
 implemented and qualified: tasks 2–20**. Task 1 remains blocked on a real Linux
 systemd user manager with logout/lingering/reboot support. The current cloud
