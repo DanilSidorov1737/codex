@@ -1,5 +1,11 @@
 # Current status and resumption instructions
 
+Current approved work: [next twenty tasks](next-twenty.md), approved with
+“ok lets do this”. Implementation has started; read its checkpoint before the
+completed autonomy-batch evidence below. External integrations remain deferred.
+Real systemd logout/reboot qualification needs a suitable host; independent
+local implementation proceeds. Initial source `41820fc11e`, clean worktree.
+
 The revised [autonomy/usability batch](autonomy-batch.md) is **complete: all twelve
 approved bounded items are implemented and qualified**. **770 selected automated
 checks** and actual CLI/TUI/official-Neovim checks pass. External integrations are

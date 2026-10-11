@@ -1,5 +1,9 @@
 # Phased roadmap
 
+Current owner-approved implementation: [next twenty tasks](next-twenty.md).
+Proceed through coherent slices with recorded automated and physical evidence;
+external integrations remain deferred.
+
 The revised twelve-item [autonomy/usability batch](autonomy-batch.md) is complete:
 770 selected checks and actual CLI/TUI/official-Neovim qualification pass on
 application source `37eeac36a9`. External integrations remain deferred. Select the

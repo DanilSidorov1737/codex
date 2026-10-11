@@ -105,6 +105,15 @@ distributed workers, shared buffers and automatic acceptance/Apply remain deferr
 
 Read [docs/development/README.md](docs/development/README.md) and
 [status.md](docs/development/status.md) at the start of every session.
+
+The owner subsequently approved the [next twenty tasks](docs/development/next-twenty.md)
+with “ok lets do this”. Implement their bounded local scope with Ponytail,
+meaningful automated/physical checks, continuous docs and logical local commits.
+This supersedes older deferrals for the twenty listed capabilities. External
+integrations, distributed workers and automatic root acceptance/Apply remain
+deferred. Complete independent work when real-host systemd/reboot qualification
+is unavailable; never claim container restart proves host reboot. Preserve all
+historical state/accounting/evidence and use fresh qualification fixtures.
 Then read [decisions](docs/development/decisions-and-risks.md),
 [MVP plan](docs/development/mvp.md), [testing](docs/development/testing.md) and
 [process](docs/development/process.md). Reconcile current user instructions with

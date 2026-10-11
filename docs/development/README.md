@@ -1,5 +1,8 @@
 # Codex CLI fork development
 
+Current approved work: [next twenty tasks](next-twenty.md); read its checkpoint
+and current status. The completed autonomy batch below is the protected baseline.
+
 Latest delivery: **all twelve approved autonomy/usability items complete** on
 application source `37eeac36a9`, with **770 selected automated checks** and actual
 CLI/TUI/official-Neovim, mixed-GPT, automation, team-knowledge, crash/full recovery
