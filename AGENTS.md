@@ -32,7 +32,11 @@ meaningful tests and actual interaction. Continue Ponytail and logical local
 commits. N1 is qualified on `d6d049cc49` with 691 automated tests and actual
 CLI/TUI/official-Neovim restart/isolation evidence; see
 [memory search](docs/development/memory-search.md) and testing/status.
-Recurring schedules and N2–N8 remain later scope. Preserve its accepted writer
+The owner approved N2 recurring schedules with “ok lets do this”: bounded interval
+templates, daemon execution, pause/resume/cancel, next-run visibility, aggregate
+limits, restart and physical CLI/TUI qualification. Use Ponytail and periodic
+local commits. N3–N8 remain later scope; see recurring-schedules.md and status.md.
+Preserve N1's accepted writer
 and three needsReview reader fixtures; never blindly rerun authorization scripts.
 
 Read [docs/development/README.md](docs/development/README.md) and

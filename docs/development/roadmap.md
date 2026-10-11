@@ -16,15 +16,17 @@ committed; Review `51f914a851` and refresh-denial fix `9fadf32797` are qualified
 approved N1 scoped memory search; backend/CLI `8d33c5e0d8` and TUI `d6d049cc49`
 are delivered and qualified: 691 automated tests, real restart/scoped retrieval,
 remote-owner denial, actual CLI/TUI/Neovim and three-size rapid switching passed.
-Recurring schedules, broader knowledge promotion, hunks and staged repeated
-Apply remain later work.
+N2 recurring schedules is now owner-approved and in progress; see
+[its bounded contract](recurring-schedules.md). Broader knowledge promotion,
+hunks and staged repeated Apply remain later work.
 
 ## Recommended next slices
 
 The owner requested an expanded plan based on `docs/Codex CLI Fork.txt` on
 2026-10-10. The sequence below is proposed work after the qualified selective
 Apply slice, not implementation authorization or a claim of delivered features.
-The owner subsequently approved N1 with “Ok do this”; N2–N8 remain proposals.
+The owner subsequently approved N1 with “Ok do this” and N2 with “ok lets do this”;
+N3–N8 remain proposals.
 Memory and recurring schedules are the first two steps. The added
 steps cover practical portions of the text's workflow, continuity, organization,
 visibility, editor and capability requirements.
@@ -44,8 +46,7 @@ These are bounded increments rather than separate services or mandatory permanen
 agents for the shared system functions. Use Ponytail, meaningful automated checks,
 physical CLI/TUI interaction, actual Neovim checks when affected, updated evidence
 and logical local commits for each approved slice. N1 qualification is complete;
-N2 recurring schedules is the next recommendation and needs
-its matching scope before application changes.
+N2 recurring schedules is approved and in progress.
 Distributed workers, multimodal production, meetings, full-environment backup
 automation and protected self-improvement remain in their later roadmap phases.
 

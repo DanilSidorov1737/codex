@@ -1,9 +1,19 @@
 # Current status and resumption instructions
 
 Phase 0: **exploration and planning complete for available inputs**.
-Current work: **N1 scoped memory search complete; N2 recurring schedules is the next recommendation**.
+Current work: **N1 scoped memory search complete; owner-approved N2 recurring schedules in progress**.
 Application features: **delivered for the documented single-owner Linux envelope**.
 The MVP's release criteria are **qualified for the documented single-owner Linux/GPT-5.5 envelope**.
+
+## Active recurring-schedule slice
+
+The owner approved the proposed N2 slice with “ok lets do this”. Implement finite
+UTC interval schedules using the existing daemon, grants and accounting, with
+pause/resume/cancel and canonical CLI/TUI visibility. See the
+[contract and acceptance plan](recurring-schedules.md). Ponytail, meaningful
+automated checks, actual background/restart/approval/UI interaction, continuously
+updated evidence and periodic local commits are required. No paid pilot, push,
+publish, later N3–N8 implementation or automatic Apply is implied.
 
 ## Completed memory slice — 2026-10-10 UTC
 
