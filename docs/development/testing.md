@@ -1,5 +1,55 @@
 # Testing procedures and evidence
 
+## Apply recovery qualification
+
+2026-10-11 UTC, approved expanded-batch item 1. Evidence is in
+`/workspace/.onboarding/qualification/expanded-batch/`. The server certifies
+`application: notStarted` with the exact task/digest only while holding the
+application lock, before trying the durable intent transaction. Recorded intents,
+transport/timeout failures and commit/write uncertainty do not carry that signal.
+The dashboard restores native editor input only on this confirmed rejection or
+the matching successful Apply response; unrelated decisions cannot settle Apply.
+Rejection/error messages survive periodic snapshots. No new dependency/schema.
+
+From `/workspace/codex/codex-rs`, activate `. /workspace/.onboarding/activate.sh`;
+use `CARGO_INCREMENTAL=0 RUST_MIN_STACK=8388608` and
+`--locked --offline --profile dev-small -j4`:
+
+- `cargo test -p codex-tui --lib organization`: **32 passed**, including real
+  Neovim rejection/thaw and uncertain-outcome/unrelated-success regressions
+  (`apply-tui-tests-current.log`).
+- `cargo test -p codex-app-server --test all suite::v2::organization`: **7 passed**,
+  including exact pre-intent rejection identities and no safe-retry signal for
+  an already recorded application (`apply-api-tests.log`). **39 targeted tests**;
+  this does not claim a rerun of N3's entire 712-test matrix.
+- `cargo clippy -p codex-app-server -p codex-tui --lib -- -D warnings` and
+  `cargo clippy -p codex-cli --bin codex -- -D warnings`: exit 0.
+- `cargo fmt --check -p codex-tui -p codex-app-server` and
+  `cargo build -p codex-cli --bin codex`: exit 0. Full package builder reused
+  the verified native helpers; `apply-package-build.log` and `apply-preflight.json`
+  record the exact package and all five source/installed hashes.
+
+Actual packaged CLI and official Neovim 0.12.6 ran one fresh report task through
+exact native approval, immutable host check, real diff, owner acceptance, expected
+original-conflict denial, unchanged owner bytes, persistent error after refresh,
+a physically typed native editor command, and one separately confirmed Apply in
+the **same frontend**. Thirty-six rapid switches at 120×36, 50×20 and 160×48 passed;
+normal native CLI exit 0. Eleven actual PNG/text pairs are retained. Independent
+artifact/oracle/receipt/accounting/SQLite quick/FK checks passed. **2 localhost
+Responses / 30 fixture-reported tokens / 0 paid requests**. Private home `eb-home`
+contains one accepted task with one Completed report-only application; owned
+daemon/provider are stopped and state preserved (`apply-cleanup.json`).
+
+Failures remain: the first new UI regression fixtures closed their command
+receivers, causing queue-error text to replace the expected message; the corrected
+live-channel fixtures passed without weakening assertions. The physical setup
+runner used nonexistent `execution-mutate`; CLI exit 2 left the task proposed
+with no grant/attempt/inference. `resume-apply.py` proved that canonical state,
+then authorized the same exact payload once using `execute`; no reset or replay.
+`apply-runner.json`, the failed logs and corrected receipts are preserved.
+This qualifies the stated Linux/clean-editor/local deterministic envelope;
+additional paid models, plugins/LSP and other platforms were not exercised.
+
 ## Reusable workflow qualification — 2026-10-11 UTC
 
 Qualified application source `2bd752a3d1f09583c90d208e2081b7ee69335661`;

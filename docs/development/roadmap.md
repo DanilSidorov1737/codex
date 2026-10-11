@@ -62,6 +62,10 @@ expand the next list so the batch accomplishes more, then approved it with
 “ok lets do this”. This refines N4 and draws bounded additions from N5–N8.
 N1–N3 remain complete. Start with recovery and handoffs, then add the owner
 controls and visibility below. Qualify each coherent slice as it is delivered.
+Item 1 is delivered and qualified with 39 targeted automated tests and actual
+same-frontend CLI/official-Neovim rejection/input/reconfirmation/Apply plus rapid
+layout switching; see [evidence](testing.md#apply-recovery-qualification).
+Items 2–12 remain approved work in progress.
 
 | Order | Capability and practical scope | Reuse and acceptance gate |
 | --- | --- | --- |

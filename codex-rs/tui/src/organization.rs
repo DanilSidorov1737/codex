@@ -180,6 +180,8 @@ enum Update {
     ),
     Detail(Box<OrganizationExecutionView>),
     Error(String),
+    ApplyRejected(String),
+    ApplyFinished,
     Changed,
     Saved(OrganizationRecord),
     ScheduleSaved(Box<OrganizationScheduleView>, bool),
@@ -304,6 +306,7 @@ async fn worker(
             Command::MemorySearch(params) => Some(params.clone()),
             _ => None,
         };
+        let mut apply_rejected = false;
         let operation = async {
             match command {
                 Command::Refresh => {
@@ -384,16 +387,41 @@ async fn worker(
                     updates.send(Update::Changed).await?;
                 }
                 Command::Execution(mutation) => {
+                    let applying = matches!(&mutation, OrganizationExecutionMutation::Apply { .. });
+                    let apply_identity = match &mutation {
+                        OrganizationExecutionMutation::Apply {
+                            task_id, digest, ..
+                        } => Some(
+                            serde_json::json!({"application": "notStarted", "taskId": task_id, "digest": digest}),
+                        ),
+                        _ => None,
+                    };
                     let response: OrganizationExecutionMutateResponse = handle
                         .request_typed(ClientRequest::OrganizationExecutionMutate {
                             request_id: request_id(),
                             params: OrganizationExecutionMutateParams { mutation },
                         })
-                        .await?;
+                        .await
+                        .inspect_err(|error| {
+                            if let codex_app_server_client::TypedRequestError::Server {
+                                source,
+                                ..
+                            } = error
+                            {
+                                apply_rejected =
+                                    apply_identity.is_some() && source.data == apply_identity;
+                            }
+                        })?;
                     updates
                         .send(Update::Detail(Box::new(response.view)))
                         .await?;
-                    updates.send(Update::Changed).await?;
+                    updates
+                        .send(if applying {
+                            Update::ApplyFinished
+                        } else {
+                            Update::Changed
+                        })
+                        .await?;
                 }
                 Command::WorkflowPreview(request) => {
                     let response: OrganizationWorkflowPreviewResponse = handle
@@ -437,12 +465,18 @@ async fn worker(
         let error = match tokio::time::timeout(Duration::from_secs(15), operation).await {
             Ok(Ok(())) => None,
             Ok(Err(error)) => Some(error.to_string()),
-            Err(_) if memory_request.is_some() => Some("Memory search timed out; refresh to retry this read-only request.".into()),
-            Err(_) => Some("Owner API timed out; consequential decisions have an unknown outcome. Refresh before retrying.".into()),
+            Err(_) if memory_request.is_some() => {
+                Some("Memory search timed out; refresh to retry this read-only request.".into())
+            }
+            Err(_) => {
+                apply_rejected = false;
+                Some("Owner API timed out; consequential decisions have an unknown outcome. Refresh before retrying.".into())
+            }
         };
         if let Some(error) = error {
             let update = match memory_request {
                 Some(params) => Update::Memory(params, Err(error)),
+                None if apply_rejected => Update::ApplyRejected(error),
                 None => Update::Error(error),
             };
             if updates.send(update).await.is_err() {
@@ -544,6 +578,7 @@ pub(crate) struct Dashboard {
     confirmation: Option<Command>,
     confirmation_text: String,
     message: String,
+    message_is_error: bool,
     commands: mpsc::Sender<Command>,
     updates: mpsc::Receiver<Update>,
     worker: tokio::task::JoinHandle<()>,
@@ -632,6 +667,7 @@ impl Dashboard {
             confirmation: None,
             confirmation_text: String::new(),
             message,
+            message_is_error: false,
             commands,
             updates,
             worker,
@@ -1639,7 +1675,11 @@ impl Dashboard {
                     self.snapshot = snapshot;
                     self.rebuild();
                     self.detail_text = clean(&self.details());
-                    if self.confirmation.is_none() && self.memory_request.is_none() {
+                    if self.confirmation.is_none()
+                        && self.memory_request.is_none()
+                        && !self.message_is_error
+                        && !self.applying
+                    {
                         self.message =
                             "Owner state loaded; definitions do not imply running agents.".into();
                     }
@@ -1654,24 +1694,24 @@ impl Dashboard {
                         self.detail_text = clean(&self.details());
                     }
                 }
-                Update::Error(e) => self.message = e,
+                Update::Error(e) => {
+                    self.message = e;
+                    self.message_is_error = true;
+                }
+                Update::ApplyRejected(e) => self.finish_application(e, true),
+                Update::ApplyFinished => {
+                    self.finish_application("Exact accepted result applied.".into(), false)
+                }
                 Update::Memory(params, result) => {
                     if self.memory_request.as_ref() == Some(&params) {
                         self.memory_result = Some(result);
                     }
                 }
                 Update::Changed => {
-                    self.applying = false;
-                    self.message = "Owner decision recorded.".into();
-                    if let Some(editor) = &mut self.editor
-                        && let Err(e) = editor.thaw()
-                    {
-                        self.message = e.to_string();
-                    }
-                    if let Some(editor) = &mut self.editor
-                        && let Err(e) = editor.reload_follow()
-                    {
-                        self.message = e.to_string();
+                    // An unrelated successful decision cannot settle an uncertain Apply.
+                    if !self.applying {
+                        self.message = "Owner decision recorded.".into();
+                        self.message_is_error = false;
                     }
                     self.send(Command::Refresh);
                 }
@@ -1727,6 +1767,26 @@ impl Dashboard {
                 }
             }
         }
+    }
+    fn finish_application(&mut self, message: String, rejected: bool) {
+        self.applying = false;
+        self.message = message;
+        self.message_is_error = rejected;
+        if let Some(editor) = &mut self.editor {
+            let outcome = editor.thaw().and_then(|()| {
+                if rejected {
+                    Ok(())
+                } else {
+                    editor.reload_follow()
+                }
+            });
+            if let Err(error) = outcome {
+                self.message
+                    .push_str(&format!("; editor protection: {error}"));
+                self.message_is_error = true;
+            }
+        }
+        self.send(Command::Refresh);
     }
     fn details(&self) -> String {
         let mut text = self.workflow_details();

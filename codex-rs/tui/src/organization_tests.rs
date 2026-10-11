@@ -323,6 +323,7 @@ fn dashboard() -> Dashboard {
         confirmation: None,
         confirmation_text: String::new(),
         message: String::new(),
+        message_is_error: false,
         commands,
         updates,
         worker: tokio::spawn(std::future::pending()),
@@ -1137,4 +1138,77 @@ async fn selective_apply_confirmation_keeps_captured_paths_task_and_revision() {
     assert_eq!(digest, "captured-result");
     assert_eq!(paths, Some(vec!["report.txt".into()]));
     assert!(d.applying && d.form.is_none());
+}
+
+#[tokio::test]
+async fn confirmed_apply_rejection_restores_real_editor_and_survives_refresh() {
+    let mut d = dashboard();
+    let (commands, _command_rx) = mpsc::channel(4);
+    d.commands = commands;
+    let (tx, rx) = mpsc::channel(4);
+    d.updates = rx;
+    d.editor = Some(Editor::start(FrameRequester::test_dummy()).unwrap());
+    d.editor.as_mut().unwrap().freeze().unwrap();
+    d.applying = true;
+    tx.send(Update::ApplyRejected(
+        "original file changed; inspect before confirming again".into(),
+    ))
+    .await
+    .unwrap();
+    tx.send(Update::Snapshot(Snapshot::default()))
+        .await
+        .unwrap();
+    d.update();
+    assert!(!d.applying && d.message_is_error);
+    assert!(d.message.contains("original file changed"));
+    let editor = d.editor.as_mut().unwrap();
+    editor
+        .key(KeyEvent::new(
+            KeyCode::Char('i'),
+            crossterm::event::KeyModifiers::NONE,
+        ))
+        .unwrap();
+    editor.paste("human editing restored").unwrap();
+    assert!(editor.dirty().unwrap());
+}
+
+#[tokio::test]
+async fn uncertain_apply_stays_frozen_after_refresh_and_unrelated_success() {
+    let mut d = dashboard();
+    let (commands, _command_rx) = mpsc::channel(4);
+    d.commands = commands;
+    let (tx, rx) = mpsc::channel(4);
+    d.updates = rx;
+    d.editor = Some(Editor::start(FrameRequester::test_dummy()).unwrap());
+    d.editor.as_mut().unwrap().freeze().unwrap();
+    d.applying = true;
+    tx.send(Update::Error("Owner API timed out; unknown outcome".into()))
+        .await
+        .unwrap();
+    tx.send(Update::Changed).await.unwrap();
+    tx.send(Update::Snapshot(Snapshot::default()))
+        .await
+        .unwrap();
+    d.update();
+    assert!(d.applying && d.message_is_error);
+    assert!(d.message.contains("unknown outcome"));
+    assert!(
+        d.editor
+            .as_mut()
+            .unwrap()
+            .paste("must stay blocked")
+            .is_err()
+    );
+    tx.send(Update::ApplyFinished).await.unwrap();
+    d.update();
+    assert!(!d.applying && !d.message_is_error);
+    d.editor
+        .as_mut()
+        .unwrap()
+        .key(KeyEvent::new(
+            KeyCode::Char('i'),
+            crossterm::event::KeyModifiers::NONE,
+        ))
+        .unwrap();
+    d.editor.as_mut().unwrap().paste("settled").unwrap();
 }

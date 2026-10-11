@@ -77,6 +77,14 @@ async fn denied_execution(
     server: &mut TestAppServer,
     mutation: OrganizationExecutionMutation,
 ) -> Result<String> {
+    let apply_identity = match &mutation {
+        OrganizationExecutionMutation::Apply {
+            task_id, digest, ..
+        } => Some(
+            serde_json::json!({"application": "notStarted", "taskId": task_id, "digest": digest}),
+        ),
+        _ => None,
+    };
     let id = server
         .send_request(
             "organization/execution/mutate",
@@ -89,6 +97,27 @@ async fn denied_execution(
         .read_stream_until_error_message(RequestId::Integer(id))
         .await?;
     assert_eq!(rejected.error.code, -32602);
+    if rejected.error.message.contains("original file changed")
+        || rejected
+            .error
+            .message
+            .contains("artifact changed after acceptance")
+    {
+        assert_eq!(
+            rejected.error.data, apply_identity,
+            "confirmed pre-intent rejection must identify the exact Apply"
+        );
+    }
+    if rejected
+        .error
+        .message
+        .contains("application already recorded")
+    {
+        assert!(
+            rejected.error.data.is_none(),
+            "a recorded application cannot certify a safe retry"
+        );
+    }
     Ok(rejected.error.message)
 }
 

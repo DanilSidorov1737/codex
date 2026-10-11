@@ -322,6 +322,7 @@ impl OrganizationRequestProcessor {
             .await
             .map_err(|error| internal_error(format!("execution owner unavailable: {error:#}")))?;
         let store = self.store().await?;
+        let mut apply_rejection = None;
         let result = async {
             match params.mutation {
                 OrganizationExecutionMutation::Authorize {
@@ -385,16 +386,34 @@ impl OrganizationRequestProcessor {
                 }
                 OrganizationExecutionMutation::Apply {task_id,expected_revision,digest,paths} => {
                     let _application = self.application_lock.clone().acquire_owned().await?;
-                    let view = store.execution_view(&task_id).await?;
-                    anyhow::ensure!(view.task.state=="accepted"&&view.task.revision==expected_revision,"application requires exact accepted task revision");
-                    let result=view.result.context("accepted result missing")?;
-                    anyhow::ensure!(result.accepted&&result.digest==digest,"accepted result digest changed");
-                    anyhow::ensure!(!view.applications.iter().any(|application| application.digest==digest),"result application already recorded; inspect its receipt, never replay an uncertain operation");
-                    let linked=self.thread_store.read_project(view.task.project_id.clone()).await?.context("project missing")?;
-                    let codex_protocol::organization::OrganizationRecord::Project(project)=store.read_definition(codex_protocol::organization::OrganizationRecordKind::Projects,&view.task.project_id).await? else {anyhow::bail!("invalid project record")};
-                    anyhow::ensure!(linked.roots.iter().map(|r|&r.path).eq(project.roots.iter()),"project roots changed");
-                    let source=view.attempts.iter().find(|a|a.id==result.attempt_id).and_then(|a|a.workspace.as_deref()).context("accepted workspace missing")?;
-                    let prepared=crate::organization_workspace::PreparedApplication::prepare(&self.config,std::path::Path::new(project.roots.first().context("project root missing")?),std::path::Path::new(source),&result,paths.as_deref())?;
+                    let mut no_intent = false;
+                    let prepared = async {
+                        let view = store.execution_view(&task_id).await?;
+                        anyhow::ensure!(!view.applications.iter().any(|application| application.digest==digest),"result application already recorded; inspect its receipt, never replay an uncertain operation");
+                        no_intent = true;
+                        anyhow::ensure!(view.task.state=="accepted"&&view.task.revision==expected_revision,"application requires exact accepted task revision");
+                        let result=view.result.context("accepted result missing")?;
+                        anyhow::ensure!(result.accepted&&result.digest==digest,"accepted result digest changed");
+                        let linked=self.thread_store.read_project(view.task.project_id.clone()).await?.context("project missing")?;
+                        let codex_protocol::organization::OrganizationRecord::Project(project)=store.read_definition(codex_protocol::organization::OrganizationRecordKind::Projects,&view.task.project_id).await? else {anyhow::bail!("invalid project record")};
+                        anyhow::ensure!(linked.roots.iter().map(|r|&r.path).eq(project.roots.iter()),"project roots changed");
+                        let source=view.attempts.iter().find(|a|a.id==result.attempt_id).and_then(|a|a.workspace.as_deref()).context("accepted workspace missing")?;
+                        crate::organization_workspace::PreparedApplication::prepare(&self.config,std::path::Path::new(project.roots.first().context("project root missing")?),std::path::Path::new(source),&result,paths.as_deref())
+                    }.await;
+                    let prepared = match prepared {
+                        Ok(prepared) => prepared,
+                        Err(error) => {
+                            // Only certify rejection while holding the application lock,
+                            // before attempting the durable intent transaction. Unknown
+                            // transport/commit/write outcomes never get this signal.
+                            if no_intent {
+                                apply_rejection = Some(serde_json::json!({
+                                    "application": "notStarted", "taskId": task_id, "digest": digest
+                                }));
+                            }
+                            return Err(error);
+                        }
+                    };
                     let intent=store.begin_application(&task_id,expected_revision,&digest,paths.as_deref()).await?;
                     let applied=tokio::task::spawn_blocking(move||{
                         // A disconnected/cancelled owner RPC must not release
@@ -415,8 +434,11 @@ impl OrganizationRequestProcessor {
             Ok::<(), anyhow::Error>(())
         }
         .await;
-        result
-            .map_err(|error| invalid_params(format!("execution mutation rejected: {error:#}")))?;
+        result.map_err(|error| {
+            let mut response = invalid_params(format!("execution mutation rejected: {error:#}"));
+            response.data = apply_rejection;
+            response
+        })?;
         self.runtime.wake();
         let view = store.execution_view(&task_id).await.map_err(|error| {
             internal_error(format!("execution committed; reread task state: {error:#}"))

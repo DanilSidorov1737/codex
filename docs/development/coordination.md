@@ -75,6 +75,32 @@ contract. There is no automatic capture or permission-bearing memory. See
 
 ## Waiting and files
 
+### Approved checkpoint and handoff continuation
+
+The owner-approved expanded batch adds structured checkpoints and owner-controlled
+reassignment. Reuse the canonical store, attempts, grants and isolated-workspace
+artifact importer. A checkpoint records the source attempt, reported progress,
+remaining steps, an optional blocker and host-captured artifact evidence. Progress
+text remains an agent report; actual action/check receipts are the verification
+source. A blocker fences the attempt and frees its capacity only after native
+runtime cleanup. Pending/uncertain effects and unresolved usage prevent handoff.
+
+The owner reviews an exact task revision and immutable checkpoint before choosing
+another permitted configured agent, or resolving the blocker with the same agent.
+The old attempt remains fenced. Continue with a fresh attempt under the same grant,
+preserving request/token/attempt counters, expiry, scope and schedule/workflow
+accounting. Do not use ordinary reauthorization to reset those limits. The receiver
+must match the captured model and current permitted node/project policy; active
+descendants or changed policy require resolution before transferring ownership.
+Imported checkpoint bytes must still match host hashes and retain their original
+Apply bases. Handoff is not result acceptance and cannot unlock prerequisites.
+
+Required evidence: checkpoint/reassignment restart persistence, stale-worker and
+changed-checkpoint denial, no limit reset, uncertain-effect denial, independent
+work continuing, scoped artifact continuity, actual CLI/TUI/official-Neovim review
+and a separately confirmed Apply. This contract is approved but not yet delivered;
+update this section with the concrete API and measured limits after qualification.
+
 Parents wait only for direct delegated children, yielding an acyclic wait tree.
 A waiting parent releases its active slot after any streamed provider request's
 usage receipt is recorded. Resume reacquires a slot before further inference.

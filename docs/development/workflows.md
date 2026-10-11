@@ -133,3 +133,8 @@ keeps the editor frozen. A same-frontend retry stayed blocked during this pilot;
 the actual fresh-frontend retry completed once after confirming no intent. This
 is a known usability limitation, not automatic reconciliation. Never replay
 qualification invocations or Apply.
+
+The subsequent approved expanded batch fixes this known frontend limitation for
+explicit server-confirmed pre-intent rejections. Same-frontend recovery and a new
+exact Apply confirmation are physically qualified; unknown outcomes remain
+protected. See [current evidence](testing.md#apply-recovery-qualification).

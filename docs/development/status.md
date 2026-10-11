@@ -5,6 +5,29 @@ Current work: **N1/N2/N3 complete; expanded recovery/handoff/UI batch approved a
 Application features: **delivered for the documented single-owner Linux envelope**.
 The MVP's release criteria are **qualified for the documented single-owner Linux/GPT-5.5 envelope**.
 
+## Expanded batch checkpoint: Apply recovery complete
+
+Item 1 is delivered and physically qualified: a server-confirmed pre-intent
+rejection now restores actual Neovim input without frontend restart, with the
+error retained through refresh. Uncertain outcomes and unrelated successful
+decisions cannot unlock Apply. **39 targeted automated tests**, production/CLI
+Clippy, formatting and complete CLI/package passed. Actual native report approval,
+immutable check, diff/acceptance, conflict denial, same-frontend input/reconfirmation,
+one Apply and 36 layout switches passed, with independent integrity/accounting
+proof. Two localhost requests/30 fixture tokens/zero paid requests; services stopped.
+See [testing evidence](testing.md#apply-recovery-qualification) and
+`expanded-batch/{apply-verification,apply-cleanup}.json`. The initial closed-channel
+test fixtures and wrong CLI-subcommand setup failure remain alongside corrected
+passes. Preserve this accepted/applied task and do not rerun its setup/authorization
+or Apply scripts.
+
+Next approved work: items 2–4, structured checkpoints, owner-controlled fenced
+reassignment and blocker escalation. The [continuity contract](coordination.md#approved-checkpoint-and-handoff-continuation)
+preserves original grants/counters/expiry, requires stopped old runtimes and
+reconciled effects/usage, and imports only hash-verified permitted checkpoint
+artifacts. Remaining batch items are approved, not yet delivered; no new scope
+question is needed to continue them.
+
 ## Expanded next batch approval — 2026-10-11 UTC
 
 The owner subsequently approved the entire 12-item bounded list with “ok lets
@@ -381,8 +404,8 @@ Persistent configurable agents/roles/goals/projects/tasks, protected canonical s
 bounded daemon work/delegation/context, all five layouts, official embedded Neovim,
 exact human review/Apply, owner boot limits, trusted price estimates, N1 scoped
 memory search, N2 recurring schedules and N3 reusable workflows are delivered.
-Next recommendation: the [expanded batch](roadmap.md#expanded-next-batch), starting
-with Apply recovery and N4 handoffs/blockers after matching scope; preserve
+Next approved work: the [expanded batch](roadmap.md#expanded-next-batch), continuing
+with N4 checkpoints/handoffs/blockers after qualified Apply recovery; preserve
 current fixture state and do not repeat paid pilots.
 Ponytail reuse-first implementation/review and logical local commits were used.
 
@@ -661,9 +684,9 @@ authorize push/publication, outbound communications or unbounded provider spendi
    Preserve all historical tasks/results/series and failures; owned services are
    stopped. Never rerun qualification setup/authorization/crash scripts, replay
    authorization/Apply, redo paid pilots or create automatic inference loops.
-   Next recommendation: the expanded batch above, starting with Apply recovery
-   and N4 handoffs/blockers after matching scope; use fresh scoped projects/grants
-   for new approved tests.
+   Continue the approved expanded batch above with checkpoints and N4
+   handoffs/blockers; use fresh scoped projects/grants for new approved tests.
+   Preserve expanded-batch/eb-home's accepted/applied report fixture too.
 5. Update acceptance/status/testing and make logical local commits after results.
    Do not start later roadmap phases without matching user scope, or infer push,
    merge, deploy, external messaging or financial authority.
