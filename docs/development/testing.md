@@ -1,5 +1,115 @@
 # Testing procedures and evidence
 
+## Operations batch final qualification
+
+2026-10-11 UTC. **Approved tasks 2–20 pass within their documented local bounds;
+task 1 requires a real systemd/logout/reboot host.** Final application source
+`18cc403424`; later commits are documentation only. Package:
+`/workspace/.onboarding/qualification/operations-batch/editor-refusal-package/`,
+version `0.0.0-operations-editor.18cc403424`, CLI SHA256
+`9de78bb27789cdeafa2cf9eaf51e773e8465445d07dd2475762c777d54d9d605`.
+Rust 1.95.0, Node 24.19.0, pnpm 10.34.5, official Neovim 0.12.6.
+
+From `/workspace/codex/codex-rs`, activate
+`. /workspace/.onboarding/activate.sh`, set
+`CARGO_INCREMENTAL=0 RUST_MIN_STACK=8388608`, and use Cargo options
+`--locked --offline --profile dev-small -j4`. Logs are under
+`/workspace/.onboarding/qualification/operations-batch/`.
+Native IPC/editor/sandbox cases run with authorized native execution because the
+outer cloud sandbox masks protected sockets; denied behavior stays asserted.
+
+| Selected command (common Cargo options above) | Passed | Log |
+| --- | --- | --- |
+| `cargo test -p codex-state --lib` | 310, full state suite | `editor-full-state-v2.log` |
+| `cargo test -p codex-protocol --lib` | 374, full protocol suite | `editor-full-protocol-v2.log` |
+| `cargo test -p codex-tui --lib organization` | 70, including actual official Neovim | `editor-tui-refusal-tests-v2.log` |
+| `cargo test -p codex-app-server --lib organization_workspace` | 7 real workspace cases | `editor-workspace-tests.log` |
+| `cargo test -p codex-app-server-protocol --lib schema_fixtures_tests -- --skip write_schema_fixtures_from_env` | 4 comparisons | `editor-schema-comparisons.log` |
+| SDK `.venv` `python -m pytest tests/test_contract_generation.py tests/test_public_api_signatures.py` | 25 | `editor-sdk-contracts.log` |
+
+**790 distinct selected automated checks, zero failures/ignored cases.** Raw
+stable/experimental writers run separately and are excluded from that count;
+generated JSON/TypeScript/precomputed contracts and Python SDK types match.
+Production `cargo clippy -p codex-cli --bin codex -- -D warnings`, full
+`cargo build -p codex-cli --bin codex`, package and `cargo fmt --all --check` pass
+(`editor-refusal-cli-{clippy,build}.log`, `editor-refusal-fmt.log`). Stable rustfmt
+warnings about nightly import settings do not change the passing result.
+Schema/SDK generation uses the existing activated SDK venv; no installation.
+
+Failure-sensitive coverage includes immutable preset/fresh-identity rollback,
+versioned pause/lifecycle/priority/history, deterministic fairness, concurrent
+claims/global budgets and unknown fences, finite captured goal policy, atomic
+checkpoint replan rollback/same-grant handoff, discussion dependency/scoped
+imports, retired/private knowledge filtering and captured scorecard attribution.
+Editor checks use real splits/cursors/unsaved buffers/undo plus stale original,
+identity/tick/text/dirty/session guards. Backend hunk checks reconstruct exact
+patch/output hashes, preserve unselected bytes and refuse stale originals before
+writes. The final notification regression preserves the refusal through an
+asynchronous Snapshot without expanding helper visibility.
+
+Actual native evidence and all failures are detailed in
+[operations-native-qualification.md](operations-native-qualification.md).
+Tasks 2–9 physically exercise palette/forms/goal edits/preset clones/refusals,
+36 rapid layout switches/three sizes, controls/immutable coding/document checks,
+exact acceptance and same-grant pause/resume. Tasks 10–15 physically exercise
+finite discussions and isolated context, goal-policy controls, note retirement/
+stale refusal/restoration, checkpoint proposals/stale receiver refusal and fresh
+reviewed same-grant replan with captured source/receiver/model scorecards.
+A real document check continues after normal frontend exit; exact acceptance
+occurs on a new frontend. An admitted silent localhost request is interrupted
+by SIGKILL of the exact recorded owned daemon; restart/fresh restore retain its
+charged unknown fence without replay. Live/corrupt bundles refuse; offline full
+bundle/fresh-home remapping retains runtime sessions, workspaces and business state.
+Actual restored CLI/official-Neovim review passes with exit 0.
+
+Native task 19 stores 10,000 unique dormant nodes, loads fifty pages and physically
+searches/navigates/collapses/refreshes at three sizes, preserving IDs after restart.
+Measured startup/search/refresh-search: 2.735/0.852/2.204 seconds; RSS
+284,404–300,480 KiB. These observations do not change active capacity or promise
+an SLA. The separate 10,000-deep projection test measures 124–279 ms.
+
+Editor continuation `editor-native/{physical,restart}.json` passes native dirty
+Apply refusal before intent, one exact first-hunk Apply, expected partial-oracle
+failure, repeat-Apply refusal, pinned proposal/native undo/external-writer refusal
+retained across refresh, private three-window unsaved checkpoint, new-session
+clean-default/explicit-unsaved restoration, native undo/redo/explicit owner save
+and final immutable oracle. The same receipt and two-request/30-token code grant
+remain. `controls-recovery.json` and `restored-native.json` retain that partial
+Application, controls/history/accounting and accepted results through full fresh
+restore, followed by actual Follow/Diff/clean native split restore with no writes.
+The original document remains unapplied. Frontend checkpoints/configuration and
+owner originals are separate from bundles. Both installed final five-asset sets
+and business/runtime SQLite quick/FK checks pass.
+
+Successful autonomy replacement: 17 admitted/16 reported requests, 240 synthetic
+tokens, one unknown, zero paid. Controls: four requests/60 synthetic tokens,
+zero unknown/paid. The separate failed original autonomy fixture retains its
+charged unknown request and cancelled queued grants. **No new paid calls**;
+these local responses verify control/accounting, not model quality or billing.
+Task 20 covers finite extended interactions/restart/recovery, not indefinite uptime.
+
+All failed compiles/drivers/expected denials remain; passing continuations do not
+replay grants, acceptance or Apply. The interrupted package-update harness used
+60 seconds despite the supported 330-second drain; completing its native update
+with a 400-second allowance pins all five final assets before backup. A physical
+frontend refusal while draining and the initially older daemon asset mismatch are
+retained. The final regression fixes refusal visibility; original-file guards
+always preserved the external writer. Inactive rebuildable compiler artifacts
+only were pruned for headroom with hash/byte receipts; every qualified package,
+fixture, result, grant, counter, bundle and log remains.
+
+All owned services stop (`final-owned-processes.json`); quarantined source homes
+must never restart. The 121 unmodified PNG/text pairs include failures, with 244
+CRC-checked ZIP entries and manifest. Archive:
+`/workspace/artifacts/cli-operations-batch-final/cli-operations-batch-screenshots.zip`,
+SHA256 `64d692e21090bf05fa36f12ffbb5ab263b029c9a0020bcdea71c6d17e52b91c2`.
+No private database, credential, rollout or backup bundle is in the archive.
+
+No systemd user manager/logout/reboot, integration, distributed worker, automatic
+root acceptance/Apply, new paid inference or fresh cloud-task restoration was
+qualified. Use [the host runbook](unattended-host-qualification.md) for task 1.
+Historical checkpoints below preserve intermediate results; this section is current.
+
 ## Operations batch: discovery, finite forms and goal evidence
 
 2026-10-11 (America/New_York). Tasks 2, 3 and 5 are qualified on `f863b37028`.

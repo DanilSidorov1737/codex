@@ -1,8 +1,8 @@
 # Native sessions, exact hunks and buffer proposals
 
 Tasks 16–18 use actual official Neovim and the existing accepted-result Apply
-ledger. Implementation is in progress; qualification/status documents determine
-what has passed. No editor engine, new service or new downloaded dependency is
+ledger. Implementation and actual restart/full-restore qualification pass; see
+[the native evidence](operations-native-qualification.md) and current status. No editor engine, new service or new downloaded dependency is
 introduced. The protocol reuses the workspace's existing diffy library so both
 frontend previews and backend verification share the same canonical selection.
 

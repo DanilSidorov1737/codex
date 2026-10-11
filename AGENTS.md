@@ -114,12 +114,20 @@ integrations, distributed workers and automatic root acceptance/Apply remain
 deferred. Complete independent work when real-host systemd/reboot qualification
 is unavailable; never claim container restart proves host reboot. Preserve all
 historical state/accounting/evidence and use fresh qualification fixtures.
-The current native checkpoint is [operations native qualification](docs/development/operations-native-qualification.md).
+Tasks 2–20 are now implemented/qualified on final application source `18cc403424`,
+with 790 selected automated checks and actual CLI/TUI/official-Neovim/background/
+crash/full-restore evidence. Task 1 remains approved but blocked on a real-host
+user manager/logout/reboot test; no independent implementation remains in this
+batch. Read [operations native qualification](docs/development/operations-native-qualification.md)
+and current status for package hashes, retained failures and bounded limits.
 The original reviewed-autonomy fixture has one charged unknown request; keep it
-paused/stopped. Never restart the quarantined reviewed-autonomy-v2 source home.
-The controls code result now has one exact hunk Application; never replay its
-pre-Apply driver or write a second backend Application. Continue editor review
-only from its current bytes, recorded receipt and explicit native owner decisions.
+paused/stopped. Never restart either quarantined reviewed-autonomy-v2 or controls
+source home; read their workspace-quarantine mappings before any read-only work.
+The controls code result has one exact partial hunk Application; never replay its
+pre-Apply driver or write a second backend Application. Later explicit native
+owner save produces the full calculator without rewriting that receipt. Preserve
+all grants/accounting/private checkpoints/bundles and use fresh restores for
+further review. All owned batch services are stopped; zero new paid calls ran.
 Then read [decisions](docs/development/decisions-and-risks.md),
 [MVP plan](docs/development/mvp.md), [testing](docs/development/testing.md) and
 [process](docs/development/process.md). Reconcile current user instructions with

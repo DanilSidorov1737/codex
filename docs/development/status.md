@@ -1,49 +1,71 @@
 # Current status and resumption instructions
 
-Current approved work: [next twenty tasks](next-twenty.md), approved with
-“ok lets do this”. Implementation has started; read its checkpoint before the
-completed autonomy-batch evidence below. External integrations remain deferred.
-Real systemd logout/reboot qualification needs a suitable host; independent
-local implementation proceeds. Initial source `41820fc11e`, clean worktree.
+The approved [twenty-task batch](next-twenty.md) has **19 of 20 bounded tasks
+implemented and qualified: tasks 2–20**. Task 1 remains blocked on a real Linux
+systemd user manager with logout/lingering/reboot support. The current cloud
+container has PID 1 `tail`; no host logout/reboot or automatic service restart
+was tested. Follow [the host runbook](unattended-host-qualification.md) on an
+owner-designated suitable host. External integrations remain deferred.
 
-Operations batch tasks 2/3/5 are qualified on `f863b37028`: command palette,
-finite workflow/accepted-trigger forms and navigable goal evidence/editing.
-59 targeted TUI/actual-Neovim checks, production CLI Clippy/build/package,
-physical owner forms/refusals, 36 layout switches, native exit 0, installed asset
-hashes and SQLite integrity pass. No model calls ran. Both series/source grant
-were cancelled and the owned daemon stopped.
-Task 4 optional organization presets is also qualified on `a3e0fcca67`: full
-state 295/protocol 373, targeted TUI/editor 60, schema 4 and SDK 25 checks pass,
-plus real save/clone/refusals/restart and installed assets/SQLite integrity.
-Preserve `operations-batch/presets/{physical,restart-v3,cleanup}.json`, both failed
-restart harnesses and the cancelled future fixture. Zero inference ran.
-Tasks 6–9 project lifecycle/priorities/global limits/emergency pause are qualified
-on `753464cd53`: state 301/protocol 373/TUI-editor 62/schema 4/SDK 25 checks and
-production CLI Clippy/build/format pass. Actual coding/document checks/acceptance,
-pause/refused approval/same-grant resume, completion/archive/reopen, exhausted
-admission refusal, 36 layout switches, restart, two exits 0 and native integrity
-pass. Four localhost responses/60 fixture tokens/zero paid; final global state is
-paused and owned services are stopped. Preserve `operations-batch/controls/`,
-both accepted unapplied results and the cancelled zero-usage probe; never replay
-setup/decisions or reset ceilings. Next work is tasks 10–15 bounded policy/goal
-supervision, replanning, discussions, knowledge maintenance and scorecards.
-Tasks 10–15 now pass 310 full state, 373 full protocol and 63 targeted TUI/editor checks; native qualification and generated contracts remain pending. See reviewed-autonomy.md. Tasks 16–18 are implemented and pass 69 targeted real-editor/TUI checks; native package qualification is pending. The full state/protocol reruns pass 310/374. Task 19 has measured 10,000-node traversal and expanded only dormant node/goal loading; native registry and task 20 full qualification remain. See neovim-sessions-and-hunks.md.
-[Batch checkpoint](next-twenty.md) is authoritative
-for remaining work; [host runbook](unattended-host-qualification.md) describes the
-unavailable logout/reboot checks. Preserve all fresh operations-batch fixtures
-and do not replay their mutations.
+Delivered: command discovery, finite automation forms, fresh organization
+presets, goal/milestone tree, lifecycle/priority/fairness/global controls, finite
+policies and goal supervision, reviewed checkpoint replans, bounded discussions,
+scoped knowledge maintenance, captured scorecards, real Neovim session recovery,
+exact hunk Apply, pinned native buffer proposals and 10,000 stored arbitrary
+nodes. Existing grants, approvals, immutable checks, acceptance and Apply fences
+remain. No new downloaded application dependency or editor engine was added;
+diffy reuses the workspace library. The default-two/max-four active envelope
+remains. Stored capacity is not concurrent execution capacity.
 
-Current operations UI package:
-`/workspace/.onboarding/qualification/operations-batch/package/bin/codex`.
-SHA256 `ab34a1b88a48541620ddf8a99e2b64be40c9eea0e03498943b63a06acee1b868`.
-Receipts: `operations-batch/native/{physical,final-readonly,cleanup}.json`.
-Newer preset package: `operations-batch/preset-package/bin/codex`, SHA256
-`782d3145a153dd92c21bc0c96f5830380218a7158bbd83d2664f06841d06b45e`.
-Preset screenshots: `/workspace/artifacts/cli-organization-presets/cli-organization-presets-screenshots.zip`.
-Newer controls package: `operations-batch/controls-package/bin/codex`, SHA256
-`83f25d0809f5edd223d9c5e14da4f9d0ed538d65fe24e8482a8238c8a7d31340`.
-Controls receipts: `operations-batch/controls/{physical,restart}.json`; screenshots:
-`/workspace/artifacts/cli-owner-controls/cli-owner-controls-screenshots.zip`.
+Final application source **`18cc403424`**; later commits are documentation only.
+Package: `/workspace/.onboarding/qualification/operations-batch/editor-refusal-package/bin/codex`.
+CLI SHA256: `9de78bb27789cdeafa2cf9eaf51e773e8465445d07dd2475762c777d54d9d605`.
+All five final assets match both source and fresh restored daemon installations.
+**790 distinct selected automated checks**, production CLI Clippy `-D warnings`,
+locked/offline build, formatting, generated schema/types and Python SDK pass.
+Actual CLI/TUI/official Neovim 0.12.6 interaction, 36 layout switches/three sizes,
+native coding/document oracles, background completion after frontend exit,
+crash/unknown fencing, fresh full restores and receipt retention pass.
+Read [final tests](testing.md#operations-batch-final-qualification) and
+[actual native evidence](operations-native-qualification.md).
+
+Evidence root: `/workspace/.onboarding/qualification/operations-batch/`.
+Passing editor continuation: `editor-native/{physical,restart,controls-recovery,restored-native}.json`.
+The one hunk Application installs index 0 only; its partial-result oracle correctly
+fails. Later explicit native buffer recovery/undo/redo/`:write` installs the full
+reviewed calculator, passes its immutable oracle and leaves that original receipt
+unchanged. Original document remains unapplied. A stale original writer was
+preserved; the corrected refusal remains visible across snapshot refresh.
+
+Successful autonomy replacement receipts:
+`reviewed-autonomy-v2/{discussion,goal-native,knowledge-native,replan-native,background-native,recovery,restored-native}.json`.
+That home retains **17 admitted/16 reported requests, 240 synthetic tokens and
+one unknown**. Controls retain **four requests/60 synthetic tokens**. The separate
+failed original autonomy home retains its charged unknown request and cancelled
+queued grants. Zero new paid calls; historical live estimate remains $0.3652553,
+not an invoice. Do not repeat paid pilots or reset accounting.
+
+All owned batch providers/daemons/frontends are stopped;
+`final-owned-processes.json` verifies no live owned service. Preserve all prior
+fixtures, failed drivers, originals, editor checkpoints, results, grants, usage,
+packages and bundles. **Never restart quarantined source homes**: read
+`reviewed-autonomy-v2/workspace-quarantine.json` and
+`editor-native/controls-workspace-quarantine.json`. Use a fresh restore for
+read-only review. Do not replay setup/authorization/replan/acceptance/Apply or
+create a second application receipt. Runtime bundles exclude owner originals,
+configuration/credentials and private frontend editor checkpoints; keep those
+separately. A crash recovers the last completed checkpoint, not later keystrokes.
+
+Screenshots: `/workspace/artifacts/cli-operations-batch-final/cli-operations-batch-screenshots.zip`
+(121 unmodified PNG/text pairs, 244 CRC-checked entries). Package/receipt/archive
+hashes and selected captures are recorded in the final evidence. No push,
+deployment, purchase, new integration, automatic root acceptance or Apply occurred.
+Next independent implementation requires matching owner scope; the existing
+host-qualification task remains approved but needs the suitable host.
+Cloud startup guidance is a draft for review/save/publish; saving does not prove
+fresh-task restoration of these local-only commits or retained packages.
+
+## Historical completed autonomy batch
 
 The revised [autonomy/usability batch](autonomy-batch.md) is **complete: all twelve
 approved bounded items are implemented and qualified**. **770 selected automated
@@ -915,7 +937,7 @@ execute. Mixed-model pilot passed with four live calls and new estimated spend
 $0.0198223, combined pilot estimate $0.3652553 under the conservative $1 ceiling.
 No more paid calls are planned. See autonomy-batch.md for contracts and limits.
 
-## Packaged native qualification checkpoint
+## Historical operations package checkpoint
 
 Production CLI Clippy with warnings denied, locked/offline build and complete
 format check pass on source `a8fb65ebf4`. The immutable five-asset package is
@@ -951,5 +973,6 @@ or replay it**. The corrected fixture has separate fresh authority and a tracked
 localhost provider session. Optional template metadata, multiline draft clearing,
 startup/layout selection and provider-only registry setup errors were corrected
 in external qualification drivers. No production safeguard was weakened.
-Tasks 10–12, 14–18 and 20 remain in native qualification; task 1 still needs a
-real systemd user-manager/reboot-capable host.
+At that earlier checkpoint, tasks 10–12, 14–18 and 20 still needed native
+qualification. The final checkpoint at the start of this page supersedes it;
+only real-host task 1 remains blocked.

@@ -29,138 +29,49 @@ autonomy batch and every historical fixture/grant/receipt remain protected.
 | 19. Larger registries | Measure thousands of stored arbitrary nodes and tree navigation/fair selection before changing active capacity. Optimize measured bottlenecks, preserve default-two/max-four active envelope unless separately qualified. |
 | 20. Extended qualification | Fresh bounded coding/document fixtures and meaningful denied/stale/concurrent/crash/restore cases, actual frontend/editor interaction, extended operation and evidence. No historical replay/counter reset or unbounded paid inference. |
 
-## Implementation checkpoint
+## Final checkpoint
 
-Work has started. Task 1 needs a real user-manager/reboot-capable host; the
-[host qualification runbook](unattended-host-qualification.md) records the
-separate acceptance sequence. No host logout or reboot was performed.
+**Tasks 2–20 are implemented and qualified within the bounded scope above.**
+Task 1 remains blocked on a real systemd user-manager/logout/reboot-capable host;
+[the host runbook](unattended-host-qualification.md) defines the remaining checks.
+No host logout, reboot or automatic systemd restart was performed.
 
-Tasks **2, 3 and 5 are complete and qualified on `f863b37028`**: 59 targeted
-TUI/editor checks, production CLI Clippy/build/package and physical real CLI/
-official-Neovim terminal interaction pass. Palette search/cancel and Console
-discovery, goal editing/stale/cycle refusal, finite interval and exact-source
-accepted-trigger forms, 36 layout switches at three sizes and native exit 0 pass.
-Five installed asset hashes and SQLite quick/FK checks pass; zero model requests
-or attempts ran. Both series and the future source grant were cancelled; the
-owned daemon is stopped. Preserve `operations-batch/native/` and never rerun
-its setup or physical mutation driver.
+Final application source is `18cc403424`; later commits maintain documentation.
+The immutable package is `operations-batch/editor-refusal-package/`, version
+`0.0.0-operations-editor.18cc403424`, CLI SHA-256
+`9de78bb27789cdeafa2cf9eaf51e773e8465445d07dd2475762c777d54d9d605`.
+**790 distinct selected automated checks pass**, plus production CLI Clippy with
+warnings denied, locked/offline build, formatting, generated contracts and actual
+CLI/TUI/official-Neovim interaction. See [testing](testing.md#operations-batch-final-qualification)
+and [native evidence](operations-native-qualification.md).
 
-These features reuse existing owner handlers, native previews, protected
-mutations and goal/task records; no dependency was added.
+| Tasks | Implementation milestone and passing native evidence |
+| --- | --- |
+| 2, 3, 5 | `f863b37028`: palette/help, finite owner forms and goal/milestone tree; `native/{physical,final-readonly,cleanup}.json`, 36 layout switches at three sizes, zero inference. |
+| 4 | `a3e0fcca67`: bounded configurable presets, fresh identities and internal membership remapping; `presets/{physical,restart-v3,cleanup}.json`, no grants/private notes copied, zero inference. |
+| 6–9 | `753464cd53`: versioned lifecycle, deterministic priority/aging, native organization ceilings and emergency pause; `controls/{physical,restart}.json`, coding/document immutable checks, acceptance, same-grant resume and exhausted admission refusal. |
+| 10–15 | `5a9c3f7db5`, contracts `a8fb65ebf4`: finite policies/goal supervision, atomic reviewed replans, typed discussions, scoped knowledge maintenance and captured scorecards; `reviewed-autonomy-v2/{discussion,goal-native,knowledge-native,replan-native}.json`. |
+| 16–18 | `6b93c24205`, local refusal visibility `18cc403424`: real native three-window sessions, explicit clean/unsaved recovery, pinned buffer proposals/undo and one exact hunk Application; `editor-native/{physical,restart,controls-recovery,restored-native}.json`. |
+| 19 | `registry-native/{prepared,physical,restart}.json`: 10,000 unique stored nodes, actual tree search/navigation/refresh/three sizes/restart, measured timings/RSS and zero inference. Default-two/max-four active envelope unchanged. |
+| 20 | Actual coding/document checks, normal frontend exit with detached completion, same-grant daemon crash/unknown fencing, offline full bundles/remapped fresh restores/corrupt refusal and restored native review. Both recovery homes preserve accounting; one completed hunk receipt survives without replay. |
 
-Task **4 is complete and qualified on `a3e0fcca67`**: a protected SQLite
-preset table stores at most 128 captured subtree nodes, their role versions and
-512 internal memberships within 128 KiB. Owner cloning creates fresh role/node
-identities beneath a named group, remaps internal parents/memberships and advances
-the preset revision with the last-clone mapping. Stale retries refuse; no grants,
-tasks, runtime identity or private notes are copied. The original snapshot is
-retained despite later source edits. TUI D saves a selected node; F9 browses
-presets; V opens a version-pinned clone form. One projection enum replaces the
-separate dashboard view flags.
+Task 20 qualifies these finite local scenarios, not indefinite uptime, invoice
+accuracy, provider quality, external integrations or thousands of active workers.
+The original failed autonomy fixture retains one charged unknown request. The
+successful replacement retains 17 admitted/16 reported requests, 240 synthetic
+tokens and one unknown. Controls retain four requests/60 synthetic tokens.
+**Zero new paid calls**; no counters or limits were reset. All owned services stop.
 
-Both new state checks, full state **295** and full protocol **373** pass.
-The first state attempt exposed a test's dynamic SQL and mismatched model binding;
-the broader run exposed three downgrade fixtures retaining the new table. The
-tests now use literal SQL, matching captured model scopes and genuinely older
-fixture schemas; original assertions remain. All 60 targeted TUI/editor checks,
-production CLI Clippy/build, four schema comparisons and 25 Python SDK contract
-checks pass. Python generation initially missed the installed Ruff executable;
-activating the existing SDK virtual environment fixed its PATH without installing
-anything. Physical native save/clone, immutable source snapshot, fresh identities,
-internal-only memberships, unchanged original grant/task/knowledge boundary,
-stale clone refusal and invalid-parent rollback pass. Native restart retains the
-same preset revision and mapping. Both CLI exits are 0; SQLite quick/FK checks and
-all five installed package hashes pass. Zero model requests or attempts ran;
-the sole future source task was cancelled and the owned daemon stopped.
-Preserve `operations-batch/presets/`; never replay its setup/physical decisions.
-Two read-only restart harness failures (saved Console layout and an incorrect
-asset list) are retained; corrected `restart-v3.json` passes. The initial final
-format check exposed test-only formatting; it is corrected and the rerun passes.
+Keep every fixture, failure, grant, result, package, bundle and receipt. Never
+restart either quarantined source home: read
+`reviewed-autonomy-v2/workspace-quarantine.json` and
+`editor-native/controls-workspace-quarantine.json`. Never replay pre-Apply drivers
+or create a second backend Application. The later full calculator file comes
+from explicitly recovered native text and owner `:write`; its partial hunk receipt
+remains unchanged. Frontend checkpoints/configuration are retained separately
+from data bundles. No push, deployment, integration or automatic Apply occurred.
 
-Tasks **6–9 are complete and qualified on `753464cd53`**: project lifecycle,
-priority/fair selection, global limits and emergency pause use versioned controls
-and immutable control history so pause/priority do not invalidate execution
-grants or reset original accounting. No other remaining task is qualified yet.
-Subsequent slices update this page, status and testing with exact commits,
-commands, actual interactions, failures and limits.
-No push, deployment, external message, new integration, purchase or automatic
-Apply is authorized by this local batch.
-
-Controls checkpoint: all 301 state and 373 protocol checks pass, including six
-new failure-sensitive checks for pause/late receipts, exact completion/history,
-priority aging/40 paused candidates, root/descendant accounting, concurrent global
-claims/requests and automatic workflow materialization. Legacy downgrade fixtures
-now remove the new migration's views/tables/queue column before simulating older
-schemas; assertions remain. The first TUI run exposed existing K/Q shortcut
-collisions; project lifecycle is now F and priority !, retaining K navigation and
-Q native selection. The corrected 62 targeted TUI/actual-Neovim checks, four
-generated schema comparisons and 25 SDK contract checks pass. Missing global
-usage from older daemons is explicitly unavailable. Production CLI Clippy with
-warnings denied, CLI build and formatting pass. Fresh physical coding/document/
-control qualification and restart pass: two immutable real subprocess checks,
-exact owner acceptance, pause/refused approval/same-grant resume, completion/
-archive/reopen, exhausted admission refusal, unchanged originals and accounting,
-36 layout switches, two exits 0, installed asset hashes and SQLite integrity.
-Four localhost responses/60 synthetic tokens/zero paid. Final global state is
-paused; owned services are stopped. Preserve both accepted unapplied results and
-the cancelled zero-usage ceiling probe. All 26 native PNG/text pairs are archived
-under `/workspace/artifacts/cli-owner-controls/`. Next work is tasks 10–15;
-their implementation is in progress, with no further item qualified yet.
-
-Tasks 10–15 are implemented with native qualification pending. All 310 state,
-373 protocol and 63 targeted TUI/official-Neovim checks pass. The corrected
-discussion fixture releases completed attempt capacity, matching the real host.
-The new finite policies, atomic checkpoint replans, typed discussions, scoped
-knowledge retirement/history and captured scorecards are described in
-[reviewed autonomy](reviewed-autonomy.md). Generated contracts, production
-Clippy/package and fresh physical checks follow; tasks 16–20 remain in progress.
-
-Tasks 16–18 are implemented with native package qualification pending; see
-[Neovim sessions and hunks](neovim-sessions-and-hunks.md). Full state 310,
-protocol 374 and targeted TUI/official-Neovim 69 pass. The stale-proposal test
-found an expected native refusal incorrectly invalidating the editor; guarded
-Lua now retains the editor while transport/timeouts still fence uncertainty.
-Palette tests preserve layout ordering and unambiguous discovery. A 10,000-deep
-node tree completes collapse/search/full traversal in 124–279 ms in these test
-runs. The node/goal loader now permits 10,000 records, retaining 2,000 for other
-record types and default-two/max-four active execution. Task 19 still needs native
-stored-registry measurements; task 20 needs complete fresh native qualification.
-
-## Packaged native qualification checkpoint
-
-Production CLI Clippy with warnings denied, locked/offline build and complete
-format check pass on source `a8fb65ebf4`. The immutable five-asset package is
-`operations-batch/editor-package/`, version
-`0.0.0-operations-editor.a8fb65ebf4`; CLI SHA-256 is
-`f197e2dd12469cd5bf158504ab7c9b7c1499622759262ceab8f2cec65e96a262`.
-Selected automated checks total **789**: state 310, protocol 374, TUI/official
-Neovim 69, real backend workspace 7, schema comparisons 4 and Python SDK 25.
-
-Task **13** passes fresh native CLI/TUI qualification in
-`operations-batch/reviewed-autonomy-v2/discussion.json`: physically drafted
-finite two-participant/one-round template, exact per-step scopes/shared pool,
-real approved subprocesses, immutable checks, exact acceptance and conclusion
-dependency gating. Each participant sees only its own permitted fact; the
-concluder sees accepted contributions and retains dissent/proposed follow-ups.
-Three accepted isolated results, six localhost responses/90 synthetic tokens,
-no automatic Apply and normal CLI exit 0.
-
-Task **19** passes native stored-registry qualification in
-`operations-batch/registry-native/physical.json`: 10,000 unique native dormant
-nodes created through 128-definition presets and fresh owner mutations, loaded
-in 50 pages. Physical stable-tail search, collapse/navigation, refresh and three
-terminal sizes pass; exit 0, no tasks/notes/model requests. Observed startup
-2.735 seconds, search including terminal settling 0.852 seconds, refresh/search
-2.204 seconds; frontend RSS 284,404–300,480 KiB. These are observations, not an
-SLA or permission to increase the default-two/max-four active envelope.
-
-All failed drivers remain. The first provider child stopped before serving an
-admitted request; the original reviewed-autonomy home has one charged unknown
-request, a failed attempt and cancelled queued grants. Its configured global
-pool correctly fences further work. It is paused/stopped: **never restart, reset
-or replay it**. The corrected fixture has separate fresh authority and a tracked
-localhost provider session. Optional template metadata, multiline draft clearing,
-startup/layout selection and provider-only registry setup errors were corrected
-in external qualification drivers. No production safeguard was weakened.
-Tasks 10–12, 14–18 and 20 remain in native qualification; task 1 still needs a
-real systemd user-manager/reboot-capable host.
+Screenshots: `/workspace/artifacts/cli-operations-batch-final/cli-operations-batch-screenshots.zip`
+contains 121 actual unmodified PNG/text pairs, including retained failures,
+a manifest and CRC-checked archive. Current startup guidance must use this final
+package and checkpoint; older package/test counts remain historical evidence.

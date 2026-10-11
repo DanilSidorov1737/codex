@@ -1,18 +1,20 @@
 # Codex CLI fork development
 
-Current approved work: [next twenty tasks](next-twenty.md);
-native sessions/hunks/buffers: [editor contracts](neovim-sessions-and-hunks.md);
-finite policy/replan/discussion/knowledge contracts: [reviewed autonomy](reviewed-autonomy.md); read its checkpoint
-and current status. The completed autonomy batch below is the protected baseline.
+Latest delivery: **tasks 2–20 of the approved [twenty-task batch](next-twenty.md)
+are implemented and qualified**, with **790 selected automated checks** and
+actual CLI/TUI/official-Neovim coding, document, background, crash and fresh full
+restore checks. Task 1 needs a real systemd user-manager/logout/reboot-capable host;
+[the runbook](unattended-host-qualification.md) records its unrun gates.
+External integrations remain deferred. Read [current status](status.md),
+[native qualification](operations-native-qualification.md),
+[editor contracts](neovim-sessions-and-hunks.md),
+[finite autonomy contracts](reviewed-autonomy.md) and
+[final tests](testing.md#operations-batch-final-qualification).
 
-Latest delivery: **all twelve approved autonomy/usability items complete** on
-application source `37eeac36a9`, with **770 selected automated checks** and actual
-CLI/TUI/official-Neovim, mixed-GPT, automation, team-knowledge, crash/full recovery
-and restored review/Apply evidence. Read [current status](status.md),
-[batch contracts](autonomy-batch.md) and [final tests](testing.md#autonomy-batch-final-qualification).
-External integrations are deferred; systemd logout/reboot remains untested on this
-host. Current captures: `/workspace/artifacts/cli-autonomy-batch/cli-autonomy-batch-screenshots.zip`.
-The previous checkpoints below remain historical evidence.
+Final application source: `18cc403424`. Current screenshots:
+`/workspace/artifacts/cli-operations-batch-final/cli-operations-batch-screenshots.zip`.
+All historical fixtures/accounting/receipts remain protected; never restart
+quarantined source homes or replay Apply. Earlier checkpoints below are historical.
 
 Phase: **B1–B6 implemented/qualified, including bounded real GPT-5.5 pilots**.
 The owner-approved TUI creation/authorization and concept-art dashboard usability
@@ -93,9 +95,9 @@ MessagePack external UI API. Do not implement an editor engine.
 First MVP: a single-host, owner-controlled system with a small bounded number
 of active executions, arbitrary persistent organization structure, one useful
 project workflow, all five minimal layouts, safe review, and real Neovim.
-Local measurements cover 1,000 additional stored agents and two/four active
-native executions. Larger registries and greater simultaneous execution remain
-later capacity targets; see release-qualification.md for measured results.
+Local measurements now cover 10,000 stored nodes and two/four active native
+executions. Greater simultaneous execution remains a separate capacity target;
+see operations-native-qualification.md and release-qualification.md for bounds.
 
 ## Evidence and limitations
 

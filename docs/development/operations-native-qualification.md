@@ -3,7 +3,10 @@
 The owner approved all twenty tasks. Use [next-twenty.md](next-twenty.md) for
 scope and [status.md](status.md) for the current checkpoint. Existing fixtures,
 accepted results, grants, usage and application receipts must never be replayed
-or reset to make a test pass. External integrations remain deferred.
+or reset to make a test pass. External integrations remain deferred. Tasks 2–20 are now qualified; task 1
+needs the separate real-host boundary below. Final application source is
+`18cc403424`; the detailed automated/package evidence is in
+[testing](testing.md#operations-batch-final-qualification).
 
 ## Reviewed autonomy and background recovery
 
@@ -62,7 +65,7 @@ unit check takes 124–279 ms in recorded runs. The default-two/max-four active
 execution envelope remains unchanged; stored capacity does not prove thousands
 of concurrent sessions. Other record/report pagination remains capped at 2,000.
 
-## Editor qualification continuation
+## Editor sessions, hunks and restored review
 
 The protected controls code result has **one completed exact hunk Application**;
 `editor-native/partial-receipt.json` pins index 0, canonical patch/output hashes
@@ -76,9 +79,47 @@ A stale original-file proposal retained the external owner's line, but its local
 refusal message was cleared by background refresh. Source `18cc403424` retains
 it using the existing error flag; 70 affected TUI/official-Neovim checks pass.
 The first test compile named a private helper type; the corrected test uses the
-existing serde contract without expanding visibility. Remaining package/editor
-session restart qualification is recorded in status/testing. Do not rerun any
-pre-Apply driver. Resume only from the one receipt and current original bytes.
+existing serde contract without expanding visibility. Final Clippy, build, format
+and package pass. `editor-native/physical.json` verifies the actual pinned proposal,
+native undo, external-writer refusal after physical refresh and private 0600
+three-window unsaved checkpoint. `restart.json` verifies clean-default restore,
+explicit unsaved recovery after a new CLI/editor session, native undo/redo and
+separate owner `:write`; the full immutable calculator oracle passes, exit 0.
+Requests/tokens and the exact single partial Application stay unchanged.
+
+`controls-recovery.json` verifies offline business/runtime/session/workspace
+backup after every writer stops, quarantined old workspace paths, fresh-home
+remapping, controls/history/results/scorecards/accounting and the same completed
+hunk receipt. Owner-selected fixture configuration and the clean private editor
+checkpoint are copied separately, never claimed as bundle contents. Both source
+and restored installations match all five final asset hashes with single-link
+copies; read-only SQLite quick/foreign-key checks pass.
+`restored-native.json` verifies actual restored CLI/official-Neovim Follow/Diff,
+the separately retained clean split checkpoint, paused controls and canonical
+scorecards, normal exit 0 and unchanged owner originals/receipt/accounting.
+Controls retain four requests/60 synthetic tokens; no new model request ran.
+The accepted document remains unapplied. Do not restart the controls source home:
+`editor-native/controls-workspace-quarantine.json` retains its workspace mapping.
+
+All failed drivers/logs remain. A 60-second harness timeout interrupted the first
+package-update wait and left the previous daemon draining. The next frontend
+correctly refused startup. An exact owned-PID crash/restart preserved quiescent
+state/usage/receipt/original bytes. The first asset check later exposed that the
+daemon was still the earlier package, while the final editor frontend had passed.
+The completed native `update --from-cli --yes` uses a 400-second harness allowance
+for the documented 330-second shutdown grace; all five assets then match the
+final package before backup, and the corrected restore passes. No assertion,
+accounting fence or application receipt was weakened or reset.
+
+Final package `operations-batch/editor-refusal-package/`, CLI SHA-256
+`9de78bb27789cdeafa2cf9eaf51e773e8465445d07dd2475762c777d54d9d605`.
+`final-owned-processes.json` finds no live owned batch services. The final archive
+contains 121 actual PNG/text pairs (including retained failures), 244 CRC-checked
+entries and no private databases/credentials/bundles/rollouts. SHA-256:
+`64d692e21090bf05fa36f12ffbb5ab263b029c9a0020bcdea71c6d17e52b91c2`.
+Path: `/workspace/artifacts/cli-operations-batch-final/cli-operations-batch-screenshots.zip`.
+Do not rerun pre-Apply drivers. Review only current bytes, the receipt and explicit
+native owner decisions; a later native save is not a second backend Application.
 
 ## Remaining host boundary
 

@@ -1,5 +1,17 @@
 # MVP release qualification
 
+Current additional release evidence: the approved twenty-task batch qualifies
+**tasks 2–20**, with 790 selected automated checks and actual CLI/TUI/official
+Neovim/background/crash/full-restore checks on final application `18cc403424`.
+Read [current status](status.md), [native evidence](operations-native-qualification.md)
+and [final tests](testing.md#operations-batch-final-qualification). Dormant scale
+is now measured at 10,000 stored nodes; default-two/max-four active execution
+remains. Native session/unsaved recovery restores the last explicit private
+checkpoint without autosave or a keystroke journal. The real-host systemd/
+logout/reboot gate remains unqualified. Tables below retain their historical
+MVP evidence and are not claims that later features are absent.
+
+
 B1–B6 implementation and local qualification are complete on 2026-10-10 UTC.
 Heartbeat/database contention, idle editor redraw, overlapping dashboard IDs and
 refresh-triggered task inspection bugs were fixed and verified. **The MVP criteria
