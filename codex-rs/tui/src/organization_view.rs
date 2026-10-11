@@ -85,7 +85,7 @@ impl Dashboard {
         self.review_diff = Some((view.task.id.clone(), result.digest.clone(), clean(&diff)));
     }
 
-    fn selected_project(&self) -> Option<&OrganizationProjectPlan> {
+    pub(super) fn selected_project(&self) -> Option<&OrganizationProjectPlan> {
         let id = match self.record()? {
             OrganizationRecord::Project(p) => return Some(p),
             OrganizationRecord::Task(t) => &t.project_id,
@@ -289,6 +289,8 @@ impl Dashboard {
             "Workflows · w returns to default view"
         } else if self.schedule_view {
             "Schedules · S returns to default view"
+        } else if self.preferences.preset == Preset::Review {
+            "Action inbox · z summary · C capabilities"
         } else if cards {
             "Hierarchy tree"
         } else {
@@ -514,6 +516,16 @@ impl Dashboard {
                     true,
                 ))
                 .render(body, buffer);
+        } else if let Some(text) = &self.report_text {
+            Paragraph::new(text.as_str())
+                .wrap(Wrap { trim: false })
+                .scroll((self.scroll, 0))
+                .style(Style::default().fg(foreground(TEXT)))
+                .block(panel(
+                    "Evidence summary / capabilities · ↑↓ / PgUp/PgDn scroll · Esc close",
+                    true,
+                ))
+                .render(body, buffer);
         } else if let Some(form) = &self.form {
             cursor = form.render(body, buffer);
         } else if self.memory_request.is_some() {
@@ -534,7 +546,9 @@ impl Dashboard {
                 }
                 Preset::Projects => "Define goals, assign tasks and review completion criteria.",
                 Preset::Workspace => "Actual Neovim · Follow AI / Live Diff / Independent Editing.",
-                Preset::Review => "Review changes, verify results and take action.",
+                Preset::Review => {
+                    "Action inbox: approvals, blockers, requested changes and results."
+                }
                 Preset::Console => "Plan and build with your agents.",
             };
             let sections = Layout::vertical([
@@ -724,7 +738,7 @@ impl Dashboard {
                 } else if self.selected_schedule().is_some() {
                     "[p] Pause       [u] Resume\n[x] Cancel      [f] Refresh\n[S] Schedules / default view\nRun approvals and results: select task"
                 } else if self.preferences.preset == Preset::Workspace {
-                    "[t] Follow AI   [d] Live Diff\n[o] Independent Editing\n[e] Editor focus   [n] Next file\nCtrl-G returns host focus"
+                    "[t] Follow AI   [d] Live Diff\n[o] Independent Editing\n[e] Editor focus   [n] Next file\nCtrl-G host · Q task from selection"
                 } else {
                     "[s] Authorize   [a] Approve\n[v] Accept      [c] Changes\n[A] Select files to Apply\n[p] Pause       [x] Cancel"
                 };
@@ -759,7 +773,7 @@ impl Dashboard {
         } else {
             [
                 "N project · T task · G goal · U agent · B group · E edit · L role · I membership · ↑↓ select · Tab focus",
-                "W/w workflows · s authorize · R/S recurring · H blocker · m/M memory · v accept · A Apply · / search · f refresh · q Console",
+                "z/Z summaries · C capabilities · W/w workflows · s authorize · R/S recurring · H blocker · m/M memory · v accept · A Apply · / search · f refresh · q Console",
             ]
         };
         Paragraph::new(vec![

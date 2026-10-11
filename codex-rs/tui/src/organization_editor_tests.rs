@@ -207,3 +207,80 @@ async fn real_neovim_edits_unicode_saves_undoes_diffs_and_blocks_dirty_mode_chan
     assert!(editor.error.is_some());
     assert_eq!(std::fs::read_to_string(&base).unwrap(), "base\n");
 }
+
+#[tokio::test]
+async fn actual_neovim_selection_preserves_unicode_exclusive_lines_and_rejects_stale_buffers() {
+    let mut editor = Editor::start(FrameRequester::test_dummy()).unwrap();
+    editor
+        .rpc(
+            "nvim_buf_set_lines",
+            vec![
+                0.into(),
+                0.into(),
+                (-1).into(),
+                false.into(),
+                Value::Array(vec!["café 界".into(), "next line".into()]),
+            ],
+        )
+        .unwrap();
+    editor
+        .rpc(
+            "nvim_exec_lua",
+            vec![
+                "vim.api.nvim_feedkeys('gg0v3l','nx',false)".into(),
+                Value::Array(vec![]),
+            ],
+        )
+        .unwrap();
+    let capture = editor.selection().unwrap();
+    assert_eq!(capture.text, "café");
+    assert_eq!(capture.positions[0][0][1..3], [1, 1]);
+    editor.validate_selection(&capture).unwrap();
+    editor.rpc("nvim_exec_lua",vec!["vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes('<Esc>',true,false,true),'nx',false); vim.o.selection='exclusive'; vim.api.nvim_feedkeys('gg0v4l','nx',false)".into(),Value::Array(vec![])]).unwrap();
+    assert_eq!(editor.selection().unwrap().text, "café");
+    editor.rpc("nvim_exec_lua",vec!["vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes('<Esc>',true,false,true)..'ggVj','nx',false)".into(),Value::Array(vec![])]).unwrap();
+    let lines = editor.selection().unwrap();
+    assert_eq!(lines.text, "café 界\nnext line");
+    editor
+        .rpc(
+            "nvim_buf_set_lines",
+            vec![
+                0.into(),
+                0.into(),
+                1.into(),
+                false.into(),
+                Value::Array(vec!["human edit".into()]),
+            ],
+        )
+        .unwrap();
+    assert!(editor.validate_selection(&capture).is_err());
+    assert!(editor.error.is_none());
+    editor.rpc("nvim_exec_lua",vec!["vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes('<Esc><C-v>j',true,false,true),'nx',false)".into(),Value::Array(vec![])]).unwrap();
+    assert!(
+        editor
+            .selection()
+            .unwrap_err()
+            .to_string()
+            .contains("block selections")
+    );
+    assert!(
+        editor.error.is_none(),
+        "semantic refusal must not poison native RPC"
+    );
+    editor.rpc("nvim_exec_lua",vec!["vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes('<Esc>',true,false,true),'nx',false);vim.api.nvim_buf_set_lines(0,0,-1,false,{string.rep('x',12289)});vim.api.nvim_feedkeys('ggV','nx',false)".into(),Value::Array(vec![])]).unwrap();
+    assert!(
+        editor
+            .selection()
+            .unwrap_err()
+            .to_string()
+            .contains("12 KiB")
+    );
+    assert!(editor.error.is_none());
+    editor
+        .rpc(
+            "nvim_buf_set_name",
+            vec![0.into(), "/tmp/renamed-selection-source".into()],
+        )
+        .unwrap();
+    assert!(editor.validate_selection(&lines).is_err());
+}

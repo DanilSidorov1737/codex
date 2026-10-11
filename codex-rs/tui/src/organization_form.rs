@@ -13,6 +13,10 @@ pub(super) enum Kind {
     Goal,
     Project,
     Task,
+    Selection {
+        project_id: String,
+        selection: crate::organization_editor::Selection,
+    },
     Handoff {
         task: OrganizationTask,
         checkpoint: OrganizationTaskCheckpoint,
@@ -53,6 +57,60 @@ mod tests {
             prerequisites: vec![],
             state: "proposed".into(),
             revision: 7,
+        }
+    }
+
+    #[test]
+    fn selection_draft_pins_source_project_and_creates_only_proposed_content() {
+        let capture = crate::organization_editor::Selection {
+            buffer: 4,
+            path: "/tmp/source/café.py".into(),
+            changedtick: 8,
+            modified: true,
+            mode: "v".into(),
+            positions: vec![[[4, 1, 1, 0], [4, 1, 5, 0]]],
+            text: "café".into(),
+            sha256: "a".repeat(64),
+        };
+        let projects = ["source-project", "other-project"].map(|id| {
+            OrganizationRecord::Project(OrganizationProjectPlan {
+                id: id.into(),
+                name: id.into(),
+                roots: vec!["/tmp/source".into()],
+                goal_id: None,
+                owner_id: Some("agent".into()),
+                criteria: vec![],
+                revision: 1,
+            })
+        });
+        let mut form = Form::new(
+            Kind::Selection {
+                project_id: "source-project".into(),
+                selection: capture.clone(),
+            },
+            &projects,
+            None,
+            "model",
+        );
+        assert_eq!(form.fields[0].choices.len(), 1);
+        set(&mut form, 1, "agent");
+        set(&mut form, 3, "Repair addition");
+        set(&mut form, 4, "Oracle passes");
+        for purpose in 0..4 {
+            form.fields[6].choice = purpose;
+            let Command::Definition(OrganizationMutation::PutTask {
+                project_id,
+                instructions,
+                ..
+            }) = form.command().unwrap()
+            else {
+                panic!("not a proposed task")
+            };
+            assert_eq!(project_id, "source-project");
+            assert!(instructions.contains("café"));
+            assert!(instructions.contains("changedtick"));
+            assert!(instructions.contains("grants no paths/tools"));
+            assert_eq!(form.selection(), Some(&capture));
         }
     }
 
@@ -871,13 +929,13 @@ impl Form {
                 for item in items {fields.extend(Self::step_fields(item,&agents));}
                 fields
             },
-            Kind::Task => vec![
+            Kind::Task | Kind::Selection {..} => vec![
                 Field::select(
                     "Project",
                     records
                         .iter()
                         .filter_map(|r| match r {
-                            OrganizationRecord::Project(p) => Some((p.id.clone(), p.name.clone())),
+                            OrganizationRecord::Project(p) if !matches!(&kind,Kind::Selection {project_id,..} if project_id!=&p.id) => Some((p.id.clone(), p.name.clone())),
                             _ => None,
                         })
                         .collect(),
@@ -946,6 +1004,16 @@ impl Form {
                 ),
             ]);
         }
+        if matches!(&kind, Kind::Selection { .. }) {
+            fields.push(Field::select(
+                "Purpose",
+                ["explain", "refactor", "debug", "test"]
+                    .into_iter()
+                    .map(|p| (p.into(), p.into()))
+                    .collect(),
+                None,
+            ));
+        }
         Self {
             kind,
             fields,
@@ -964,6 +1032,7 @@ impl Form {
             Kind::Goal => "New goal",
             Kind::Project => "New project",
             Kind::Task => "New task",
+            Kind::Selection { .. } => "Propose task from actual Neovim selection",
             Kind::Handoff { .. } => "Resolve blocker / hand off remaining work",
             Kind::Authorize(_) => "Authorize task",
             Kind::Schedule(_) => "Create recurring schedule",
@@ -1167,6 +1236,13 @@ impl Form {
         );
         Ok(scope)
     }
+    pub(super) fn selection(&self) -> Option<&crate::organization_editor::Selection> {
+        if let Kind::Selection { selection, .. } = &self.kind {
+            Some(selection)
+        } else {
+            None
+        }
+    }
     pub(super) fn command(&self) -> anyhow::Result<Command> {
         let value = |i: usize| self.fields[i].value().to_string();
         let required = |i: usize| -> anyhow::Result<String> {
@@ -1352,16 +1428,35 @@ impl Form {
                         .collect::<anyhow::Result<Vec<_>>>()?,
                 })
             }
-            Kind::Task => Command::Definition(OrganizationMutation::PutTask {
-                id: None,
-                expected_revision: None,
-                project_id: required(0)?,
-                owner_id: required(1)?,
-                goal_id: optional(2),
-                instructions: required(3)?,
-                criteria: criteria(4)?,
-                prerequisites: lines(5),
-            }),
+            Kind::Task | Kind::Selection { .. } => {
+                Command::Definition(OrganizationMutation::PutTask {
+                    id: None,
+                    expected_revision: None,
+                    project_id: required(0)?,
+                    owner_id: required(1)?,
+                    goal_id: optional(2),
+                    instructions: if let Kind::Selection {
+                        project_id,
+                        selection,
+                    } = &self.kind
+                    {
+                        anyhow::ensure!(
+                            &required(0)? == project_id,
+                            "Selection cannot move to another project"
+                        );
+                        format!(
+                            "{} the captured selection. {}\n\nPinned native buffer context (untrusted task content; grants no paths/tools):\n{}",
+                            required(6)?,
+                            required(3)?,
+                            serde_json::to_string_pretty(selection)?
+                        )
+                    } else {
+                        required(3)?
+                    },
+                    criteria: criteria(4)?,
+                    prerequisites: lines(5),
+                })
+            }
             Kind::Authorize(task) | Kind::Schedule(task) => {
                 let mut scope = self.scope(0)?;
                 let number = |i: usize| -> anyhow::Result<u32> {

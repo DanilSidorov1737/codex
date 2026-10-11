@@ -26,15 +26,24 @@ key-routing bug, fixed in `55af0a0b5b`. A package hash preflight also refused st
 installed bytes; the supported `daemon update --from-cli --yes` with a distinct
 dev package version installed the qualified binary without resetting state.
 
-Items 7–11 are implemented and under qualification. The report stash was restored;
-state projections, provider capture/inventory, Review inbox/summary UI and actual
-Neovim selection-to-proposed-task controls reuse existing authority paths. Two
-mistyped Rust test filters selected zero tests and are not evidence. All 373 protocol / 277 state tests and four schema comparisons pass.
-An additional workflow descendant-attribution test passes; timeout checks count
-as failed checks. Runtime/API/TUI/SDK and complete CLI checks are running. Initial TUI compilation caught missing test-fixture fields and a helper
-visibility boundary, corrected without weakening checks. Continue the automated
-matrix, then the fresh `expanded-batch/review-selection` physical fixture; do not
-replay any older fixture. See [reports and selection](reports-and-selection.md).
+Items 7–11 are implemented and under physical qualification. State projections,
+provider capture/inventory, canonical Review inbox, on-demand summary/resource UI,
+CLI reports and actual Neovim selection drafts reuse existing authority paths.
+**748 distinct selected automated checks pass**: protocol 373, state 278,
+runtime/inventory 12, native API 8, TUI/official Neovim 46, schema comparisons 4,
+Python SDK 25 and wire contracts 2. The extra state case verifies workflow
+descendant attribution; timeouts count as failed checks. Production CLI Clippy
+passes with warnings denied; full CLI build and final formatting also pass.
+No new dependency, installation, paid request or authority path was added.
+
+Preserve the initial failed checks: two mistyped filters selected zero cases,
+TUI compilation exposed missing fixture fields/helper visibility, three legacy
+inbox fixtures needed canonical report state, SDK generation needed its existing
+venv on PATH, and Clippy required a direct struct initializer and removal of a
+needless borrow. Corrected relevant checks pass without skipped assertions or
+lint allowances. Continue with the fresh `expanded-batch/review-selection`
+physical fixture after the build/source/package hash preflight; do not replay
+older fixtures. See [reports and selection](reports-and-selection.md).
 
 Item 1 is delivered and physically qualified: a server-confirmed pre-intent
 rejection now restores actual Neovim input without frontend restart, with the

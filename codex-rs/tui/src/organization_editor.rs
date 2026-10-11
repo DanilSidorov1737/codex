@@ -48,6 +48,20 @@ struct Grid {
     cursor: (u16, u16),
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct Selection {
+    pub(crate) buffer: i64,
+    pub(crate) path: String,
+    pub(crate) changedtick: i64,
+    pub(crate) modified: bool,
+    pub(crate) mode: String,
+    /// Native getregionpos pairs: buffer, one-based line/byte column, virtual offset.
+    pub(crate) positions: Vec<[[i64; 4]; 2]>,
+    pub(crate) text: String,
+    pub(crate) sha256: String,
+}
+
 pub(crate) struct Editor {
     child: Child,
     writer: Option<mpsc::SyncSender<Value>>,
@@ -513,6 +527,47 @@ impl Editor {
                 (event.column - area.x).into(),
             ],
         )?;
+        Ok(())
+    }
+    pub(crate) fn selection(&mut self) -> Result<Selection> {
+        let script = r#"
+local ok,r=pcall(function()
+  local mode=vim.fn.mode()
+  if mode~='v' and mode~='V' then return {error='Select characters or complete lines in actual Neovim; block selections are not qualified'} end
+  local b=vim.api.nvim_get_current_buf()
+  local a,z=vim.fn.getpos('v'),vim.fn.getpos('.')
+  a[1],z[1]=b,b
+  if math.abs(a[2]-z[2])+1>512 then return {error='Selection exceeds 512 lines'} end
+  local opts={type=mode,exclusive=vim.o.selection=='exclusive'}
+  local positions=vim.fn.getregionpos(a,z,opts)
+  for _,p in ipairs(positions) do if p[1][4]~=0 or p[2][4]~=0 then return {error='Virtual selections are not qualified'} end end
+  local text=table.concat(vim.fn.getregion(a,z,opts),'\n')
+  if #text>12288 then return {error='Selection exceeds 12 KiB'} end
+  if text=='' then return {error='Select nonempty text'} end
+  return {buffer=b,path=vim.api.nvim_buf_get_name(b),changedtick=vim.api.nvim_buf_get_changedtick(b),modified=vim.bo[b].modified,mode=mode,positions=positions,text=text,sha256=''}
+end)
+if not ok then r={error='Native Neovim selection unavailable: '..tostring(r)} end
+return vim.json.encode(r)
+"#;
+        let value = self.rpc("nvim_exec_lua", vec![script.into(), Value::Array(vec![])])?;
+        let text = value
+            .as_str()
+            .context("invalid native selection response")?;
+        let json: serde_json::Value = serde_json::from_str(text)?;
+        if let Some(error) = json.get("error").and_then(serde_json::Value::as_str) {
+            bail!("{error}");
+        }
+        let mut selection: Selection = serde_json::from_value(json)?;
+        use sha2::{Digest, Sha256};
+        selection.sha256 = format!("{:x}", Sha256::digest(selection.text.as_bytes()));
+        Ok(selection)
+    }
+    pub(crate) fn validate_selection(&mut self, selection: &Selection) -> Result<()> {
+        let unchanged=self.rpc("nvim_exec_lua",vec!["local b,t,name=...; return vim.api.nvim_buf_is_valid(b) and vim.api.nvim_buf_is_loaded(b) and vim.api.nvim_buf_get_changedtick(b)==t and vim.api.nvim_buf_get_name(b)==name".into(),Value::Array(vec![selection.buffer.into(),selection.changedtick.into(),selection.path.clone().into()])])?.as_bool().context("invalid selection revision response")?;
+        ensure!(
+            unchanged,
+            "Selection source changed, closed or renamed; recapture it before proposing a task"
+        );
         Ok(())
     }
     pub(crate) fn dirty(&mut self) -> Result<bool> {

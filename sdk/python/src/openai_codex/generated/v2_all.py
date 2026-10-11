@@ -3062,6 +3062,23 @@ class OrganizationArtifactEvidence(BaseModel):
     sha256: str
 
 
+class OrganizationBudgetReport(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    expires_at: Annotated[int, Field(alias="expiresAt")]
+    grant_id: Annotated[str, Field(alias="grantId")]
+    max_model_requests: Annotated[int, Field(alias="maxModelRequests")]
+    max_tokens: Annotated[int, Field(alias="maxTokens")]
+    model: str
+    model_requests: Annotated[int, Field(alias="modelRequests")]
+    revoked: bool
+    root_id: Annotated[str, Field(alias="rootId")]
+    task_attempts: Annotated[int, Field(alias="taskAttempts")]
+    task_max_attempts: Annotated[int, Field(alias="taskMaxAttempts", ge=0)]
+    used_tokens: Annotated[int, Field(alias="usedTokens")]
+
+
 class OrganizationCheckEvidence(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
@@ -3232,6 +3249,17 @@ class OrganizationGoal(BaseModel):
     revision: int
 
 
+class OrganizationMcpCapability(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    available_to_tasks: Annotated[bool, Field(alias="availableToTasks")]
+    enabled: bool
+    name: str
+    permissions: str
+    qualification: str
+
+
 class OrganizationMembership(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
@@ -3343,6 +3371,43 @@ class OrganizationProjectPlan(BaseModel):
     roots: list[str]
 
 
+class OrganizationProviderEvidence(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    endpoint_sha256: Annotated[
+        str,
+        Field(
+            alias="endpointSha256",
+            description="Hash of the endpoint without URL credentials/query/fragment and wire API.",
+        ),
+    ]
+    id: str
+    origin: Annotated[
+        str | None,
+        Field(description="Origin only; never credentials, request headers, path or query values."),
+    ] = None
+
+
+class OrganizationProviderObservation(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    checked_results: Annotated[int, Field(alias="checkedResults")]
+    failed_attempts: Annotated[
+        int,
+        Field(
+            alias="failedAttempts",
+            description="Task outcomes, not proof of a provider compatibility failure.",
+        ),
+    ]
+    latest_attempt_id: Annotated[str | None, Field(alias="latestAttemptId")] = None
+    model_requests: Annotated[int, Field(alias="modelRequests")]
+    models: list[str]
+    reported_model_requests: Annotated[int, Field(alias="reportedModelRequests")]
+
+
 class GoalOrganizationRecord(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
@@ -3374,6 +3439,22 @@ class OrganizationRecordKind(Enum):
     projects = "projects"
     tasks = "tasks"
     memberships = "memberships"
+
+
+class OrganizationReportTotals(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    action_states: Annotated[dict[str, int], Field(alias="actionStates")]
+    changes_requested: Annotated[int, Field(alias="changesRequested")]
+    checks_failed: Annotated[int, Field(alias="checksFailed")]
+    checks_passed: Annotated[int, Field(alias="checksPassed")]
+    model_requests: Annotated[int, Field(alias="modelRequests")]
+    pending_approvals: Annotated[int, Field(alias="pendingApprovals")]
+    reported_model_requests: Annotated[int, Field(alias="reportedModelRequests")]
+    reported_tokens: Annotated[int, Field(alias="reportedTokens")]
+    schedule_states: Annotated[dict[str, int], Field(alias="scheduleStates")]
+    task_states: Annotated[dict[str, int], Field(alias="taskStates")]
 
 
 class OrganizationRoleVersion(BaseModel):
@@ -3538,6 +3619,33 @@ class OrganizationTaskHandoff(BaseModel):
     to_owner_id: Annotated[str, Field(alias="toOwnerId")]
 
 
+class OrganizationTaskReport(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    attempt_id: Annotated[str | None, Field(alias="attemptId")] = None
+    blocker: str | None = None
+    budget: OrganizationBudgetReport | None = None
+    changes_requested_sequence: Annotated[int | None, Field(alias="changesRequestedSequence")] = (
+        None
+    )
+    checkpoint_id: Annotated[str | None, Field(alias="checkpointId")] = None
+    checks_failed: Annotated[int, Field(alias="checksFailed")]
+    checks_passed: Annotated[int, Field(alias="checksPassed")]
+    model_requests: Annotated[int, Field(alias="modelRequests")]
+    owner_id: Annotated[str, Field(alias="ownerId")]
+    pending_approvals: Annotated[int, Field(alias="pendingApprovals")]
+    project_id: Annotated[str, Field(alias="projectId")]
+    reported_model_requests: Annotated[int, Field(alias="reportedModelRequests")]
+    reported_tokens: Annotated[int, Field(alias="reportedTokens")]
+    result_digest: Annotated[str | None, Field(alias="resultDigest")] = None
+    revision: int
+    state: str
+    task_id: Annotated[str, Field(alias="taskId")]
+    title: str
+    workflow_run_id: Annotated[str | None, Field(alias="workflowRunId")] = None
+
+
 class OrganizationTaskResult(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
@@ -3563,6 +3671,49 @@ class OrganizationTaskState(Enum):
     failed = "failed"
     cancelled = "cancelled"
     accepted = "accepted"
+
+
+class OrganizationToolCapability(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    completed: int
+    failed: int
+    latest_attempt_id: Annotated[str | None, Field(alias="latestAttemptId")] = None
+    name: str
+    permissions: str
+    uncertain: int
+
+
+class OrganizationUpcomingRun(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    due_at: Annotated[int, Field(alias="dueAt")]
+    label: str
+    project_id: Annotated[str, Field(alias="projectId")]
+    schedule_id: Annotated[str, Field(alias="scheduleId")]
+
+
+class OrganizationUsageReport(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    attempts: int
+    model: str
+    model_requests: Annotated[int, Field(alias="modelRequests")]
+    owner_id: Annotated[
+        str | None,
+        Field(
+            alias="ownerId",
+            description="Captured at claim time. Historical records are explicitly unknown.",
+        ),
+    ] = None
+    provider: OrganizationProviderEvidence | None = None
+    reported_model_requests: Annotated[int, Field(alias="reportedModelRequests")]
+    reported_tokens: Annotated[int, Field(alias="reportedTokens")]
+    task_id: Annotated[str, Field(alias="taskId")]
+    workflow_run_id: Annotated[str | None, Field(alias="workflowRunId")] = None
 
 
 class OrganizationWorkflowKind(Enum):
@@ -9684,6 +9835,18 @@ class OrganizationNoteSearchResult(BaseModel):
     notes: list[OrganizationNote]
 
 
+class OrganizationProviderCapability(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    credential_requirement: Annotated[str, Field(alias="credentialRequirement")]
+    id: str
+    observation: OrganizationProviderObservation
+    origin: str | None = None
+    qualification: str
+    selected: bool
+
+
 class NodeOrganizationRecord(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
@@ -9729,6 +9892,34 @@ class OrganizationRecord(
         | TaskOrganizationRecord
         | MembershipOrganizationRecord
     )
+
+
+class OrganizationReport(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    generated_at: Annotated[int, Field(alias="generatedAt")]
+    next_cursor: Annotated[str | None, Field(alias="nextCursor")] = None
+    project_id: Annotated[str | None, Field(alias="projectId")] = None
+    sequence: Annotated[
+        int,
+        Field(
+            description="Canonical audit revision; paginated readers must not combine revisions."
+        ),
+    ]
+    tasks: list[OrganizationTaskReport]
+    totals: Annotated[
+        OrganizationReportTotals,
+        Field(
+            description="Complete totals for the selected project/store, independent of pagination."
+        ),
+    ]
+    upcoming_runs: Annotated[list[OrganizationUpcomingRun], Field(alias="upcomingRuns")]
+    usage: Annotated[
+        list[OrganizationUsageReport],
+        Field(description="At most 2,000 grouped observations for this task page."),
+    ]
+    usage_truncated: Annotated[bool, Field(alias="usageTruncated")]
 
 
 class OrganizationSchedule(BaseModel):
@@ -9777,6 +9968,8 @@ class OrganizationTaskAttempt(BaseModel):
     id: str
     lease_until: Annotated[int, Field(alias="leaseUntil")]
     model_requests: Annotated[int, Field(alias="modelRequests", ge=0)]
+    owner_id: Annotated[str | None, Field(alias="ownerId")] = None
+    provider: OrganizationProviderEvidence | None = None
     reported_model_requests: Annotated[int, Field(alias="reportedModelRequests", ge=0)]
     reported_tokens: Annotated[int, Field(alias="reportedTokens")]
     role_version_id: Annotated[str | None, Field(alias="roleVersionId")] = None
@@ -12082,6 +12275,16 @@ class OrganizationExecutionView(BaseModel):
     handoffs: list[OrganizationTaskHandoff] | None = []
     result: OrganizationTaskResult | None = None
     task: OrganizationTask
+
+
+class OrganizationInventory(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    limitations: str
+    mcp_servers: Annotated[list[OrganizationMcpCapability], Field(alias="mcpServers")]
+    providers: list[OrganizationProviderCapability]
+    tools: list[OrganizationToolCapability]
 
 
 class RunOrganizationWorkflowMutation(BaseModel):

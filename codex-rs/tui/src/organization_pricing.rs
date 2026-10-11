@@ -49,6 +49,22 @@ impl Prices {
         );
         Ok(prices)
     }
+    pub(crate) fn reported_estimate(
+        &self,
+        provider: &str,
+        model: &str,
+        tokens: i64,
+    ) -> Option<String> {
+        if provider != self.provider || tokens < 0 {
+            return None;
+        }
+        let rate = *self.usd_per_million_total_tokens.get(model)?;
+        Some(format!(
+            "Owner reported-token cost estimate: ${:.6} USD · {provider}/{model} · source {}. Excludes unreported usage/non-token charges; not billing.",
+            tokens as f64 * rate / 1_000_000.0,
+            self.source
+        ))
+    }
     pub(crate) fn estimate(
         &self,
         provider: &str,

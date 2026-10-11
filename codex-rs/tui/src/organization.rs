@@ -24,6 +24,8 @@ use crate::tui::{FrameRequester, Tui, TuiEvent};
 
 #[path = "organization_form.rs"]
 mod form;
+#[path = "organization_report.rs"]
+mod reporting;
 #[path = "organization_view.rs"]
 mod view;
 #[path = "organization_workflow.rs"]
@@ -155,9 +157,12 @@ struct Snapshot {
     records: Vec<OrganizationRecord>,
     schedules: Vec<OrganizationScheduleView>,
     workflows: Vec<OrganizationWorkflowView>,
+    report: Option<OrganizationReport>,
 }
 enum Command {
     Refresh,
+    Summary(String, reporting::Focus),
+    Inventory(String),
     Inspect(String),
     MemorySearch(OrganizationMemorySearchParams),
     Definition(OrganizationMutation),
@@ -174,6 +179,12 @@ enum Command {
 }
 enum Update {
     Snapshot(Snapshot),
+    ReportText(String, std::result::Result<String, String>),
+    Report(
+        String,
+        std::result::Result<Box<OrganizationReport>, String>,
+        reporting::Focus,
+    ),
     Memory(
         OrganizationMemorySearchParams,
         std::result::Result<OrganizationNoteSearchResult, String>,
@@ -289,6 +300,7 @@ async fn load(handle: &AppServerRequestHandle) -> anyhow::Result<Snapshot> {
         records,
         schedules,
         workflows,
+        report: Some(reporting::load(handle, None).await?),
     })
 }
 
@@ -310,6 +322,26 @@ async fn worker(
         let mut apply_rejected = false;
         let operation = async {
             match command {
+                Command::Summary(id, focus) => {
+                    let report = reporting::load(&handle, focus.project_id())
+                        .await
+                        .map(Box::new)
+                        .map_err(|error| error.to_string());
+                    updates.send(Update::Report(id, report, focus)).await?;
+                }
+                Command::Inventory(id) => {
+                    let result = handle
+                        .request_typed::<OrganizationInventoryResponse>(
+                            ClientRequest::OrganizationInventory {
+                                request_id: request_id(),
+                                params: OrganizationInventoryParams {},
+                            },
+                        )
+                        .await
+                        .map(|response| reporting::inventory_text(&response.inventory))
+                        .map_err(|error| error.to_string());
+                    updates.send(Update::ReportText(id, result)).await?;
+                }
                 Command::Refresh => {
                     updates.send(Update::Snapshot(load(&handle).await?)).await?;
                     if let Some(task_id) = &selected {
@@ -572,6 +604,8 @@ pub(crate) struct Dashboard {
     detail: Option<Box<OrganizationExecutionView>>,
     scroll: u16,
     detail_text: String,
+    report_text: Option<String>,
+    report_request: Option<String>,
     review_diff: Option<(String, String, String)>,
     review_file: usize,
     search: String,
@@ -582,6 +616,7 @@ pub(crate) struct Dashboard {
     change_target: Option<OrganizationTask>,
     confirmation: Option<Command>,
     confirmation_text: String,
+    selection_confirmation: Option<crate::organization_editor::Selection>,
     message: String,
     message_is_error: bool,
     commands: mpsc::Sender<Command>,
@@ -661,6 +696,8 @@ impl Dashboard {
             detail: None,
             scroll: 0,
             detail_text: String::new(),
+            report_text: None,
+            report_request: None,
             review_diff: None,
             review_file: 0,
             search: String::new(),
@@ -671,6 +708,7 @@ impl Dashboard {
             change_target: None,
             confirmation: None,
             confirmation_text: String::new(),
+            selection_confirmation: None,
             message,
             message_is_error: false,
             commands,
@@ -696,7 +734,11 @@ impl Dashboard {
     fn send(&mut self, command: Command) {
         if let Err(error) = self.commands.try_send(command) {
             self.message = "Owner request queue busy; retry after refresh.".into();
-            if matches!(error.into_inner(), Command::MemorySearch(_)) {
+            let command = error.into_inner();
+            if matches!(&command, Command::Summary(..) | Command::Inventory(..)) {
+                self.report_text = Some(self.message.clone());
+            }
+            if matches!(command, Command::MemorySearch(_)) {
                 self.memory_result = Some(Err(self.message.clone()));
             }
         }
@@ -721,7 +763,24 @@ impl Dashboard {
     }
     fn rebuild(&mut self) {
         let search = self.search.to_lowercase();
-        self.rows = if self.preferences.preset == Preset::Operations
+        self.rows = if self.preferences.preset == Preset::Review {
+            self.snapshot
+                .report
+                .as_ref()
+                .map(|report| {
+                    report
+                        .tasks
+                        .iter()
+                        .filter_map(reporting::inbox_row)
+                        .filter(|row| {
+                            search.is_empty()
+                                || row.label.to_lowercase().contains(&search)
+                                || row.id.contains(&search)
+                        })
+                        .collect()
+                })
+                .unwrap_or_default()
+        } else if self.preferences.preset == Preset::Operations
             && !self.schedule_view
             && !self.workflow_view
         {
@@ -1364,6 +1423,63 @@ impl Dashboard {
             form.prefill_scope(scope);
         }
     }
+    fn selection_task(&mut self) {
+        let capture = (|| -> anyhow::Result<(String, crate::organization_editor::Selection)> {
+            let project = self
+                .selected_project()
+                .cloned()
+                .ok_or_else(|| anyhow::anyhow!("Select the original project/task first"))?;
+            let editor = self
+                .editor
+                .as_mut()
+                .ok_or_else(|| anyhow::anyhow!("Open actual Neovim first"))?;
+            let selection = editor.selection()?;
+            let root = Path::new(
+                project
+                    .roots
+                    .first()
+                    .ok_or_else(|| anyhow::anyhow!("Project root missing"))?,
+            )
+            .canonicalize()?;
+            let file = Path::new(&selection.path);
+            let relative = file.strip_prefix(&root).map_err(|_| {
+                anyhow::anyhow!(
+                    "Capture an original project file, not a private preview or another project"
+                )
+            })?;
+            codex_utils_path::open_relative_regular_file(&root, relative)?;
+            Ok((project.id, selection))
+        })();
+        match capture {
+            Ok((project_id, selection)) => {
+                self.form = Some(form::Form::new(
+                    form::Kind::Selection {
+                        project_id,
+                        selection,
+                    },
+                    &self.snapshot.records,
+                    self.record(),
+                    &self.model,
+                ));
+                self.message =
+                    "Pinned actual selection · choose purpose · separate authorization is required"
+                        .into();
+            }
+            Err(error) => {
+                self.message = error.to_string();
+                self.message_is_error = true;
+            }
+        }
+    }
+    fn validate_selection(
+        &mut self,
+        selection: &crate::organization_editor::Selection,
+    ) -> anyhow::Result<()> {
+        self.editor
+            .as_mut()
+            .ok_or_else(|| anyhow::anyhow!("Original editor closed; recapture selection"))?
+            .validate_selection(selection)
+    }
     fn open_memory(&mut self, private: bool) {
         let (project_id, agent_id) = match self.record() {
             Some(OrganizationRecord::Task(task)) => {
@@ -1422,6 +1538,20 @@ impl Dashboard {
         if key.kind == KeyEventKind::Release {
             return;
         }
+        if self.report_text.is_some() {
+            match key.code {
+                KeyCode::Esc | KeyCode::Char('q') => {
+                    self.report_text = None;
+                    self.report_request = None;
+                }
+                KeyCode::Up => self.scroll = self.scroll.saturating_sub(1),
+                KeyCode::Down => self.scroll = self.scroll.saturating_add(1),
+                KeyCode::PageUp => self.scroll = self.scroll.saturating_sub(10),
+                KeyCode::PageDown => self.scroll = self.scroll.saturating_add(10),
+                _ => {}
+            }
+            return;
+        }
         if self.preferences.preset == Preset::Workspace && self.memory_request.is_none() {
             if let Some(editor) = &mut self.editor
                 && editor.focused
@@ -1442,6 +1572,10 @@ impl Dashboard {
             }
             if self.confirmation.is_none() && self.input.is_none() && self.form.is_none() {
                 match key.code {
+                    KeyCode::Char('Q') => {
+                        self.selection_task();
+                        return;
+                    }
                     KeyCode::Char('e' | 'o' | 't' | 'd') => {
                         self.editor_open(key.code);
                         return;
@@ -1458,6 +1592,15 @@ impl Dashboard {
         if self.confirmation.is_some() {
             match key.code {
                 KeyCode::Char('y') => {
+                    if let Some(selection) = self.selection_confirmation.clone()
+                        && let Err(error) = self.validate_selection(&selection)
+                    {
+                        self.message = error.to_string();
+                        self.message_is_error = true;
+                        self.confirmation = None;
+                        return;
+                    }
+                    self.selection_confirmation = None;
                     if matches!(
                         &self.confirmation,
                         Some(Command::Execution(
@@ -1519,6 +1662,20 @@ impl Dashboard {
                 _ => {}
             }
             return;
+        }
+        if key.code == KeyCode::F(6) {
+            self.selection_confirmation = self
+                .form
+                .as_ref()
+                .and_then(|form| form.selection())
+                .cloned();
+            if let Some(selection) = self.selection_confirmation.clone()
+                && let Err(error) = self.validate_selection(&selection)
+            {
+                self.message = error.to_string();
+                self.message_is_error = true;
+                return;
+            }
         }
         if let Some(form) = &mut self.form {
             match key.code {
@@ -1754,6 +1911,29 @@ impl Dashboard {
                 self.rebuild();
                 self.inspect();
             }
+            KeyCode::Char('z' | 'Z') => {
+                let focus = if key.code == KeyCode::Char('Z') {
+                    reporting::Focus::All
+                } else {
+                    reporting::focus(
+                        self.record(),
+                        self.selected.as_deref(),
+                        &self.snapshot.workflows,
+                    )
+                };
+                self.report_text = Some("Loading canonical summary…".into());
+                self.scroll = 0;
+                let id = uuid::Uuid::new_v4().to_string();
+                self.report_request = Some(id.clone());
+                self.send(Command::Summary(id, focus));
+            }
+            KeyCode::Char('C') => {
+                self.report_text = Some("Loading configured capabilities…".into());
+                self.scroll = 0;
+                let id = uuid::Uuid::new_v4().to_string();
+                self.report_request = Some(id.clone());
+                self.send(Command::Inventory(id));
+            }
             KeyCode::Char('m') => self.open_memory(false),
             KeyCode::Char('M') => self.open_memory(true),
             KeyCode::Char(
@@ -1780,6 +1960,22 @@ impl Dashboard {
     fn update(&mut self) {
         while let Ok(update) = self.updates.try_recv() {
             match update {
+                Update::Report(id, result, focus) => {
+                    if self.report_request.as_ref() == Some(&id) && self.report_text.is_some() {
+                        self.report_text = Some(clean(&match result {
+                            Ok(report) => reporting::text(&report, &focus, self.prices.as_ref()),
+                            Err(error) => format!("Summary unavailable: {error}"),
+                        }));
+                    }
+                }
+                Update::ReportText(id, result) => {
+                    if self.report_request.as_ref() == Some(&id) && self.report_text.is_some() {
+                        self.report_text =
+                            Some(clean(&result.unwrap_or_else(|error| {
+                                format!("Inventory unavailable: {error}")
+                            })));
+                    }
+                }
                 Update::Snapshot(snapshot) => {
                     let first = self.snapshot.records.is_empty();
                     let selected = self.selected.clone();

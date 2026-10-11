@@ -1,7 +1,8 @@
 # Action inbox, evidence reports and native selection requests
 
 Expanded-batch items 7–11 reuse the protected owner connection, canonical SQLite
-records and actual official Neovim. Implementation is under qualification.
+records and actual official Neovim. Automated checks pass; physical qualification
+is in progress. See [current status](status.md) for exact counts and failures.
 No dependency, model summary service, integration probe or editor engine is added.
 
 ## Review and reporting

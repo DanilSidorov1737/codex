@@ -76,6 +76,7 @@ async fn background_requests_survive_startup_overlap_and_cancelled_dashboard() {
                             "organization/execution/read" | "organization/execution/mutate" => {
                                 json!({"view": view("one")})
                             }
+                            "organization/report" => json!({"report": empty_report()}),
                             "organization/schedule/list" | "organization/workflow/list" => json!({"data":[],"nextCursor":null}),
                             "project/create" => {
                                 let params = request.params.as_ref().unwrap();
@@ -300,6 +301,7 @@ fn dashboard() -> Dashboard {
         schedule_view: false,
         workflow_view: false,
         snapshot: Snapshot {
+            report: Some(report_for_tasks(&["one", "two"])),
             schedules: vec![],
             workflows: vec![],
             records: vec![
@@ -314,6 +316,8 @@ fn dashboard() -> Dashboard {
         detail: None,
         scroll: 0,
         detail_text: String::new(),
+        report_text: None,
+        report_request: None,
         review_diff: None,
         review_file: 0,
         search: String::new(),
@@ -324,6 +328,7 @@ fn dashboard() -> Dashboard {
         change_target: None,
         confirmation: None,
         confirmation_text: String::new(),
+        selection_confirmation: None,
         message: String::new(),
         message_is_error: false,
         commands,
@@ -801,7 +806,7 @@ async fn authorization_draft_is_bound_to_captured_task_and_revision() {
         state: "proposed".into(),
         ..task("one")
     })];
-    d.preferences.preset = Preset::Review;
+    d.preferences.preset = Preset::Projects;
     d.rebuild();
     d.open_form('s');
     d.selected = Some("another-task".into());
@@ -949,6 +954,7 @@ async fn refreshed_snapshot_preserves_selection_but_removes_deleted_selection() 
     assert_eq!(d.selected.as_deref(), Some("two"));
     updates
         .send(Update::Snapshot(Snapshot {
+            report: Some(report_for_tasks(&["one"])),
             schedules: vec![],
             workflows: vec![],
             records: vec![OrganizationRecord::Task(task("one"))],
@@ -960,6 +966,7 @@ async fn refreshed_snapshot_preserves_selection_but_removes_deleted_selection() 
     assert!(matches!(command_rx.try_recv(), Ok(Command::Inspect(id)) if id == "one"));
     updates
         .send(Update::Snapshot(Snapshot {
+            report: Some(report_for_tasks(&["one"])),
             schedules: vec![],
             workflows: vec![],
             records: vec![OrganizationRecord::Task(task("one"))],
@@ -977,6 +984,7 @@ async fn refreshed_snapshot_preserves_selection_but_removes_deleted_selection() 
     assert!(d.selected.is_none());
     updates
         .send(Update::Snapshot(Snapshot {
+            report: Some(report_for_tasks(&["new"])),
             schedules: vec![],
             workflows: vec![],
             records: vec![OrganizationRecord::Task(task("new"))],
@@ -1123,7 +1131,7 @@ async fn actual_dirty_editor_blocks_host_exit_and_owner_apply_dispatch() {
     editor.focused = false;
     let mut d = dashboard();
     d.editor = Some(editor);
-    d.preferences.preset = Preset::Review;
+    d.preferences.preset = Preset::Projects;
     d.rebuild();
     d.selected = Some("one".into());
     let mut v = view("one");
@@ -1168,6 +1176,7 @@ async fn actual_dirty_editor_blocks_host_exit_and_owner_apply_dispatch() {
     d.updates = incoming;
     updates
         .send(Update::Snapshot(Snapshot {
+            report: None,
             schedules: vec![],
             workflows: vec![],
             records: d.snapshot.records.clone(),
@@ -1330,4 +1339,228 @@ async fn uncertain_apply_stays_frozen_after_refresh_and_unrelated_success() {
         ))
         .unwrap();
     d.editor.as_mut().unwrap().paste("settled").unwrap();
+}
+
+fn empty_report() -> OrganizationReport {
+    OrganizationReport {
+        sequence: 0,
+        generated_at: 0,
+        project_id: None,
+        totals: OrganizationReportTotals::default(),
+        tasks: vec![],
+        usage: vec![],
+        usage_truncated: false,
+        upcoming_runs: vec![],
+        next_cursor: None,
+    }
+}
+
+#[tokio::test]
+async fn report_pagination_refuses_mixed_canonical_revisions() {
+    use futures::{SinkExt, StreamExt};
+    use serde_json::json;
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let endpoint =
+        crate::resolve_remote_addr(&format!("ws://{}", listener.local_addr().unwrap())).unwrap();
+    let server = tokio::spawn(async move {
+        let (stream, _) = listener.accept().await.unwrap();
+        let mut socket = tokio_tungstenite::accept_async(stream).await.unwrap();
+        while let Some(Ok(tokio_tungstenite::tungstenite::Message::Text(text))) =
+            socket.next().await
+        {
+            let JSONRPCMessage::Request(request) = serde_json::from_str(&text).unwrap() else {
+                continue;
+            };
+            let response = if request.method == "initialize" {
+                json!({"userAgent":"revision-fixture"})
+            } else {
+                assert_eq!(request.method, "organization/report");
+                let mut report = empty_report();
+                if request.params.as_ref().unwrap()["cursor"].is_null() {
+                    report.sequence = 1;
+                    report.next_cursor = Some("next-page".into());
+                } else {
+                    report.sequence = 2;
+                }
+                json!({"report":report})
+            };
+            socket
+                .send(tokio_tungstenite::tungstenite::Message::Text(
+                    json!({"id":request.id,"result":response})
+                        .to_string()
+                        .into(),
+                ))
+                .await
+                .unwrap();
+        }
+    });
+    let client = crate::connect_remote_app_server(endpoint).await.unwrap();
+    let error = tokio::time::timeout(
+        Duration::from_secs(10),
+        reporting::load(&client.request_handle(), None),
+    )
+    .await
+    .unwrap()
+    .unwrap_err();
+    assert!(
+        error
+            .to_string()
+            .contains("State changed during report pagination")
+    );
+    drop(client);
+    server.abort();
+}
+
+#[tokio::test]
+async fn selection_confirmation_rechecks_actual_native_buffer_before_owner_submission() {
+    let home = tempfile::tempdir().unwrap();
+    let source = home.path().join("café.py");
+    std::fs::write(&source, "café\n").unwrap();
+    let mut editor = Editor::start(FrameRequester::test_dummy()).unwrap();
+    editor.open(&source, false).unwrap();
+    editor
+        .rpc(
+            "nvim_exec_lua",
+            vec![
+                "vim.api.nvim_feedkeys('ggV','nx',false)".into(),
+                rmpv::Value::Array(vec![]),
+            ],
+        )
+        .unwrap();
+    let selection = editor.selection().unwrap();
+    let mut d = dashboard();
+    let (commands, mut submitted) = mpsc::channel(4);
+    d.commands = commands;
+    d.editor = Some(editor);
+    d.form = Some(form::Form::new(
+        form::Kind::Selection {
+            project_id: "project".into(),
+            selection: selection.clone(),
+        },
+        &d.snapshot.records,
+        None,
+        "model",
+    ));
+    d.editor
+        .as_mut()
+        .unwrap()
+        .rpc(
+            "nvim_buf_set_lines",
+            vec![
+                0.into(),
+                0.into(),
+                1.into(),
+                false.into(),
+                rmpv::Value::Array(vec!["human edit".into()]),
+            ],
+        )
+        .unwrap();
+    d.key(KeyEvent::new(
+        KeyCode::F(6),
+        crossterm::event::KeyModifiers::NONE,
+    ));
+    assert!(d.confirmation.is_none());
+    assert!(d.message.contains("source changed"));
+    assert!(submitted.try_recv().is_err());
+    d.confirmation = Some(Command::Definition(OrganizationMutation::PutTask {
+        id: None,
+        expected_revision: None,
+        project_id: "project".into(),
+        owner_id: "owner".into(),
+        goal_id: None,
+        instructions: "Pinned request".into(),
+        criteria: vec!["Checked".into()],
+        prerequisites: vec![],
+    }));
+    d.selection_confirmation = Some(selection);
+    d.key(KeyEvent::new(
+        KeyCode::Char('y'),
+        crossterm::event::KeyModifiers::NONE,
+    ));
+    assert!(d.confirmation.is_none());
+    assert!(d.message.contains("source changed"));
+    assert!(submitted.try_recv().is_err());
+    assert!(d.editor.as_ref().unwrap().error.is_none());
+}
+
+fn report_for_tasks(ids: &[&str]) -> OrganizationReport {
+    let mut report = empty_report();
+    report.tasks = ids
+        .iter()
+        .map(|id| OrganizationTaskReport {
+            task_id: (*id).into(),
+            project_id: "project".into(),
+            owner_id: "owner".into(),
+            workflow_run_id: None,
+            title: "Check a real artifact".into(),
+            state: "needsReview".into(),
+            revision: 4,
+            attempt_id: Some("attempt".into()),
+            result_digest: Some("fixture-result".into()),
+            checkpoint_id: None,
+            blocker: None,
+            changes_requested_sequence: None,
+            pending_approvals: 0,
+            checks_passed: 1,
+            checks_failed: 0,
+            reported_tokens: 10,
+            model_requests: 1,
+            reported_model_requests: 1,
+            budget: None,
+        })
+        .collect();
+    report
+}
+
+#[tokio::test]
+async fn late_summary_or_inventory_success_and_failure_cannot_retarget_an_open_scope() {
+    let mut d = dashboard();
+    let (updates, incoming) = mpsc::channel(4);
+    d.updates = incoming;
+    d.report_request = Some("current-project-request".into());
+    d.report_text = Some("current project loading".into());
+    updates
+        .send(Update::Report(
+            "cancelled-agent-request".into(),
+            Ok(Box::new(empty_report())),
+            reporting::Focus::Agent("other-agent".into()),
+        ))
+        .await
+        .unwrap();
+    updates
+        .send(Update::ReportText(
+            "cancelled-inventory-request".into(),
+            Err("old failure".into()),
+        ))
+        .await
+        .unwrap();
+    d.update();
+    assert_eq!(d.report_text.as_deref(), Some("current project loading"));
+    updates
+        .send(Update::Report(
+            "current-project-request".into(),
+            Err("exact current refusal".into()),
+            reporting::Focus::Project("project".into()),
+        ))
+        .await
+        .unwrap();
+    d.update();
+    assert_eq!(
+        d.report_text.as_deref(),
+        Some("Summary unavailable: exact current refusal")
+    );
+    d.key(KeyEvent::new(
+        KeyCode::Esc,
+        crossterm::event::KeyModifiers::NONE,
+    ));
+    updates
+        .send(Update::ReportText(
+            "current-project-request".into(),
+            Ok("late data".into()),
+        ))
+        .await
+        .unwrap();
+    d.update();
+    assert!(d.report_text.is_none());
+    assert!(d.report_request.is_none());
 }

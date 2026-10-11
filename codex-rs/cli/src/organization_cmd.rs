@@ -33,6 +33,16 @@ pub(crate) struct OrganizationCommand {
 
 #[derive(Debug, clap::Subcommand)]
 enum Action {
+    /// Read canonical task/inbox/check/resource summaries; no inference is started.
+    Inventory,
+    Report {
+        #[arg(long)]
+        project_id: Option<String>,
+        #[arg(long)]
+        cursor: Option<String>,
+        #[arg(long, default_value_t = 100)]
+        limit: u32,
+    },
     /// List saved workflow templates or invocations and canonical task states.
     WorkflowList {
         #[arg(default_value = "templates")]
@@ -122,6 +132,18 @@ pub(crate) async fn run(
         return Ok(output);
     }
     let action = match command.command {
+        Action::Inventory => OrganizationCommandAction::Inventory,
+        Action::Report {
+            project_id,
+            cursor,
+            limit,
+        } => {
+            OrganizationCommandAction::Report(codex_app_server_protocol::OrganizationReportParams {
+                project_id,
+                cursor,
+                limit: Some(limit),
+            })
+        }
         Action::WorkflowList {
             kind,
             project_id,

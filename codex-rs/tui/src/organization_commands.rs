@@ -21,6 +21,8 @@ use color_eyre::eyre::Result;
 use color_eyre::eyre::eyre;
 
 pub enum OrganizationCommandAction {
+    Inventory,
+    Report(codex_app_server_protocol::OrganizationReportParams),
     List(OrganizationListParams),
     MemorySearch(OrganizationMemorySearchParams),
     Mutate(OrganizationMutateParams),
@@ -60,6 +62,13 @@ pub async fn run_organization_command(
     }
     let request_id = app_server.next_request_id();
     let request = match action {
+        OrganizationCommandAction::Inventory => ClientRequest::OrganizationInventory {
+            request_id,
+            params: codex_app_server_protocol::OrganizationInventoryParams {},
+        },
+        OrganizationCommandAction::Report(params) => {
+            ClientRequest::OrganizationReport { request_id, params }
+        }
         OrganizationCommandAction::List(params) => {
             ClientRequest::OrganizationList { request_id, params }
         }

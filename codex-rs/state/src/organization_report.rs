@@ -142,13 +142,15 @@ impl OrganizationStore {
         )
         .fetch_one(&mut *tx)
         .await?;
-        let mut totals = OrganizationReportTotals::default();
-        totals.task_states=sqlx::query_as::<_,(String,i64)>("SELECT state,count(*) FROM organization_tasks WHERE (? IS NULL OR project_id=?) GROUP BY state")
-            .bind(project_id).bind(project_id).fetch_all(&mut *tx).await?.into_iter().collect();
-        totals.action_states=sqlx::query_as::<_,(String,i64)>("SELECT x.state,count(*) FROM organization_actions x JOIN organization_attempts p ON p.id=x.attempt_id JOIN organization_tasks t ON t.id=p.task_id WHERE (? IS NULL OR t.project_id=?) GROUP BY x.state")
-            .bind(project_id).bind(project_id).fetch_all(&mut *tx).await?.into_iter().collect();
-        totals.schedule_states=sqlx::query_as::<_,(String,i64)>("SELECT state,count(*) FROM organization_schedules WHERE (? IS NULL OR project_id=?) GROUP BY state")
-            .bind(project_id).bind(project_id).fetch_all(&mut *tx).await?.into_iter().collect();
+        let mut totals = OrganizationReportTotals {
+            task_states: sqlx::query_as::<_,(String,i64)>("SELECT state,count(*) FROM organization_tasks WHERE (? IS NULL OR project_id=?) GROUP BY state")
+            .bind(project_id).bind(project_id).fetch_all(&mut *tx).await?.into_iter().collect(),
+            action_states: sqlx::query_as::<_,(String,i64)>("SELECT x.state,count(*) FROM organization_actions x JOIN organization_attempts p ON p.id=x.attempt_id JOIN organization_tasks t ON t.id=p.task_id WHERE (? IS NULL OR t.project_id=?) GROUP BY x.state")
+            .bind(project_id).bind(project_id).fetch_all(&mut *tx).await?.into_iter().collect(),
+            schedule_states: sqlx::query_as::<_,(String,i64)>("SELECT state,count(*) FROM organization_schedules WHERE (? IS NULL OR project_id=?) GROUP BY state")
+            .bind(project_id).bind(project_id).fetch_all(&mut *tx).await?.into_iter().collect(),
+            ..OrganizationReportTotals::default()
+        };
         (totals.reported_tokens,totals.model_requests,totals.reported_model_requests)=sqlx::query_as("SELECT COALESCE(sum(json_extract(p.data,'$.reportedTokens')),0),COALESCE(sum(json_extract(p.data,'$.modelRequests')),0),COALESCE(sum(json_extract(p.data,'$.reportedModelRequests')),0) FROM organization_attempts p JOIN organization_tasks t ON t.id=p.task_id WHERE (? IS NULL OR t.project_id=?)")
             .bind(project_id).bind(project_id).fetch_one(&mut *tx).await?;
         (totals.checks_passed,totals.checks_failed)=sqlx::query_as("SELECT COALESCE(sum(json_extract(c.value,'$.exitCode')=0),0),COALESCE(sum((json_extract(c.value,'$.exitCode') IS NULL OR json_extract(c.value,'$.exitCode')<>0)),0) FROM organization_results r JOIN organization_attempts p ON p.id=r.attempt_id JOIN organization_tasks t ON t.id=p.task_id JOIN json_each(r.data,'$.checks') c WHERE (? IS NULL OR t.project_id=?)")
