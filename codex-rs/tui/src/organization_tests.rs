@@ -235,6 +235,9 @@ fn preferences_roundtrip_all_presets_and_reject_aliases() {
     prefs.panes[Preset::Workspace.index()].inspector = false;
     prefs.panes[Preset::Projects.index()].inspector_focus = true;
     prefs.panes[Preset::Review.index()].vim_keys = false;
+    prefs.panes[Preset::Operations.index()].sidebar_width = 38;
+    prefs.panes[Preset::Workspace.index()].sidebar = false;
+    prefs.panes[Preset::Projects.index()].actions = false;
     prefs.save(&path).unwrap();
     let restored = Preferences::load(&path).unwrap();
     assert_eq!(restored.preset, Preset::Review);
@@ -242,6 +245,9 @@ fn preferences_roundtrip_all_presets_and_reject_aliases() {
     assert!(!restored.panes[1].inspector);
     assert!(restored.panes[2].inspector_focus);
     assert!(!restored.panes[4].vim_keys);
+    assert_eq!(restored.panes[3].sidebar_width, 38);
+    assert!(!restored.panes[1].sidebar);
+    assert!(!restored.panes[2].actions);
     #[cfg(unix)]
     {
         let alias = home.path().join("alias");
@@ -347,6 +353,39 @@ fn dashboard() -> Dashboard {
         frame: FrameRequester::test_dummy(),
         is_done: false,
     }
+}
+
+#[tokio::test]
+async fn pane_controls_are_persisted_per_layout_and_render_the_saved_width() {
+    let home = tempfile::tempdir().unwrap();
+    let mut d = dashboard();
+    d.path = home.path().join("layouts.json");
+    d.preferences.preset = Preset::Operations;
+    for key in ['}', '}', '~'] {
+        d.key(KeyEvent::new(
+            KeyCode::Char(key),
+            crossterm::event::KeyModifiers::NONE,
+        ));
+    }
+    assert_eq!(d.pane().sidebar_width, 28);
+    assert!(!d.pane().actions);
+    d.switch(Preset::Projects);
+    d.key(KeyEvent::new(
+        KeyCode::Char('\\'),
+        crossterm::event::KeyModifiers::NONE,
+    ));
+    let restored = Preferences::load(&d.path).unwrap();
+    assert_eq!(restored.panes[Preset::Operations.index()].sidebar_width, 28);
+    assert!(!restored.panes[Preset::Operations.index()].actions);
+    assert!(!restored.panes[Preset::Projects.index()].sidebar);
+    d.switch(Preset::Operations);
+    d.key(KeyEvent::new(
+        KeyCode::Char('0'),
+        crossterm::event::KeyModifiers::NONE,
+    ));
+    assert_eq!(d.pane().sidebar_width, 24);
+    assert!(d.pane().actions);
+    assert!(!d.preferences.panes[Preset::Projects.index()].sidebar);
 }
 
 #[tokio::test]

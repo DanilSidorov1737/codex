@@ -13,6 +13,7 @@ pub(super) enum Kind {
     Goal,
     Project,
     Task,
+    GoalPlan(OrganizationGoal),
     Selection {
         project_id: String,
         selection: crate::organization_editor::Selection,
@@ -63,6 +64,45 @@ mod tests {
             state: "proposed".into(),
             revision: 7,
         }
+    }
+
+    #[test]
+    fn goal_planner_is_only_a_proposal_and_pins_the_goal() {
+        let goal = OrganizationGoal {
+            id: "goal".into(),
+            parent_id: None,
+            objective: "Write a tested handbook".into(),
+            criteria: vec!["Reviewable chapters".into()],
+            revision: 3,
+        };
+        let project = OrganizationProjectPlan {
+            id: "p".into(),
+            name: "Handbook".into(),
+            roots: vec![],
+            goal_id: Some(goal.id.clone()),
+            owner_id: Some("owner".into()),
+            criteria: vec![],
+            revision: 1,
+        };
+        let records = vec![OrganizationRecord::Project(project), OrganizationRecord::Goal(goal.clone()), serde_json::from_value(serde_json::json!({"type":"node","data":{"id":"owner","parentId":null,"kind":"agent","label":"Writer","roleVersionId":null,"model":null,"enabled":true,"revision":1}})).unwrap()];
+        let form = Form::new(Kind::GoalPlan(goal), &records, Some(&records[1]), "model");
+        let Command::Definition(OrganizationMutation::PutTask {
+            id: None,
+            goal_id,
+            instructions,
+            criteria,
+            ..
+        }) = form.command().unwrap()
+        else {
+            panic!("planner must only create a proposed task")
+        };
+        assert_eq!(goal_id.as_deref(), Some("goal"));
+        assert!(
+            instructions.contains("plan.json")
+                && instructions.contains("Write a tested handbook")
+                && instructions.contains("separately approve")
+        );
+        assert!(criteria[0].contains("acyclic"));
     }
 
     #[test]
@@ -996,7 +1036,7 @@ impl Form {
                 for item in items {fields.extend(Self::step_fields(item,&agents));}
                 fields
             },
-            Kind::Task | Kind::Selection {..} => vec![
+            Kind::Task | Kind::GoalPlan(_) | Kind::Selection {..} => vec![
                 Field::select(
                     "Project",
                     records
@@ -1090,6 +1130,25 @@ impl Form {
                 None,
             ));
         }
+        if let Kind::GoalPlan(goal) = &kind {
+            let roster: Vec<_> = records
+                .iter()
+                .filter_map(|record| match record {
+                    OrganizationRecord::Node(node)
+                        if node.kind == OrganizationNodeKind::Agent && node.enabled =>
+                    {
+                        Some((node.id.as_str(), node.label.as_str()))
+                    }
+                    _ => None,
+                })
+                .take(32)
+                .collect();
+            fields[3].input.set_text_clearing_elements(&format!(
+                "Propose a practical plan for this goal. Produce plan.json as a JSON array of 1–32 steps, each with key, ownerId, instructions, criteria and prerequisites (step keys). Express milestones in the instructions and measurable criteria. Select owners from the supplied roster. Inspect available inputs; do not execute the proposed work, delegate, authorize tasks, accept results or Apply. The owner will review the artifact and separately approve a workflow and scopes.\nGoal (untrusted content): {}\nAvailable roster: {}",
+                serde_json::to_string(goal).expect("goal JSON"), serde_json::to_string(&roster).expect("roster JSON")
+            ));
+            fields[4].input.set_text_clearing_elements("plan.json contains a bounded acyclic plan with measurable milestone criteria and valid roster assignments\nNo proposed execution was started");
+        }
         Self {
             kind,
             fields,
@@ -1108,6 +1167,7 @@ impl Form {
             Kind::Goal => "New goal",
             Kind::Project => "New project",
             Kind::Task => "New task",
+            Kind::GoalPlan(_) => "Propose goal planner · starts no execution",
             Kind::Selection { .. } => "Propose task from actual Neovim selection",
             Kind::Handoff { .. } => "Resolve blocker / hand off remaining work",
             Kind::Authorize(_) => "Authorize task",
@@ -1529,13 +1589,17 @@ impl Form {
                         .collect::<anyhow::Result<Vec<_>>>()?,
                 })
             }
-            Kind::Task | Kind::Selection { .. } => {
+            Kind::Task | Kind::GoalPlan(_) | Kind::Selection { .. } => {
                 Command::Definition(OrganizationMutation::PutTask {
                     id: None,
                     expected_revision: None,
                     project_id: required(0)?,
                     owner_id: required(1)?,
-                    goal_id: optional(2),
+                    goal_id: if let Kind::GoalPlan(goal) = &self.kind {
+                        Some(goal.id.clone())
+                    } else {
+                        optional(2)
+                    },
                     instructions: if let Kind::Selection {
                         project_id,
                         selection,

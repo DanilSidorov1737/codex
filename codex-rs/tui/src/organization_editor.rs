@@ -92,17 +92,46 @@ impl Drop for Editor {
 }
 impl Editor {
     pub(crate) fn start(frame: FrameRequester) -> Result<Self> {
-        let mut child = Command::new("nvim")
-            .args([
-                "--embed",
-                "-u",
-                "NONE",
-                "--noplugin",
-                "-i",
-                "NONE",
-                "--cmd",
-                "set nomodeline noexrc noswapfile",
-            ])
+        let config =
+            std::env::var_os("CODEX_ORGANIZATION_NVIM_CONFIG").map(std::path::PathBuf::from);
+        Self::start_configured(frame, config.as_deref())
+    }
+
+    fn start_configured(frame: FrameRequester, config: Option<&Path>) -> Result<Self> {
+        let mut command = Command::new("nvim");
+        command.args([
+            "--embed",
+            "-i",
+            "NONE",
+            "--cmd",
+            "set nomodeline noexrc noswapfile",
+        ]);
+        if let Some(path) = config {
+            ensure!(
+                path.is_absolute(),
+                "Neovim config must be an absolute owner-selected path"
+            );
+            let metadata =
+                std::fs::symlink_metadata(path).context("read owner Neovim configuration")?;
+            ensure!(
+                metadata.is_file() && metadata.len() <= 1024 * 1024,
+                "Neovim config must be a regular file of at most 1 MiB"
+            );
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::MetadataExt;
+                ensure!(
+                    metadata.nlink() == 1
+                        && metadata.uid() == unsafe { libc::geteuid() }
+                        && metadata.mode() & 0o022 == 0,
+                    "Neovim config must be owner-controlled and not writable by other users"
+                );
+            }
+            command.arg("-u").arg(path);
+        } else {
+            command.args(["-u", "NONE", "--noplugin"]);
+        }
+        let mut child = command
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::null())
@@ -194,11 +223,16 @@ impl Editor {
             "nvim_set_option_value",
             vec!["mouse".into(), "a".into(), Value::Map(vec![])],
         )?;
-        // This editor already uses a clean configuration; style its actual native grid.
-        editor.rpc(
-            "nvim_command",
-            vec!["set number termguicolors | highlight Normal guibg=#0b141d guifg=#dbe6f2".into()],
-        )?;
+        // Preserve the explicitly selected owner's theme and plugin configuration.
+        if config.is_none() {
+            editor.rpc(
+                "nvim_command",
+                vec![
+                    "set number termguicolors | highlight Normal guibg=#0b141d guifg=#dbe6f2"
+                        .into(),
+                ],
+            )?;
+        }
         Ok(editor)
     }
     fn send(&self, value: Value) -> Result<()> {

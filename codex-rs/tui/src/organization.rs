@@ -68,6 +68,9 @@ struct PaneSettings {
     width: u16,
     inspector_focus: bool,
     vim_keys: bool,
+    sidebar: bool,
+    sidebar_width: u16,
+    actions: bool,
 }
 impl Default for PaneSettings {
     fn default() -> Self {
@@ -76,6 +79,9 @@ impl Default for PaneSettings {
             width: 65,
             inspector_focus: false,
             vim_keys: true,
+            sidebar: true,
+            sidebar_width: 24,
+            actions: true,
         }
     }
 }
@@ -130,6 +136,7 @@ impl Preferences {
         let mut prefs: Self = serde_json::from_str(&content)?;
         for pane in &mut prefs.panes {
             pane.width = pane.width.clamp(25, 75);
+            pane.sidebar_width = pane.sidebar_width.clamp(16, 40);
         }
         Ok(prefs)
     }
@@ -1240,6 +1247,24 @@ impl Dashboard {
     }
     fn open_form(&mut self, key: char) {
         let kind = match key {
+            'P' => match self.record() {
+                Some(OrganizationRecord::Goal(goal)) => form::Kind::GoalPlan(goal.clone()),
+                Some(OrganizationRecord::Task(_)) => match self.accepted_plan_items() {
+                    Ok((project_id, items)) => form::Kind::WorkflowSave {
+                        project_id,
+                        items,
+                        previous: None,
+                    },
+                    Err(error) => {
+                        self.message = error.to_string();
+                        return;
+                    }
+                },
+                _ => {
+                    self.message = "Select a goal to propose a planner, or an accepted plan.json task to review its workflow.".into();
+                    return;
+                }
+            },
             'b' => {
                 let target = match self.selected_workflow() {
                     Some(OrganizationWorkflowView::Run { run, .. }) => Some((
@@ -1904,6 +1929,30 @@ impl Dashboard {
                 pane.width = (pane.width + 5).min(75);
                 self.save();
             }
+            KeyCode::Char('\\') => {
+                let pane = self.pane();
+                pane.sidebar = !pane.sidebar;
+                self.save();
+            }
+            KeyCode::Char('{') => {
+                let pane = self.pane();
+                pane.sidebar_width = pane.sidebar_width.saturating_sub(2).max(16);
+                self.save();
+            }
+            KeyCode::Char('}') => {
+                let pane = self.pane();
+                pane.sidebar_width = (pane.sidebar_width + 2).min(40);
+                self.save();
+            }
+            KeyCode::Char('~') => {
+                let pane = self.pane();
+                pane.actions = !pane.actions;
+                self.save();
+            }
+            KeyCode::Char('0') => {
+                *self.pane() = PaneSettings::default();
+                self.save();
+            }
             KeyCode::Char('k') if !self.pane().vim_keys => {}
             KeyCode::Char('j') if !self.pane().vim_keys => {}
             KeyCode::Char('K') => {
@@ -2017,7 +2066,11 @@ impl Dashboard {
                     self.scroll = 0;
                 }
             }
-            KeyCode::Char('b') => self.open_form('b'),
+            KeyCode::Char('b' | 'P') => self.open_form(if key.code == KeyCode::Char('P') {
+                'P'
+            } else {
+                'b'
+            }),
             KeyCode::Char(c @ ('a' | 'r' | 'v' | 'c' | 'p' | 'x' | 'u')) => self.decision(c),
             _ => {}
         }

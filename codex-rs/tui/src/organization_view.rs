@@ -482,15 +482,16 @@ impl Dashboard {
                 .border_style(Style::default().fg(background(BORDER))),
         )
         .render(regions[0], buffer);
-        let body = if area.width >= 110 {
+        let pane = &self.preferences.panes[self.preferences.preset.index()];
+        let body = if pane.sidebar && area.width >= 110 {
             let columns =
-                Layout::horizontal([Constraint::Length(24), Constraint::Min(1)]).split(regions[1]);
+                Layout::horizontal([Constraint::Length(pane.sidebar_width), Constraint::Min(1)])
+                    .split(regions[1]);
             self.sidebar(columns[0], buffer);
             columns[1]
         } else {
             regions[1]
         };
-        let pane = &self.preferences.panes[self.preferences.preset.index()];
         let areas = Layout::default()
             .direction(if body.width < 80 {
                 Direction::Vertical
@@ -714,7 +715,11 @@ impl Dashboard {
                 };
                 let right = Layout::vertical([
                     Constraint::Min(1),
-                    Constraint::Length(if areas[1].height >= 14 { 6 } else { 0 }),
+                    Constraint::Length(if pane.actions && areas[1].height >= 14 {
+                        6
+                    } else {
+                        0
+                    }),
                 ])
                 .split(areas[1]);
                 Paragraph::new(self.detail_text.as_str())
@@ -772,7 +777,7 @@ impl Dashboard {
             ]
         } else {
             [
-                "N project · T task · G goal · U agent · B group · E edit · L role · I membership · ↑↓ select · Tab focus",
+                "N project · T task · G goal · U agent · E edit · ↑↓ select · Tab focus · [ ] inspector · \\ sidebar · { } width · ~ actions · 0 reset",
                 "z/Z summaries · C capabilities · W/w workflows · s authorize · R/S recurring · H blocker · m/M memory · v accept · A Apply · / search · f refresh · q Console",
             ]
         };

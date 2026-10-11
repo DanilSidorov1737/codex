@@ -108,3 +108,30 @@ removes all subsequent schema/records, without changing historical checksums or
 weakening restore validation; corrected tests pass. An early UI build overlapped
 protocol edits and saw stale dependency types; the fresh build passes. Failed logs
 remain alongside corrected ones in the qualification parent.
+
+## Planner and layout checkpoint
+
+The P action on a goal opens a proposed planner task with captured goal content,
+measurable criteria and a bounded configurable roster. Saving that form grants
+no execution. The owner authorizes the planner with existing fixed scopes and
+reviews its `plan.json` artifact. P on the accepted planner imports verified
+artifact bytes into the existing editable workflow form; the server validates
+its graph/assignments before saving. Running still needs an immutable preview
+and explicit step scopes. Milestones are represented by step instructions and
+criteria; there is no new planning DSL or automatic execution authority.
+
+Dashboard panes now save sidebar visibility/16–40-cell width and Actions-panel
+visibility independently per layout, alongside the existing inspector width,
+visibility, focus and navigation preferences. Host keys: `\\` sidebar, `{`/`}`
+sidebar width, `~` Actions panel, `0` reset current layout, `[`/`]` inspector.
+Small terminals still collapse the sidebar and stack the inspector. Console
+uses the existing Codex conversation composer and its native theme/status-line
+settings; dashboard-only pane controls apply in the four dashboard layouts.
+These source changes are in validation, not yet physically qualified.
+
+Official Neovim keeps clean mode by default. An explicit owner-selected absolute
+`CODEX_ORGANIZATION_NVIM_CONFIG` opts into a regular owner-controlled config and
+its installed plugins/native LSP setup. Codex does not overwrite that config or
+download plugins. An actual official Rust `rust-analyzer` toolchain component is
+being installed locally for LSP qualification; it is not a new application
+library dependency. Tests and physical LSP evidence remain required.

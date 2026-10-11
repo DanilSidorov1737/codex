@@ -10,6 +10,50 @@ pub(super) fn workflow_id(view: &OrganizationWorkflowView) -> String {
 }
 
 impl Dashboard {
+    pub(super) fn accepted_plan_items(
+        &self,
+    ) -> anyhow::Result<(String, Vec<OrganizationPlanItem>)> {
+        let view = self
+            .detail
+            .as_ref()
+            .filter(|view| Some(&view.task.id) == self.selected.as_ref())
+            .ok_or_else(|| anyhow::anyhow!("Wait for the selected planner's details"))?;
+        let result = view
+            .result
+            .as_ref()
+            .filter(|result| result.accepted && view.task.state == "accepted")
+            .ok_or_else(|| {
+                anyhow::anyhow!("Accept the planner's exact result before importing it")
+            })?;
+        let artifact = result
+            .artifacts
+            .iter()
+            .find(|artifact| artifact.path == "plan.json" && artifact.bytes <= 65536)
+            .ok_or_else(|| {
+                anyhow::anyhow!("An accepted plan.json artifact of at most 64 KiB is required")
+            })?;
+        let workspace = view
+            .attempts
+            .iter()
+            .find(|attempt| attempt.id == result.attempt_id)
+            .and_then(|attempt| attempt.workspace.as_ref())
+            .ok_or_else(|| anyhow::anyhow!("Planner workspace unavailable"))?;
+        let preview = Preview::new(
+            self.path
+                .parent()
+                .ok_or_else(|| anyhow::anyhow!("Owner home unavailable"))?,
+            Path::new(workspace),
+            &artifact.path,
+            Some(artifact),
+        )?;
+        let items: Vec<OrganizationPlanItem> =
+            serde_json::from_slice(&std::fs::read(preview.path())?)?;
+        anyhow::ensure!(
+            (1..=32).contains(&items.len()),
+            "Plan must contain 1–32 steps"
+        );
+        Ok((view.task.project_id.clone(), items))
+    }
     pub(super) fn selected_workflow(&self) -> Option<&OrganizationWorkflowView> {
         self.snapshot
             .workflows

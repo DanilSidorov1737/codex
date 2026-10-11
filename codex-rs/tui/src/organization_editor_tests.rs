@@ -1,5 +1,35 @@
 use super::*;
 
+#[tokio::test]
+async fn official_neovim_loads_opt_in_owner_config_and_bundled_plugin_without_changing_it() {
+    let home = tempfile::tempdir().unwrap();
+    let path = home.path().join("init.lua");
+    let content = "vim.g.codex_owner_config=true\nvim.cmd('packadd matchit')\nvim.o.number=false\n";
+    std::fs::write(&path, content).unwrap();
+    let mut editor = Editor::start_configured(FrameRequester::test_dummy(), Some(&path)).unwrap();
+    assert_eq!(
+        editor
+            .rpc("nvim_eval", vec!["g:codex_owner_config".into()])
+            .unwrap(),
+        Value::Boolean(true)
+    );
+    assert_eq!(
+        editor
+            .rpc("nvim_eval", vec!["exists('g:loaded_matchit')".into()])
+            .unwrap()
+            .as_i64(),
+        Some(1)
+    );
+    assert_eq!(std::fs::read_to_string(&path).unwrap(), content);
+    drop(editor);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o666)).unwrap();
+        assert!(Editor::start_configured(FrameRequester::test_dummy(), Some(&path)).is_err());
+    }
+}
+
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn real_neovim_queries_do_not_schedule_redraws_but_native_redraw_and_exit_do() {
     let (draws, mut receiver) = tokio::sync::broadcast::channel(32);
