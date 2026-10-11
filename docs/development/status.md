@@ -1,5 +1,10 @@
 # Current status and resumption instructions
 
+The owner approved the revised [autonomy/usability batch](autonomy-batch.md).
+Implementation is in progress, starting with whole-workflow controls and shared
+limits. External integrations are deferred. Previous qualification below remains
+historical evidence; no new batch behavior is qualified yet.
+
 Phase 0: **exploration and planning complete for available inputs**.
 Current work: **N1/N2/N3 and all 12 expanded-batch items complete and qualified**.
 Application features: **delivered for the documented single-owner Linux envelope**.

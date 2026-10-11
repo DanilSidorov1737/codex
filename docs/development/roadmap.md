@@ -1,5 +1,10 @@
 # Phased roadmap
 
+The next owner-approved scope is the revised twelve-item
+[autonomy/usability batch](autonomy-batch.md); external integrations are deferred.
+Start with whole-workflow controls and shared limits. Earlier completed batches
+and their evidence remain recorded below.
+
 Current execution: Phase 2 MVP implementation and B1–B6 qualification are complete,
 including real GPT-5.5 coding/delegation/document pilots. Later phases require
 the next bounded scope to be chosen with the owner. See

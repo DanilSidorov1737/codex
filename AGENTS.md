@@ -82,6 +82,15 @@ and testing for all failures, corrected evidence and exact resume instructions.
 Preserve N1's accepted writer
 and three needsReview reader fixtures; never blindly rerun authorization scripts.
 
+The owner approved the revised twelve-item autonomy/usability batch with “ok lets
+do this; use ponytail, commit periodically, document and test”. Follow
+[its bounded scope](docs/development/autonomy-batch.md), starting with whole-run
+controls and shared limits. External integrations are explicitly deferred. These
+approved items supersede older deferrals for recurring workflows, supported
+Neovim configuration/LSP and other listed local features. Preserve exact grants,
+review/Apply, uncertainty fences and minimal spending. No repeated approval is
+needed for ordinary slices; update progress and evidence continuously.
+
 Read [docs/development/README.md](docs/development/README.md) and
 [status.md](docs/development/status.md) at the start of every session.
 Then read [decisions](docs/development/decisions-and-risks.md),
