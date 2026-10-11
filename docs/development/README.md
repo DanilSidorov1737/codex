@@ -12,11 +12,15 @@ automated tests, real background/approval/pause/restart/resume/cancel/budget/cra
 and native CLI/TUI/official-Neovim checks. See recurring-schedules.md and status.md;
 N3 reusable workflows is qualified on `2bd752a3d1`: 712 automated tests and actual
 dependency/restart/approval/Neovim/conflict-denial/Apply checks. See
-[workflow evidence](workflows.md). N4–N8 remain proposed later scope.
+[workflow evidence](workflows.md). Bounded portions of N4–N8 were subsequently
+approved and completed in the expanded batch; broader scope remains later work.
 The 12-item expanded batch was subsequently approved on 2026-10-11. Item 1 Apply
 recovery and items 2–4 checkpoints/blocked handoffs are delivered/qualified on
-`dcf53641b8`. Operations editing and fuller workflow UI are qualified on `55af0a0b5b`. Items 7–12 are next approved work.
-See the current status and expanded roadmap; later items are not delivered yet.
+`dcf53641b8`. Operations editing and fuller workflow UI are qualified on
+`55af0a0b5b`; Review/reports/resources/selection/inventory and final qualification
+are complete on `fe5ac65949` / corrected `338104eb99`, with 748 selected checks
+and actual CLI/TUI/official-Neovim evidence. All 12 items are complete. Current
+package, retained failures, limits and screenshots are in status.md and testing.md.
 Phase 0 repository baseline: `8026444c98cd9c6db9e7c953b44a20ea4f93c7b6`, from `origin/main`.
 Research recorded on 2026-10-09 (America/New_York).
 

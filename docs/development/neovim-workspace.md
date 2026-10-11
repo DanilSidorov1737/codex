@@ -58,6 +58,9 @@ In host Review, `n` cycles the verified artifact diff and aligns the next Neovim
 artifact. `A` opens whole-file Apply selection after exact result acceptance; F6
 captures the selection and `y` dispatches only after every loaded native buffer
 passes the existing dirty/changedtick fence. No editor engine is added.
+Accepted results leave the Review action inbox; browse the accepted task in
+Projects for its exact `A` file selection/confirmation. Workspace and its actual
+editor retain the same original/preview/base/dirty guards.
 
 Neovim never opens an agent-writable artifact directly. A shared directory-FD
 reader rejects ancestor/leaf symlinks, nonregular files and hard links; reads are

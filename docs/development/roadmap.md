@@ -26,7 +26,9 @@ The owner requested an expanded plan based on `docs/Codex CLI Fork.txt` on
 2026-10-10. The sequence below is proposed work after the qualified selective
 Apply slice, not implementation authorization or a claim of delivered features.
 The owner subsequently approved N1 with “Ok do this” and N2 with “ok lets do this”;
-N3 reusable bounded workflows was approved with “ok do this”; N4–N8 remain proposals.
+N3 reusable bounded workflows was approved with “ok do this”; the bounded
+expanded batch below subsequently delivered N4–N6 and the core selection/inventory
+parts of N7–N8. Broader integrations and user plugin/LSP qualification remain proposals.
 Memory and recurring schedules are the first two steps. The added
 steps cover practical portions of the text's workflow, continuity, organization,
 visibility, editor and capability requirements.
@@ -58,7 +60,7 @@ automation and protected self-improvement remain in their later roadmap phases.
 
 ## Expanded next batch
 
-**Approved on 2026-10-11; implementation in progress.** The owner asked to
+**Approved on 2026-10-11; all 12 items implemented and qualified.** The owner asked to
 expand the next list so the batch accomplishes more, then approved it with
 “ok lets do this”. This refines N4 and draws bounded additions from N5–N8.
 N1–N3 remain complete. Start with recovery and handoffs, then add the owner
@@ -69,8 +71,16 @@ layout switching; see [evidence](testing.md#apply-recovery-qualification).
 Items 2–4 are delivered/qualified on `dcf53641b8`: 731 automated tests and actual
 CLI/TUI/official-Neovim blocked checkpoint, unrelated work, restart, same-grant
 handoff, retained limits, checked receiver result and one explicit Apply. See
-[continuity evidence](testing.md#checkpoint-and-handoff-qualification). Items 5–12
-remain approved work in progress; proceed to Operations editing and workflow UI.
+[continuity evidence](testing.md#checkpoint-and-handoff-qualification). Items 5–6
+are qualified on `55af0a0b5b`; items 7–12 on `fe5ac65949` / corrected inventory
+`338104eb99`, with 748 distinct selected checks and actual native CLI/TUI/official
+Neovim approval/selection/check/review/Apply/restart evidence. The final read-only
+package check added no inference or mutation. See
+[reports/selection evidence](testing.md#review-reports-inventory-and-native-selection-qualification).
+No expanded-batch implementation remains. The next bounded proposal can qualify
+one useful read-only external integration; its access/provider/spend and tests
+need matching owner scope. Plugins/LSP and remaining scale/workflow extensions
+also retain their separate gates.
 
 | Order | Capability and practical scope | Reuse and acceptance gate |
 | --- | --- | --- |
@@ -79,7 +89,7 @@ remain approved work in progress; proceed to Operations editing and workflow UI.
 | 3 | Safe reassignment: let the owner transfer unfinished work to another configured agent with an explicit ownership transition. | Reuse grants, leases and attempts. Fence the old worker; preserve consumed/remaining root and schedule/workflow accounting rather than resetting limits. Validate the receiver's scope and reconcile uncertain effects before continuing. |
 | 4 | Blocker handling and escalation: show why work stopped and which owner decision is needed. | Reuse canonical task state and inbox records. Test resolution/reassignment without widening authority, restart persistence and unrelated work continuing while a decision is pending. |
 | 5 | Organization editing in Operations: edit role instructions, memberships, hierarchy and enabled/retired state from the tree. | Expose existing versioned owner CLI/RPC edits through native forms. Physically create/edit/reparent/retire; reject cycles/stale changes and retain active attempts' captured policy. Arbitrary names and levels remain supported. |
-| 6 | Fuller workflow UI: edit templates, assignments, prerequisites and success criteria, and review distinct per-step scopes. | Reuse N3's existing CLI/RPC template revisions and canonical previews; the current UI uses a common scope. Reject invalid graphs/stale edits and preserve atomic authorization, fixed step budgets and explicit prerequisite acceptance. |
+| 6 | Fuller workflow UI: edit templates, assignments, prerequisites and success criteria, and review distinct per-step scopes. | Reuse N3's existing CLI/RPC template revisions and canonical previews; the earlier UI used a common scope; native per-step scopes are now qualified. Reject invalid graphs/stale edits and preserve atomic authorization, fixed step budgets and explicit prerequisite acceptance. |
 | 7 | Review action inbox: bring pending approvals, blocked decisions, requested changes and results needing review into one navigable list. | Derive entries from canonical records, with links to exact tasks/actions/results. Counts match after reconnect/restart; resolving one item cannot approve a different or changed action. |
 | 8 | Operational summaries: show project progress, upcoming runs, blockers, recorded checks and failures, with evidence links. | Start with on-demand local reports using existing state, audit and schedule projections. Verify counts/drill-downs and project scope; do not invent tests or deliver reports externally. |
 | 9 | Resource visibility: show recorded requests/tokens, remaining configured limits and clearly labeled cost estimates by task, agent, project and workflow run. | Reuse authoritative usage/budget records and trusted rate configuration. Preserve descendant attribution and distinguish fixed step limits from a pooled budget; unknown measurements remain unavailable and estimates are not monetary hard caps. |

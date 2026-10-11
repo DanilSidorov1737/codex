@@ -1,11 +1,11 @@
 # Current status and resumption instructions
 
 Phase 0: **exploration and planning complete for available inputs**.
-Current work: **N1/N2/N3 complete; expanded recovery/handoff/UI batch approved and in progress**.
+Current work: **N1/N2/N3 and all 12 expanded-batch items complete and qualified**.
 Application features: **delivered for the documented single-owner Linux envelope**.
 The MVP's release criteria are **qualified for the documented single-owner Linux/GPT-5.5 envelope**.
 
-## Expanded batch checkpoint: items 1–6 complete
+## Expanded batch checkpoint: all 12 items complete
 
 Items 5–6 are implemented and physically qualified on `55af0a0b5b`.
 Native Operations group/node/role/membership/reparent/retire controls and workflow
@@ -38,15 +38,30 @@ tokens / 0 paid, including the retained interrupted attempt; 28 PNG/text pairs,
 36 switches at three sizes and two normal CLI exits. Services are stopped.
 
 Physical inspection found one inventory omission: successful checkpoint calls
-were missing from organization-tool observations. A small SQL union and the
-existing checkpoint/deduplication regression now verify checkpoints, ordinary
-coordination calls and retries once, with refused calls excluded. Rebuild and
-final read-only native package qualification are in progress. Do not replay the
-workflow: five tasks, five grants, four attempts, two results and one application
-are preserved. The initial blocker fixture's empty artifact declaration was
-correctly rejected; cleanup fenced its interrupted coding attempt and superseded
-the approval. The continuation used a fresh proposed coding task/grant, preserving
-the failed task's 15 tokens/one request. No limit reset or replay occurred.
+were missing from organization-tool observations. The SQL union/regression fix is
+qualified on **`338104eb992828811a7ad48b556045a51c33fbcb`**. Final CLI SHA256:
+`0287fa8ea38ede2352b9e09cfa3d4fd0cc98cd49dd53f6879c5430193e2776d2`.
+Production CLI Clippy, full build, format and the correct checkpoint/deduplication
+regression pass. The supported package update retained all canonical records;
+all five installed assets match the final package. Actual final inbox, corrected
+inventory (one checkpoint call), summary, original Neovim selection and cancelled
+exact draft passed, with a third normal CLI exit 0 and zero additional inference.
+`review-selection/final-physical-v3.json` is the final receipt. Two read-only
+harness failures (search/loading and punctuation assertion) are preserved; neither
+changed canonical state. All owned services are stopped.
+
+Current complete package:
+`/workspace/.onboarding/qualification/expanded-batch/review-selection/final-package/bin/codex`.
+**38 actual PNG/text pairs**, CRC-checked 78-entry archive:
+`/workspace/artifacts/cli-expanded-batch/reports-selection-screenshots.zip`.
+Read [testing](testing.md#review-reports-inventory-and-native-selection-qualification)
+and [reports/selection](reports-and-selection.md) for keys, limits and evidence.
+Preserve `review-selection-home`: five tasks, five grants, four attempts, two
+results and one application. The first blocker fixture's empty artifact declaration
+was correctly rejected; cleanup fenced its interrupted coding attempt and
+superseded the approval. A fresh proposed coding task/grant preserved the failed
+task's 15 tokens/one request. No limit reset or replay occurred. Never repeat its
+setup, grants, acceptance or Apply.
 
 Preserve initial failed checks: mistyped filters selected zero cases (not evidence),
 TUI compilation exposed missing fixture fields/helper visibility, three legacy
@@ -91,10 +106,19 @@ target refusals and verifier envelope error remain alongside corrected evidence;
 the guarded package continuation proved no canonical records or inference existed
 before starting once. These failures did not require an application-code change.
 
-Continue approved work: items 7–12,
-followed by Review inbox, summaries/resources, Neovim selection and inventory.
-Use fresh fixtures and the same Ponytail/testing/commit process. Remaining items
-are already approved; no new scope question is needed for these slices.
+The approved expanded batch has no remaining implementation. The next session
+should inspect these receipts/current source and the owner's next request, rather
+than replay fixtures. Further external read-only integration qualification,
+user Neovim plugins/LSP, recurrent whole workflows, shared-buffer editing,
+automatic Apply, paid provider pilots and distributed workers retain separate
+scope. Existing single-owner Linux/clean-Neovim/concurrency limits still apply.
+
+Cloud startup guidance is saved and read back exactly in configuration draft
+revision **14** (start_skill only; repository/install/network/credential/runtime
+fields unchanged). Receipt: `expanded-batch/cloud-start-skill-save.json`.
+Saving this draft does not activate or publish it, nor prove new-task restoration
+of local-only commits. Review/save and republish the refreshed environment snapshot
+to retain local work. Do not reset or push to work around restoration limits.
 
 ## Expanded next batch approval — 2026-10-11 UTC
 
@@ -105,8 +129,8 @@ meaningful automated checks, actual CLI/TUI/official-Neovim interaction and logi
 local commits. No new external integration, paid probe, installation, push or
 automatic Apply is authorized by this batch. Fresh qualification artifacts go in
 `/workspace/.onboarding/qualification/expanded-batch/`; preserve all historical
-N1–N3 evidence and state. Application qualification is still the N3 baseline until
-new checks are recorded.
+N1–N3 evidence and state. Application qualification now includes the completed expanded-batch slices
+and exact sources recorded above.
 
 The owner asked to add more items to the next list. The
 [expanded batch](roadmap.md#expanded-next-batch) retains Apply recovery,

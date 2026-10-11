@@ -1,8 +1,9 @@
 # Action inbox, evidence reports and native selection requests
 
 Expanded-batch items 7–11 reuse the protected owner connection, canonical SQLite
-records and actual official Neovim. Automated and physical workflow checks pass; the final inventory-counter
-correction is under package qualification. See [current status](status.md) for exact counts and failures.
+records and actual official Neovim. Automated and actual CLI/TUI/official-Neovim checks pass. Workflow source is
+`fe5ac65949`; corrected inventory source `338104eb99` also passed final native
+read-only qualification without replaying work. See [current status](status.md) for exact counts and failures.
 No dependency, model summary service, integration probe or editor engine is added.
 
 ## Review and reporting
@@ -71,3 +72,17 @@ refused. Semantic refusal keeps the editor usable. Buffer revision is checked at
 both F6 and confirmation; project identity is fixed in the draft. Captured context
 is untrusted content and grants no paths/tools. Original dirty buffers still block
 Apply; immutable checks, acceptance and explicit file Apply remain mandatory.
+
+## Evidence and limits
+
+The selected matrix passed 748 distinct checks. Main native qualification retained
+one interrupted attempt, then completed fresh bounded coding/document/blocker work:
+6 localhost responses / 90 fixture tokens / 0 paid, two immutable checked results,
+one explicit Apply and unchanged reports across restart. Final corrected inventory
+qualification added no model work and preserved every task/grant/result/receipt.
+38 actual PNG/text pairs are archived at
+`/workspace/artifacts/cli-expanded-batch/reports-selection-screenshots.zip`.
+See [testing](testing.md#review-reports-inventory-and-native-selection-qualification)
+for exact commands, hashes, retained failures and envelope. No extra live-provider
+compatibility, plugin/LSP, integration, shared-buffer or billing qualification is
+implied. Preserve the historical fixtures; use separately scoped fresh work.

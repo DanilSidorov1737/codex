@@ -39,8 +39,12 @@ CLI: paginated template/run listing, owner template mutation, preview and explic
 run mutation. TUI: save a selected task and its prerequisite closure as a template,
 inspect templates/runs, preview scopes before starting, and open run tasks in the
 existing layouts. Reuse the concept-art panels/palette and actual official Neovim.
-CLI supports per-step scopes; the first UI form can apply one reviewed scope to
-all steps and displays the resulting total ceilings and every task/criterion.
+CLI and the expanded native UI support distinct per-step scopes. `W` edits saved
+step keys/assignments/instructions/criteria/prerequisites; F7 adds and F8 removes
+steps. `s` opens separate labeled scope fields for every step. F6 displays the
+canonical preview and `y` confirms it. These controls are qualified on `55af0a0b5b`;
+see [owner controls](owner-controls.md). The original N3 common-scope UI described
+in historical checkpoints below has been superseded.
 
 Qualification must cover invalid/cyclic graphs, atomic rollback, stale previews,
 distinct invocations, dependency blocking, approval/budget denials, restart,
@@ -48,9 +52,10 @@ scoped artifact transfer, actual UI creation/confirmation/navigation, and actual
 Neovim review. Use fresh synthetic state and deterministic localhost Responses;
 do not replay N1/N2/Apply fixtures or automatically repeat paid pilots.
 
-Calendar triggers and recurrent whole-workflow runs, structured handoff/reassignment,
-parallel shared-buffer editing, distributed execution and automatic Apply are
-later scope. Existing N1 memory remains available within each grant; N2 continues
+Structured same-grant handoff/reassignment is now qualified in the expanded batch;
+its original accounting remains attached to the workflow step. Calendar triggers,
+recurrent whole-workflow runs, parallel shared-buffer editing, distributed execution
+and automatic Apply remain later scope. Existing N1 memory is available within each grant; N2 continues
 to schedule its existing prerequisite-free task templates.
 
 ## Historical implementation checkpoints
@@ -109,8 +114,9 @@ and five source/installed hashes. Ten localhost deterministic Responses/150 repo
 tokens, zero paid calls. All owned services are stopped; failures/state remain.
 See [testing](testing.md) and [status](status.md) for commands, hashes and safe resume.
 
-The first UI uses a common reviewed per-step scope; distinct scopes and template
-revision edits are available in CLI. There is no pooled workflow budget, full-run
+The original N3 UI used a common reviewed per-step scope. Expanded native template
+editing and distinct scope controls are now qualified on `55af0a0b5b`, alongside
+the existing CLI. There is no pooled workflow budget, full-run
 pause/resume/retry, recurrent DAG trigger or external integration. Use existing
 per-task stop controls, inspect partial/uncertain effects, and explicitly preview
 a fresh invocation for further work. A change request pauses a step; it cannot

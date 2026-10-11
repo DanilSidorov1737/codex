@@ -56,6 +56,23 @@ match canonical state. Ten localhost Responses/150 reported tokens, zero paid;
 all owned services stopped, failures preserved. This is local control evidence,
 not new live-model quality. See [workflows](workflows.md) and [testing](testing.md).
 
+The subsequent 12-item expanded batch is complete. Apply rejection recovery and
+same-grant checkpoint/handoff continuity are qualified on `f0175b9076` /
+`dcf53641b8`; Operations editing/distinct workflow scopes on `55af0a0b5b`;
+Review inbox, local evidence/resource reports, native selection proposals and
+capability inventory on `fe5ac65949` / corrected inventory `338104eb99`.
+The latest selected matrix passes **748 distinct checks**, production CLI Clippy,
+formatting and full package. Actual CLI/TUI/official-Neovim checks include exact
+owner decisions, unrelated work during blockers, retained limits, stale controls,
+Unicode selection/cancellation, dirty buffers, immutable checks, accepted result,
+one Apply and canonical restart proof. The final corrected package's five assets
+match and its read-only native proof adds no model work. All owned services are
+stopped. This extends local control qualification; the earlier paid-model pilots
+remain tied to their original source and were not repeated. Exact per-slice
+sources, counters, failed/corrected checks and evidence are in
+[testing](testing.md#review-reports-inventory-and-native-selection-qualification)
+and status.md. Single-owner Linux/clean-Neovim/capacity/billing limits still apply.
+
 ## Acceptance evidence
 
 The subsequent N2 recurring-schedule slice is qualified on `e06def499e`: 700

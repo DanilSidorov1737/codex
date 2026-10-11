@@ -61,7 +61,21 @@ whole-workflow recurrence, plugins/LSP and distributed workers remain separate.
 Expanded-batch items 1–4 are qualified: Apply recovery on `f0175b9076` and
 checkpoints/blocked owner handoffs on `dcf53641b8`, with 731 selected automated
 tests and actual CLI/TUI/official-Neovim restart, unrelated work, same-grant
-transfer, checks, acceptance and one Apply. Items 5–6 are also qualified on `55af0a0b5b`; preserve `owner-ui-home`, its four tasks, two grants/results and one Apply. Never replay its fixture mutations. Items 7–12 remain approved work.
+transfer, checks, acceptance and one Apply. Items 5–6 are also qualified on `55af0a0b5b`; preserve `owner-ui-home`, its four
+tasks, two grants/results and one Apply. Never replay its fixture mutations.
+Items 7–12 are qualified on workflow source `fe5ac65949` and final corrected
+inventory source `338104eb99`: 748 distinct selected checks, actual CLI/TUI/official
+Neovim selections/approvals/changes/dirty refusal/diff/acceptance/one Apply/restart,
+36 layout switches and final read-only package verification. All 12 approved items
+are complete. Preserve `review-selection-home`, its five tasks/grants, four
+attempts, two results and one Apply, including the interrupted task and consumed
+usage. Six localhost responses/90 fixture tokens/zero paid; services stopped.
+Never replay its authorization/acceptance/Apply or reset counters. See
+[reports and selection](docs/development/reports-and-selection.md) and final
+[testing evidence](docs/development/testing.md#review-reports-inventory-and-native-selection-qualification).
+Further external integration, paid probes, plugins/LSP, shared buffers, whole
+workflow recurrence and distributed execution retain their separately stated
+scope. Read current status before new work.
 Preserve `continuity-home` and its two historical tasks; never rerun the
 continuity setup/authorization/handoff/Apply scripts or reset limits. See status
 and testing for all failures, corrected evidence and exact resume instructions.

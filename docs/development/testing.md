@@ -5,8 +5,10 @@
 2026-10-11 UTC, expanded-batch items 7–12. Workflow source
 `fe5ac65949e43d09de9bbcec8990fe5829a9eb7d`, CLI SHA256
 `920cdd42c577e67ff0318d3cecd31816bfab08768de282cf25d964605652c591`.
-The final checkpoint-inventory counter correction is under package qualification;
-see status.md for its final source/hash/receipt. Evidence root:
+Final corrected source `338104eb992828811a7ad48b556045a51c33fbcb`, CLI SHA256
+`0287fa8ea38ede2352b9e09cfa3d4fd0cc98cd49dd53f6879c5430193e2776d2`,
+passed the relevant regression, full production CLI Clippy/build/format and actual
+read-only CLI/TUI/Neovim checks in `review-selection/final-physical-v3.json`. Evidence root:
 `/workspace/.onboarding/qualification/expanded-batch/`.
 
 Activate `. /workspace/.onboarding/activate.sh`. Cargo commands run from
@@ -80,8 +82,25 @@ identities. The existing native-state regression checks retry deduplication,
 separate note/checkpoint calls and rejected-call exclusion. Its correct full filter
 `organization::tests::handoff::checkpoint_validation_dedupe_identity_and_blocker_do_not_stop_unrelated_work`
 passed once in `inventory-correction-state-exact.log`; a shortened zero-case filter
-in the wrapper is not evidence. Corrected package physical read-only verification
-is the remaining gate.
+in the wrapper is not evidence. Corrected package physical read-only verification passes: the supported update
+retained the whole canonical report, all five installed hashes match, and the
+actual UI shows one recorded checkpoint call linked to its native attempt. The
+complete inbox, scoped summary, original Neovim selection and cancellation of an
+exact proposed-task draft passed with no additional model request or mutation.
+The final frontend's native exit is 0 (three successful recorded exits including
+the main workflow). The initial read-only helpers failed to clear search/wait for
+inbox rows and then compared a colon against a rendered middle dot; both failed
+receipts/screens survive. Corrected waiting/layout switching and exact rendered
+punctuation passed, with all canonical records unchanged and services stopped.
+`inventory-correction-checks.json` records format/Clippy/build/format-check exits 0;
+its zero-case shortened filter is excluded, with the correct regression pass
+recorded separately.
+
+Final screenshots: **38 actual PNG/text pairs**, **78 entries** including manifest
+and explanatory README, CRC checked. Archive:
+`/workspace/artifacts/cli-expanded-batch/reports-selection-screenshots.zip`, SHA256
+`ba76215f82dbd9d550984a30c6d632229900d9d55748795dacae7f9a8e0babf9`.
+Its final images were visually inspected; failure captures remain clearly labeled.
 
 Initial compilation, stale fixture semantics, mistyped zero-case filters, missing
 venv PATH and denied Clippy warnings remain beside corrected passes. No assertion,
@@ -91,6 +110,13 @@ external integrations, higher concurrency, additional platforms, user Neovim
 plugins/LSP, shared buffers or automatic Apply. The PNG renderer's DejaVu font
 lacks the CJK glyph used in a native Unicode sample; stored/native text remains
 correct, with character/range assertions in the actual-editor tests.
+
+Documentation validation after final updates resolved 131 local links and heading
+anchors across the checker's 11 selected documents; `git diff --check` passed.
+The updated complete cloud start_skill was saved/read back exactly in draft
+revision 14, preserving all other configuration fields. It points to the tested
+package, commands, limits and non-replay instructions; saving is distinct from
+publication and new-task restoration. No secret values were saved.
 
 ## Checkpoint and handoff qualification
 

@@ -50,16 +50,17 @@ launches report the requirement rather than silently taking terminal ownership.
   explicitly select the occurrence in Workspace before `t` Follow. Current
   captures are in `/workspace/artifacts/cli-recurring-schedules/`.
 - Select a final task in Projects and `W` saves its loaded prerequisite closure as
-  a workflow template. Select a template and `s` enters a common scope per step;
+  a workflow template. Select a template and `s` enters separate scope fields per step;
   F6 obtains a read-only canonical preview, then `y` confirms that exact run.
   `w` browses templates/runs and their linked tasks in Projects/Operations;
   Operations retains its default hierarchy tree. Inspectors show arbitrary
   owners, criteria, prerequisites, fixed summed limits and canonical states.
   Run tasks retain existing approval/actual-Neovim/acceptance/Apply controls.
-  CLI supports distinct per-step scopes. Qualified on `2bd752a3d1` with 30 native
+  CLI also supports distinct per-step scopes. The original N3 slice was qualified on `2bd752a3d1` with 30 native
   TUI/Neovim tests and actual forms, dependencies, restart, Follow/diff,
   original conflict denial, exact Apply and 36 switches across three sizes.
-  See [workflows](workflows.md); captures are at `/workspace/artifacts/cli-workflows/`.
+  Expanded template editing and native distinct scopes are qualified on `55af0a0b5b`.
+  See [workflows](workflows.md); historical captures are at `/workspace/artifacts/cli-workflows/`.
 - Review/task inspection: `a` approves the first pending exact action, `r` rejects
   it, `v` accepts the exact current result digest, and `c` requests changes with
   entered instructions. Decisions require an explicit `y` against the displayed
@@ -91,6 +92,24 @@ Qualification must physically exercise all presets, hierarchy search/collapse,
 real owner controls, exact approvals, narrow/wide terminals and preference reload.
 Meaningful automated checks complement that evidence; snapshots alone cannot
 qualify the interaction. See [MVP criteria](mvp.md).
+
+## Expanded owner controls and visibility
+
+Operations `B`/`E`/`L`/`I` edit arbitrary groups/nodes/roles/memberships through
+version-pinned forms; `W`/`w` and F7/F8 edit workflow steps with distinct reviewed
+scopes. Review is now the canonical action inbox for approvals, blockers,
+requested changes and result review; proposed/accepted tasks remain in Projects.
+Host `z` opens a selected-scope local summary, `Z` the whole store, and `C` the
+configured-versus-observed capability inventory. Workspace `Q` proposes work from
+actual original Neovim character/line selections after Ctrl-G; authorization is
+separate. Existing five-layout shell/palette/contrast helpers remain.
+
+These controls are physically qualified on `55af0a0b5b`, `fe5ac65949` and corrected
+inventory `338104eb99`; see [owner controls](owner-controls.md),
+[reports/selection](reports-and-selection.md) and [testing](testing.md). Exact
+confirmations, scrolling, native editor key ownership and rapid layout switching
+passed. Current actual captures:
+`/workspace/artifacts/cli-expanded-batch/reports-selection-screenshots.zip`.
 
 ## Owner creation and execution forms (qualified)
 
