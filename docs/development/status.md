@@ -6,13 +6,21 @@ completed autonomy-batch evidence below. External integrations remain deferred.
 Real systemd logout/reboot qualification needs a suitable host; independent
 local implementation proceeds. Initial source `41820fc11e`, clean worktree.
 
-Operations batch first slice: command palette, finite workflow/accepted-trigger
-forms and navigable goal evidence/editing are implemented. 59 targeted
-TUI/actual-Neovim checks and production CLI Clippy pass; full-package physical
-qualification is in progress. [Batch checkpoint](next-twenty.md) is authoritative
+Operations batch tasks 2/3/5 are qualified on `f863b37028`: command palette,
+finite workflow/accepted-trigger forms and navigable goal evidence/editing.
+59 targeted TUI/actual-Neovim checks, production CLI Clippy/build/package,
+physical owner forms/refusals, 36 layout switches, native exit 0, installed asset
+hashes and SQLite integrity pass. No model calls ran. Both series/source grant
+were cancelled and the owned daemon stopped. Task 4 organization presets is next.
+[Batch checkpoint](next-twenty.md) is authoritative
 for remaining work; [host runbook](unattended-host-qualification.md) describes the
 unavailable logout/reboot checks. Preserve all fresh operations-batch fixtures
 and do not replay their mutations.
+
+Current operations UI package:
+`/workspace/.onboarding/qualification/operations-batch/package/bin/codex`.
+SHA256 `ab34a1b88a48541620ddf8a99e2b64be40c9eea0e03498943b63a06acee1b868`.
+Receipts: `operations-batch/native/{physical,final-readonly,cleanup}.json`.
 
 The revised [autonomy/usability batch](autonomy-batch.md) is **complete: all twelve
 approved bounded items are implemented and qualified**. **770 selected automated

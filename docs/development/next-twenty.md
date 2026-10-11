@@ -35,11 +35,20 @@ Work has started. Task 1 needs a real user-manager/reboot-capable host; the
 [host qualification runbook](unattended-host-qualification.md) records the
 separate acceptance sequence. No host logout or reboot was performed.
 
-Tasks 2, 3 and 5 are implemented and pass 59 targeted TUI/editor checks plus
-production CLI Clippy with warnings denied. They reuse existing owner handlers,
-native workflow previews, protected mutations and goal/task records; no new
-dependency was added. Full-package physical qualification is next, so these
-items are not yet claimed complete. Remaining approved tasks are pending.
+Tasks **2, 3 and 5 are complete and qualified on `f863b37028`**: 59 targeted
+TUI/editor checks, production CLI Clippy/build/package and physical real CLI/
+official-Neovim terminal interaction pass. Palette search/cancel and Console
+discovery, goal editing/stale/cycle refusal, finite interval and exact-source
+accepted-trigger forms, 36 layout switches at three sizes and native exit 0 pass.
+Five installed asset hashes and SQLite quick/FK checks pass; zero model requests
+or attempts ran. Both series and the future source grant were cancelled; the
+owned daemon is stopped. Preserve `operations-batch/native/` and never rerun
+its setup or physical mutation driver.
+
+These features reuse existing owner handlers, native previews, protected
+mutations and goal/task records; no dependency was added. Task 4 organization
+presets is next, followed by project lifecycle and execution controls. Remaining
+approved tasks are pending.
 Subsequent slices update this page, status and testing with exact commits,
 commands, actual interactions, failures and limits.
 No push, deployment, external message, new integration, purchase or automatic

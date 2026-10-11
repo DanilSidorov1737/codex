@@ -2,8 +2,10 @@
 
 ## Operations batch: discovery, finite forms and goal evidence
 
-2026-10-11 (America/New_York). Tasks 2, 3 and 5 are implemented; physical
-full-package qualification is pending at this source checkpoint. Logs:
+2026-10-11 (America/New_York). Tasks 2, 3 and 5 are qualified on `f863b37028`.
+Full package `/workspace/.onboarding/qualification/operations-batch/package/`,
+CLI SHA256 `ab34a1b88a48541620ddf8a99e2b64be40c9eea0e03498943b63a06acee1b868`.
+Logs:
 `/workspace/.onboarding/qualification/operations-batch/`.
 
 After `. /workspace/.onboarding/activate.sh`, from `codex-rs`, with
@@ -31,6 +33,24 @@ Hash/size receipts are `derived-artifact-cleanup.json`,
 Every historical source/package/state/grant/bundle/log is preserved. No dependency
 installation, new paid request, historical replay, host logout or reboot occurred.
 The [host runbook](unattended-host-qualification.md) records unrun task 1 gates.
+
+`native/prepare.py` and `physical.py` ran once, using a new private home/project,
+the real packaged CLI/daemon and official Neovim 0.12.6's native terminal grid.
+`native/physical.json` passes actual palette query/cancel, Console `/layout commands`
+to Operations, goal/subgoal view and schedules switching, edited goal revision/
+parent retention, stale revision/cycle API refusal, per-step finite interval form,
+exact pinned-source accepted trigger form, 36 rapid switches at 120×36, 50×20 and
+160×48, and normal CLI exit 0. Both created series retain zero issued runs/usage;
+they and the future-bound source grant were cancelled without ever executing.
+Owner originals are unchanged. `native/cleanup.json` records the stopped owned
+daemon and zero paid requests. No synthetic provider was needed or started.
+
+`native/final-readonly.json` independently verifies all five installed package
+asset hashes, SQLite `quick_check=ok`, no FK violations, zero attempts/admitted
+requests and cancelled series. Native PNG/text captures are preserved separately
+from private JSON/state. A package-help inspection initially omitted the required
+`CODEX_REPO_ROOT`; the actual builder used its documented variable and passed.
+Never rerun these fixture mutations or reset limits to repeat the walkthrough.
 
 ## Autonomy batch final qualification
 
