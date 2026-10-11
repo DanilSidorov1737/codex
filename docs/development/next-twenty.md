@@ -125,3 +125,42 @@ node tree completes collapse/search/full traversal in 124–279 ms in these test
 runs. The node/goal loader now permits 10,000 records, retaining 2,000 for other
 record types and default-two/max-four active execution. Task 19 still needs native
 stored-registry measurements; task 20 needs complete fresh native qualification.
+
+## Packaged native qualification checkpoint
+
+Production CLI Clippy with warnings denied, locked/offline build and complete
+format check pass on source `a8fb65ebf4`. The immutable five-asset package is
+`operations-batch/editor-package/`, version
+`0.0.0-operations-editor.a8fb65ebf4`; CLI SHA-256 is
+`f197e2dd12469cd5bf158504ab7c9b7c1499622759262ceab8f2cec65e96a262`.
+Selected automated checks total **789**: state 310, protocol 374, TUI/official
+Neovim 69, real backend workspace 7, schema comparisons 4 and Python SDK 25.
+
+Task **13** passes fresh native CLI/TUI qualification in
+`operations-batch/reviewed-autonomy-v2/discussion.json`: physically drafted
+finite two-participant/one-round template, exact per-step scopes/shared pool,
+real approved subprocesses, immutable checks, exact acceptance and conclusion
+dependency gating. Each participant sees only its own permitted fact; the
+concluder sees accepted contributions and retains dissent/proposed follow-ups.
+Three accepted isolated results, six localhost responses/90 synthetic tokens,
+no automatic Apply and normal CLI exit 0.
+
+Task **19** passes native stored-registry qualification in
+`operations-batch/registry-native/physical.json`: 10,000 unique native dormant
+nodes created through 128-definition presets and fresh owner mutations, loaded
+in 50 pages. Physical stable-tail search, collapse/navigation, refresh and three
+terminal sizes pass; exit 0, no tasks/notes/model requests. Observed startup
+2.735 seconds, search including terminal settling 0.852 seconds, refresh/search
+2.204 seconds; frontend RSS 284,404–300,480 KiB. These are observations, not an
+SLA or permission to increase the default-two/max-four active envelope.
+
+All failed drivers remain. The first provider child stopped before serving an
+admitted request; the original reviewed-autonomy home has one charged unknown
+request, a failed attempt and cancelled queued grants. Its configured global
+pool correctly fences further work. It is paused/stopped: **never restart, reset
+or replay it**. The corrected fixture has separate fresh authority and a tracked
+localhost provider session. Optional template metadata, multiline draft clearing,
+startup/layout selection and provider-only registry setup errors were corrected
+in external qualification drivers. No production safeguard was weakened.
+Tasks 10–12, 14–18 and 20 remain in native qualification; task 1 still needs a
+real systemd user-manager/reboot-capable host.
