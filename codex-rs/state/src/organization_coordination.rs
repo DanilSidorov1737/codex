@@ -374,7 +374,10 @@ impl OrganizationStore {
             sqlx::query_scalar("SELECT count(*) FROM organization_attempts WHERE occupied=1")
                 .fetch_one(&mut *tx)
                 .await?;
-        if !attempt.runtime_active && active >= i64::from(max_active) {
+        if !attempt.runtime_active
+            && (active >= i64::from(max_active)
+                || !super::resource::shared_capacity_available(&mut tx, &grant).await?)
+        {
             return Ok(None);
         }
         let mut results = Vec::new();

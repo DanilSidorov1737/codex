@@ -54,6 +54,9 @@ mod handoff;
 #[path = "organization_report.rs"]
 mod report;
 
+#[path = "organization_resource.rs"]
+mod resource;
+
 #[derive(Clone, Debug)]
 pub struct OrganizationStore {
     pool: SqlitePool,

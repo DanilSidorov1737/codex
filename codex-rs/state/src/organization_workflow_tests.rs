@@ -51,6 +51,7 @@ fn request(template: &OrganizationWorkflowTemplate) -> OrganizationWorkflowPrevi
         id: Uuid::now_v7().to_string(),
         template_id: template.id.clone(),
         expected_revision: template.revision,
+        shared_limits: None,
         scopes: template
             .items
             .iter()
@@ -333,6 +334,487 @@ async fn workflow_graph_validation_and_late_authorization_failure_roll_back() ->
                 .fetch_one(&store.pool)
                 .await?,
             0
+        );
+    }
+    Ok(())
+}
+
+#[tokio::test]
+async fn terminated_unknown_usage_blocks_shared_work_until_a_late_receipt_reconciles_it()
+-> Result<()> {
+    let home = Fixture::new();
+    let store = OrganizationStore::open(&home.0).await?;
+    let template = fixture(&store).await?;
+    store
+        .mutate_workflow(
+            OrganizationWorkflowMutation::SetLimits {
+                project_id: template.project_id.clone(),
+                run_id: None,
+                expected_revision: None,
+                max_tokens: 100,
+                max_model_requests: 3,
+                max_active: 2,
+            },
+            1000,
+        )
+        .await?;
+    let first = execution_task(&store, &template.items[0].owner_id, &template.project_id).await?;
+    let other = execution_task(&store, &template.items[0].owner_id, &template.project_id).await?;
+    for task in [&first, &other] {
+        store
+            .authorize_task(&task.id, task.revision, execution_scope(), 1000)
+            .await?;
+    }
+    let worker = Uuid::now_v7().to_string();
+    let attempt = store
+        .claim_task(&worker, &Uuid::now_v7().to_string(), 1000, 4)
+        .await?
+        .unwrap();
+    store
+        .admit_model_request(&attempt.id, &worker, 1001)
+        .await?;
+    store
+        .stop_task(
+            &attempt.task_id,
+            store.execution_view(&attempt.task_id).await?.task.revision,
+            true,
+        )
+        .await?;
+    store.release_attempt_capacity(&attempt.id, &worker).await?;
+    assert!(
+        store
+            .claim_task(&worker, &Uuid::now_v7().to_string(), 1002, 4)
+            .await?
+            .is_none(),
+        "unreported terminated usage cannot be treated as free capacity"
+    );
+    store.checkpoint_usage(&attempt.id, &worker, 1, 15).await?;
+    assert_eq!(
+        store
+            .claim_task(&worker, &Uuid::now_v7().to_string(), 1002, 4)
+            .await?
+            .unwrap()
+            .task_id,
+        other.id
+    );
+    let (limits, _) = store
+        .list_workflows(OrganizationWorkflowKind::Limits, None, None, 100)
+        .await?;
+    assert!(
+        matches!(&limits[0],OrganizationWorkflowView::Limit { usage,.. } if usage.reported_tokens==15 && usage.model_requests==1)
+    );
+    Ok(())
+}
+
+#[tokio::test]
+async fn concurrent_workflow_requests_reserve_the_last_shared_slot_once() -> Result<()> {
+    let home = Fixture::new();
+    let store = OrganizationStore::open(&home.0).await?;
+    let mut template = fixture(&store).await?;
+    template.items[1].prerequisites.clear();
+    let OrganizationWorkflowView::Template { template } = store
+        .mutate_workflow(
+            OrganizationWorkflowMutation::Put {
+                id: template.id,
+                expected_revision: Some(template.revision),
+                project_id: template.project_id,
+                label: template.label,
+                items: template.items,
+            },
+            1000,
+        )
+        .await?
+    else {
+        panic!("template")
+    };
+    let mut input = request(&template);
+    input.shared_limits = Some(OrganizationSharedCeilings {
+        max_tokens: 100,
+        max_model_requests: 1,
+        max_active: 2,
+    });
+    let preview = store.preview_workflow(input).await?;
+    let OrganizationWorkflowView::Run { run, .. } = store
+        .mutate_workflow(
+            OrganizationWorkflowMutation::Run {
+                preview: Box::new(preview),
+            },
+            1000,
+        )
+        .await?
+    else {
+        panic!("run")
+    };
+    let worker = Uuid::now_v7().to_string();
+    let first = store
+        .claim_task(&worker, &Uuid::now_v7().to_string(), 1000, 4)
+        .await?
+        .unwrap();
+    let second = store
+        .claim_task(&worker, &Uuid::now_v7().to_string(), 1000, 4)
+        .await?
+        .unwrap();
+    assert!(
+        store
+            .mutate_workflow(
+                OrganizationWorkflowMutation::SetLimits {
+                    project_id: template.project_id.clone(),
+                    run_id: Some(run.id),
+                    expected_revision: Some(1),
+                    max_tokens: 100,
+                    max_model_requests: 1,
+                    max_active: 1
+                },
+                1001
+            )
+            .await
+            .is_err()
+    );
+    let (left, right) = tokio::join!(
+        store.admit_model_request(&first.id, &worker, 1001),
+        store.admit_model_request(&second.id, &worker, 1001)
+    );
+    assert_eq!(u32::from(left.is_ok()) + u32::from(right.is_ok()), 1);
+    let (limits, _) = store
+        .list_workflows(OrganizationWorkflowKind::Limits, None, None, 100)
+        .await?;
+    assert!(
+        matches!(&limits[0], OrganizationWorkflowView::Limit { limit, usage } if limit.revision==1 && usage.model_requests==1 && usage.active==2)
+    );
+    Ok(())
+}
+
+#[tokio::test]
+async fn paused_and_exhausted_queues_cannot_hide_unrelated_work_behind_candidate_limit()
+-> Result<()> {
+    let home = Fixture::new();
+    let store = OrganizationStore::open(&home.0).await?;
+    let template = fixture(&store).await?;
+    let owner = template.items[0].owner_id.clone();
+    let items = (0..32)
+        .map(|index| OrganizationPlanItem {
+            key: format!("step-{index}"),
+            owner_id: owner.clone(),
+            instructions: "Bounded work".into(),
+            criteria: vec!["Checked".into()],
+            prerequisites: vec![],
+        })
+        .collect();
+    let OrganizationWorkflowView::Template { template } = store
+        .mutate_workflow(
+            OrganizationWorkflowMutation::Put {
+                id: template.id,
+                expected_revision: Some(1),
+                project_id: template.project_id,
+                label: template.label,
+                items,
+            },
+            1000,
+        )
+        .await?
+    else {
+        panic!("template")
+    };
+    let preview = store.preview_workflow(request(&template)).await?;
+    let OrganizationWorkflowView::Run { run, .. } = store
+        .mutate_workflow(
+            OrganizationWorkflowMutation::Run {
+                preview: Box::new(preview),
+            },
+            1000,
+        )
+        .await?
+    else {
+        panic!("run")
+    };
+    control(&store, &run, OrganizationWorkflowControl::Pause).await?;
+    let task = execution_task(&store, &owner, &template.project_id).await?;
+    store
+        .authorize_task(&task.id, task.revision, execution_scope(), 1000)
+        .await?;
+    let worker = Uuid::now_v7().to_string();
+    let attempt = store
+        .claim_task(&worker, &Uuid::now_v7().to_string(), 1001, 4)
+        .await?
+        .unwrap();
+    assert_eq!(attempt.task_id, task.id);
+    store
+        .admit_model_request(&attempt.id, &worker, 1001)
+        .await?;
+    store.checkpoint_usage(&attempt.id, &worker, 1, 10).await?;
+    store
+        .stop_task(
+            &task.id,
+            store.execution_view(&task.id).await?.task.revision,
+            true,
+        )
+        .await?;
+    store.release_attempt_capacity(&attempt.id, &worker).await?;
+    for _ in 0..32 {
+        let task = execution_task(&store, &owner, &template.project_id).await?;
+        store
+            .authorize_task(&task.id, task.revision, execution_scope(), 1001)
+            .await?;
+    }
+    store
+        .mutate_workflow(
+            OrganizationWorkflowMutation::SetLimits {
+                project_id: template.project_id,
+                run_id: None,
+                expected_revision: None,
+                max_tokens: 100,
+                max_model_requests: 1,
+                max_active: 4,
+            },
+            1001,
+        )
+        .await?;
+    let other_project = execution_project(&store, &owner).await?;
+    let other = execution_task(&store, &owner, &other_project).await?;
+    store
+        .authorize_task(&other.id, other.revision, execution_scope(), 1001)
+        .await?;
+    assert_eq!(
+        store
+            .claim_task(&worker, &Uuid::now_v7().to_string(), 1002, 4)
+            .await?
+            .unwrap()
+            .task_id,
+        other.id
+    );
+    Ok(())
+}
+
+#[tokio::test]
+async fn atomic_workflow_shared_limits_bound_concurrency_and_inference_without_reset() -> Result<()>
+{
+    let home = Fixture::new();
+    let store = OrganizationStore::open(&home.0).await?;
+    let mut template = fixture(&store).await?;
+    template.items[1].prerequisites.clear();
+    let OrganizationWorkflowView::Template { template } = store
+        .mutate_workflow(
+            OrganizationWorkflowMutation::Put {
+                id: template.id,
+                expected_revision: Some(template.revision),
+                project_id: template.project_id,
+                label: template.label,
+                items: template.items,
+            },
+            1000,
+        )
+        .await?
+    else {
+        panic!("template")
+    };
+    let mut input = request(&template);
+    input.shared_limits = Some(OrganizationSharedCeilings {
+        max_tokens: 100,
+        max_model_requests: 1,
+        max_active: 1,
+    });
+    let preview = store.preview_workflow(input).await?;
+    let OrganizationWorkflowView::Run { run, tasks } = store
+        .mutate_workflow(
+            OrganizationWorkflowMutation::Run {
+                preview: Box::new(preview),
+            },
+            1000,
+        )
+        .await?
+    else {
+        panic!("run")
+    };
+    let worker = Uuid::now_v7().to_string();
+    let first = store
+        .claim_task(&worker, &Uuid::now_v7().to_string(), 1000, 4)
+        .await?
+        .unwrap();
+    assert!(
+        store
+            .claim_task(&worker, &Uuid::now_v7().to_string(), 1000, 4)
+            .await?
+            .is_none(),
+        "the run cap applies before either step starts"
+    );
+    store.admit_model_request(&first.id, &worker, 1001).await?;
+    store.checkpoint_usage(&first.id, &worker, 1, 10).await?;
+    store
+        .stop_task(
+            &first.task_id,
+            store.execution_view(&first.task_id).await?.task.revision,
+            true,
+        )
+        .await?;
+    store.release_attempt_capacity(&first.id, &worker).await?;
+    assert!(
+        store
+            .claim_task(&worker, &Uuid::now_v7().to_string(), 1002, 4)
+            .await?
+            .is_none(),
+        "another root cannot bypass the shared request cap"
+    );
+    let OrganizationWorkflowView::Limit { limit, usage } = store
+        .mutate_workflow(
+            OrganizationWorkflowMutation::SetLimits {
+                project_id: template.project_id.clone(),
+                run_id: Some(run.id.clone()),
+                expected_revision: Some(1),
+                max_tokens: 100,
+                max_model_requests: 2,
+                max_active: 1,
+            },
+            1002,
+        )
+        .await?
+    else {
+        panic!("limits")
+    };
+    assert_eq!((usage.model_requests, usage.reported_tokens), (1, 10));
+    assert!(
+        store
+            .mutate_workflow(
+                OrganizationWorkflowMutation::SetLimits {
+                    project_id: template.project_id.clone(),
+                    run_id: Some(run.id),
+                    expected_revision: Some(1),
+                    max_tokens: 100,
+                    max_model_requests: 3,
+                    max_active: 1,
+                },
+                1002
+            )
+            .await
+            .is_err(),
+        "a stale edit cannot expand the cap"
+    );
+    let second = store
+        .claim_task(&worker, &Uuid::now_v7().to_string(), 1002, 4)
+        .await?
+        .unwrap();
+    assert!(tasks.iter().any(|task| task.id == second.task_id));
+    store.admit_model_request(&second.id, &worker, 1002).await?;
+    store.checkpoint_usage(&second.id, &worker, 1, 15).await?;
+    assert!(
+        store
+            .admit_model_request(&second.id, &worker, 1002)
+            .await
+            .is_err()
+    );
+    store.close().await;
+    let store = OrganizationStore::open(&home.0).await?;
+    let (views, _) = store
+        .list_workflows(OrganizationWorkflowKind::Limits, None, None, 100)
+        .await?;
+    assert!(
+        matches!(&views[0],OrganizationWorkflowView::Limit { limit:stored,usage } if stored==&limit && usage.reported_tokens==25 && usage.model_requests==2)
+    );
+    Ok(())
+}
+
+#[tokio::test]
+async fn project_shared_limits_retain_old_grants_and_allow_only_reported_inflight_overrun()
+-> Result<()> {
+    let home = Fixture::new();
+    let store = OrganizationStore::open(&home.0).await?;
+    let template = fixture(&store).await?;
+    store
+        .mutate_workflow(
+            OrganizationWorkflowMutation::SetLimits {
+                project_id: template.project_id.clone(),
+                run_id: None,
+                expected_revision: None,
+                max_tokens: 5,
+                max_model_requests: 2,
+                max_active: 1,
+            },
+            1000,
+        )
+        .await?;
+    let first = execution_task(&store, &template.items[0].owner_id, &template.project_id).await?;
+    let other = execution_task(&store, &template.items[0].owner_id, &template.project_id).await?;
+    for task in [&first, &other] {
+        store
+            .authorize_task(&task.id, task.revision, execution_scope(), 1000)
+            .await?;
+    }
+    let worker = Uuid::now_v7().to_string();
+    let attempt = store
+        .claim_task(&worker, &Uuid::now_v7().to_string(), 1000, 4)
+        .await?
+        .unwrap();
+    assert!(
+        store
+            .claim_task(&worker, &Uuid::now_v7().to_string(), 1000, 4)
+            .await?
+            .is_none()
+    );
+    store
+        .admit_model_request(&attempt.id, &worker, 1001)
+        .await?;
+    store.checkpoint_usage(&attempt.id, &worker, 1, 9).await?;
+    assert!(
+        store
+            .prepare_action(&attempt.id, &worker, "over-cap", "exec_command", "{}", 1001)
+            .await
+            .is_err()
+    );
+    store
+        .stop_task(
+            &attempt.task_id,
+            store.execution_view(&attempt.task_id).await?.task.revision,
+            false,
+        )
+        .await?;
+    store.release_attempt_capacity(&attempt.id, &worker).await?;
+    store
+        .authorize_task(
+            &attempt.task_id,
+            store.execution_view(&attempt.task_id).await?.task.revision,
+            execution_scope(),
+            1002,
+        )
+        .await?;
+    assert!(
+        store
+            .claim_task(&worker, &Uuid::now_v7().to_string(), 1002, 4)
+            .await?
+            .is_none(),
+        "new root grants do not reset project consumption"
+    );
+    let OrganizationWorkflowView::Limit { usage, .. } = store
+        .list_workflows(
+            OrganizationWorkflowKind::Limits,
+            Some(&template.project_id),
+            None,
+            100,
+        )
+        .await?
+        .0
+        .remove(0)
+    else {
+        panic!("limit")
+    };
+    assert_eq!(
+        (usage.reported_tokens, usage.model_requests, usage.active),
+        (9, 1, 0)
+    );
+    for (tokens, requests, active) in [(0, 1, 1), (1, 0, 1), (1, 1, 0), (1, 1, 5)] {
+        assert!(
+            store
+                .mutate_workflow(
+                    OrganizationWorkflowMutation::SetLimits {
+                        project_id: template.project_id.clone(),
+                        run_id: None,
+                        expected_revision: Some(1),
+                        max_tokens: tokens,
+                        max_model_requests: requests,
+                        max_active: active
+                    },
+                    1002
+                )
+                .await
+                .is_err()
         );
     }
     Ok(())
@@ -640,6 +1122,12 @@ async fn workflow_migration_from_seven_preserves_existing_tasks_and_crash_blocks
     let store = OrganizationStore::open(&home.0).await?;
     let template = fixture(&store).await?;
     let old = execution_task(&store, &template.items[0].owner_id, &template.project_id).await?;
+    sqlx::query("DROP VIEW organization_shared_usage")
+        .execute(&store.pool)
+        .await?;
+    sqlx::query("DROP TABLE organization_shared_limits")
+        .execute(&store.pool)
+        .await?;
     sqlx::query("DROP TABLE organization_handoffs")
         .execute(&store.pool)
         .await?;
@@ -727,6 +1215,11 @@ async fn reports_link_delegated_attempts_to_the_original_workflow_run() -> Resul
     input.scopes[0].scope.max_children = 1;
     input.scopes[0].scope.max_model_requests = 8;
     input.scopes[0].scope.require_tool_approval = false;
+    input.shared_limits = Some(OrganizationSharedCeilings {
+        max_tokens: 100,
+        max_model_requests: 1,
+        max_active: 2,
+    });
     input.scopes[1].scope.artifacts = vec!["verified.txt".into()];
     let preview = store.preview_workflow(input).await?;
     let OrganizationWorkflowView::Run { run, .. } = store
@@ -781,6 +1274,20 @@ async fn reports_link_delegated_attempts_to_the_original_workflow_run() -> Resul
         .unwrap();
     store.admit_model_request(&child.id, &worker, 1002).await?;
     store.checkpoint_usage(&child.id, &worker, 1, 15).await?;
+    assert!(
+        store
+            .admit_model_request(&root.id, &worker, 1002)
+            .await
+            .is_err(),
+        "delegated requests consume the same run pool"
+    );
+    let (limits, _) = store
+        .list_workflows(OrganizationWorkflowKind::Limits, None, None, 100)
+        .await?;
+    assert!(
+        matches!(&limits[0], OrganizationWorkflowView::Limit { usage, .. } if usage.model_requests==1 && usage.reported_tokens==15),
+        "root plus descendant ledgers count once"
+    );
     let report = store
         .operational_report(Some(&template.project_id), None, 200, 1002)
         .await?;

@@ -271,6 +271,7 @@ async fn load(handle: &AppServerRequestHandle) -> anyhow::Result<Snapshot> {
     for kind in [
         OrganizationWorkflowKind::Templates,
         OrganizationWorkflowKind::Runs,
+        OrganizationWorkflowKind::Limits,
     ] {
         let mut cursor = None;
         for page in 0..10 {
@@ -887,6 +888,17 @@ impl Dashboard {
             {
                 rows.extend(self.snapshot.workflows.iter().filter_map(|view| {
                     let (id, label) = match view {
+                        OrganizationWorkflowView::Limit { limit, usage } => (
+                            format!("limit:{}", limit.id),
+                            format!(
+                                "Limits: {} · {} / {} requests · {} / {} active",
+                                limit.id,
+                                usage.model_requests,
+                                limit.max_model_requests,
+                                usage.active,
+                                limit.max_active
+                            ),
+                        ),
                         OrganizationWorkflowView::Template { template } => (
                             format!("workflow:{}", template.id),
                             format!(
@@ -1228,6 +1240,43 @@ impl Dashboard {
     }
     fn open_form(&mut self, key: char) {
         let kind = match key {
+            'b' => {
+                let target = match self.selected_workflow() {
+                    Some(OrganizationWorkflowView::Run { run, .. }) => Some((
+                        run.preview.template.project_id.clone(),
+                        Some(run.id.clone()),
+                    )),
+                    Some(OrganizationWorkflowView::Limit { limit, .. }) => {
+                        Some((limit.project_id.clone(), limit.run_id.clone()))
+                    }
+                    _ => match self.record() {
+                        Some(OrganizationRecord::Project(project)) => {
+                            Some((project.id.clone(), None))
+                        }
+                        Some(OrganizationRecord::Task(task)) => {
+                            Some((task.project_id.clone(), None))
+                        }
+                        _ => None,
+                    },
+                };
+                let Some((project_id, run_id)) = target else {
+                    self.message = "Select a project, task, workflow run or shared limit to edit its ceilings.".into();
+                    return;
+                };
+                let previous = self.snapshot.workflows.iter().find_map(|view| match view {
+                    OrganizationWorkflowView::Limit { limit, .. }
+                        if limit.project_id == project_id && limit.run_id == run_id =>
+                    {
+                        Some(limit.clone())
+                    }
+                    _ => None,
+                });
+                form::Kind::SharedLimits {
+                    project_id,
+                    run_id,
+                    previous,
+                }
+            }
             'B' => form::Kind::Group,
             'E' if self.selected_template().is_some() => {
                 let Some(template) = self.selected_template().cloned() else {
@@ -1968,6 +2017,7 @@ impl Dashboard {
                     self.scroll = 0;
                 }
             }
+            KeyCode::Char('b') => self.open_form('b'),
             KeyCode::Char(c @ ('a' | 'r' | 'v' | 'c' | 'p' | 'x' | 'u')) => self.decision(c),
             _ => {}
         }
@@ -2052,7 +2102,7 @@ impl Dashboard {
                 }
                 Update::WorkflowPreview(preview) => {
                     // Ignore a late response after the owner closes/changes the draft.
-                    if self.form.as_ref().is_some_and(|form| matches!(form.command(), Ok(Command::WorkflowPreview(request)) if request.id == preview.id && request.template_id == preview.template.id && request.scopes == preview.scopes)) {
+                    if self.form.as_ref().is_some_and(|form| matches!(form.command(), Ok(Command::WorkflowPreview(request)) if request.id == preview.id && request.template_id == preview.template.id && request.scopes == preview.scopes && request.shared_limits == preview.shared_limits)) {
                         self.confirmation = Some(Command::Workflow(OrganizationWorkflowMutation::Run { preview }));
                         self.scroll = 0;
                         self.pane().inspector = true;

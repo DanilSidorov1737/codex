@@ -5,6 +5,7 @@ pub(super) fn workflow_id(view: &OrganizationWorkflowView) -> String {
     match view {
         OrganizationWorkflowView::Template { template } => format!("workflow:{}", template.id),
         OrganizationWorkflowView::Run { run, .. } => format!("run:{}", run.id),
+        OrganizationWorkflowView::Limit { limit, .. } => format!("limit:{}", limit.id),
     }
 }
 
@@ -72,6 +73,21 @@ impl Dashboard {
             return String::new();
         };
         let (template, run) = match view {
+            OrganizationWorkflowView::Limit { limit, usage } => {
+                return format!(
+                    "Shared resource limits: {}\nProject: {}\nWorkflow run: {}\nRevision: {}\n\nReported tokens: {} / {}\nAdmitted model requests: {} / {}\nActive executions: {} / {}\n\nb edits these exact limits. Consumed usage includes historical root grants and is never reset by pause, handoff or reauthorization. A token ceiling stops new admission after reported usage; in-flight requests may exceed it. Cost estimates are not monetary caps.\n",
+                    limit.id,
+                    limit.project_id,
+                    limit.run_id.as_deref().unwrap_or("Entire project"),
+                    limit.revision,
+                    usage.reported_tokens,
+                    limit.max_tokens,
+                    usage.model_requests,
+                    limit.max_model_requests,
+                    usage.active,
+                    limit.max_active
+                );
+            }
             OrganizationWorkflowView::Template { template } => (template, None),
             OrganizationWorkflowView::Run { run, tasks } => {
                 (&run.preview.template, Some((run, tasks)))
@@ -91,6 +107,9 @@ impl Dashboard {
                 run.preview.max_tokens,
                 run.preview.max_model_requests
             ));
+            if let Some(limits) = &run.preview.shared_limits {
+                text.push_str(&format!("Initial shared caps: {} tokens / {} requests / {} active\nCurrent limits have their own canonical row; b edits this run's current caps.\n\n", limits.max_tokens, limits.max_model_requests, limits.max_active));
+            }
         } else {
             text.push_str("Saved content grants no authority. E edits steps / assignments / prerequisites / criteria. s previews distinct per-step grants.\n\n");
         }

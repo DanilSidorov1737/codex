@@ -94,6 +94,7 @@ impl OrganizationStore {
                         template_id: preview.template.id.clone(),
                         expected_revision: preview.template.revision,
                         scopes: preview.scopes.clone(),
+                        shared_limits: preview.shared_limits.clone(),
                     },
                 )
                 .await?;
@@ -123,6 +124,18 @@ impl OrganizationStore {
                 // FK parent precedes tasks; all rows are invisible until this transaction commits.
                 sqlx::query("INSERT INTO organization_workflow_runs(id,template_id,project_id,data) VALUES (?,?,?,?)")
                     .bind(&run.id).bind(&run.preview.template.id).bind(&project.id).bind(serde_json::to_string(&run)?).execute(&mut *tx).await?;
+                if let Some(limits) = &run.preview.shared_limits {
+                    Self::shared_limits_in(
+                        &mut tx,
+                        project.id.clone(),
+                        Some(run.id.clone()),
+                        None,
+                        limits.max_tokens,
+                        limits.max_model_requests,
+                        limits.max_active,
+                    )
+                    .await?;
+                }
                 let mut tasks = Vec::new();
                 for (item, step) in run.preview.template.items.iter().zip(&run.preview.scopes) {
                     let task = OrganizationTask {
@@ -249,6 +262,25 @@ impl OrganizationStore {
                 }
                 OrganizationWorkflowView::Run { run, tasks }
             }
+            OrganizationWorkflowMutation::SetLimits {
+                project_id,
+                run_id,
+                expected_revision,
+                max_tokens,
+                max_model_requests,
+                max_active,
+            } => {
+                Self::shared_limits_in(
+                    &mut tx,
+                    project_id,
+                    run_id,
+                    expected_revision,
+                    max_tokens,
+                    max_model_requests,
+                    max_active,
+                )
+                .await?
+            }
         };
         tx.commit().await?;
         Ok(view)
@@ -286,7 +318,9 @@ impl OrganizationStore {
                 sqlx::query_scalar("SELECT count(*) FROM organization_attempts WHERE occupied=1")
                     .fetch_one(&mut *tx)
                     .await?;
-            if active >= i64::from(max_active) {
+            if active >= i64::from(max_active)
+                || !super::resource::shared_capacity_available(&mut tx, &grant).await?
+            {
                 return Ok(false);
             }
             attempt.runtime_active = true;
@@ -317,6 +351,9 @@ impl OrganizationStore {
             OrganizationWorkflowKind::Runs => {
                 "SELECT id,data FROM organization_workflow_runs WHERE (? IS NULL OR project_id=?) AND (? IS NULL OR id>?) ORDER BY id LIMIT ?"
             }
+            OrganizationWorkflowKind::Limits => {
+                "SELECT id,data FROM organization_shared_limits WHERE (? IS NULL OR project_id=?) AND (? IS NULL OR id>?) ORDER BY id LIMIT ?"
+            }
         };
         let mut tx = self.pool.begin().await?;
         let rows: Vec<(String, String)> = sqlx::query_as(query)
@@ -341,6 +378,11 @@ impl OrganizationStore {
                         tasks.push(read_task(&mut tx, &run.task_ids[&item.key]).await?);
                     }
                     OrganizationWorkflowView::Run { run, tasks }
+                }
+                OrganizationWorkflowKind::Limits => {
+                    let limit: OrganizationSharedLimit = serde_json::from_str(&data)?;
+                    let usage = super::resource::shared_usage(&mut tx, &limit).await?;
+                    OrganizationWorkflowView::Limit { limit, usage }
                 }
             });
         }
@@ -453,6 +495,13 @@ async fn preview_in(
         "each workflow step needs exactly one scope"
     );
     let project = read_project(tx, &template.project_id).await?;
+    if let Some(limits) = &request.shared_limits {
+        super::resource::validate_shared_ceilings(
+            limits.max_tokens,
+            limits.max_model_requests,
+            limits.max_active,
+        )?;
+    }
     let mut preview = OrganizationWorkflowPreview {
         id: request.id,
         template,
@@ -462,6 +511,7 @@ async fn preview_in(
         scopes: Vec::new(),
         max_tokens: 0,
         max_model_requests: 0,
+        shared_limits: request.shared_limits,
     };
     for item in &preview.template.items {
         let step = scopes

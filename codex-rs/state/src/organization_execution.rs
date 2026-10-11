@@ -57,7 +57,21 @@ impl OrganizationStore {
         // ancestors therefore cannot fill the runtime tracker and starve a child.
         let roots: i64 = sqlx::query_scalar("SELECT count(*) FROM organization_attempts p JOIN organization_authorizations a ON a.id=p.authorization_id WHERE a.parent_attempt_id IS NULL AND (p.occupied=1 OR p.state IN ('running','waitingApproval','waitingDependency'))")
             .fetch_one(&mut *tx).await?;
-        let candidates: Vec<(String, String)> = sqlx::query_as("SELECT t.id,a.data FROM organization_tasks t JOIN organization_authorizations a ON a.id=t.authorization_id WHERE t.state='queued' AND a.revoked=0 AND a.expires_at>? AND COALESCE(json_extract(a.data,'$.scope.notBefore'),0)<=? AND (a.parent_attempt_id IS NOT NULL OR ?<4) AND NOT EXISTS(SELECT 1 FROM organization_task_dependencies d JOIN organization_tasks p ON p.id=d.prerequisite_id WHERE d.task_id=t.id AND p.state<>'accepted') ORDER BY a.parent_attempt_id IS NULL,t.id LIMIT 32")
+        let candidates: Vec<(String, String)> = sqlx::query_as(r#"SELECT t.id,a.data
+            FROM organization_tasks t JOIN organization_authorizations a ON a.id=t.authorization_id
+            WHERE t.state='queued' AND a.revoked=0 AND a.expires_at>?
+            AND COALESCE(json_extract(a.data,'$.scope.notBefore'),0)<=?
+            AND (a.parent_attempt_id IS NOT NULL OR ?<4)
+            AND NOT EXISTS(SELECT 1 FROM organization_workflow_tasks w
+                JOIN organization_workflow_runs r ON r.id=w.run_id WHERE w.authorization_id=a.root_id
+                AND COALESCE(json_extract(r.data,'$.state'),'active')<>'active')
+            AND NOT EXISTS(SELECT 1 FROM organization_shared_usage u WHERE u.project_id=t.project_id
+                AND (u.run_id IS NULL OR EXISTS(SELECT 1 FROM organization_workflow_tasks w
+                    WHERE w.run_id=u.run_id AND w.authorization_id=a.root_id))
+                AND (u.reported_tokens>=u.max_tokens OR u.model_requests>=u.max_model_requests OR u.active>=u.max_active OR u.unresolved_requests>0))
+            AND NOT EXISTS(SELECT 1 FROM organization_task_dependencies d
+                JOIN organization_tasks p ON p.id=d.prerequisite_id WHERE d.task_id=t.id AND p.state<>'accepted')
+            ORDER BY a.parent_attempt_id IS NULL,t.id LIMIT 32"#)
             .bind(now).bind(now).bind(roots).fetch_all(&mut *tx).await?;
         for (task_id, authorization_data) in candidates {
             let authorization: OrganizationTaskAuthorization =
@@ -83,6 +97,13 @@ impl OrganizationStore {
             if super::workflow::check_workflow_dispatch(&mut tx, &authorization)
                 .await
                 .is_err()
+            {
+                continue;
+            }
+            if super::resource::check_shared_ceilings(&mut tx, &authorization, true)
+                .await
+                .is_err()
+                || !super::resource::shared_capacity_available(&mut tx, &authorization).await?
             {
                 continue;
             }
@@ -149,6 +170,7 @@ impl OrganizationStore {
         let mut tx = self.pool.begin_with("BEGIN IMMEDIATE").await?;
         let (mut attempt, authorization) = check_fence(&mut tx, attempt_id, worker_id, now).await?;
         super::workflow::check_workflow_dispatch(&mut tx, &authorization).await?;
+        super::resource::check_shared_ceilings(&mut tx, &authorization, true).await?;
         ensure!(
             attempt.runtime_active,
             "inference requires reserved active capacity"

@@ -417,6 +417,7 @@ async fn handoff_preserves_recurring_accounting_and_workflow_dependency_grants()
             };
             let preview = store
                 .preview_workflow(OrganizationWorkflowPreviewRequest {
+                    shared_limits: None,
                     id: Uuid::now_v7().to_string(),
                     template_id: template.id,
                     expected_revision: 1,
@@ -709,13 +710,19 @@ async fn continuity_migration_from_eight_preserves_existing_authorizations() -> 
         .await?;
     store.checkpoint_usage(&attempt.id, &worker, 1, 10).await?;
     let before = store.execution_view(&attempt.task_id).await?;
+    sqlx::query("DROP VIEW organization_shared_usage")
+        .execute(&store.pool)
+        .await?;
+    sqlx::query("DROP TABLE organization_shared_limits")
+        .execute(&store.pool)
+        .await?;
     sqlx::query("DROP TABLE organization_handoffs")
         .execute(&store.pool)
         .await?;
     sqlx::query("DROP TABLE organization_checkpoints")
         .execute(&store.pool)
         .await?;
-    sqlx::query("DELETE FROM _sqlx_migrations WHERE version=9")
+    sqlx::query("DELETE FROM _sqlx_migrations WHERE version>=9")
         .execute(&store.pool)
         .await?;
     store.close().await;

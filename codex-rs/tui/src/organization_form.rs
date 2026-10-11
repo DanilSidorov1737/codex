@@ -32,6 +32,11 @@ pub(super) enum Kind {
     WorkflowRun {
         template: OrganizationWorkflowTemplate,
     },
+    SharedLimits {
+        project_id: String,
+        run_id: Option<String>,
+        previous: Option<OrganizationSharedLimit>,
+    },
     Apply {
         task: OrganizationTask,
         result: OrganizationTaskResult,
@@ -58,6 +63,48 @@ mod tests {
             state: "proposed".into(),
             revision: 7,
         }
+    }
+
+    #[test]
+    fn shared_limit_form_pins_target_and_revision_without_resetting_usage() {
+        let previous = OrganizationSharedLimit {
+            id: "run:r".into(),
+            project_id: "p".into(),
+            run_id: Some("r".into()),
+            revision: 8,
+            max_tokens: 100,
+            max_model_requests: 2,
+            max_active: 1,
+        };
+        let mut form = Form::new(
+            Kind::SharedLimits {
+                project_id: "p".into(),
+                run_id: Some("r".into()),
+                previous: Some(previous),
+            },
+            &[],
+            None,
+            "model",
+        );
+        set(&mut form, 0, "200");
+        let Command::Workflow(OrganizationWorkflowMutation::SetLimits {
+            project_id,
+            run_id,
+            expected_revision,
+            max_tokens,
+            max_model_requests,
+            max_active,
+        }) = form.command().unwrap()
+        else {
+            panic!("limits")
+        };
+        assert_eq!(
+            (project_id, run_id, expected_revision),
+            ("p".into(), Some("r".into()), Some(8))
+        );
+        assert_eq!((max_tokens, max_model_requests, max_active), (200, 2, 1));
+        set(&mut form, 1, "");
+        assert!(form.command().is_err());
     }
 
     #[test]
@@ -282,6 +329,26 @@ mod tests {
         assert_eq!(request.scopes[0].scope.input_files, vec!["first.txt"]);
         assert_eq!(request.scopes[1].scope.input_files, vec!["second.txt"]);
         assert_eq!(request.scopes[0].scope.max_tokens, 100);
+        assert_eq!(request.scopes[1].scope.max_tokens, 200);
+        assert!(request.shared_limits.is_none());
+        set(&mut form, 28, "250");
+        assert!(
+            form.command().is_err(),
+            "a partial shared ceiling cannot be confirmed"
+        );
+        set(&mut form, 29, "3");
+        set(&mut form, 30, "1");
+        let Command::WorkflowPreview(request) = form.command().unwrap() else {
+            panic!("preview")
+        };
+        assert_eq!(
+            request.shared_limits,
+            Some(OrganizationSharedCeilings {
+                max_tokens: 250,
+                max_model_requests: 3,
+                max_active: 1
+            })
+        );
         assert_eq!(request.scopes[1].scope.max_tokens, 200);
         set(&mut form, 16, "../escape");
         assert!(form.command().is_err(), "each step validates its own paths");
@@ -947,12 +1014,21 @@ impl Form {
                 Field::text("Acceptance criteria", "One criterion per line", ""),
                 Field::text("Prerequisites", "Optional task IDs, one per line", ""),
             ],
+            Kind::SharedLimits { previous, .. } => vec![
+                Field::text("Shared token ceiling", "Lifetime reported tokens across this project/run; 1–10000000", &previous.as_ref().map(|limit|limit.max_tokens).unwrap_or(10000).to_string()),
+                Field::text("Shared model requests", "Lifetime admitted requests; 1–100000, never reset by controls", &previous.as_ref().map(|limit|limit.max_model_requests).unwrap_or(20).to_string()),
+                Field::text("Concurrent executions", "1–4; also constrained by the daemon and each grant", &previous.as_ref().map(|limit|limit.max_active).unwrap_or(2).to_string()),
+            ],
             Kind::WorkflowRun { template } => template.items.iter().flat_map(|item| {
                 let model=records.iter().find_map(|record|match record {OrganizationRecord::Node(node) if node.id==item.owner_id=>node.model.as_deref(),_=>None}).unwrap_or(model);
                 let mut fields=Self::scope_fields(model);
                 for field in &mut fields {field.label=format!("{} · {}",item.key,field.label);}
                 fields
-            }).collect(),
+            }).chain([
+                Field::text("Shared workflow token ceiling", "Optional; leave all three shared fields blank to retain only fixed step grants", ""),
+                Field::text("Shared workflow request ceiling", "Optional aggregate limit for this invocation", ""),
+                Field::text("Shared workflow concurrency", "Optional aggregate active limit, 1–4", ""),
+            ]).collect(),
             Kind::Authorize(task) | Kind::Schedule(task) => {
                 let model = records
                     .iter()
@@ -1038,6 +1114,7 @@ impl Form {
             Kind::Schedule(_) => "Create recurring schedule",
             Kind::WorkflowSave { .. } => "Save workflow template",
             Kind::WorkflowRun { .. } => "Preview workflow · scope for each step",
+            Kind::SharedLimits { .. } => "Set shared project / workflow ceilings",
             Kind::Apply { .. } => "Select files to Apply",
         }
     }
@@ -1410,8 +1487,32 @@ impl Form {
                     items,
                 })
             }
+            Kind::SharedLimits {
+                project_id,
+                run_id,
+                previous,
+            } => Command::Workflow(OrganizationWorkflowMutation::SetLimits {
+                project_id: project_id.clone(),
+                run_id: run_id.clone(),
+                expected_revision: previous.as_ref().map(|limit| limit.revision),
+                max_tokens: required(0)?.parse()?,
+                max_model_requests: required(1)?.parse()?,
+                max_active: required(2)?.parse()?,
+            }),
             Kind::WorkflowRun { template } => {
                 Command::WorkflowPreview(OrganizationWorkflowPreviewRequest {
+                    shared_limits: {
+                        let start = template.items.len() * 14;
+                        if (start..start + 3).all(|index| value(index).trim().is_empty()) {
+                            None
+                        } else {
+                            Some(OrganizationSharedCeilings {
+                                max_tokens: required(start)?.parse()?,
+                                max_model_requests: required(start + 1)?.parse()?,
+                                max_active: required(start + 2)?.parse()?,
+                            })
+                        }
+                    },
                     id: self.project_key.clone(),
                     template_id: template.id.clone(),
                     expected_revision: template.revision,

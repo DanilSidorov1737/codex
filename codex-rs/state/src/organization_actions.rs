@@ -46,6 +46,7 @@ impl OrganizationStore {
         let (mut attempt, authorization) =
             check_live_fence(&mut tx, attempt_id, worker, now).await?;
         super::workflow::check_workflow_dispatch(&mut tx, &authorization).await?;
+        super::resource::check_shared_ceilings(&mut tx, &authorization, false).await?;
         ensure!(
             attempt.state != OrganizationTaskState::WaitingDependency,
             "native tool cannot start while waiting for children"
@@ -212,6 +213,7 @@ impl OrganizationStore {
         let mut action = read_action(&mut tx, action_id).await?;
         let (mut attempt, authorization) =
             check_live_fence(&mut tx, &action.attempt_id, worker, now).await?;
+        super::resource::check_shared_ceilings(&mut tx, &authorization, false).await?;
         if let Err(error) = super::workflow::check_workflow_dispatch(&mut tx, &authorization).await
         {
             if error.is::<super::WorkflowPaused>() {
@@ -254,7 +256,10 @@ impl OrganizationStore {
                 sqlx::query_scalar("SELECT count(*) FROM organization_attempts WHERE occupied=1")
                     .fetch_one(&mut *tx)
                     .await?;
-            if !attempt.runtime_active && active >= i64::from(max_active) {
+            if !attempt.runtime_active
+                && (active >= i64::from(max_active)
+                    || !super::resource::shared_capacity_available(&mut tx, &authorization).await?)
+            {
                 return Ok(false);
             }
             attempt.state = OrganizationTaskState::Running;

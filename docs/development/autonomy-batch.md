@@ -33,7 +33,13 @@ pause/resume/cancel through existing owner RPC/CLI and confirmed TUI decisions.
 Seven workflow state tests pass; the production CLI check passes. Native API/TUI
 and physical qualification are in progress; this is not release qualification.
 Evidence logs: `autonomy-workflow-controls.log` and `autonomy-workflow-check.log`
-in the existing qualification parent. Item 3 shared limits is next.
+in the existing qualification parent. Item 3 now has migration 10, root-ledger
+projections, transactional admission/concurrency fences, exact owner edits and
+optional caps in immutable workflow previews. **57 organization state tests pass**,
+including concurrent reservation and 32-item paused/exhausted queue fairness;
+12 runtime, 47 TUI/official-Neovim and 8 native API checks pass. Production CLI
+Clippy passes with warnings denied. Extra form assertions, schema regeneration
+and physical qualification continue before release.
 Fresh evidence: `/workspace/.onboarding/qualification/autonomy-batch/`.
 Preserve all historical fixtures/evidence/packages; never replay grants/Apply.
 Missing provider access, local LSP binary or service manager is a prerequisite to
@@ -56,3 +62,35 @@ Stale controls, cancelled runs, expired/changed live scopes and uncertain or
 restart-interrupted work refuse resume. Owner checkpoint resolution is separate.
 Cancel atomically fences unfinished roots/descendants; completed results and
 reconciliation evidence remain. No automatic acceptance, Apply or new grants.
+
+## Shared-limit contract
+
+`workflow-list limits` returns canonical settings and usage. `workflow-mutate`
+accepts `setLimits` with `projectId`, optional `runId`, nullable
+`expectedRevision`, `maxTokens`, `maxModelRequests` and `maxActive`. New records
+require null revision; edits require the displayed revision. The TUI b key opens
+the same exact form for a project/task/run/limit. Shared workflow caps may instead
+be supplied as `sharedLimits` in the immutable preview and installed atomically
+with its tasks/grants. Blank shared preview fields retain existing fixed grants.
+
+Project usage includes all historical root grants, including revoked ones; run
+usage includes its original step roots. Each root already includes descendants.
+Handoffs, pause/resume, ordinary reauthorization and restart cannot reset totals.
+Existing step/root/schedule ceilings and the daemon's active limit still apply.
+Requests reserve counters before inference in the same SQLite transaction.
+Reported token ceilings stop subsequent inference/tool dispatch; admitted requests
+may overrun before reporting. Unknown receipts remain unresolved, never free.
+Terminated unreported requests block further work under the corresponding shared
+limit until a genuine late usage receipt reconciles them. Live bounded in-flight
+requests retain their existing allowance. No model/owner text resets accounting.
+Lowering concurrency below currently occupied capacity is refused: pause/drain
+work first. Changing a cap requires an explicit versioned owner decision.
+Paused/exhausted work is filtered before the 32-candidate bound so unrelated work
+can proceed. The same SQLite projection serves eligibility, enforcement and usage.
+
+The initial legacy migration fixture left migration 10 while deleting migration 9;
+it failed checksum/version validation as intended. Its simulated old schema now
+removes all subsequent schema/records, without changing historical checksums or
+weakening restore validation; corrected tests pass. An early UI build overlapped
+protocol edits and saw stale dependency types; the fresh build passes. Failed logs
+remain alongside corrected ones in the qualification parent.

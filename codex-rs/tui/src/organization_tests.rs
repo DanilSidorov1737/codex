@@ -413,6 +413,7 @@ async fn workflow_views_save_prerequisite_closure_and_freeze_preview_confirmatio
         panic!("expected preview")
     };
     let preview = OrganizationWorkflowPreview {
+        shared_limits: request.shared_limits.clone(),
         id: request.id.clone(),
         template,
         project_revision: 3,
@@ -479,15 +480,32 @@ async fn workflow_controls_capture_run_revision_and_need_explicit_confirmation()
         "taskIds":{}, "preview":{"id":"run-id", "template":{"id":"template", "projectId":"project", "revision":1, "label":"Workflow", "items":[]},
             "projectRevision":1, "nodeRevisions":{}, "policyVersion":2, "scopes":[], "maxTokens":100, "maxModelRequests":2}
     })).unwrap();
-    d.snapshot.workflows.push(OrganizationWorkflowView::Run { run, tasks: vec![] });
+    d.snapshot
+        .workflows
+        .push(OrganizationWorkflowView::Run { run, tasks: vec![] });
     d.workflow_view = true;
     d.selected = Some("run:run-id".into());
     d.decision('u');
-    assert!(rx.try_recv().is_err(), "opening confirmation cannot authorize work");
-    assert!(matches!(d.confirmation.as_ref(), Some(Command::Workflow(OrganizationWorkflowMutation::Control { id, expected_revision:7, action:OrganizationWorkflowControl::Resume })) if id == "run-id"));
+    assert!(
+        rx.try_recv().is_err(),
+        "opening confirmation cannot authorize work"
+    );
+    assert!(
+        matches!(d.confirmation.as_ref(), Some(Command::Workflow(OrganizationWorkflowMutation::Control { id, expected_revision:7, action:OrganizationWorkflowControl::Resume })) if id == "run-id")
+    );
     assert!(d.confirmation_text.contains("Paused"));
-    d.key(KeyEvent::new(KeyCode::Char('y'), crossterm::event::KeyModifiers::NONE));
-    assert!(matches!(rx.try_recv().unwrap(), Command::Workflow(OrganizationWorkflowMutation::Control { expected_revision:7, action:OrganizationWorkflowControl::Resume, .. })));
+    d.key(KeyEvent::new(
+        KeyCode::Char('y'),
+        crossterm::event::KeyModifiers::NONE,
+    ));
+    assert!(matches!(
+        rx.try_recv().unwrap(),
+        Command::Workflow(OrganizationWorkflowMutation::Control {
+            expected_revision: 7,
+            action: OrganizationWorkflowControl::Resume,
+            ..
+        })
+    ));
 }
 
 #[tokio::test]

@@ -13,6 +13,41 @@ use ts_rs::TS;
 pub enum OrganizationWorkflowKind {
     Templates,
     Runs,
+    Limits,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct OrganizationSharedLimit {
+    pub id: String,
+    pub project_id: String,
+    pub run_id: Option<String>,
+    #[ts(type = "number")]
+    pub revision: i64,
+    #[ts(type = "number")]
+    pub max_tokens: i64,
+    pub max_model_requests: u32,
+    pub max_active: u32,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct OrganizationSharedUsage {
+    #[ts(type = "number")]
+    pub reported_tokens: i64,
+    #[ts(type = "number")]
+    pub model_requests: i64,
+    #[ts(type = "number")]
+    pub active: i64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct OrganizationSharedCeilings {
+    #[ts(type = "number")]
+    pub max_tokens: i64,
+    pub max_model_requests: u32,
+    pub max_active: u32,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
@@ -41,6 +76,8 @@ pub struct OrganizationWorkflowPreviewRequest {
     #[ts(type = "number")]
     pub expected_revision: i64,
     pub scopes: Vec<OrganizationWorkflowScope>,
+    #[serde(default)]
+    pub shared_limits: Option<OrganizationSharedCeilings>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
@@ -57,6 +94,8 @@ pub struct OrganizationWorkflowPreview {
     #[ts(type = "number")]
     pub max_tokens: i64,
     pub max_model_requests: u32,
+    #[serde(default)]
+    pub shared_limits: Option<OrganizationSharedCeilings>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
@@ -105,6 +144,10 @@ pub enum OrganizationWorkflowView {
         run: OrganizationWorkflowRun,
         tasks: Vec<OrganizationTask>,
     },
+    Limit {
+        limit: OrganizationSharedLimit,
+        usage: OrganizationSharedUsage,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
@@ -128,6 +171,17 @@ pub enum OrganizationWorkflowMutation {
         #[ts(type = "number")]
         expected_revision: i64,
         action: OrganizationWorkflowControl,
+    },
+    #[serde(rename_all = "camelCase")]
+    SetLimits {
+        project_id: String,
+        run_id: Option<String>,
+        #[ts(type = "number | null")]
+        expected_revision: Option<i64>,
+        #[ts(type = "number")]
+        max_tokens: i64,
+        max_model_requests: u32,
+        max_active: u32,
     },
 }
 
