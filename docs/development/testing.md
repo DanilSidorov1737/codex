@@ -1,5 +1,97 @@
 # Testing procedures and evidence
 
+## Review, reports, inventory and native selection qualification
+
+2026-10-11 UTC, expanded-batch items 7–12. Workflow source
+`fe5ac65949e43d09de9bbcec8990fe5829a9eb7d`, CLI SHA256
+`920cdd42c577e67ff0318d3cecd31816bfab08768de282cf25d964605652c591`.
+The final checkpoint-inventory counter correction is under package qualification;
+see status.md for its final source/hash/receipt. Evidence root:
+`/workspace/.onboarding/qualification/expanded-batch/`.
+
+Activate `. /workspace/.onboarding/activate.sh`. Cargo commands run from
+`/workspace/codex/codex-rs`, with `CARGO_INCREMENTAL=0 RUST_MIN_STACK=8388608`
+and `--locked --offline --profile dev-small -j4`.
+
+| Selected check | Passed | Evidence log |
+| --- | --- | --- |
+| `cargo test -p codex-protocol -p codex-state --lib` | 373 + 277, plus one separately added workflow-descendant case = 278 state | `matrix-protocol-state.log`, `workflow-report-attribution-corrected.log` |
+| `cargo test -p codex-app-server --lib organization` | 12 | `matrix-runtime-inventory.log` |
+| `cargo test -p codex-app-server --test all suite::v2::organization` | 8 | `matrix-native-api.log` |
+| `cargo test -p codex-tui --lib organization` | 46, including actual official Neovim | `matrix-tui-neovim.log` |
+| `cargo test -p codex-app-server-protocol --lib schema_fixtures_tests -- --skip write_schema_fixtures_from_env` | 4 | `matrix-schema-comparisons.log` |
+| `cargo test -p codex-protocol --test organization_execution_contract` | 2 | `matrix-wire-contract.log` |
+| SDK `pytest tests/test_contract_generation.py tests/test_public_api_signatures.py -q` | 25 | `matrix-resume-sdk-contract.log` |
+
+**748 distinct checks pass**; repetitions and the two explicit ignored schema
+writers are not counted. Production `cargo clippy -p codex-cli --bin codex -- -D
+warnings`, full CLI build and `cargo fmt --all -- --check` pass in
+`matrix-final.json`. Schema writers run separately with experimental mode 0/1;
+keep raw fixtures without Prettier rewriting. From `sdk/python`, activate
+`. .venv/bin/activate` so its existing Python and ruff are both on PATH, then
+`python scripts/update_sdk_artifacts.py generate-types --schema-dir
+../../codex-rs/app-server-protocol/schema/json`. Native process/IPC/sandbox and
+Neovim checks use authorized native execution; inner permission assertions remain.
+
+Tests cover complete SQL totals versus pagination, canonical change receipts versus
+forged instruction text, timeout checks, consistent audit revisions, project scope,
+provider immutability/redaction/endpoint changes, legacy unknown metadata, captured
+handoff owners, descendant/workflow attribution and shared-root deduplication.
+The real WebSocket client refuses mixed report pages; late summary/inventory
+successes and errors cannot retarget a modal. Actual Neovim tests check Unicode
+character/line/exclusive ranges, dirty buffers, rename/staleness, block/size refusals
+and unchanged authority at draft confirmation. Existing exact approvals remain.
+
+Physical evidence in `review-selection/physical.json` and `physical-v2.json` uses
+actual official Neovim 0.12.6 to render the native CLI terminal and a second real
+editor embedded in Workspace. It physically selected Unicode, cancelled
+explain/refactor/test drafts without work, rejected a changed native buffer,
+created pinned proposed debug work without authority, then separately confirmed
+its bounded grant. The first blocker fixture's empty artifact declaration was
+correctly refused. Cleanup preserved/fenced the interrupted coding attempt and
+superseded its pending approval: one request / 15 fixture tokens, no effect.
+The guarded continuation created a fresh pinned coding task and grant, preserving
+the original task/counters. No reauthorization/reset/replay was used.
+
+The continuation physically navigated exact coding/document approvals, a native
+blocked checkpoint and requested changes. Canonical report/inventory/check counts
+matched owner records; prices used an explicitly synthetic private owner quote.
+An unsaved real original buffer refused Apply without an application intent.
+Native undo, actual Neovim diff, explicit acceptance/file confirmation and one
+Apply passed the immutable original oracle. The document remains paused for
+requested changes and its original output is absent. A full canonical report
+(except generation time) matched across an actual daemon stop/start. Agent-resource
+scrolling, 36 switches at 120×36 / 50×20 / 160×48, no duplicate-ID/timeout frames
+and two native `on_exit` codes 0 passed.
+
+`verification-v2.json` independently checks all five installed package assets,
+current binary/source, native and separate immutable oracles, artifact hashes,
+report own-usage sums, exact provider receipts and SQLite quick/FK integrity.
+**6 localhost responses / 90 fixture tokens / 0 paid**, including the interrupted
+attempt; **28 PNG/text pairs** before the final correction. State has one custom
+agent, five tasks, five grants, four attempts, three actions/approvals, two results,
+one checkpoint and one completed application. Owned daemon/provider are stopped
+in `cleanup-v2.json`. Preserve this home and every receipt; never replay its
+setup/authorization/acceptance/Apply or reset historical budgets.
+
+Visual inspection found checkpoint calls omitted from organization-tool inventory.
+The SQL projection now unions recorded checkpoint and ordinary coordination call
+identities. The existing native-state regression checks retry deduplication,
+separate note/checkpoint calls and rejected-call exclusion. Its correct full filter
+`organization::tests::handoff::checkpoint_validation_dedupe_identity_and_blocker_do_not_stop_unrelated_work`
+passed once in `inventory-correction-state-exact.log`; a shortened zero-case filter
+in the wrapper is not evidence. Corrected package physical read-only verification
+is the remaining gate.
+
+Initial compilation, stale fixture semantics, mistyped zero-case filters, missing
+venv PATH and denied Clippy warnings remain beside corrected passes. No assertion,
+permission, checksum, lint or TLS guard was disabled. This selected matrix and
+localhost native exercise do not qualify new live-model reasoning/billing,
+external integrations, higher concurrency, additional platforms, user Neovim
+plugins/LSP, shared buffers or automatic Apply. The PNG renderer's DejaVu font
+lacks the CJK glyph used in a native Unicode sample; stored/native text remains
+correct, with character/range assertions in the actual-editor tests.
+
 ## Checkpoint and handoff qualification
 
 2026-10-11 UTC, approved expanded-batch items 2–4, qualified on application source

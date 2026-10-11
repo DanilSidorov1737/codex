@@ -13,6 +13,8 @@ codex organization memory-search PROJECT_ID 'SQLite'
 codex organization memory-search PROJECT_ID 'decision' --agent-id AGENT_ID
 codex organization schedule-list --project-id PROJECT_ID
 codex organization schedule-mutate recurring.json
+codex organization report --project-id PROJECT_ID --limit 100
+codex organization inventory
 codex organization backup
 codex organization restore --backup /absolute/path/snapshot.sqlite --destination /fresh/sqlite-home
 ```
@@ -20,6 +22,23 @@ codex organization restore --backup /absolute/path/snapshot.sqlite --destination
 `list` accepts `nodes`, `roles`, `goals`, `projects`, `tasks`, or `memberships`.
 Follow `nextCursor` using `--cursor`; page limits are 1–200. Output is JSON.
 `--no-daemon` uses the existing embedded server for isolated qualification.
+
+## Local evidence reports and capabilities
+
+`report` returns canonical task/check/inbox totals, current remaining grant limits,
+attempt usage and upcoming schedules. Omit `--project-id` for the whole store;
+follow `report.nextCursor` with `--cursor`. Limits are 1–200. Complete totals do
+not depend on the task page. Historical captured agent/provider/model/workflow
+attribution counts attempts once, without summing shared root ledgers per child.
+Missing metadata and unreported usage remain unknown.
+
+`inventory` separates configured provider/MCP names and permission requirements
+from recorded request, native-check and tool evidence. It performs no probes or
+installations and returns no credential values or launch arguments. Recorded
+checkpoint calls count as native organization-tool use. Neither command admits
+work or widens authority. TUI host keys: `z` selected scope, `Z` whole store,
+`C` inventory; Escape closes. See [reports and selection](reports-and-selection.md)
+for bounds, estimates and actual Neovim's `Q` proposed-task flow.
 
 ## Checkpoints and blocked handoffs (qualified)
 

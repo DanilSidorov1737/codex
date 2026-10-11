@@ -101,7 +101,7 @@ impl OrganizationStore {
             });
         }
         let (completed, latest_attempt_id) =
-            sqlx::query_as("SELECT count(*),max(attempt_id) FROM organization_coordination_calls")
+            sqlx::query_as("SELECT count(*),max(attempt_id) FROM (SELECT attempt_id,call_id FROM organization_coordination_calls UNION SELECT attempt_id,call_id FROM organization_checkpoints)")
                 .fetch_one(&mut *tx)
                 .await?;
         tools.push(OrganizationToolCapability {

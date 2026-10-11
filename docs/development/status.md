@@ -26,24 +26,34 @@ key-routing bug, fixed in `55af0a0b5b`. A package hash preflight also refused st
 installed bytes; the supported `daemon update --from-cli --yes` with a distinct
 dev package version installed the qualified binary without resetting state.
 
-Items 7–11 are implemented and under physical qualification. State projections,
-provider capture/inventory, canonical Review inbox, on-demand summary/resource UI,
-CLI reports and actual Neovim selection drafts reuse existing authority paths.
-**748 distinct selected automated checks pass**: protocol 373, state 278,
-runtime/inventory 12, native API 8, TUI/official Neovim 46, schema comparisons 4,
-Python SDK 25 and wire contracts 2. The extra state case verifies workflow
-descendant attribution; timeouts count as failed checks. Production CLI Clippy
-passes with warnings denied; full CLI build and final formatting also pass.
-No new dependency, installation, paid request or authority path was added.
+Items 7–11 are implemented. **748 distinct selected automated checks pass**:
+protocol 373, state 278, runtime/inventory 12, native API 8, TUI/official Neovim 46,
+schema comparisons 4, Python SDK 25 and wire contracts 2. Production CLI Clippy,
+full CLI build and formatting pass on `fe5ac65949`. Actual Review approvals,
+blockers, requested changes, canonical reports/resources, provider inventory,
+Unicode selection/cancellation/stale-buffer denial, separate authorization,
+dirty-buffer denial, Neovim diff, exact acceptance/one Apply and restart passed.
+`review-selection/verification-v2.json` records 6 localhost responses / 90 fixture
+tokens / 0 paid, including the retained interrupted attempt; 28 PNG/text pairs,
+36 switches at three sizes and two normal CLI exits. Services are stopped.
 
-Preserve the initial failed checks: two mistyped filters selected zero cases,
+Physical inspection found one inventory omission: successful checkpoint calls
+were missing from organization-tool observations. A small SQL union and the
+existing checkpoint/deduplication regression now verify checkpoints, ordinary
+coordination calls and retries once, with refused calls excluded. Rebuild and
+final read-only native package qualification are in progress. Do not replay the
+workflow: five tasks, five grants, four attempts, two results and one application
+are preserved. The initial blocker fixture's empty artifact declaration was
+correctly rejected; cleanup fenced its interrupted coding attempt and superseded
+the approval. The continuation used a fresh proposed coding task/grant, preserving
+the failed task's 15 tokens/one request. No limit reset or replay occurred.
+
+Preserve initial failed checks: mistyped filters selected zero cases (not evidence),
 TUI compilation exposed missing fixture fields/helper visibility, three legacy
 inbox fixtures needed canonical report state, SDK generation needed its existing
 venv on PATH, and Clippy required a direct struct initializer and removal of a
 needless borrow. Corrected relevant checks pass without skipped assertions or
-lint allowances. Continue with the fresh `expanded-batch/review-selection`
-physical fixture after the build/source/package hash preflight; do not replay
-older fixtures. See [reports and selection](reports-and-selection.md).
+lint allowances. See [reports and selection](reports-and-selection.md).
 
 Item 1 is delivered and physically qualified: a server-confirmed pre-intent
 rejection now restores actual Neovim input without frontend restart, with the

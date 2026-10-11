@@ -45,6 +45,15 @@ through declared artifacts/inputs. `Ctrl-G` returns focus to the host. While edi
 focus is active, ordinary keys, escape, digits, function keys, paste and mouse go
 to Neovim; host layout shortcuts do not steal its editing keys.
 
+For a code request, select characters (`v`) or lines (`V`) in the actual original
+project buffer, Ctrl-G for host focus, then `Q`. Choose explain/refactor/debug/test
+and review pinned native content with F6; `y` creates a proposed task. Execution
+still needs a separate bounded authorization. Buffer revision is checked again
+at confirmation; stale/renamed/closed buffers are refused. Cancellation starts
+no work. The snapshot grants no extra paths/tools. See
+[selection contract](reports-and-selection.md#actual-neovim-selection-to-proposed-task)
+for Unicode ranges, limits and private-preview/project boundaries.
+
 In host Review, `n` cycles the verified artifact diff and aligns the next Neovim
 artifact. `A` opens whole-file Apply selection after exact result acceptance; F6
 captures the selection and `y` dispatches only after every loaded native buffer

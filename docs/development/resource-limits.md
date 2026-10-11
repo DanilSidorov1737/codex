@@ -29,6 +29,15 @@ combined 64 MiB permitted-file snapshot. See [continuity](coordination.md#approv
 
 ## Optional owner price quote
 
+On-demand `z`/`Z` summaries and `codex organization report` show own-attempt
+requests/tokens/usage receipts by task, captured agent, project and workflow.
+Descendants map through the original grant root; each shared root's remaining
+limits are displayed once. Agent handoffs retain the earlier attempt's owner.
+Historical unknown providers and unreported requests are labeled unknown.
+Optional reported-token estimates match the captured provider/model to the
+private owner quote below; different usage dimensions must not be summed.
+Reports trigger no model requests. CPU/RAM and provider invoices are unavailable.
+
 Create `<CODEX_HOME>/organization-prices.json` as an owner-controlled regular
 single-link mode-0600 file. The TUI loads it when the dashboard opens. Symlinks,
 hard links, unsafe ownership/permissions, oversized files, unsupported currency,

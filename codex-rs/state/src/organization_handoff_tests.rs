@@ -595,6 +595,16 @@ async fn checkpoint_validation_dedupe_identity_and_blocker_do_not_stop_unrelated
             .await?,
         first
     );
+    let tools = store.tool_observations().await?;
+    let organization = tools
+        .iter()
+        .find(|tool| tool.name == "organization")
+        .unwrap();
+    assert_eq!(organization.completed, 1, "checkpoint retries count once");
+    assert_eq!(
+        organization.latest_attempt_id.as_deref(),
+        Some(source.id.as_str())
+    );
     assert!(
         store
             .record_checkpoint(&source.id, &worker, "same", content(true), files(), 1001)
@@ -653,10 +663,32 @@ async fn checkpoint_validation_dedupe_identity_and_blocker_do_not_stop_unrelated
     let before = store.execution_view(&source.task_id).await?;
     assert_eq!(before.checkpoints.len(), 1);
     assert_eq!(before.task.state, "running");
+    assert_eq!(
+        store
+            .tool_observations()
+            .await?
+            .iter()
+            .find(|tool| tool.name == "organization")
+            .unwrap()
+            .completed,
+        2,
+        "the checkpoint and stored note are distinct completed calls; refusals add none"
+    );
     store
         .record_checkpoint(&source.id, &worker, "blocked", content(true), files(), 1001)
         .await?;
     store.release_attempt_capacity(&source.id, &worker).await?;
+    assert_eq!(
+        store
+            .tool_observations()
+            .await?
+            .iter()
+            .find(|tool| tool.name == "organization")
+            .unwrap()
+            .completed,
+        3,
+        "the blocked checkpoint remains recorded tool evidence"
+    );
     let (_, unrelated) = authorized_attempt(&store, false).await?;
     assert_ne!(unrelated.task_id, source.task_id);
     assert_eq!(
