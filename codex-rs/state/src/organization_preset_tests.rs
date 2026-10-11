@@ -1,5 +1,7 @@
 use super::*;
-use codex_protocol::organization_coordination::{OrganizationCoordinationCall, OrganizationNoteScope};
+use codex_protocol::organization_coordination::{
+    OrganizationCoordinationCall, OrganizationNoteScope,
+};
 
 fn preset(record: Option<OrganizationRecord>) -> OrganizationPreset {
     let Some(OrganizationRecord::Preset(preset)) = record else {
@@ -91,11 +93,23 @@ async fn preset_snapshot_clone_is_atomic_fresh_and_copies_no_execution_authority
         .authorize_task(&task.id, task.revision, scope, 1000)
         .await?;
     let worker = Uuid::now_v7().to_string();
-    let attempt = store.claim_task(&worker, &Uuid::now_v7().to_string(), 1000, 2).await?.unwrap();
+    let attempt = store
+        .claim_task(&worker, &Uuid::now_v7().to_string(), 1000, 2)
+        .await?
+        .unwrap();
     let private_body = "Private-only knowledge must never be in an organization preset";
-    store.coordinate(&attempt.id, &worker, "private-note", OrganizationCoordinationCall::WriteNote {
-        scope: OrganizationNoteScope::Agent, body: private_body.into()
-    }, 1001).await?;
+    store
+        .coordinate(
+            &attempt.id,
+            &worker,
+            "private-note",
+            OrganizationCoordinationCall::WriteNote {
+                scope: OrganizationNoteScope::Agent,
+                body: private_body.into(),
+            },
+            1001,
+        )
+        .await?;
     let saved = preset(
         store
             .mutate_owner(
@@ -198,13 +212,23 @@ async fn preset_snapshot_clone_is_atomic_fresh_and_copies_no_execution_authority
         ("SELECT count(*) FROM organization_attempts", 1),
         ("SELECT count(*) FROM organization_notes", 1),
     ] {
-        let actual: i64 = sqlx::query_scalar(query)
-            .fetch_one(&store.pool)
-            .await?;
+        let actual: i64 = sqlx::query_scalar(query).fetch_one(&store.pool).await?;
         assert_eq!(actual, count);
     }
-    assert_eq!(store.search_memory(&project,OrganizationNoteScope::Agent,Some(&copy.id),"").await?.matched_count,0);
-    assert_eq!(store.search_memory(&project,OrganizationNoteScope::Agent,Some(&agent.id),"").await?.matched_count,1);
+    assert_eq!(
+        store
+            .search_memory(&project, OrganizationNoteScope::Agent, Some(&copy.id), "")
+            .await?
+            .matched_count,
+        0
+    );
+    assert_eq!(
+        store
+            .search_memory(&project, OrganizationNoteScope::Agent, Some(&agent.id), "")
+            .await?
+            .matched_count,
+        1
+    );
     let nodes_before = store
         .list_definitions(OrganizationRecordKind::Nodes, None, 200)
         .await?

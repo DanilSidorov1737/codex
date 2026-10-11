@@ -197,3 +197,10 @@ keep readable native defaults. Physical monochrome and RGB workflows both passed
 RGB captures used the real Neovim terminal with `FORCE_COLOR=3`, `COLORTERM=truecolor`
 and inherited `NO_COLOR` removed only in that owned test terminal. Screenshots and
 plain native cell captures are in `/workspace/artifacts/cli-ui-update/`.
+
+Organization presets: select any Operations node and press D to capture its
+bounded definition subtree. F9 browses presets; V opens a name/optional-parent
+clone form pinned to the displayed revision. F6 previews the exact decision and
+y confirms. Clones use fresh identities and copy only internal memberships;
+grants, tasks and private notes remain separate. Save/clone/restart/refusal
+qualification is recorded in testing.md. Presets remain optional and editable.

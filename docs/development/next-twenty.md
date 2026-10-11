@@ -46,11 +46,9 @@ owned daemon is stopped. Preserve `operations-batch/native/` and never rerun
 its setup or physical mutation driver.
 
 These features reuse existing owner handlers, native previews, protected
-mutations and goal/task records; no dependency was added. Task 4 organization
-presets is next, followed by project lifecycle and execution controls. Remaining
-approved tasks are pending.
+mutations and goal/task records; no dependency was added.
 
-Task 4 implementation is present but **not yet qualified**: a protected SQLite
+Task **4 is complete and qualified on `a3e0fcca67`**: a protected SQLite
 preset table stores at most 128 captured subtree nodes, their role versions and
 512 internal memberships within 128 KiB. Owner cloning creates fresh role/node
 identities beneath a named group, remaps internal parents/memberships and advances
@@ -68,8 +66,21 @@ fixture schemas; original assertions remain. All 60 targeted TUI/editor checks,
 production CLI Clippy/build, four schema comparisons and 25 Python SDK contract
 checks pass. Python generation initially missed the installed Ruff executable;
 activating the existing SDK virtual environment fixed its PATH without installing
-anything. Physical native save/clone/restart qualification remains pending;
-do not present task 4 as delivered until it passes.
+anything. Physical native save/clone, immutable source snapshot, fresh identities,
+internal-only memberships, unchanged original grant/task/knowledge boundary,
+stale clone refusal and invalid-parent rollback pass. Native restart retains the
+same preset revision and mapping. Both CLI exits are 0; SQLite quick/FK checks and
+all five installed package hashes pass. Zero model requests or attempts ran;
+the sole future source task was cancelled and the owned daemon stopped.
+Preserve `operations-batch/presets/`; never replay its setup/physical decisions.
+Two read-only restart harness failures (saved Console layout and an incorrect
+asset list) are retained; corrected `restart-v3.json` passes. The initial final
+format check exposed test-only formatting; it is corrected and the rerun passes.
+
+Tasks 6–9 project lifecycle, priority/fair selection, global limits and emergency
+pause are now being implemented. They use separately versioned owner controls
+and immutable control history so pause/priority do not invalidate execution
+grants or reset original accounting. No other remaining task is qualified yet.
 Subsequent slices update this page, status and testing with exact commits,
 commands, actual interactions, failures and limits.
 No push, deployment, external message, new integration, purchase or automatic

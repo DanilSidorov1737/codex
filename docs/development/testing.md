@@ -2405,3 +2405,33 @@ as well as corrected receipts. Its owned daemon is stopped and its future fixtur
 grant must not be replayed. Mixed GPT-5.4 Mini/GPT-5.5 live pilot receipt is passed:
 four requests, new estimated spend $0.0198223, combined historical estimate
 $0.3652553; no more paid inference is planned. These are estimates, not invoices.
+
+## Organization presets qualification
+
+Source `a3e0fcca67` adds definition-only snapshots and atomic fresh clones through
+existing protected owner mutations. Full state **295**, full protocol **373**,
+targeted TUI/actual-editor **60**, schema comparisons **4** and Python contract
+checks **25** pass. Production CLI Clippy/build/package pass. Commands use locked
+offline `dev-small`/four jobs; SDK generation uses its existing activated venv.
+Logs: `/workspace/.onboarding/qualification/operations-batch/preset-*.log`.
+Initial dynamic-SQL/model-binding test errors, legacy downgrade fixture errors,
+redundant clone lint, missing Ruff PATH and test-only formatting failures are
+retained with corrected passing reruns; assertions/security checks are preserved.
+
+Fresh actual CLI/official-Neovim terminal evidence:
+`operations-batch/presets/physical.json` and `restart-v3.json`. Physical save and
+version-pinned clone forms/exact confirmation create fresh roles/nodes and only
+internal memberships. Original edits preserve the snapshot; stale clone refuses,
+missing parent rolls back, original task/grant stay separate, zero requests or
+attempts execute. Restart preserves revision/mapping; both native CLI exits are 0.
+Three viewport sizes/projection transitions, all five private installed assets,
+SQLite quick/FK checks and unchanged owner file pass. The future source task is
+cancelled and owned daemon stopped. Both failed read-only restart harnesses are
+retained: the saved Console layout requires `/layout operations`; the fifth
+package asset is its manifest. Corrected driver passes without replaying mutations.
+
+Package: `operations-batch/preset-package/bin/codex`, SHA256
+`782d3145a153dd92c21bc0c96f5830380218a7158bbd83d2664f06841d06b45e`.
+Nine actual PNG/text pairs archived at
+`/workspace/artifacts/cli-organization-presets/cli-organization-presets-screenshots.zip`.
+Preserve all fixtures and never rerun setup/physical mutations or reset counters.

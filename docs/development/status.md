@@ -11,7 +11,14 @@ finite workflow/accepted-trigger forms and navigable goal evidence/editing.
 59 targeted TUI/actual-Neovim checks, production CLI Clippy/build/package,
 physical owner forms/refusals, 36 layout switches, native exit 0, installed asset
 hashes and SQLite integrity pass. No model calls ran. Both series/source grant
-were cancelled and the owned daemon stopped. Task 4 organization presets is next.
+were cancelled and the owned daemon stopped.
+Task 4 optional organization presets is also qualified on `a3e0fcca67`: full
+state 295/protocol 373, targeted TUI/editor 60, schema 4 and SDK 25 checks pass,
+plus real save/clone/refusals/restart and installed assets/SQLite integrity.
+Preserve `operations-batch/presets/{physical,restart-v3,cleanup}.json`, both failed
+restart harnesses and the cancelled future fixture. Zero inference ran. Current
+next work is tasks 6–9 project lifecycle/priorities/global limits/emergency pause;
+their implementation is in progress and not yet qualified.
 [Batch checkpoint](next-twenty.md) is authoritative
 for remaining work; [host runbook](unattended-host-qualification.md) describes the
 unavailable logout/reboot checks. Preserve all fresh operations-batch fixtures
@@ -21,6 +28,9 @@ Current operations UI package:
 `/workspace/.onboarding/qualification/operations-batch/package/bin/codex`.
 SHA256 `ab34a1b88a48541620ddf8a99e2b64be40c9eea0e03498943b63a06acee1b868`.
 Receipts: `operations-batch/native/{physical,final-readonly,cleanup}.json`.
+Newer preset package: `operations-batch/preset-package/bin/codex`, SHA256
+`782d3145a153dd92c21bc0c96f5830380218a7158bbd83d2664f06841d06b45e`.
+Preset screenshots: `/workspace/artifacts/cli-organization-presets/cli-organization-presets-screenshots.zip`.
 
 The revised [autonomy/usability batch](autonomy-batch.md) is **complete: all twelve
 approved bounded items are implemented and qualified**. **770 selected automated
