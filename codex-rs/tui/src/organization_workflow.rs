@@ -90,7 +90,7 @@ impl Dashboard {
                 run.preview.max_model_requests
             ));
         } else {
-            text.push_str("Saved content grants no authority. s previews a fresh bounded run.\n\n");
+            text.push_str("Saved content grants no authority. E edits steps / assignments / prerequisites / criteria. s previews distinct per-step grants.\n\n");
         }
         for item in &template.items {
             text.push_str(&format!(

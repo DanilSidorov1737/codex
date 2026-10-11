@@ -208,6 +208,7 @@ async fn load(handle: &AppServerRequestHandle) -> anyhow::Result<Snapshot> {
         OrganizationRecordKind::Goals,
         OrganizationRecordKind::Projects,
         OrganizationRecordKind::Tasks,
+        OrganizationRecordKind::Memberships,
     ] {
         let mut cursor = None;
         for page in 0..10 {
@@ -542,7 +543,11 @@ fn tree(nodes: &[OrganizationNode], collapsed: &BTreeSet<String>, search: &str) 
                     } else {
                         "agent"
                     },
-                    if node.enabled { "" } else { "; paused" }
+                    if node.enabled {
+                        ""
+                    } else {
+                        "; retired / disabled"
+                    }
                 ),
             });
         }
@@ -1149,6 +1154,66 @@ impl Dashboard {
     }
     fn open_form(&mut self, key: char) {
         let kind = match key {
+            'B' => form::Kind::Group,
+            'E' if self.selected_template().is_some() => {
+                let Some(template) = self.selected_template().cloned() else {
+                    return;
+                };
+                form::Kind::WorkflowSave {
+                    project_id: template.project_id.clone(),
+                    items: template.items.clone(),
+                    previous: Some(template),
+                }
+            }
+            'E' => match self.record() {
+                Some(OrganizationRecord::Node(node)) => form::Kind::NodeEdit(node.clone()),
+                _ => {
+                    self.message =
+                        "Select an Operations node to edit its captured definition.".into();
+                    return;
+                }
+            },
+            'I' => match self.record() {
+                Some(OrganizationRecord::Node(node)) => form::Kind::Membership(node.clone()),
+                _ => {
+                    self.message = "Select a node to edit its additional group memberships.".into();
+                    return;
+                }
+            },
+            'L' => {
+                let assigned = match self.record() {
+                    Some(OrganizationRecord::Node(node)) => {
+                        node.role_version_id.as_deref().and_then(|id| {
+                            self.snapshot
+                                .records
+                                .iter()
+                                .find_map(|record| match record {
+                                    OrganizationRecord::Role(role) if role.id == id => Some(role),
+                                    _ => None,
+                                })
+                        })
+                    }
+                    Some(OrganizationRecord::Role(role)) => Some(role),
+                    _ => None,
+                };
+                let latest = assigned
+                    .and_then(|assigned| {
+                        self.snapshot
+                            .records
+                            .iter()
+                            .filter_map(|record| match record {
+                                OrganizationRecord::Role(role)
+                                    if role.role_id == assigned.role_id =>
+                                {
+                                    Some(role)
+                                }
+                                _ => None,
+                            })
+                            .max_by_key(|role| role.version)
+                    })
+                    .cloned();
+                form::Kind::Role(latest)
+            }
             'H' => {
                 let Some(view) = self.detail.as_ref().filter(|view| {
                     Some(&view.task.id) == self.selected.as_ref() && view.task.state == "blocked"
@@ -1201,7 +1266,11 @@ impl Dashboard {
                 }
             }
             'W' => match self.workflow_items() {
-                Ok((project_id, items)) => form::Kind::WorkflowSave { project_id, items },
+                Ok((project_id, items)) => form::Kind::WorkflowSave {
+                    project_id,
+                    items,
+                    previous: None,
+                },
                 Err(e) => {
                     self.message = e.to_string();
                     return;
@@ -1254,22 +1323,11 @@ impl Dashboard {
                 let Some(template) = self.selected_template().cloned() else {
                     return;
                 };
-                let Some(item) = template.items.first() else {
+                if template.items.is_empty() {
                     self.message = "Workflow has no tasks; refresh before starting".into();
                     return;
-                };
-                let task = OrganizationTask {
-                    id: String::new(),
-                    project_id: template.project_id.clone(),
-                    goal_id: None,
-                    owner_id: item.owner_id.clone(),
-                    instructions: item.instructions.clone(),
-                    criteria: item.criteria.clone(),
-                    prerequisites: vec![],
-                    state: "proposed".into(),
-                    revision: 1,
-                };
-                form::Kind::WorkflowRun { template, task }
+                }
+                form::Kind::WorkflowRun { template }
             }
             's' => match self.record() {
                 Some(OrganizationRecord::Task(task))
@@ -1698,9 +1756,9 @@ impl Dashboard {
             }
             KeyCode::Char('m') => self.open_memory(false),
             KeyCode::Char('M') => self.open_memory(true),
-            KeyCode::Char(c @ ('U' | 'G' | 'N' | 'T' | 's' | 'A' | 'R' | 'W' | 'H')) => {
-                self.open_form(c)
-            }
+            KeyCode::Char(
+                c @ ('U' | 'G' | 'N' | 'T' | 's' | 'A' | 'R' | 'W' | 'H' | 'B' | 'E' | 'L' | 'I'),
+            ) => self.open_form(c),
             KeyCode::Char('n') if self.preferences.preset == Preset::Review => {
                 if let Some(result) = self
                     .detail
@@ -1883,7 +1941,11 @@ impl Dashboard {
                         "{}\n{} · {}\nModel: {}\n\n",
                         n.label,
                         n.id,
-                        if n.enabled { "Enabled" } else { "Paused" },
+                        if n.enabled {
+                            "Enabled"
+                        } else {
+                            "Retired / disabled (records retained)"
+                        },
                         n.model.as_deref().unwrap_or("Configured default")
                     );
                     if let Some(role) = self.snapshot.records.iter().find_map(|r| match r {
@@ -1898,6 +1960,30 @@ impl Dashboard {
                             "Role: {} v{}\n{}\n\n",
                             role.name, role.version, role.instructions
                         ));
+                    }
+                    text.push_str(&format!("Kind: {:?}\nPrimary parent: {}\nRevision: {}\nE edits / reparents / retires · L creates a role version · I edits memberships\n",n.kind,n.parent_id.as_deref().unwrap_or("None"),n.revision));
+                    for record in &self.snapshot.records {
+                        if let OrganizationRecord::Membership(member) = record
+                            && member.node_id == n.id
+                        {
+                            let label = self
+                                .snapshot
+                                .records
+                                .iter()
+                                .find_map(|record| match record {
+                                    OrganizationRecord::Node(group)
+                                        if group.id == member.group_id =>
+                                    {
+                                        Some(group.label.as_str())
+                                    }
+                                    _ => None,
+                                })
+                                .unwrap_or("Group not loaded");
+                            text.push_str(&format!(
+                                "Additional group: {label} · {}\n",
+                                member.group_id
+                            ));
+                        }
                     }
                 }
                 OrganizationRecord::Project(p) => {
@@ -2118,6 +2204,13 @@ impl Dashboard {
                 Command::Execution(OrganizationExecutionMutation::Handoff { .. })
             ) {
                 text.push_str("\nQueues one fresh attempt under the original grant and remaining budgets. The old worker stays fenced. Only verified checkpoint inputs/outputs are copied. Uncertain effects, missing usage, active descendants or changed authority prevent continuation. Acceptance and Apply remain separate owner decisions.\n");
+            }
+            match command {
+                Command::Definition(OrganizationMutation::PutNode {..}) => text.push_str("\nChanges the captured node definition. Existing grants retain their policy and may be fenced by this revision change. Retiring retains history. This does not authorize model work.\n"),
+                Command::Definition(OrganizationMutation::CreateRoleVersion {..}) => text.push_str("\nCreates an immutable instruction version. Assign it with E separately. Existing captured roles remain unchanged; role names grant no permissions.\n"),
+                Command::Definition(OrganizationMutation::SetMembership {..}) => text.push_str("\nChanges a secondary group membership. Primary parent and execution authority remain unchanged.\n"),
+                Command::Workflow(OrganizationWorkflowMutation::Put {..}) => text.push_str("\nSaves template content only. Existing runs retain their captured template. Invalid dependencies or a changed template revision reject the entire edit; no work is authorized.\n"),
+                _=>{},
             }
             if let Command::Schedule(OrganizationScheduleMutation::Create {
                 scope, config, ..

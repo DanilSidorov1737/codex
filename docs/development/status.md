@@ -7,6 +7,16 @@ The MVP's release criteria are **qualified for the documented single-owner Linux
 
 ## Expanded batch checkpoint: items 1–4 complete
 
+Items 5–6 are implemented and under qualification: native Operations node/group/
+role/membership edits, guarded template editing and distinct per-step scope forms.
+All 38 focused TUI tests passed, including actual official Neovim checks.
+Production Clippy caught a redundant `expect` in template selection; it was
+replaced with a normal guard. All 38 affected tests, complete CLI production
+Clippy and workspace formatting now pass; the failed lint is retained.
+Physical qualification will use fresh `expanded-batch/owner-ui` fixtures and
+`owner-ui-home`; historical Apply/handoff/workflow fixtures remain untouched.
+See [owner controls](owner-controls.md). Items 7–12 remain approved next work.
+
 Item 1 is delivered and physically qualified: a server-confirmed pre-intent
 rejection now restores actual Neovim input without frontend restart, with the
 error retained through refresh. Uncertain outcomes and unrelated successful

@@ -465,6 +465,66 @@ async fn workflow_views_save_prerequisite_closure_and_freeze_preview_confirmatio
 }
 
 #[tokio::test]
+async fn operations_edits_freeze_node_revision_and_latest_role_version() {
+    let mut d = dashboard();
+    let first = OrganizationRoleVersion {
+        id: "role-v1".into(),
+        role_id: "custom-role".into(),
+        name: "Arbitrary role".into(),
+        instructions: "Captured first version".into(),
+        version: 1,
+    };
+    let latest = OrganizationRoleVersion {
+        id: "role-v2".into(),
+        instructions: "Second version".into(),
+        version: 2,
+        ..first.clone()
+    };
+    let mut owner = node("owner", None);
+    owner.role_version_id = Some(first.id.clone());
+    owner.revision = 9;
+    d.snapshot.records = vec![
+        OrganizationRecord::Node(owner),
+        OrganizationRecord::Role(first),
+        OrganizationRecord::Role(latest),
+    ];
+    d.selected = Some("owner".into());
+    d.open_form('L');
+    assert!(matches!(
+        d.form.as_ref().unwrap().command().unwrap(),
+        Command::Definition(OrganizationMutation::CreateRoleVersion {
+            expected_version: Some(2),
+            ..
+        })
+    ));
+    d.open_form('E');
+    d.key(KeyEvent::new(
+        KeyCode::F(6),
+        crossterm::event::KeyModifiers::NONE,
+    ));
+    assert!(
+        matches!(&d.confirmation,Some(Command::Definition(OrganizationMutation::PutNode {id:Some(id),expected_revision:Some(9),..})) if id=="owner")
+    );
+    assert!(d.confirmation_text.contains("may be fenced"));
+    if let OrganizationRecord::Node(node) = &mut d.snapshot.records[0] {
+        node.revision = 10;
+        node.label = "Changed in background".into();
+    }
+    d.key(KeyEvent::new(
+        KeyCode::Char('B'),
+        crossterm::event::KeyModifiers::NONE,
+    ));
+    assert!(matches!(
+        &d.confirmation,
+        Some(Command::Definition(OrganizationMutation::PutNode {
+            expected_revision: Some(9),
+            ..
+        }))
+    ));
+    assert!(!d.confirmation_text.contains("Changed in background"));
+}
+
+#[tokio::test]
 async fn schedule_views_capture_controls_and_keep_tree_and_selection_stable() {
     let key = |code| KeyEvent::new(code, crossterm::event::KeyModifiers::NONE);
     let mut d = dashboard();

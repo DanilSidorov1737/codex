@@ -6,6 +6,10 @@ use ratatui::layout::Margin;
 
 pub(super) enum Kind {
     Agent,
+    Group,
+    NodeEdit(OrganizationNode),
+    Role(Option<OrganizationRoleVersion>),
+    Membership(OrganizationNode),
     Goal,
     Project,
     Task,
@@ -19,10 +23,10 @@ pub(super) enum Kind {
     WorkflowSave {
         project_id: String,
         items: Vec<OrganizationPlanItem>,
+        previous: Option<OrganizationWorkflowTemplate>,
     },
     WorkflowRun {
         template: OrganizationWorkflowTemplate,
-        task: OrganizationTask,
     },
     Apply {
         task: OrganizationTask,
@@ -49,6 +53,183 @@ mod tests {
             prerequisites: vec![],
             state: "proposed".into(),
             revision: 7,
+        }
+    }
+
+    #[test]
+    fn node_edit_preserves_identity_kind_and_root_parent_while_retaining_history() {
+        let other = OrganizationRecord::Node(OrganizationNode {
+            id: "other".into(),
+            parent_id: None,
+            kind: OrganizationNodeKind::Agent,
+            label: "Other".into(),
+            role_version_id: None,
+            model: None,
+            enabled: true,
+            revision: 1,
+        });
+        for kind in [OrganizationNodeKind::Agent, OrganizationNodeKind::Group] {
+            let node = OrganizationNode {
+                id: "captured".into(),
+                parent_id: None,
+                kind,
+                label: "Custom level".into(),
+                role_version_id: None,
+                model: None,
+                enabled: true,
+                revision: 9,
+            };
+            let mut form = Form::new(
+                Kind::NodeEdit(node.clone()),
+                &[other.clone(), OrganizationRecord::Node(node.clone())],
+                Some(&other),
+                "model",
+            );
+            assert!(!form.fields[1].choices.iter().any(|(id, _)| id == &node.id));
+            form.fields[if kind == OrganizationNodeKind::Group {
+                2
+            } else {
+                4
+            }]
+            .choice = 1;
+            let Command::Definition(OrganizationMutation::PutNode {
+                id,
+                expected_revision,
+                parent_id,
+                kind: captured_kind,
+                enabled,
+                model,
+                role_version_id,
+                ..
+            }) = form.command().unwrap()
+            else {
+                panic!("missing edit")
+            };
+            assert_eq!((id, expected_revision), (Some(node.id), Some(9)));
+            assert_eq!(captured_kind, kind);
+            assert_eq!(
+                parent_id, None,
+                "editing a root must not adopt another selected node"
+            );
+            assert!(!enabled);
+            assert_eq!((model, role_version_id), (None, None));
+        }
+    }
+
+    #[test]
+    fn role_and_membership_forms_capture_versions_and_ids_without_execution_grants() {
+        let role = OrganizationRoleVersion {
+            id: "old-version".into(),
+            role_id: "role".into(),
+            version: 4,
+            name: "My role".into(),
+            instructions: "Original".into(),
+        };
+        let mut form = Form::new(Kind::Role(Some(role)), &[], None, "model");
+        set(&mut form, 1, "New instructions");
+        assert!(
+            matches!(form.command().unwrap(),Command::Definition(OrganizationMutation::CreateRoleVersion {role_id:Some(id),expected_version:Some(4),instructions,..}) if id=="role" && instructions=="New instructions")
+        );
+        let node = OrganizationNode {
+            id: "member".into(),
+            parent_id: None,
+            kind: OrganizationNodeKind::Agent,
+            label: "Any level".into(),
+            role_version_id: None,
+            model: None,
+            enabled: true,
+            revision: 2,
+        };
+        let group = OrganizationRecord::Node(OrganizationNode {
+            id: "group".into(),
+            kind: OrganizationNodeKind::Group,
+            ..node.clone()
+        });
+        let mut form = Form::new(Kind::Membership(node), &[group], None, "model");
+        for present in [true, false] {
+            form.fields[1].choice = usize::from(!present);
+            assert!(
+                matches!(form.command().unwrap(),Command::Definition(OrganizationMutation::SetMembership {node_id,group_id,present:captured}) if node_id=="member" && group_id=="group" && captured==present)
+            );
+        }
+    }
+
+    #[test]
+    fn workflow_edit_pins_revision_and_run_keeps_distinct_step_scopes() {
+        let items = vec![
+            OrganizationPlanItem {
+                key: "first".into(),
+                owner_id: "agent".into(),
+                instructions: "Inspect".into(),
+                criteria: vec!["Cited".into()],
+                prerequisites: vec![],
+            },
+            OrganizationPlanItem {
+                key: "second".into(),
+                owner_id: "agent".into(),
+                instructions: "Write".into(),
+                criteria: vec!["Checked".into()],
+                prerequisites: vec!["first".into()],
+            },
+        ];
+        let template = OrganizationWorkflowTemplate {
+            id: "template".into(),
+            project_id: "project".into(),
+            label: "Custom flow".into(),
+            revision: 8,
+            items: items.clone(),
+        };
+        let mut form = Form::new(
+            Kind::WorkflowSave {
+                project_id: "project".into(),
+                items,
+                previous: Some(template.clone()),
+            },
+            &[],
+            None,
+            "model",
+        );
+        set(&mut form, 9, "Owner-reviewed evidence");
+        let Command::Workflow(OrganizationWorkflowMutation::Put {
+            id,
+            expected_revision,
+            items,
+            ..
+        }) = form.command().unwrap()
+        else {
+            panic!("missing edit")
+        };
+        assert_eq!((id, expected_revision), ("template".into(), Some(8)));
+        assert_eq!(items[1].criteria, vec!["Owner-reviewed evidence"]);
+        assert_eq!(items[1].prerequisites, vec!["first"]);
+        form.key(KeyEvent::new(KeyCode::F(7), KeyModifiers::NONE));
+        assert_eq!(form.fields.len(), 16);
+        assert!(
+            form.command().is_err(),
+            "a blank added step cannot be saved"
+        );
+        form.key(KeyEvent::new(KeyCode::F(8), KeyModifiers::NONE));
+        assert_eq!(form.fields.len(), 11);
+        assert!(form.command().is_ok());
+        let mut form = Form::new(Kind::WorkflowRun { template }, &[], None, "model");
+        set(&mut form, 0, "first.txt");
+        set(&mut form, 2, "first.txt");
+        set(&mut form, 5, "100");
+        set(&mut form, 14, "second.txt");
+        set(&mut form, 16, "second.txt");
+        set(&mut form, 19, "200");
+        let Command::WorkflowPreview(request) = form.command().unwrap() else {
+            panic!("missing preview")
+        };
+        assert_eq!(request.scopes[0].scope.input_files, vec!["first.txt"]);
+        assert_eq!(request.scopes[1].scope.input_files, vec!["second.txt"]);
+        assert_eq!(request.scopes[0].scope.max_tokens, 100);
+        assert_eq!(request.scopes[1].scope.max_tokens, 200);
+        set(&mut form, 16, "../escape");
+        assert!(form.command().is_err(), "each step validates its own paths");
+        for (w, h) in [(1, 1), (50, 20), (160, 48)] {
+            let area = Rect::new(0, 0, w, h);
+            form.render(area, &mut Buffer::empty(area));
         }
     }
 
@@ -257,6 +438,7 @@ mod tests {
             Kind::WorkflowSave {
                 project_id: "project".into(),
                 items: items.clone(),
+                previous: None,
             },
             &[],
             None,
@@ -287,15 +469,7 @@ mod tests {
             revision: 3,
             items,
         };
-        let mut form = Form::new(
-            Kind::WorkflowRun {
-                template,
-                task: task(),
-            },
-            &[],
-            None,
-            "model",
-        );
+        let mut form = Form::new(Kind::WorkflowRun { template }, &[], None, "model");
         set(&mut form, 0, "oracle.py");
         set(&mut form, 1, "oracle.py");
         set(&mut form, 2, "report.txt");
@@ -448,6 +622,102 @@ pub(super) struct Form {
 }
 
 impl Form {
+    fn scope_fields(model: &str) -> Vec<Field> {
+        vec![
+            Field::text("Input files", "Project-relative paths, one per line", ""),
+            Field::text(
+                "Immutable inputs",
+                "Read-only inputs, including test oracles; one per line",
+                "",
+            ),
+            Field::text(
+                "Output artifacts",
+                "Project-relative paths, one per line",
+                "",
+            ),
+            Field::text(
+                "Checks (argv JSON)",
+                "Example: [[\"python3\",\"oracle.py\"]]; no shell parsing",
+                "[]",
+            ),
+            Field::text("Model", "Explicit model for this grant", model),
+            Field::text(
+                "Token ceiling",
+                "Reported tokens; an admitted request can exceed this",
+                "10000",
+            ),
+            Field::text("Time limit (seconds)", "1–3600", "240"),
+            Field::text("Model requests", "1–100; provider retries disabled", "5"),
+            Field::text("Attempts", "1–3", "1"),
+            Field::select(
+                "Approve each tool action",
+                vec![
+                    ("true".into(), "Yes".into()),
+                    (
+                        "false".into(),
+                        "No — routine in-scope tools preauthorized".into(),
+                    ),
+                ],
+                None,
+            ),
+            Field::text(
+                "Allowed delegates",
+                "Optional agent IDs, one per line; hierarchy grants no authority",
+                "",
+            ),
+            Field::text(
+                "Maximum child tasks",
+                "0 disables delegation; maximum 32",
+                "0",
+            ),
+            Field::select(
+                "Accept checked children",
+                vec![
+                    ("false".into(), "No".into()),
+                    ("true".into(), "Yes — declared checks required".into()),
+                ],
+                None,
+            ),
+            Field::text(
+                "Start time (UTC epoch)",
+                "Optional one-shot time; blank starts when ready",
+                "",
+            ),
+        ]
+    }
+    fn step_fields(item: &OrganizationPlanItem, agents: &[(String, String)]) -> Vec<Field> {
+        let mut agents = agents.to_vec();
+        if !item.owner_id.is_empty() && !agents.iter().any(|(id, _)| id == &item.owner_id) {
+            agents.push((
+                item.owner_id.clone(),
+                format!("{} (not enabled / not loaded)", item.owner_id),
+            ));
+        }
+        vec![
+            Field::text(
+                "Step key",
+                "Unique key; dependencies refer to these keys",
+                &item.key,
+            ),
+            Field::select("Assigned agent", agents, Some(&item.owner_id)),
+            Field::text(
+                "Instructions",
+                "What this step should do",
+                &item.instructions,
+            ),
+            Field::text(
+                "Success criteria",
+                "One criterion per line",
+                &item.criteria.join("\n"),
+            ),
+            Field::text(
+                "Prerequisite keys",
+                "One key per line; no cycles",
+                &item.prerequisites.join("\n"),
+            ),
+        ]
+    }
+
     pub(super) fn new(
         kind: Kind,
         records: &[OrganizationRecord],
@@ -530,15 +800,36 @@ impl Form {
                     )
                 })
                 .collect(),
-            Kind::Agent => vec![
-                Field::text("Agent name", "Your own name and hierarchy", ""),
+            Kind::Role(previous) => vec![
+                Field::text("Role name", "Your own reusable role; no execution permission is granted", previous.as_ref().map(|role|role.name.as_str()).unwrap_or("")),
+                Field::text("Role instructions", "Creates an immutable version; bind it to a node separately", previous.as_ref().map(|role|role.instructions.as_str()).unwrap_or("")),
+            ],
+            Kind::Membership(node) => vec![
+                Field::select("Group", records.iter().filter_map(|record|match record {
+                    OrganizationRecord::Node(group) if group.kind==OrganizationNodeKind::Group && group.id!=node.id => {
+                        let present=records.iter().any(|record|matches!(record,OrganizationRecord::Membership(member) if member.node_id==node.id && member.group_id==group.id));
+                        Some((group.id.clone(),format!("{}{}",group.label,if present { " (member)" } else { "" })))
+                    },_=>None }).collect(),None),
+                Field::select("Membership",vec![("true".into(),"Add / keep membership".into()),("false".into(),"Remove membership".into())],None),
+            ],
+            Kind::Group | Kind::NodeEdit(OrganizationNode {kind:OrganizationNodeKind::Group,..}) => {
+                let node=match &kind { Kind::NodeEdit(node)=>Some(node),_=>None };
+                vec![Field::text("Group name","A passive container; agents may have any hierarchy level",node.map(|node|node.label.as_str()).unwrap_or("")),
+                    Field::select("Parent",optional(nodes.into_iter().filter(|(id,_)|node.is_none_or(|node|id!=&node.id)).collect()),
+                        if let Some(node)=node { node.parent_id.as_deref() } else {selected.and_then(|record|match record { OrganizationRecord::Node(node)=>Some(node.id.as_str()),_=>None })}),
+                    Field::select("State",vec![("true".into(),"Enabled".into()),("false".into(),"Retired / disabled (records retained)".into())],Some(if node.is_none_or(|node|node.enabled) { "true" } else { "false" }))]
+            },
+            Kind::Agent | Kind::NodeEdit(_) => {
+                let node=match &kind { Kind::NodeEdit(node)=>Some(node),_=>None };
+                vec![
+                Field::text("Agent name", "Your own name and hierarchy", node.map(|node|node.label.as_str()).unwrap_or("")),
                 Field::select(
                     "Parent",
-                    optional(nodes),
-                    selected.and_then(|r| match r {
+                    optional(nodes.into_iter().filter(|(id,_)|node.is_none_or(|node|id!=&node.id)).collect()),
+                    if let Some(node)=node {node.parent_id.as_deref()} else {selected.and_then(|r| match r {
                         OrganizationRecord::Node(n) => Some(n.id.as_str()),
                         _ => None,
-                    }),
+                    })},
                 ),
                 Field::select(
                     "Role version",
@@ -554,10 +845,11 @@ impl Form {
                             })
                             .collect(),
                     ),
-                    None,
+                    node.and_then(|node|node.role_version_id.as_deref()),
                 ),
-                Field::text("Model", "Blank uses the configured default", ""),
-            ],
+                Field::text("Model", "Blank uses the configured default", node.and_then(|node|node.model.as_deref()).unwrap_or("")),
+                Field::select("State",vec![("true".into(),"Enabled".into()),("false".into(),"Retired / disabled (records retained)".into())],Some(if node.is_none_or(|node|node.enabled) { "true" } else { "false" })),
+            ]},
             Kind::Goal => vec![
                 Field::text("Objective", "Describe the desired outcome", ""),
                 Field::text("Success criteria", "One criterion per line", ""),
@@ -574,18 +866,11 @@ impl Form {
                 Field::select("Owner", optional(agents), owner),
                 Field::text("Completion criteria", "One criterion per line", ""),
             ],
-            Kind::WorkflowSave { items, .. } => vec![
-                Field::text(
-                    "Workflow name",
-                    "Reusable template; saving starts no work",
-                    "",
-                ),
-                Field::text(
-                    "Tasks (JSON)",
-                    "Keys, assignments, instructions, criteria and prerequisite keys",
-                    &serde_json::to_string_pretty(items).unwrap_or_default(),
-                ),
-            ],
+            Kind::WorkflowSave { items, previous, .. } => {
+                let mut fields=vec![Field::text("Workflow name", "Saving starts no work; F7 adds a step, F8 removes the focused step", previous.as_ref().map(|template|template.label.as_str()).unwrap_or(""))];
+                for item in items {fields.extend(Self::step_fields(item,&agents));}
+                fields
+            },
             Kind::Task => vec![
                 Field::select(
                     "Project",
@@ -604,7 +889,13 @@ impl Form {
                 Field::text("Acceptance criteria", "One criterion per line", ""),
                 Field::text("Prerequisites", "Optional task IDs, one per line", ""),
             ],
-            Kind::Authorize(task) | Kind::Schedule(task) | Kind::WorkflowRun { task, .. } => {
+            Kind::WorkflowRun { template } => template.items.iter().flat_map(|item| {
+                let model=records.iter().find_map(|record|match record {OrganizationRecord::Node(node) if node.id==item.owner_id=>node.model.as_deref(),_=>None}).unwrap_or(model);
+                let mut fields=Self::scope_fields(model);
+                for field in &mut fields {field.label=format!("{} · {}",item.key,field.label);}
+                fields
+            }).collect(),
+            Kind::Authorize(task) | Kind::Schedule(task) => {
                 let model = records
                     .iter()
                     .find_map(|r| match r {
@@ -612,67 +903,7 @@ impl Form {
                         _ => None,
                     })
                     .unwrap_or(model);
-                vec![
-                    Field::text("Input files", "Project-relative paths, one per line", ""),
-                    Field::text(
-                        "Immutable inputs",
-                        "Read-only inputs, including test oracles; one per line",
-                        "",
-                    ),
-                    Field::text(
-                        "Output artifacts",
-                        "Project-relative paths, one per line",
-                        "",
-                    ),
-                    Field::text(
-                        "Checks (argv JSON)",
-                        "Example: [[\"python3\",\"oracle.py\"]]; no shell parsing",
-                        "[]",
-                    ),
-                    Field::text("Model", "Explicit model for this grant", model),
-                    Field::text(
-                        "Token ceiling",
-                        "Reported tokens; an admitted request can exceed this",
-                        "10000",
-                    ),
-                    Field::text("Time limit (seconds)", "1–3600", "240"),
-                    Field::text("Model requests", "1–100; provider retries disabled", "5"),
-                    Field::text("Attempts", "1–3", "1"),
-                    Field::select(
-                        "Approve each tool action",
-                        vec![
-                            ("true".into(), "Yes".into()),
-                            (
-                                "false".into(),
-                                "No — routine in-scope tools preauthorized".into(),
-                            ),
-                        ],
-                        None,
-                    ),
-                    Field::text(
-                        "Allowed delegates",
-                        "Optional agent IDs, one per line; hierarchy grants no authority",
-                        "",
-                    ),
-                    Field::text(
-                        "Maximum child tasks",
-                        "0 disables delegation; maximum 32",
-                        "0",
-                    ),
-                    Field::select(
-                        "Accept checked children",
-                        vec![
-                            ("false".into(), "No".into()),
-                            ("true".into(), "Yes — declared checks required".into()),
-                        ],
-                        None,
-                    ),
-                    Field::text(
-                        "Start time (UTC epoch)",
-                        "Optional one-shot time; blank starts when ready",
-                        "",
-                    ),
-                ]
+                Self::scope_fields(model)
             }
         };
         if matches!(&kind, Kind::Schedule(_)) {
@@ -726,6 +957,10 @@ impl Form {
     pub(super) fn title(&self) -> &'static str {
         match self.kind {
             Kind::Agent => "New agent",
+            Kind::Group => "New group",
+            Kind::NodeEdit(_) => "Edit node / hierarchy / state",
+            Kind::Role(_) => "Create immutable role version",
+            Kind::Membership(_) => "Edit group membership",
             Kind::Goal => "New goal",
             Kind::Project => "New project",
             Kind::Task => "New task",
@@ -752,19 +987,57 @@ impl Form {
             scope.max_model_requests.to_string(),
             scope.max_attempts.to_string(),
         ];
-        for (field, value) in self.fields.iter_mut().zip(values) {
-            field.input.set_text_clearing_elements(&value);
+        let groups = if let Kind::WorkflowRun { template } = &self.kind {
+            template.items.len()
+        } else {
+            1
+        };
+        for start in (0..groups).map(|index| index * 14) {
+            for (field, value) in self.fields[start..].iter_mut().zip(&values) {
+                field.input.set_text_clearing_elements(value);
+            }
+            self.fields[start + 9].choice = usize::from(!scope.require_tool_approval);
+            self.fields[start + 10]
+                .input
+                .set_text_clearing_elements(&scope.delegates.join("\n"));
+            self.fields[start + 11]
+                .input
+                .set_text_clearing_elements(&scope.max_children.to_string());
+            self.fields[start + 12].choice = usize::from(scope.auto_accept_children);
         }
-        self.fields[9].choice = usize::from(!scope.require_tool_approval);
-        self.fields[10]
-            .input
-            .set_text_clearing_elements(&scope.delegates.join("\n"));
-        self.fields[11]
-            .input
-            .set_text_clearing_elements(&scope.max_children.to_string());
-        self.fields[12].choice = usize::from(scope.auto_accept_children);
     }
     pub(super) fn key(&mut self, key: KeyEvent) {
+        if matches!(&self.kind, Kind::WorkflowSave { .. }) {
+            if key.code == KeyCode::F(7) {
+                if self.fields.len() < 1 + 32 * 5 {
+                    let agents = self.fields[2].choices.clone();
+                    self.focus = self.fields.len();
+                    self.fields.extend(Self::step_fields(
+                        &OrganizationPlanItem {
+                            key: String::new(),
+                            owner_id: String::new(),
+                            instructions: String::new(),
+                            criteria: vec![],
+                            prerequisites: vec![],
+                        },
+                        &agents,
+                    ));
+                } else {
+                    self.error = "Workflows contain at most 32 steps".into();
+                }
+                return;
+            }
+            if key.code == KeyCode::F(8) {
+                if self.focus > 0 && self.fields.len() > 6 {
+                    let start = 1 + (self.focus - 1) / 5 * 5;
+                    self.fields.drain(start..start + 5);
+                    self.focus = start.min(self.fields.len() - 1);
+                } else {
+                    self.error = "Keep at least one step; focus the step to remove".into();
+                }
+                return;
+            }
+        }
         match key.code {
             KeyCode::Tab => self.focus = (self.focus + 1) % self.fields.len(),
             KeyCode::BackTab => {
@@ -810,6 +1083,89 @@ impl Form {
                 field.input.insert_str_at(field.input.cursor(), &value);
             }
         }
+    }
+    fn scope(&self, start: usize) -> anyhow::Result<OrganizationExecutionScope> {
+        let value = |i: usize| self.fields[start + i].value().to_string();
+        let required = |i: usize| -> anyhow::Result<String> {
+            let text = value(i);
+            anyhow::ensure!(
+                !text.is_empty(),
+                "{} is required",
+                self.fields[start + i].label
+            );
+            Ok(text)
+        };
+        let optional = |i: usize| (!value(i).is_empty()).then(|| value(i));
+        let lines = |i: usize| {
+            value(i)
+                .lines()
+                .map(str::trim)
+                .filter(|s| !s.is_empty())
+                .map(str::to_string)
+                .collect::<Vec<_>>()
+        };
+        let criteria = |i| -> anyhow::Result<Vec<String>> {
+            required(i)?;
+            Ok(lines(i))
+        };
+        let number = |i: usize| -> anyhow::Result<u32> {
+            value(i).parse().map_err(|_| {
+                anyhow::anyhow!(
+                    "{} must be a positive integer",
+                    self.fields[start + i].label
+                )
+            })
+        };
+        let scope = OrganizationExecutionScope {
+            input_files: lines(0),
+            immutable_files: lines(1),
+            artifacts: criteria(2)?,
+            checks: serde_json::from_str(&value(3))
+                .map_err(|e| anyhow::anyhow!("Checks must be an array of argv arrays: {e}"))?,
+            model: required(4)?,
+            max_tokens: i64::from(number(5)?),
+            max_seconds: number(6)?,
+            max_model_requests: number(7)?,
+            max_attempts: number(8)?,
+            require_tool_approval: value(9) == "true",
+            delegates: lines(10),
+            max_children: number(11)?,
+            auto_accept_children: value(12) == "true",
+            not_before: optional(13).map(|s| s.parse::<i64>()).transpose()?,
+        };
+        anyhow::ensure!(
+            (1..=10_000_000).contains(&scope.max_tokens)
+                && (1..=3600).contains(&scope.max_seconds)
+                && (1..=100).contains(&scope.max_model_requests)
+                && (1..=3).contains(&scope.max_attempts)
+                && scope.max_children <= 32,
+            "Budget is outside the supported limits"
+        );
+        for paths in [&scope.input_files, &scope.immutable_files, &scope.artifacts] {
+            let mut unique = BTreeSet::new();
+            for path in paths {
+                anyhow::ensure!(
+                    Path::new(path)
+                        .components()
+                        .all(|part| matches!(part, std::path::Component::Normal(_)))
+                        && !path.contains('\0')
+                        && unique.insert(path),
+                    "File paths must be unique, relative and without traversal"
+                );
+            }
+        }
+        anyhow::ensure!(
+            scope
+                .immutable_files
+                .iter()
+                .all(|p| scope.input_files.contains(p)),
+            "Immutable files must also be inputs"
+        );
+        anyhow::ensure!(
+            !scope.auto_accept_children || !scope.checks.is_empty(),
+            "Checked child acceptance requires declared checks"
+        );
+        Ok(scope)
     }
     pub(super) fn command(&self) -> anyhow::Result<Command> {
         let value = |i: usize| self.fields[i].value().to_string();
@@ -872,16 +1228,53 @@ impl Form {
                     ),
                 })
             }
-            Kind::Agent => Command::Definition(OrganizationMutation::PutNode {
-                id: None,
-                expected_revision: None,
-                parent_id: optional(1),
-                kind: OrganizationNodeKind::Agent,
-                label: required(0)?,
-                role_version_id: optional(2),
-                model: optional(3),
-                enabled: true,
+            Kind::Role(previous) => Command::Definition(OrganizationMutation::CreateRoleVersion {
+                role_id: previous.as_ref().map(|role| role.role_id.clone()),
+                expected_version: previous.as_ref().map(|role| role.version),
+                name: required(0)?,
+                instructions: required(1)?,
             }),
+            Kind::Membership(node) => Command::Definition(OrganizationMutation::SetMembership {
+                node_id: node.id.clone(),
+                group_id: required(0)?,
+                present: value(1) == "true",
+            }),
+            Kind::Group
+            | Kind::NodeEdit(OrganizationNode {
+                kind: OrganizationNodeKind::Group,
+                ..
+            }) => {
+                let node = match &self.kind {
+                    Kind::NodeEdit(node) => Some(node),
+                    _ => None,
+                };
+                Command::Definition(OrganizationMutation::PutNode {
+                    id: node.map(|node| node.id.clone()),
+                    expected_revision: node.map(|node| node.revision),
+                    kind: OrganizationNodeKind::Group,
+                    label: required(0)?,
+                    parent_id: optional(1),
+                    role_version_id: None,
+                    model: None,
+                    enabled: value(2) == "true",
+                })
+            }
+            Kind::Agent | Kind::NodeEdit(_) => {
+                let node = match &self.kind {
+                    Kind::NodeEdit(node) => Some(node),
+                    _ => None,
+                };
+                Command::Definition(OrganizationMutation::PutNode {
+                    id: node.map(|node| node.id.clone()),
+                    expected_revision: node.map(|node| node.revision),
+                    parent_id: optional(1),
+                    kind: OrganizationNodeKind::Agent,
+                    label: required(0)?,
+                    role_version_id: optional(2),
+                    model: optional(3),
+                    enabled: value(4) == "true",
+                })
+            }
             Kind::Goal => Command::Definition(OrganizationMutation::PutGoal {
                 id: None,
                 expected_revision: None,
@@ -913,15 +1306,50 @@ impl Form {
                     criteria: criteria(4)?,
                 }
             }
-            Kind::WorkflowSave { project_id, .. } => {
+            Kind::WorkflowSave {
+                project_id,
+                previous,
+                ..
+            } => {
+                let items = (1..self.fields.len())
+                    .step_by(5)
+                    .map(|start| {
+                        Ok(OrganizationPlanItem {
+                            key: required(start)?,
+                            owner_id: required(start + 1)?,
+                            instructions: required(start + 2)?,
+                            criteria: criteria(start + 3)?,
+                            prerequisites: lines(start + 4),
+                        })
+                    })
+                    .collect::<anyhow::Result<Vec<_>>>()?;
                 Command::Workflow(OrganizationWorkflowMutation::Put {
-                    id: self.project_key.clone(),
-                    expected_revision: None,
+                    id: previous
+                        .as_ref()
+                        .map(|template| template.id.clone())
+                        .unwrap_or_else(|| self.project_key.clone()),
+                    expected_revision: previous.as_ref().map(|template| template.revision),
                     project_id: project_id.clone(),
                     label: required(0)?,
-                    items: serde_json::from_str(&value(1)).map_err(|e| {
-                        anyhow::anyhow!("Tasks must be a plan-item JSON array: {e}")
-                    })?,
+                    items,
+                })
+            }
+            Kind::WorkflowRun { template } => {
+                Command::WorkflowPreview(OrganizationWorkflowPreviewRequest {
+                    id: self.project_key.clone(),
+                    template_id: template.id.clone(),
+                    expected_revision: template.revision,
+                    scopes: template
+                        .items
+                        .iter()
+                        .enumerate()
+                        .map(|(index, item)| {
+                            Ok(OrganizationWorkflowScope {
+                                key: item.key.clone(),
+                                scope: self.scope(index * 14)?,
+                            })
+                        })
+                        .collect::<anyhow::Result<Vec<_>>>()?,
                 })
             }
             Kind::Task => Command::Definition(OrganizationMutation::PutTask {
@@ -934,77 +1362,14 @@ impl Form {
                 criteria: criteria(4)?,
                 prerequisites: lines(5),
             }),
-            Kind::Authorize(task) | Kind::Schedule(task) | Kind::WorkflowRun { task, .. } => {
+            Kind::Authorize(task) | Kind::Schedule(task) => {
+                let mut scope = self.scope(0)?;
                 let number = |i: usize| -> anyhow::Result<u32> {
                     value(i).parse().map_err(|_| {
                         anyhow::anyhow!("{} must be a positive integer", self.fields[i].label)
                     })
                 };
-                let mut scope = OrganizationExecutionScope {
-                    input_files: lines(0),
-                    immutable_files: lines(1),
-                    artifacts: criteria(2)?,
-                    checks: serde_json::from_str(&value(3)).map_err(|e| {
-                        anyhow::anyhow!("Checks must be an array of argv arrays: {e}")
-                    })?,
-                    model: required(4)?,
-                    max_tokens: i64::from(number(5)?),
-                    max_seconds: number(6)?,
-                    max_model_requests: number(7)?,
-                    max_attempts: number(8)?,
-                    require_tool_approval: value(9) == "true",
-                    delegates: lines(10),
-                    max_children: number(11)?,
-                    auto_accept_children: value(12) == "true",
-                    not_before: optional(13).map(|s| s.parse::<i64>()).transpose()?,
-                };
-                anyhow::ensure!(
-                    (1..=10_000_000).contains(&scope.max_tokens)
-                        && (1..=3600).contains(&scope.max_seconds)
-                        && (1..=100).contains(&scope.max_model_requests)
-                        && (1..=3).contains(&scope.max_attempts)
-                        && scope.max_children <= 32,
-                    "Budget is outside the supported limits"
-                );
-                for paths in [&scope.input_files, &scope.immutable_files, &scope.artifacts] {
-                    let mut unique = BTreeSet::new();
-                    for path in paths {
-                        anyhow::ensure!(
-                            Path::new(path)
-                                .components()
-                                .all(|part| matches!(part, std::path::Component::Normal(_)))
-                                && !path.contains('\0')
-                                && unique.insert(path),
-                            "File paths must be unique, relative and without traversal"
-                        );
-                    }
-                }
-                anyhow::ensure!(
-                    scope
-                        .immutable_files
-                        .iter()
-                        .all(|p| scope.input_files.contains(p)),
-                    "Immutable files must also be inputs"
-                );
-                anyhow::ensure!(
-                    !scope.auto_accept_children || !scope.checks.is_empty(),
-                    "Checked child acceptance requires declared checks"
-                );
-                if let Kind::WorkflowRun { template, .. } = &self.kind {
-                    Command::WorkflowPreview(OrganizationWorkflowPreviewRequest {
-                        id: self.project_key.clone(),
-                        template_id: template.id.clone(),
-                        expected_revision: template.revision,
-                        scopes: template
-                            .items
-                            .iter()
-                            .map(|item| OrganizationWorkflowScope {
-                                key: item.key.clone(),
-                                scope: scope.clone(),
-                            })
-                            .collect(),
-                    })
-                } else if matches!(&self.kind, Kind::Schedule(_)) {
+                if matches!(&self.kind, Kind::Schedule(_)) {
                     let config = OrganizationScheduleConfig {
                         label: required(14)?,
                         interval_seconds: number(15)?,
@@ -1053,7 +1418,9 @@ impl Form {
             Constraint::Length(3),
         ])
         .split(inner.inner(Margin::new(1, 0)));
-        let help = if matches!(self.kind, Kind::Apply { .. }) {
+        let help = if matches!(self.kind, Kind::WorkflowSave { .. }) {
+            "Tab / Enter next · Shift-Tab previous · F7 add step · F8 remove step\nAlt-Enter newline · F6 review exact template · Esc close"
+        } else if matches!(self.kind, Kind::Apply { .. }) {
             "Tab / Enter next · Shift-Tab previous · Arrows / Space toggle\nF6 review exact selection · Esc close (no changes)"
         } else {
             "Tab / Enter next · Shift-Tab previous · Left / Right choose\nAlt-Enter newline · F6 review · Esc close (no changes)"

@@ -758,8 +758,8 @@ impl Dashboard {
             ]
         } else {
             [
-                "N project · T task · G goal · U agent · s authorize · ↑↓ select · Tab focus · / search · f refresh",
-                "W save workflow · w workflows · R recurring · S schedules · H resolve blocker · m/M memory · v accept · A Apply · q Console",
+                "N project · T task · G goal · U agent · B group · E edit · L role · I membership · ↑↓ select · Tab focus",
+                "W/w workflows · s authorize · R/S recurring · H blocker · m/M memory · v accept · A Apply · / search · f refresh · q Console",
             ]
         };
         Paragraph::new(vec![
