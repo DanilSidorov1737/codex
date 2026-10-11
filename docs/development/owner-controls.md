@@ -1,7 +1,7 @@
 # Operations and workflow owner controls
 
 Expanded-batch items 5–6 reuse existing guarded owner RPCs and native forms.
-Implementation is under qualification; see status.md and testing.md for evidence.
+Qualified on `55af0a0b5b`; see status.md and testing.md for evidence.
 
 In Operations, `U` creates an agent and `B` creates a passive group. Select a
 node and press `E` to edit its name, primary parent, immutable role assignment,

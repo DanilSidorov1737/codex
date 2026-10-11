@@ -5,36 +5,31 @@ Current work: **N1/N2/N3 complete; expanded recovery/handoff/UI batch approved a
 Application features: **delivered for the documented single-owner Linux envelope**.
 The MVP's release criteria are **qualified for the documented single-owner Linux/GPT-5.5 envelope**.
 
-## Expanded batch checkpoint: items 1–4 complete
+## Expanded batch checkpoint: items 1–6 complete
 
-Items 5–6 are implemented and under qualification: native Operations node/group/
-role/membership edits, guarded template editing and distinct per-step scope forms.
-All 38 focused TUI tests passed, including actual official Neovim checks.
-Production Clippy caught a redundant `expect` in template selection; it was
-replaced with a normal guard. All 38 affected tests, complete CLI production
-Clippy and workspace formatting now pass; the failed lint is retained.
-Physical qualification will use fresh `expanded-batch/owner-ui` fixtures and
-`owner-ui-home`; historical Apply/handoff/workflow fixtures remain untouched.
-See [owner controls](owner-controls.md). Items 7–12 remain approved next work.
+Items 5–6 are implemented and physically qualified on `55af0a0b5b`.
+Native Operations group/node/role/membership/reparent/retire controls and workflow
+step editing, distinct scopes, stale/cycle rejection, daemon restart, dependency
+acceptance, exact approvals, immutable real checks, official Neovim diff and one
+explicit Apply passed. All 39 selected TUI tests, complete CLI production Clippy,
+formatting, full CLI and package passed. Four successful localhost requests /
+60 fixture tokens / zero paid requests; 36 layout switches at three sizes.
+Owned daemon/provider are stopped. See [owner controls](owner-controls.md) and
+[testing evidence](testing.md#operations-and-workflow-controls-qualification).
 
-The actual editing pilot passed node/group/role/membership/reparent/retire/restore
-and cycle/stale-node checks, then caught F8 being consumed by the Console voice
-shortcut before the workflow form. Organization overlays now use the existing
-raw-key context so both forms and actual Neovim retain their function keys.
-All 39 selected tests and complete CLI production Clippy pass; the package is
-being rebuilt for guarded physical continuation. Preserve the failed pilot and two guarded
-continuations. The first harness mistakenly escaped into Console (60 refused
-localhost fixture requests, no paid requests or grants); the first continuation
-missed terminal attachment. These helpers were corrected without resetting state.
-`owner-ui-home` retains three nodes, two role versions, two proposed seed tasks,
-one saved workflow revision and zero authorizations/attempts. Services are stopped;
-resume only the unfinished workflow controls with the corrected package.
+Preserve `owner-ui-home`: four tasks, two grants/attempts/results and one completed
+application. Never replay its definitions, authorization, acceptance or Apply.
+The initial helper mistakenly escaped into Console (60 refused localhost fixture
+POSTs, no paid inference); subsequent harness attachment, variable and viewport
+assertion failures are preserved. Physical interaction caught a real F8/voice
+key-routing bug, fixed in `55af0a0b5b`. A package hash preflight also refused stale
+installed bytes; the supported `daemon update --from-cli --yes` with a distinct
+dev package version installed the qualified binary without resetting state.
 
-Approved reports/inbox/resource work is saved in local stash
-`d46180ef3f8f1c5a70d4e769980f2c381cbeec35` while qualifying this key-routing fix.
-Its two meaningful state projection tests passed. Restore that exact stash after
-the owner-control code/docs checkpoint and continue items 7–12; it is not yet a
-delivered/qualified API or UI. Do not rerun completed fixture mutations.
+Continue items 7–12: restore approved report work from exact local stash
+`d46180ef3f8f1c5a70d4e769980f2c381cbeec35`, then complete Review inbox, local reports,
+resource attribution, actual Neovim selection requests and capability inventory.
+Its two initial state projection tests passed; it is not yet a qualified API/UI.
 
 Item 1 is delivered and physically qualified: a server-confirmed pre-intent
 rejection now restores actual Neovim input without frontend restart, with the
@@ -72,7 +67,7 @@ target refusals and verifier envelope error remain alongside corrected evidence;
 the guarded package continuation proved no canonical records or inference existed
 before starting once. These failures did not require an application-code change.
 
-Continue approved work: item 5 Operations editing, then item 6 fuller workflow UI,
+Continue approved work: items 7–12,
 followed by Review inbox, summaries/resources, Neovim selection and inventory.
 Use fresh fixtures and the same Ponytail/testing/commit process. Remaining items
 are already approved; no new scope question is needed for these slices.

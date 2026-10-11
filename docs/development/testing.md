@@ -2081,3 +2081,23 @@ current affected units, production checks, full package and physical paths passe
 Final documentation verification: 111 local links across 22 development/root
 Markdown files resolve; evidence JSON is readable; qualified source hashes are
 unchanged; `git diff --check` is clean. `final-documentation-check.json`.
+
+
+## Operations and workflow controls qualification
+
+Source `55af0a0b5b`, official Neovim 0.12.6, Rust 1.95, native Linux package.
+39 selected TUI tests, CLI production Clippy, workspace formatting, complete
+CLI/package passed. Logs: `expanded-batch/operations-function-key-*`.
+Physical `expanded-batch/owner-ui/resume-v6.json` and `verification.json` pass:
+27 PNG/text captures, 36 switches at three sizes, two normal exit assertions,
+exact group/node/role/membership editing, retire/restore, stale/cycle rejection,
+F7/F8 native steps, separate scopes (100/200 tokens and 2/3 requests), restart,
+acceptance-fenced dispatch, immutable checks, actual Neovim diff and one Apply.
+Independent asset/oracle/result hashes, counters, SQLite quick/FK checks pass.
+Four successful localhost synthetic requests / 60 fixture tokens / zero paid.
+The initial Console helper generated 60 rejected localhost POSTs separately;
+these have no recorded usage or task grants. Failed harness continuations and
+F8 regression, stale-package preflight are retained alongside corrected passes.
+The first normal exit is established by `stop_normally()` returning before the
+v4 NameError; the second exit is recorded directly in the successful continuation.
+All owned services stopped (`cleanup-resume-v6.json`). Never replay these scripts.
