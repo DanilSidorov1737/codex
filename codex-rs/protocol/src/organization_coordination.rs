@@ -15,6 +15,15 @@ pub struct OrganizationPlanItem {
     pub prerequisites: Vec<String>,
 }
 
+/// Project/task context, never new permissions or owner-selected identities.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct OrganizationCheckpointContent {
+    pub completed_steps: Vec<String>,
+    pub remaining_steps: Vec<String>,
+    pub blocker: Option<String>,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
 #[serde(rename_all = "camelCase")]
 pub enum OrganizationNoteScope {
@@ -61,6 +70,9 @@ pub struct OrganizationMessage {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
 #[serde(tag = "type", rename_all = "camelCase", deny_unknown_fields)]
 pub enum OrganizationCoordinationCall {
+    Checkpoint {
+        content: OrganizationCheckpointContent,
+    },
     #[serde(rename_all = "camelCase")]
     Wait {
         task_ids: Vec<String>,
@@ -99,6 +111,27 @@ pub enum OrganizationCoordinationCall {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn checkpoints_cannot_select_identity_files_or_grants() {
+        let call = serde_json::json!({"type":"checkpoint","content": {
+            "completedSteps":["Observed partial work"], "remainingSteps":["Finish"], "blocker":"Owner decision" }});
+        assert!(serde_json::from_value::<OrganizationCoordinationCall>(call.clone()).is_ok());
+        for field in ["taskId", "attemptId", "worker", "files", "scope", "ownerId"] {
+            let mut spoofed = call.clone();
+            spoofed[field] = "untrusted".into();
+            assert!(serde_json::from_value::<OrganizationCoordinationCall>(spoofed).is_err());
+        }
+        let mut spoofed = call;
+        spoofed["content"]["permissions"] = "admin".into();
+        assert!(serde_json::from_value::<OrganizationCoordinationCall>(spoofed).is_err());
+        assert!(
+            serde_json::from_value::<OrganizationCoordinationCall>(
+                serde_json::json!({"type":"handoff"})
+            )
+            .is_err()
+        );
+    }
 
     #[test]
     fn memory_search_cannot_select_identity_and_legacy_read_is_unchanged() {

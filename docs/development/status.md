@@ -21,7 +21,27 @@ test fixtures and wrong CLI-subcommand setup failure remain alongside corrected
 passes. Preserve this accepted/applied task and do not rerun its setup/authorization
 or Apply scripts.
 
-Next approved work: items 2–4, structured checkpoints, owner-controlled fenced
+Items 2–4 are now in progress: the append-only checkpoint/handoff state contract
+passes **373 protocol + 273 state tests**. New cases exercise retained budgets,
+stale workers/revisions, unresolved effects/usage, blocked runtime occupancy,
+deduplication, unrelated work and genuine v8 migration/restart. The daemon file
+snapshot/import and owner handoff path are being connected and checked; this is
+not yet a qualified CLI/TUI feature. Evidence:
+`expanded-batch/handoff-state-protocol-final.log`; the initial test helper compile
+failure remains in `handoff-state-protocol-tests.log`.
+The daemon/native-file checks now pass **11** tests, the actual sandboxed API
+workflow suite **8**, and TUI/official-Neovim checks **34**. These include tampered
+checkpoint refusal, pinned input import after an original edit, one unchanged
+grant/four total requests, completed-action provenance and frozen handoff forms.
+Raw-generator contract comparisons and SDK checks now pass; **731 distinct
+automated tests** and production library Clippy pass. Recurring/workflow
+accounting coverage also passes. Preserve failed schema/wire runs alongside the
+corrected checks, as described in [testing](testing.md#checkpoint-and-handoff-automated-checks--physical-pilot-pending).
+Build the full current CLI/package, then run the fresh `continuity/` physical pilot
+and its independent verifier; these are still pending. Its source checkpoint is
+an implementation commit, not a claim of completed physical qualification.
+
+Continue approved work: items 2–4, structured checkpoints, owner-controlled fenced
 reassignment and blocker escalation. The [continuity contract](coordination.md#approved-checkpoint-and-handoff-continuation)
 preserves original grants/counters/expiry, requires stopped old runtimes and
 reconciled effects/usage, and imports only hash-verified permitted checkpoint

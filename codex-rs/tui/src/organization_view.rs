@@ -39,7 +39,7 @@ fn state_color(state: &str) -> Color {
     match state {
         "running" | "accepted" | "completed" => foreground(GREEN),
         "failed" | "cancelled" | "needsReconciliation" => foreground((255, 88, 102)),
-        "waitingApproval" | "needsReview" | "paused" | "waitingDependency" => {
+        "waitingApproval" | "needsReview" | "paused" | "waitingDependency" | "blocked" => {
             foreground((255, 196, 70))
         }
         _ => foreground(BLUE),
@@ -759,7 +759,7 @@ impl Dashboard {
         } else {
             [
                 "N project · T task · G goal · U agent · s authorize · ↑↓ select · Tab focus · / search · f refresh",
-                "W save workflow · w workflows · s preview/authorize · R recurring · S schedules · m/M memory · v accept · A Apply · q Console",
+                "W save workflow · w workflows · R recurring · S schedules · H resolve blocker · m/M memory · v accept · A Apply · q Console",
             ]
         };
         Paragraph::new(vec![

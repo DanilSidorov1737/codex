@@ -1,5 +1,55 @@
 # Testing procedures and evidence
 
+## Checkpoint and handoff automated checks — physical pilot pending
+
+2026-10-11 UTC, approved expanded-batch items 2–4. This source checkpoint passes
+the automated matrix; physical qualification remains pending. Logs are in
+`/workspace/.onboarding/qualification/expanded-batch/`. Activate
+`. /workspace/.onboarding/activate.sh` from `codex-rs`, with
+`CARGO_INCREMENTAL=0 RUST_MIN_STACK=8388608` and
+`--locked --offline --profile dev-small -j4`.
+
+| Check | Passed | Log |
+| --- | --- | --- |
+| `cargo test -p codex-protocol -p codex-state --lib` | 373 protocol + 273 state | `handoff-state-protocol-final.log` |
+| `cargo test -p codex-state --lib organization::tests::handoff` | 5; one added recurring/workflow case plus four repeats | `handoff-state-accounting-tests.log` |
+| `cargo test -p codex-app-server --lib organization` | 11 runtime/workspace/owner-origin | `handoff-runtime-tests.log` |
+| `cargo test -p codex-app-server --test all suite::v2::organization` | 8 actual native API/sandbox | `handoff-native-api-tests.log` |
+| `cargo test -p codex-tui --lib organization` | 34 TUI/actual official-Neovim | `handoff-tui-tests.log` |
+| `cargo test -p codex-app-server-protocol --lib schema_fixtures_tests -- --skip write_schema_fixtures_from_env` | 4 contract comparisons | `handoff-schema-comparisons-current.log` |
+| `cargo test -p codex-protocol --test organization_execution_contract` | 2 wire contracts | `handoff-wire-tests-current.log` |
+| Python SDK generation/public signatures | 25 | `handoff-python-tests.log` |
+
+**731 distinct automated tests passed**; repeated cases and explicit ignored schema
+writers are not added to that total. This is the selected organization qualification
+matrix, not the entire repository test suite. Native tests use localhost synthetic
+Responses with real tools, filesystem checks and isolation; they do not qualify
+additional real model reasoning or incur paid requests. Physical CLI/TUI/editor
+qualification uses a new `continuity/` fixture and `continuity-home`; do not run its
+mutation scripts again if canonical records/receipts already exist.
+
+Coverage includes immutable progress/action provenance, original grant/counter/
+expiry/base retention, old-worker denial, busy cleanup, unresolved usage/effects,
+exhausted limits, receiver/checkpoint/task revision mismatches, unrelated work,
+v8 migration, restart and hash/alias/traversal checks. The native API rejects a
+tampered checkpoint, imports pinned inputs after an original edit, stops the
+source, then finishes with a receiver under one grant/four total requests and a
+real immutable oracle. TUI forms require matching selected details and preserve
+captured task/checkpoint/receiver revisions through later selection/refresh.
+Recurring cancellation fences the replacement while retaining series counters;
+workflow handoff cannot release unaccepted dependencies or pool fixed step grants.
+
+Failures are retained. The first state test referenced nonexistent `settle_action`;
+it was corrected to the existing native receipt method `finish_action` without
+changing assertions. The first schema run enabled Prettier, unlike the committed
+raw-generator format, causing two fixture comparisons to fail; both raw bundles
+were regenerated and all four comparisons passed, removing unrelated formatting.
+The wire test exposed an older assumption that optional Apply `paths` must always
+be serialized; it now verifies required fields, the exact optional omission and
+both all-file/selected-file variants. Both wire tests pass. Production library
+Clippy (`-D warnings`) passed (`handoff-clippy.log`). Final CLI build/package and
+physical qualification remain pending.
+
 ## Apply recovery qualification
 
 2026-10-11 UTC, approved expanded-batch item 1. Evidence is in

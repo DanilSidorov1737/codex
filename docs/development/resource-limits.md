@@ -16,6 +16,17 @@ execution. Use a model supporting direct native tools; gpt-5.5 is qualified agai
 the deterministic fixture and the real OpenAI HTTPS Responses provider through
 three bounded pilots. No automatic model routing or Code Mode bypass is implemented.
 
+## Continuation limits (qualification in progress)
+
+Expanded-batch continuation (qualification in progress) keeps the original grant's
+token/request counters, attempt ceiling and expiry. Every stopped source and fresh
+receiver attempt consumes that same attempt allowance; handoff never creates a
+replacement grant. Time ceilings remain per attempt, as in the existing runtime;
+the fixed original expiry is never extended. Recurring usage and fixed workflow
+step accounting remain attached to their original grants. Checkpoints share the
+256 coordination-call attempt limit, with at most 32 checkpoints per task and a
+combined 64 MiB permitted-file snapshot. See [continuity](coordination.md#approved-checkpoint-and-handoff-continuation).
+
 ## Optional owner price quote
 
 Create `<CODEX_HOME>/organization-prices.json` as an owner-controlled regular

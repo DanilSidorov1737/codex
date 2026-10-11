@@ -501,6 +501,7 @@ impl OrganizationStore {
         .into_iter()
         .map(|data| serde_json::from_str(&data))
         .collect::<std::result::Result<_, _>>()?;
+        let (checkpoints, handoffs) = super::handoff::continuity_view(&mut tx, task_id).await?;
         tx.commit().await?;
         Ok(OrganizationExecutionView {
             task,
@@ -512,6 +513,8 @@ impl OrganizationStore {
             approvals,
             result,
             applications,
+            checkpoints,
+            handoffs,
         })
     }
 
@@ -813,7 +816,10 @@ async fn write_approval(
     Ok(())
 }
 
-async fn supersede_approvals(tx: &mut Transaction<'_, Sqlite>, attempt_id: &str) -> Result<()> {
+pub(super) async fn supersede_approvals(
+    tx: &mut Transaction<'_, Sqlite>,
+    attempt_id: &str,
+) -> Result<()> {
     let data: Vec<String> = sqlx::query_scalar("SELECT a.data FROM organization_approvals a JOIN organization_actions x ON x.id=a.action_id WHERE x.attempt_id=? AND a.state IN ('pending','approved')").bind(attempt_id).fetch_all(&mut **tx).await?;
     for data in data {
         let mut approval: OrganizationActionApproval = serde_json::from_str(&data)?;
@@ -827,7 +833,7 @@ fn digest(bytes: &[u8]) -> String {
     format!("{:x}", Sha256::digest(bytes))
 }
 
-fn valid_hash(hash: &str) -> bool {
+pub(super) fn valid_hash(hash: &str) -> bool {
     hash.len() == 64
         && hash
             .bytes()
@@ -850,6 +856,7 @@ pub(super) async fn stop_task_in(
                 | "waitingApproval"
                 | "waitingDependency"
                 | "paused"
+                | "blocked"
                 | "needsReconciliation"
         ),
         "task cannot be stopped in its current state"
@@ -874,7 +881,7 @@ pub(super) async fn stop_task_in(
             .execute(&mut **tx)
             .await?;
     }
-    let attempts: Vec<String> = sqlx::query_scalar("SELECT data FROM organization_attempts WHERE task_id=? AND state IN ('running','waitingApproval','waitingDependency','needsReconciliation')").bind(task_id).fetch_all(&mut **tx).await?;
+    let attempts: Vec<String> = sqlx::query_scalar("SELECT data FROM organization_attempts WHERE task_id=? AND state IN ('running','waitingApproval','waitingDependency','blocked','needsReconciliation')").bind(task_id).fetch_all(&mut **tx).await?;
     for data in attempts {
         let mut attempt: OrganizationTaskAttempt = serde_json::from_str(&data)?;
         attempt.state = state;

@@ -101,6 +101,27 @@ work continuing, scoped artifact continuity, actual CLI/TUI/official-Neovim revi
 and a separately confirmed Apply. This contract is approved but not yet delivered;
 update this section with the concrete API and measured limits after qualification.
 
+Implementation in progress: `checkpoint` supplies only `content` with
+`completedSteps`, `remainingSteps` and optional `blocker`. The host captures all
+granted inputs and existing outputs (combined 64 MiB), all original output bases
+and completed-action IDs. It records at most 32 checkpoints per task and shares
+the existing 256-call attempt ceiling. The owner read view returns the newest
+16 checkpoints/handoffs. A blocker sets `blocked`, fences the source immediately
+and retains native occupancy until actual cleanup. It does not accept results.
+
+The owner-only `handoff` mutation pins `taskId`, `expectedRevision`, `checkpointId`,
+`ownerId`, `expectedOwnerRevision` and explicit resolution `instructions`. Receiver
+eligibility is restricted to the same owner, original owner or original delegate
+roster, with current enabled ancestry/model/project policy checked. Handoff requires
+remaining original token/request/attempt limits, reconciled actions and usage,
+and finished/cancelled descendants. It changes only task ownership and the grant's
+node revision; grant identity, scope, root accounting and expiry stay unchanged.
+Host file hashes are rechecked before committing and before receiver import.
+Neither private agent notes nor newly edited project inputs are imported.
+
+The state/protocol contract has passed 646 tests; daemon/TUI/physical qualification
+is still pending. See [current status](status.md).
+
 Parents wait only for direct delegated children, yielding an acyclic wait tree.
 A waiting parent releases its active slot after any streamed provider request's
 usage receipt is recorded. Resume reacquires a slot before further inference.

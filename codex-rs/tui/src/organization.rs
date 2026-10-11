@@ -1149,6 +1149,57 @@ impl Dashboard {
     }
     fn open_form(&mut self, key: char) {
         let kind = match key {
+            'H' => {
+                let Some(view) = self.detail.as_ref().filter(|view| {
+                    Some(&view.task.id) == self.selected.as_ref() && view.task.state == "blocked"
+                }) else {
+                    self.message =
+                        "Select a blocked task and wait for its checkpoint details.".into();
+                    return;
+                };
+                let Some(grant) = &view.authorization else {
+                    return;
+                };
+                let Some(checkpoint) = view
+                    .checkpoints
+                    .first()
+                    .filter(|checkpoint| checkpoint.authorization_id == grant.id)
+                else {
+                    self.message =
+                        "No current checkpoint; inspect recovery evidence before continuing."
+                            .into();
+                    return;
+                };
+                let receivers = self
+                    .snapshot
+                    .records
+                    .iter()
+                    .filter_map(|record| match record {
+                        OrganizationRecord::Node(node)
+                            if node.kind == OrganizationNodeKind::Agent
+                                && node.enabled
+                                && (node.id == view.task.owner_id
+                                    || grant.scope.delegates.contains(&node.id)
+                                    || view.checkpoints.iter().any(|checkpoint| {
+                                        checkpoint.authorization_id == grant.id
+                                            && checkpoint.owner_id == node.id
+                                    })
+                                    || view.handoffs.iter().any(|handoff| {
+                                        handoff.authorization_id == grant.id
+                                            && handoff.from_owner_id == node.id
+                                    })) =>
+                        {
+                            Some(node.clone())
+                        }
+                        _ => None,
+                    })
+                    .collect();
+                form::Kind::Handoff {
+                    task: view.task.clone(),
+                    checkpoint: checkpoint.clone(),
+                    receivers,
+                }
+            }
             'W' => match self.workflow_items() {
                 Ok((project_id, items)) => form::Kind::WorkflowSave { project_id, items },
                 Err(e) => {
@@ -1647,7 +1698,9 @@ impl Dashboard {
             }
             KeyCode::Char('m') => self.open_memory(false),
             KeyCode::Char('M') => self.open_memory(true),
-            KeyCode::Char(c @ ('U' | 'G' | 'N' | 'T' | 's' | 'A' | 'R' | 'W')) => self.open_form(c),
+            KeyCode::Char(c @ ('U' | 'G' | 'N' | 'T' | 's' | 'A' | 'R' | 'W' | 'H')) => {
+                self.open_form(c)
+            }
             KeyCode::Char('n') if self.preferences.preset == Preset::Review => {
                 if let Some(result) = self
                     .detail
@@ -1962,6 +2015,21 @@ impl Dashboard {
                     attempt.thread_id
                 ));
             }
+            for checkpoint in &view.checkpoints {
+                text.push_str(&format!("\nCheckpoint: {} · {}\nSource attempt: {} · owner: {}\nReported completed work:\n{}\nRemaining work:\n{}\nBlocker / owner decision: {}\nVerified completed-action IDs: {}\n",checkpoint.id,utc_time(checkpoint.created_at),checkpoint.attempt_id,checkpoint.owner_id,
+                    checkpoint.content.completed_steps.join("\n"),checkpoint.content.remaining_steps.join("\n"),
+                    checkpoint.content.blocker.as_deref().unwrap_or("None"),checkpoint.completed_action_ids.join(", ")));
+                for file in &checkpoint.files {
+                    text.push_str(&format!(
+                        "{} · {} bytes · SHA256 {}\n",
+                        file.path, file.bytes, file.sha256
+                    ));
+                }
+                text.push_str("Reported progress does not replace checks or acceptance. H resolves / reassigns under the same remaining grant.\n");
+            }
+            for handoff in &view.handoffs {
+                text.push_str(&format!("\nHandoff: {} · checkpoint {}\n{} → {} · same grant {}\nOwner resolution: {}\n",handoff.id,handoff.checkpoint_id,handoff.from_owner_id,handoff.to_owner_id,handoff.authorization_id,handoff.instructions));
+            }
             for approval in &view.approvals {
                 text.push_str(&format!("\nApproval {} · {:?}\nTool: {}\nExact arguments: {}\nHash: {}\nExpires: {} (UTC seconds)\n",approval.id,approval.state,approval.tool,approval.arguments,approval.action_hash,approval.expires_at));
             }
@@ -2044,6 +2112,12 @@ impl Dashboard {
                 // The form's payload is frozen independently of later selection.
                 text.clear();
                 text.push_str("\nOnly the selected whole files will be replaced; unselected files remain unchanged.\nOne Apply per accepted result, including uncertain outcomes; inspect the receipt before reconciliation.\nRecorded checks describe the full isolated result, not the installed subset.\n");
+            }
+            if matches!(
+                command,
+                Command::Execution(OrganizationExecutionMutation::Handoff { .. })
+            ) {
+                text.push_str("\nQueues one fresh attempt under the original grant and remaining budgets. The old worker stays fenced. Only verified checkpoint inputs/outputs are copied. Uncertain effects, missing usage, active descendants or changed authority prevent continuation. Acceptance and Apply remain separate owner decisions.\n");
             }
             if let Command::Schedule(OrganizationScheduleMutation::Create {
                 scope, config, ..

@@ -53,6 +53,7 @@ pub enum OrganizationTaskState {
     Running,
     WaitingApproval,
     WaitingDependency,
+    Blocked,
     Paused,
     NeedsReconciliation,
     NeedsReview,
@@ -69,6 +70,7 @@ impl OrganizationTaskState {
             Self::Running => "running",
             Self::WaitingApproval => "waitingApproval",
             Self::WaitingDependency => "waitingDependency",
+            Self::Blocked => "blocked",
             Self::Paused => "paused",
             Self::NeedsReconciliation => "needsReconciliation",
             Self::NeedsReview => "needsReview",
@@ -283,6 +285,47 @@ pub struct OrganizationExecutionView {
     pub approvals: Vec<OrganizationActionApproval>,
     pub result: Option<OrganizationTaskResult>,
     pub applications: Vec<OrganizationApplication>,
+    #[serde(default)]
+    pub checkpoints: Vec<OrganizationTaskCheckpoint>,
+    #[serde(default)]
+    pub handoffs: Vec<OrganizationTaskHandoff>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct OrganizationTaskCheckpoint {
+    pub id: String,
+    pub task_id: String,
+    pub project_id: String,
+    pub owner_id: String,
+    pub attempt_id: String,
+    pub authorization_id: String,
+    #[ts(type = "number")]
+    pub created_at: i64,
+    /// Progress text is reported; these canonical action IDs supply its evidence.
+    pub completed_action_ids: Vec<String>,
+    pub content: super::organization_coordination::OrganizationCheckpointContent,
+    /// Host-hashed declared inputs and existing outputs; no agent-selected paths.
+    pub files: Vec<OrganizationArtifactEvidence>,
+    pub artifact_bases: Vec<OrganizationArtifactBase>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct OrganizationTaskHandoff {
+    pub id: String,
+    pub task_id: String,
+    pub checkpoint_id: String,
+    pub authorization_id: String,
+    pub from_owner_id: String,
+    pub to_owner_id: String,
+    #[ts(type = "number")]
+    pub from_node_revision: i64,
+    #[ts(type = "number")]
+    pub to_node_revision: i64,
+    pub instructions: String,
+    #[ts(type = "number")]
+    pub created_at: i64,
 }
 
 /// Owner-only application evidence. An uncertain operation is never replayed.
@@ -307,6 +350,17 @@ pub enum OrganizationApplicationState {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
 #[serde(tag = "type", rename_all = "camelCase", deny_unknown_fields)]
 pub enum OrganizationExecutionMutation {
+    #[serde(rename_all = "camelCase")]
+    Handoff {
+        task_id: String,
+        #[ts(type = "number")]
+        expected_revision: i64,
+        checkpoint_id: String,
+        owner_id: String,
+        #[ts(type = "number")]
+        expected_owner_revision: i64,
+        instructions: String,
+    },
     #[serde(rename_all = "camelCase")]
     Authorize {
         task_id: String,
@@ -422,6 +476,7 @@ impl OrganizationExecutionMutation {
             | Self::Accept { task_id, .. }
             | Self::RequestChanges { task_id, .. }
             | Self::Apply { task_id, .. } => task_id,
+            Self::Handoff { task_id, .. } => task_id,
         }
     }
 }

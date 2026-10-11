@@ -67,6 +67,17 @@ impl OrganizationStore {
         ensure!(arguments.len() <= 128 * 1024, "coordination call too large");
         let mut tx = self.pool.begin_with("BEGIN IMMEDIATE").await?;
         let (attempt, authorization) = check_fence(&mut tx, attempt_id, worker, now).await?;
+        let checkpoint_identity: i64 = sqlx::query_scalar(
+            "SELECT count(*) FROM organization_checkpoints WHERE attempt_id=? AND call_id=?",
+        )
+        .bind(attempt_id)
+        .bind(call_id)
+        .fetch_one(&mut *tx)
+        .await?;
+        ensure!(
+            checkpoint_identity == 0,
+            "call identity already used by a checkpoint"
+        );
         let previous: Option<(String, String)> = sqlx::query_as("SELECT arguments,result FROM organization_coordination_calls WHERE attempt_id=? AND call_id=?")
             .bind(attempt_id).bind(call_id).fetch_optional(&mut *tx).await?;
         if let Some((prior, result)) = previous {
@@ -77,8 +88,9 @@ impl OrganizationStore {
             return Ok(serde_json::from_str(&result)?);
         }
         let count: i64 = sqlx::query_scalar(
-            "SELECT count(*) FROM organization_coordination_calls WHERE attempt_id=?",
+            "SELECT (SELECT count(*) FROM organization_coordination_calls WHERE attempt_id=?) + (SELECT count(*) FROM organization_checkpoints WHERE attempt_id=?)",
         )
+        .bind(attempt_id)
         .bind(attempt_id)
         .fetch_one(&mut *tx)
         .await?;
@@ -100,6 +112,9 @@ impl OrganizationStore {
         let result = match call {
             OrganizationCoordinationCall::Wait { .. } => {
                 anyhow::bail!("wait is handled by the host outside a database transaction")
+            }
+            OrganizationCoordinationCall::Checkpoint { .. } => {
+                anyhow::bail!("checkpoints require host-captured file evidence")
             }
             OrganizationCoordinationCall::ProposePlan { items } => {
                 let tasks = propose(&mut tx, &task, &authorization, items).await?;

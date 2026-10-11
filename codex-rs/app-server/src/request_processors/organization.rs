@@ -325,6 +325,18 @@ impl OrganizationRequestProcessor {
         let mut apply_rejection = None;
         let result = async {
             match params.mutation {
+                handoff @ OrganizationExecutionMutation::Handoff { .. } => {
+                    let view = store.execution_view(handoff.task_id()).await?;
+                    let OrganizationExecutionMutation::Handoff { checkpoint_id, .. } = &handoff else { unreachable!() };
+                    let checkpoint = view.checkpoints.iter().find(|checkpoint| &checkpoint.id == checkpoint_id)
+                        .context("handoff checkpoint missing")?;
+                    let source = store.attempt_snapshot(&checkpoint.attempt_id).await?;
+                    anyhow::ensure!(source.task_id == view.task.id && source.authorization_id == checkpoint.authorization_id,
+                        "checkpoint source identity changed");
+                    crate::organization_workspace::verify_checkpoint(std::path::Path::new(source.workspace.as_deref()
+                        .context("checkpoint workspace missing")?), checkpoint)?;
+                    store.handoff_task(&handoff, crate::organization_runtime::now()).await?;
+                }
                 OrganizationExecutionMutation::Authorize {
                     task_id,
                     expected_revision,

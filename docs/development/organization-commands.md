@@ -21,6 +21,37 @@ codex organization restore --backup /absolute/path/snapshot.sqlite --destination
 Follow `nextCursor` using `--cursor`; page limits are 1–200. Output is JSON.
 `--no-daemon` uses the existing embedded server for isolated qualification.
 
+## Checkpoints and blocked handoffs (qualification in progress)
+
+`codex organization execution-read TASK_ID` returns canonical checkpoints and
+handoffs with the normal task/grant/result evidence. In the TUI, select a blocked
+task and press `H`: choose a permitted receiver, enter the owner resolution,
+press F6 to review and `y` to confirm. Escape preserves the draft without sending
+an owner decision. Reported checkpoint progress remains distinct from completed
+action IDs and host-hashed files.
+
+The matching CLI owner mutation is:
+
+```json
+{
+  "type": "handoff",
+  "taskId": "blocked-task-id",
+  "expectedRevision": 5,
+  "checkpointId": "immutable-latest-checkpoint-id",
+  "ownerId": "permitted-receiver-id",
+  "expectedOwnerRevision": 1,
+  "instructions": "Owner resolved the blocker; finish only the remaining work."
+}
+```
+
+Submit with `codex organization execute handoff.json`. This is continuation under
+the original grant, not ordinary authorization. The receiver gets a fresh isolated
+attempt with verified checkpoint bytes; counters, original artifact bases, expiry
+and permissions remain unchanged. Busy runtimes, stale records, changed files,
+unresolved usage/effects or exhausted limits reject the handoff. Acceptance and
+Apply stay separate owner decisions. See [continuity](coordination.md#approved-checkpoint-and-handoff-continuation)
+and [current qualification](status.md).
+
 `memory-search` reads existing durable notes; omit the query to browse recent
 notes. The default scope is project-shared; `--agent-id` selects that agent's
 private notes within the named project for owner inspection. Output wraps

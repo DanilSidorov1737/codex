@@ -19,11 +19,13 @@ fn execution_mutation_schema_matches_owner_wire_fields_and_rejects_unknown_grant
     });
     for example in [
         authorization.clone(),
+        json!({"type":"handoff","taskId":"task","expectedRevision":2,"checkpointId":"checkpoint","ownerId":"receiver","expectedOwnerRevision":3,"instructions":"Continue remaining work"}),
         json!({"type":"stop","taskId":"task","expectedRevision":1,"cancel":true}),
         json!({"type":"decideApproval","taskId":"task","approvalId":"approval","expectedHash":"exact","approve":true}),
         json!({"type":"accept","taskId":"task","expectedRevision":1,"digest":"checked"}),
         json!({"type":"requestChanges","taskId":"task","expectedRevision":1,"instructions":"Revise citations"}),
         json!({"type":"apply","taskId":"task","expectedRevision":1,"digest":"checked"}),
+        json!({"type":"apply","taskId":"task","expectedRevision":1,"digest":"checked","paths":["report.txt"]}),
     ] {
         let mutation: OrganizationExecutionMutation = serde_json::from_value(example).unwrap();
         assert_eq!(mutation.task_id(), "task");
@@ -34,14 +36,41 @@ fn execution_mutation_schema_matches_owner_wire_fields_and_rejects_unknown_grant
             .iter()
             .find(|variant| variant["properties"]["type"]["enum"][0] == wire["type"])
             .unwrap();
-        assert_eq!(
-            variant["properties"]
-                .as_object()
-                .unwrap()
-                .keys()
-                .collect::<BTreeSet<_>>(),
-            wire.as_object().unwrap().keys().collect::<BTreeSet<_>>()
+        let allowed = variant["properties"]
+            .as_object()
+            .unwrap()
+            .keys()
+            .map(String::as_str)
+            .collect::<BTreeSet<_>>();
+        let required = variant["required"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|field| field.as_str().unwrap())
+            .collect::<BTreeSet<_>>();
+        let present = wire
+            .as_object()
+            .unwrap()
+            .keys()
+            .map(String::as_str)
+            .collect::<BTreeSet<_>>();
+        assert!(
+            present.is_subset(&allowed),
+            "wire contains fields outside its schema"
         );
+        assert!(
+            required.is_subset(&present),
+            "wire omits a required schema field"
+        );
+        if wire["type"] != "apply" || wire.get("paths").is_some() {
+            assert_eq!(allowed, present);
+        } else {
+            assert_eq!(
+                allowed.difference(&present).copied().collect::<Vec<_>>(),
+                ["paths"]
+            );
+            assert!(!required.contains("paths"));
+        }
     }
     let mut expanded = authorization.clone();
     expanded["scope"]["administrator"] = json!(true);
@@ -55,6 +84,7 @@ fn execution_mutation_schema_matches_owner_wire_fields_and_rejects_unknown_grant
 fn coordination_wire_matches_schema_without_agent_authority_fields() {
     let schema = serde_json::to_value(schemars::schema_for!(OrganizationCoordinationCall)).unwrap();
     for example in [
+        json!({"type":"checkpoint","content":{"completedSteps":["Prepared"],"remainingSteps":["Check"],"blocker":"Owner decision"}}),
         json!({"type":"wait","taskIds":["child"]}),
         json!({"type":"proposePlan","items":[{"key":"one","ownerId":"named-agent","instructions":"Check","criteria":["Checked"],"prerequisites":[]}]}),
         json!({"type":"delegate","taskId":"child"}),

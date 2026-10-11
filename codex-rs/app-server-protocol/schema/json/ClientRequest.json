@@ -2374,6 +2374,49 @@
         {
           "additionalProperties": false,
           "properties": {
+            "checkpointId": {
+              "type": "string"
+            },
+            "expectedOwnerRevision": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "expectedRevision": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "instructions": {
+              "type": "string"
+            },
+            "ownerId": {
+              "type": "string"
+            },
+            "taskId": {
+              "type": "string"
+            },
+            "type": {
+              "enum": [
+                "handoff"
+              ],
+              "title": "HandoffOrganizationExecutionMutationType",
+              "type": "string"
+            }
+          },
+          "required": [
+            "checkpointId",
+            "expectedOwnerRevision",
+            "expectedRevision",
+            "instructions",
+            "ownerId",
+            "taskId",
+            "type"
+          ],
+          "title": "HandoffOrganizationExecutionMutation",
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
             "expectedRevision": {
               "format": "int64",
               "type": "integer"

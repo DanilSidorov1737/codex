@@ -430,6 +430,12 @@ async fn workflow_migration_from_seven_preserves_existing_tasks_and_crash_blocks
     let store = OrganizationStore::open(&home.0).await?;
     let template = fixture(&store).await?;
     let old = execution_task(&store, &template.items[0].owner_id, &template.project_id).await?;
+    sqlx::query("DROP TABLE organization_handoffs")
+        .execute(&store.pool)
+        .await?;
+    sqlx::query("DROP TABLE organization_checkpoints")
+        .execute(&store.pool)
+        .await?;
     sqlx::query("DROP TABLE organization_workflow_tasks")
         .execute(&store.pool)
         .await?;
@@ -439,7 +445,7 @@ async fn workflow_migration_from_seven_preserves_existing_tasks_and_crash_blocks
     sqlx::query("DROP TABLE organization_workflow_templates")
         .execute(&store.pool)
         .await?;
-    sqlx::query("DELETE FROM _sqlx_migrations WHERE version=8")
+    sqlx::query("DELETE FROM _sqlx_migrations WHERE version>=8")
         .execute(&store.pool)
         .await?;
     store.close().await;

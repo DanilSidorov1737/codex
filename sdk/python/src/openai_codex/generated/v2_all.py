@@ -3072,6 +3072,30 @@ class OrganizationCheckEvidence(BaseModel):
     truncated: bool
 
 
+class OrganizationCheckpointContent(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    blocker: str | None = None
+    completed_steps: Annotated[list[str], Field(alias="completedSteps")]
+    remaining_steps: Annotated[list[str], Field(alias="remainingSteps")]
+
+
+class HandoffOrganizationExecutionMutation(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    checkpoint_id: Annotated[str, Field(alias="checkpointId")]
+    expected_owner_revision: Annotated[int, Field(alias="expectedOwnerRevision")]
+    expected_revision: Annotated[int, Field(alias="expectedRevision")]
+    instructions: str
+    owner_id: Annotated[str, Field(alias="ownerId")]
+    task_id: Annotated[str, Field(alias="taskId")]
+    type: Annotated[Literal["handoff"], Field(title="HandoffOrganizationExecutionMutationType")]
+
+
 class StopOrganizationExecutionMutation(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
@@ -3470,6 +3494,50 @@ class OrganizationTaskAuthorization(BaseModel):
     task_id: Annotated[str, Field(alias="taskId")]
 
 
+class OrganizationTaskCheckpoint(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    artifact_bases: Annotated[list[OrganizationArtifactBase], Field(alias="artifactBases")]
+    attempt_id: Annotated[str, Field(alias="attemptId")]
+    authorization_id: Annotated[str, Field(alias="authorizationId")]
+    completed_action_ids: Annotated[
+        list[str],
+        Field(
+            alias="completedActionIds",
+            description="Progress text is reported; these canonical action IDs supply its evidence.",
+        ),
+    ]
+    content: OrganizationCheckpointContent
+    created_at: Annotated[int, Field(alias="createdAt")]
+    files: Annotated[
+        list[OrganizationArtifactEvidence],
+        Field(
+            description="Host-hashed declared inputs and existing outputs; no agent-selected paths."
+        ),
+    ]
+    id: str
+    owner_id: Annotated[str, Field(alias="ownerId")]
+    project_id: Annotated[str, Field(alias="projectId")]
+    task_id: Annotated[str, Field(alias="taskId")]
+
+
+class OrganizationTaskHandoff(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    authorization_id: Annotated[str, Field(alias="authorizationId")]
+    checkpoint_id: Annotated[str, Field(alias="checkpointId")]
+    created_at: Annotated[int, Field(alias="createdAt")]
+    from_node_revision: Annotated[int, Field(alias="fromNodeRevision")]
+    from_owner_id: Annotated[str, Field(alias="fromOwnerId")]
+    id: str
+    instructions: str
+    task_id: Annotated[str, Field(alias="taskId")]
+    to_node_revision: Annotated[int, Field(alias="toNodeRevision")]
+    to_owner_id: Annotated[str, Field(alias="toOwnerId")]
+
+
 class OrganizationTaskResult(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
@@ -3488,6 +3556,7 @@ class OrganizationTaskState(Enum):
     running = "running"
     waiting_approval = "waitingApproval"
     waiting_dependency = "waitingDependency"
+    blocked = "blocked"
     paused = "paused"
     needs_reconciliation = "needsReconciliation"
     needs_review = "needsReview"
@@ -9517,7 +9586,8 @@ class AuthorizeOrganizationExecutionMutation(BaseModel):
 
 class OrganizationExecutionMutation(
     RootModel[
-        AuthorizeOrganizationExecutionMutation
+        HandoffOrganizationExecutionMutation
+        | AuthorizeOrganizationExecutionMutation
         | StopOrganizationExecutionMutation
         | DecideApprovalOrganizationExecutionMutation
         | AcceptOrganizationExecutionMutation
@@ -9529,7 +9599,8 @@ class OrganizationExecutionMutation(
         populate_by_name=True,
     )
     root: (
-        AuthorizeOrganizationExecutionMutation
+        HandoffOrganizationExecutionMutation
+        | AuthorizeOrganizationExecutionMutation
         | StopOrganizationExecutionMutation
         | DecideApprovalOrganizationExecutionMutation
         | AcceptOrganizationExecutionMutation
@@ -12007,6 +12078,8 @@ class OrganizationExecutionView(BaseModel):
     authorization: OrganizationTaskAuthorization | None = None
     authorization_model_requests: Annotated[int, Field(alias="authorizationModelRequests", ge=0)]
     authorization_used_tokens: Annotated[int, Field(alias="authorizationUsedTokens")]
+    checkpoints: list[OrganizationTaskCheckpoint] | None = []
+    handoffs: list[OrganizationTaskHandoff] | None = []
     result: OrganizationTaskResult | None = None
     task: OrganizationTask
 

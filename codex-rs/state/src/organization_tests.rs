@@ -8,6 +8,9 @@ mod coordination;
 #[path = "organization_workflow_tests.rs"]
 mod workflow;
 
+#[path = "organization_handoff_tests.rs"]
+mod handoff;
+
 async fn authorized_attempt(
     store: &OrganizationStore,
     approval: bool,

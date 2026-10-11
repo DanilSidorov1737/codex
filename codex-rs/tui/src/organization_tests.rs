@@ -286,6 +286,8 @@ fn view(id: &str) -> OrganizationExecutionView {
         }],
         result: None,
         applications: vec![],
+        checkpoints: vec![],
+        handoffs: vec![],
     }
 }
 
@@ -815,6 +817,63 @@ async fn request_changes_draft_remains_bound_to_the_original_task_revision() {
     assert_eq!(task_id, "one");
     assert_eq!(*expected_revision, 4);
     assert_eq!(instructions, "Clarify the conclusion");
+}
+
+#[tokio::test]
+async fn blocker_handoff_requires_matching_details_and_freezes_owner_confirmation() {
+    let mut d = dashboard();
+    let (commands, mut receiver) = mpsc::channel(4);
+    d.commands = commands;
+    let mut blocked = view("one");
+    blocked.task.state = "blocked".into();
+    blocked.authorization=Some(serde_json::from_value(serde_json::json!({
+        "id":"original-grant","taskId":"one","nodeRevision":1,"projectRevision":1,"expiresAt":1000,
+        "revoked":false,"policyVersion":2,"scope":{"inputFiles":[],"immutableFiles":[],"artifacts":["report.txt"],
+        "checks":[],"model":"fixture","maxTokens":100,"maxSeconds":60,"maxModelRequests":4,"maxAttempts":3,
+        "requireToolApproval":true,"delegates":[],"maxChildren":0}
+    })).unwrap());
+    blocked.checkpoints.push(OrganizationTaskCheckpoint {
+        id: "immutable-checkpoint".into(),
+        task_id: "one".into(),
+        project_id: "project".into(),
+        owner_id: "owner".into(),
+        attempt_id: "fenced-source".into(),
+        authorization_id: "original-grant".into(),
+        created_at: 1,
+        completed_action_ids: vec!["known-effect".into()],
+        content: codex_protocol::organization_coordination::OrganizationCheckpointContent {
+            completed_steps: vec![],
+            remaining_steps: vec!["Finish report".into()],
+            blocker: Some("Owner decision needed".into()),
+        },
+        files: vec![],
+        artifact_bases: vec![],
+    });
+    d.detail = Some(Box::new(blocked));
+    d.selected = Some("two".into());
+    d.open_form('H');
+    assert!(d.form.is_none());
+    d.selected = Some("one".into());
+    d.open_form('H');
+    let key = |code| KeyEvent::new(code, crossterm::event::KeyModifiers::NONE);
+    d.key(key(KeyCode::Tab));
+    d.form.as_mut().unwrap().paste("Owner resolved the blocker");
+    d.key(key(KeyCode::F(6)));
+    assert!(receiver.try_recv().is_err());
+    assert!(d.confirmation_text.contains("immutable-checkpoint"));
+    assert!(
+        d.confirmation_text
+            .contains("original grant and remaining budgets")
+    );
+    d.detail.as_mut().unwrap().checkpoints[0].id = "changed-checkpoint".into();
+    d.selected = Some("two".into());
+    d.key(key(KeyCode::Char('y')));
+    assert!(
+        matches!(receiver.try_recv(),Ok(Command::Execution(OrganizationExecutionMutation::Handoff {
+        task_id,expected_revision:4,checkpoint_id,owner_id,expected_owner_revision:1,..
+    })) if task_id=="one" && checkpoint_id=="immutable-checkpoint" && owner_id=="owner")
+    );
+    assert!(receiver.try_recv().is_err());
 }
 
 #[tokio::test]

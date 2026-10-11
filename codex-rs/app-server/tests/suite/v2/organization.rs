@@ -33,6 +33,9 @@ mod schedules;
 #[path = "organization_workflows.rs"]
 mod workflows;
 
+#[path = "organization_handoffs.rs"]
+mod handoffs;
+
 async fn definition(
     server: &mut TestAppServer,
     mutation: OrganizationMutation,

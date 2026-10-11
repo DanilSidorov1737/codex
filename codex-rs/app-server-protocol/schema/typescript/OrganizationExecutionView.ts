@@ -7,10 +7,12 @@ import type { OrganizationApplication } from "./OrganizationApplication";
 import type { OrganizationTask } from "./OrganizationTask";
 import type { OrganizationTaskAttempt } from "./OrganizationTaskAttempt";
 import type { OrganizationTaskAuthorization } from "./OrganizationTaskAuthorization";
+import type { OrganizationTaskCheckpoint } from "./OrganizationTaskCheckpoint";
+import type { OrganizationTaskHandoff } from "./OrganizationTaskHandoff";
 import type { OrganizationTaskResult } from "./OrganizationTaskResult";
 
 export type OrganizationExecutionView = { task: OrganizationTask, authorization: OrganizationTaskAuthorization | null, authorizationUsedTokens: number, authorizationModelRequests: number,
 /**
  * Recent attempts, newest first; each authorization permits at most three.
  */
-attempts: Array<OrganizationTaskAttempt>, actions: Array<OrganizationActionIntent>, approvals: Array<OrganizationActionApproval>, result: OrganizationTaskResult | null, applications: Array<OrganizationApplication>, };
+attempts: Array<OrganizationTaskAttempt>, actions: Array<OrganizationActionIntent>, approvals: Array<OrganizationActionApproval>, result: OrganizationTaskResult | null, applications: Array<OrganizationApplication>, checkpoints: Array<OrganizationTaskCheckpoint>, handoffs: Array<OrganizationTaskHandoff>, };

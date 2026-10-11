@@ -12388,8 +12388,80 @@
       ],
       "type": "object"
     },
+    "OrganizationCheckpointContent": {
+      "additionalProperties": false,
+      "description": "Project/task context, never new permissions or owner-selected identities.",
+      "properties": {
+        "blocker": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "completedSteps": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "remainingSteps": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "completedSteps",
+        "remainingSteps"
+      ],
+      "type": "object"
+    },
     "OrganizationExecutionMutation": {
       "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "checkpointId": {
+              "type": "string"
+            },
+            "expectedOwnerRevision": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "expectedRevision": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "instructions": {
+              "type": "string"
+            },
+            "ownerId": {
+              "type": "string"
+            },
+            "taskId": {
+              "type": "string"
+            },
+            "type": {
+              "enum": [
+                "handoff"
+              ],
+              "title": "HandoffOrganizationExecutionMutationType",
+              "type": "string"
+            }
+          },
+          "required": [
+            "checkpointId",
+            "expectedOwnerRevision",
+            "expectedRevision",
+            "instructions",
+            "ownerId",
+            "taskId",
+            "type"
+          ],
+          "title": "HandoffOrganizationExecutionMutation",
+          "type": "object"
+        },
         {
           "additionalProperties": false,
           "properties": {
@@ -12732,6 +12804,20 @@
         "authorizationUsedTokens": {
           "format": "int64",
           "type": "integer"
+        },
+        "checkpoints": {
+          "default": [],
+          "items": {
+            "$ref": "#/definitions/OrganizationTaskCheckpoint"
+          },
+          "type": "array"
+        },
+        "handoffs": {
+          "default": [],
+          "items": {
+            "$ref": "#/definitions/OrganizationTaskHandoff"
+          },
+          "type": "array"
         },
         "result": {
           "anyOf": [
@@ -13922,6 +14008,119 @@
       ],
       "type": "object"
     },
+    "OrganizationTaskCheckpoint": {
+      "properties": {
+        "artifactBases": {
+          "items": {
+            "$ref": "#/definitions/OrganizationArtifactBase"
+          },
+          "type": "array"
+        },
+        "attemptId": {
+          "type": "string"
+        },
+        "authorizationId": {
+          "type": "string"
+        },
+        "completedActionIds": {
+          "description": "Progress text is reported; these canonical action IDs supply its evidence.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "content": {
+          "$ref": "#/definitions/OrganizationCheckpointContent"
+        },
+        "createdAt": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "files": {
+          "description": "Host-hashed declared inputs and existing outputs; no agent-selected paths.",
+          "items": {
+            "$ref": "#/definitions/OrganizationArtifactEvidence"
+          },
+          "type": "array"
+        },
+        "id": {
+          "type": "string"
+        },
+        "ownerId": {
+          "type": "string"
+        },
+        "projectId": {
+          "type": "string"
+        },
+        "taskId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifactBases",
+        "attemptId",
+        "authorizationId",
+        "completedActionIds",
+        "content",
+        "createdAt",
+        "files",
+        "id",
+        "ownerId",
+        "projectId",
+        "taskId"
+      ],
+      "type": "object"
+    },
+    "OrganizationTaskHandoff": {
+      "properties": {
+        "authorizationId": {
+          "type": "string"
+        },
+        "checkpointId": {
+          "type": "string"
+        },
+        "createdAt": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "fromNodeRevision": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "fromOwnerId": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "instructions": {
+          "type": "string"
+        },
+        "taskId": {
+          "type": "string"
+        },
+        "toNodeRevision": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "toOwnerId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "authorizationId",
+        "checkpointId",
+        "createdAt",
+        "fromNodeRevision",
+        "fromOwnerId",
+        "id",
+        "instructions",
+        "taskId",
+        "toNodeRevision",
+        "toOwnerId"
+      ],
+      "type": "object"
+    },
     "OrganizationTaskResult": {
       "properties": {
         "accepted": {
@@ -13969,6 +14168,7 @@
         "running",
         "waitingApproval",
         "waitingDependency",
+        "blocked",
         "paused",
         "needsReconciliation",
         "needsReview",

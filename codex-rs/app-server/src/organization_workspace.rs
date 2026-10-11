@@ -15,6 +15,7 @@ use codex_protocol::organization_execution::OrganizationArtifactBase;
 use codex_protocol::organization_execution::OrganizationArtifactEvidence;
 use codex_protocol::organization_execution::OrganizationCheckEvidence;
 use codex_protocol::organization_execution::OrganizationExecutionScope;
+use codex_protocol::organization_execution::OrganizationTaskCheckpoint;
 use codex_protocol::permissions::*;
 use codex_utils_absolute_path::AbsolutePathBuf;
 use sha2::Digest;
@@ -148,6 +149,80 @@ pub(crate) struct TaskWorkspace {
 }
 
 impl TaskWorkspace {
+    /// Snapshot only granted inputs and existing outputs. The model never supplies
+    /// file names or hashes; this runs under the host's native-tool lock.
+    pub(crate) fn checkpoint_files(
+        &self,
+        scope: &OrganizationExecutionScope,
+    ) -> Result<Vec<OrganizationArtifactEvidence>> {
+        let mut files = Vec::new();
+        let mut total = 0u64;
+        for path in scope.input_files.iter().chain(&scope.artifacts) {
+            if files
+                .iter()
+                .any(|file: &OrganizationArtifactEvidence| &file.path == path)
+            {
+                continue;
+            }
+            if !scope.input_files.contains(path)
+                && let Err(error) = std::fs::symlink_metadata(self.root.join(path))
+            {
+                if error.kind() == std::io::ErrorKind::NotFound {
+                    continue;
+                }
+                return Err(error.into());
+            }
+            let bytes = read_relative(self.root.as_path(), path)?;
+            total = total
+                .checked_add(bytes.len() as u64)
+                .context("checkpoint size overflow")?;
+            ensure!(
+                total <= MAX_INPUT_BYTES,
+                "checkpoint snapshot exceeds 64 MiB"
+            );
+            files.push(OrganizationArtifactEvidence {
+                path: path.clone(),
+                sha256: format!("{:x}", Sha256::digest(&bytes)),
+                bytes: bytes.len() as u64,
+            });
+        }
+        Ok(files)
+    }
+
+    pub(crate) fn import_checkpoint(
+        &mut self,
+        source: &Path,
+        checkpoint: &OrganizationTaskCheckpoint,
+        scope: &OrganizationExecutionScope,
+    ) -> Result<()> {
+        ensure!(
+            checkpoint
+                .artifact_bases
+                .iter()
+                .map(|base| &base.path)
+                .eq(scope.artifacts.iter()),
+            "checkpoint original bases differ from grant"
+        );
+        let mut total = 0;
+        for file in &checkpoint.files {
+            ensure!(
+                scope.input_files.contains(&file.path) || scope.artifacts.contains(&file.path),
+                "checkpoint file outside grant"
+            );
+            let bytes = verified_checkpoint_file(source, file, &mut total)?;
+            write_relative(self.root.as_path(), &file.path, &bytes)?;
+        }
+        ensure!(
+            scope
+                .input_files
+                .iter()
+                .all(|path| checkpoint.files.iter().any(|file| &file.path == path)),
+            "checkpoint inputs incomplete"
+        );
+        self.artifact_bases = checkpoint.artifact_bases.clone();
+        Ok(())
+    }
+
     /// Copy only declared inputs from the parent's private snapshot. The child
     /// keeps its own sandbox; no grant exposes another attempt's directory.
     pub(crate) fn inherit_inputs(
@@ -219,6 +294,7 @@ impl TaskWorkspace {
         attempt_id: &str,
         scope: &OrganizationExecutionScope,
         deferred_inputs: &[OrganizationArtifactEvidence],
+        checkpoint: Option<&OrganizationTaskCheckpoint>,
     ) -> Result<Self> {
         ensure!(
             cfg!(target_os = "linux"),
@@ -243,6 +319,9 @@ impl TaskWorkspace {
         })?;
         ensure!(total <= MAX_INPUT_BYTES, "workflow inputs exceed 64 MiB");
         for relative in &scope.input_files {
+            if checkpoint.is_some() {
+                continue;
+            }
             if deferred_inputs
                 .iter()
                 .any(|artifact| &artifact.path == relative)
@@ -285,13 +364,23 @@ impl TaskWorkspace {
                     !protected.iter().any(|root| path.starts_with(root)),
                     "artifact destination is inside protected Codex or organization state"
                 );
-                let sha256 = match std::fs::symlink_metadata(&path) {
-                    Ok(_) => Some(format!(
-                        "{:x}",
-                        Sha256::digest(read_relative(&project, relative)?)
-                    )),
-                    Err(error) if error.kind() == std::io::ErrorKind::NotFound => None,
-                    Err(error) => return Err(error.into()),
+                let sha256 = if let Some(checkpoint) = checkpoint {
+                    checkpoint
+                        .artifact_bases
+                        .iter()
+                        .find(|base| &base.path == relative)
+                        .context("checkpoint original base missing")?
+                        .sha256
+                        .clone()
+                } else {
+                    match std::fs::symlink_metadata(&path) {
+                        Ok(_) => Some(format!(
+                            "{:x}",
+                            Sha256::digest(read_relative(&project, relative)?)
+                        )),
+                        Err(error) if error.kind() == std::io::ErrorKind::NotFound => None,
+                        Err(error) => return Err(error.into()),
+                    }
                 };
                 Ok(OrganizationArtifactBase {
                     path: relative.clone(),
@@ -382,6 +471,35 @@ impl TaskWorkspace {
         }
         Ok(checks)
     }
+}
+
+fn verified_checkpoint_file(
+    source: &Path,
+    file: &OrganizationArtifactEvidence,
+    total: &mut u64,
+) -> Result<Vec<u8>> {
+    let bytes = read_relative(source, &file.path)?;
+    *total = total
+        .checked_add(bytes.len() as u64)
+        .context("checkpoint size overflow")?;
+    ensure!(
+        *total <= MAX_INPUT_BYTES
+            && bytes.len() as u64 == file.bytes
+            && format!("{:x}", Sha256::digest(&bytes)) == file.sha256,
+        "checkpoint file changed; inspect before handoff"
+    );
+    Ok(bytes)
+}
+
+pub(crate) fn verify_checkpoint(
+    source: &Path,
+    checkpoint: &OrganizationTaskCheckpoint,
+) -> Result<()> {
+    let mut total = 0;
+    for file in &checkpoint.files {
+        verified_checkpoint_file(source, file, &mut total)?;
+    }
+    Ok(())
 }
 
 fn workspace_profile(
@@ -743,6 +861,122 @@ fn current_uid() -> u32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn checkpoint_copies_only_granted_bytes_preserving_even_missing_output_bases() -> Result<()> {
+        let source = tempfile::tempdir()?;
+        let destination = tempfile::tempdir()?;
+        let original = tempfile::tempdir()?;
+        let scope: OrganizationExecutionScope = serde_json::from_value(serde_json::json!({
+            "model":"fixture", "inputFiles":["input.txt"], "immutableFiles":["input.txt"],
+            "artifacts":["report.txt","later.txt"], "checks":[], "maxAttempts":3,
+            "maxSeconds":120,"maxTokens":1000,"maxModelRequests":4,
+            "requireToolApproval":true,"delegates":[],"maxChildren":0
+        }))?;
+        write_relative(source.path(), "input.txt", b"pinned input")?;
+        write_relative(source.path(), "report.txt", b"partial report")?;
+        write_relative(source.path(), "private.txt", b"never transferred")?;
+        write_relative(original.path(), "later.txt", b"owner changed absent output")?;
+        let bases = vec![
+            OrganizationArtifactBase {
+                path: "report.txt".into(),
+                sha256: None,
+            },
+            OrganizationArtifactBase {
+                path: "later.txt".into(),
+                sha256: Some(format!("{:x}", Sha256::digest(b"initial original"))),
+            },
+        ];
+        let workspace = TaskWorkspace {
+            root: AbsolutePathBuf::try_from(source.path())?,
+            profile: PermissionProfile::default(),
+            artifact_bases: bases.clone(),
+        };
+        let files = workspace.checkpoint_files(&scope)?;
+        assert_eq!(
+            files
+                .iter()
+                .map(|file| file.path.as_str())
+                .collect::<Vec<_>>(),
+            ["input.txt", "report.txt"]
+        );
+        let checkpoint = OrganizationTaskCheckpoint {
+            id: "checkpoint".into(),
+            task_id: "task".into(),
+            project_id: "project".into(),
+            owner_id: "owner".into(),
+            attempt_id: "source".into(),
+            authorization_id: "same-grant".into(),
+            created_at: 1000,
+            completed_action_ids: vec![],
+            content: codex_protocol::organization_coordination::OrganizationCheckpointContent {
+                completed_steps: vec!["Partial report".into()],
+                remaining_steps: vec!["Finish report".into()],
+                blocker: Some("Need owner decision".into()),
+            },
+            files,
+            artifact_bases: bases.clone(),
+        };
+        let mut receiver = TaskWorkspace {
+            root: AbsolutePathBuf::try_from(destination.path())?,
+            profile: PermissionProfile::default(),
+            artifact_bases: vec![],
+        };
+        verify_checkpoint(source.path(), &checkpoint)?;
+        receiver.import_checkpoint(source.path(), &checkpoint, &scope)?;
+        assert_eq!(receiver.artifact_bases, bases);
+        assert_eq!(
+            read_relative(destination.path(), "input.txt")?,
+            b"pinned input"
+        );
+        assert_eq!(
+            read_relative(destination.path(), "report.txt")?,
+            b"partial report"
+        );
+        assert!(!destination.path().join("private.txt").exists());
+        assert!(!destination.path().join("later.txt").exists());
+        assert!(
+            write_relative_checked(
+                original.path(),
+                "later.txt",
+                b"lost owner edit",
+                Some(checkpoint.artifact_bases[1].sha256.as_deref())
+            )
+            .is_err()
+        );
+        write_relative(source.path(), "report.txt", b"tampered after checkpoint")?;
+        assert!(verify_checkpoint(source.path(), &checkpoint).is_err());
+        assert!(
+            receiver
+                .import_checkpoint(source.path(), &checkpoint, &scope)
+                .is_err()
+        );
+        assert_eq!(
+            read_relative(destination.path(), "report.txt")?,
+            b"partial report"
+        );
+        std::fs::remove_file(source.path().join("input.txt"))?;
+        assert!(workspace.checkpoint_files(&scope).is_err());
+        Ok(())
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn checkpoint_verification_rejects_file_aliases_and_traversal() -> Result<()> {
+        let root = tempfile::tempdir()?;
+        write_relative(root.path(), "file", b"original")?;
+        let evidence = |path: &str| OrganizationArtifactEvidence {
+            path: path.into(),
+            bytes: 8,
+            sha256: format!("{:x}", Sha256::digest(b"original")),
+        };
+        assert!(verified_checkpoint_file(root.path(), &evidence("../file"), &mut 0).is_err());
+        std::os::unix::fs::symlink(root.path().join("file"), root.path().join("link"))?;
+        assert!(verified_checkpoint_file(root.path(), &evidence("link"), &mut 0).is_err());
+        std::fs::hard_link(root.path().join("file"), root.path().join("hard"))?;
+        assert!(verified_checkpoint_file(root.path(), &evidence("file"), &mut 0).is_err());
+        Ok(())
+    }
 
     #[test]
     fn workflow_import_preserves_first_original_base_and_rechecks_accepted_bytes() -> Result<()> {

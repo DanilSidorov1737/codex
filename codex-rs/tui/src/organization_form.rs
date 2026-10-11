@@ -9,6 +9,11 @@ pub(super) enum Kind {
     Goal,
     Project,
     Task,
+    Handoff {
+        task: OrganizationTask,
+        checkpoint: OrganizationTaskCheckpoint,
+        receivers: Vec<OrganizationNode>,
+    },
     Authorize(OrganizationTask),
     Schedule(OrganizationTask),
     WorkflowSave {
@@ -79,6 +84,70 @@ mod tests {
         assert!(form.command().is_err());
         set(&mut form, 3, "[]");
         form.fields[12].choice = 1;
+        assert!(form.command().is_err());
+    }
+
+    #[test]
+    fn handoff_form_captures_checkpoint_task_and_receiver_revisions_without_new_grant() {
+        let mut task = task();
+        task.state = "blocked".into();
+        let node = OrganizationNode {
+            id: "receiver".into(),
+            parent_id: None,
+            kind: OrganizationNodeKind::Agent,
+            label: "Custom receiver".into(),
+            role_version_id: None,
+            model: None,
+            enabled: true,
+            revision: 9,
+        };
+        let checkpoint = OrganizationTaskCheckpoint {
+            id: "pinned-checkpoint".into(),
+            task_id: task.id.clone(),
+            project_id: task.project_id.clone(),
+            owner_id: task.owner_id.clone(),
+            attempt_id: "source".into(),
+            authorization_id: "original-grant".into(),
+            created_at: 1,
+            completed_action_ids: vec!["completed-effect".into()],
+            content: codex_protocol::organization_coordination::OrganizationCheckpointContent {
+                completed_steps: vec![],
+                remaining_steps: vec!["Finish report".into()],
+                blocker: Some("Owner decision".into()),
+            },
+            files: vec![],
+            artifact_bases: vec![],
+        };
+        let mut form = Form::new(
+            Kind::Handoff {
+                task: task.clone(),
+                checkpoint,
+                receivers: vec![node],
+            },
+            &[],
+            None,
+            "fixture",
+        );
+        assert!(form.command().is_err());
+        set(&mut form, 1, "Continue only remaining work");
+        let Command::Execution(OrganizationExecutionMutation::Handoff {
+            task_id,
+            expected_revision,
+            checkpoint_id,
+            owner_id,
+            expected_owner_revision,
+            instructions,
+        }) = form.command().unwrap()
+        else {
+            panic!("missing handoff")
+        };
+        assert_eq!((task_id, expected_revision), (task.id, 7));
+        assert_eq!(
+            (checkpoint_id, owner_id, expected_owner_revision),
+            ("pinned-checkpoint".into(), "receiver".into(), 9)
+        );
+        assert_eq!(instructions, "Continue only remaining work");
+        set(&mut form, 1, &"a".repeat(4097));
         assert!(form.command().is_err());
     }
 
@@ -430,6 +499,23 @@ impl Form {
             .or_else(|| project.and_then(|p| p.goal_id.as_deref()));
         let owner = project.and_then(|p| p.owner_id.as_deref());
         let mut fields = match &kind {
+            Kind::Handoff {
+                task, receivers, ..
+            } => vec![
+                Field::select(
+                    "Receiver",
+                    receivers
+                        .iter()
+                        .map(|node| (node.id.clone(), node.label.clone()))
+                        .collect(),
+                    Some(&task.owner_id),
+                ),
+                Field::text(
+                    "Owner resolution",
+                    "Resolve the blocker; original permissions and remaining limits apply",
+                    "",
+                ),
+            ],
             Kind::Apply { result, .. } => result
                 .artifacts
                 .iter()
@@ -643,6 +729,7 @@ impl Form {
             Kind::Goal => "New goal",
             Kind::Project => "New project",
             Kind::Task => "New task",
+            Kind::Handoff { .. } => "Resolve blocker / hand off remaining work",
             Kind::Authorize(_) => "Authorize task",
             Kind::Schedule(_) => "Create recurring schedule",
             Kind::WorkflowSave { .. } => "Save workflow template",
@@ -745,6 +832,27 @@ impl Form {
             Ok(lines(i))
         };
         Ok(match &self.kind {
+            Kind::Handoff {
+                task,
+                checkpoint,
+                receivers,
+            } => {
+                let owner_id = required(0)?;
+                let receiver = receivers
+                    .iter()
+                    .find(|node| node.id == owner_id)
+                    .ok_or_else(|| anyhow::anyhow!("Captured receiver missing"))?;
+                let instructions = required(1)?;
+                anyhow::ensure!(instructions.len() <= 4096, "Resolution exceeds 4096 bytes");
+                Command::Execution(OrganizationExecutionMutation::Handoff {
+                    task_id: task.id.clone(),
+                    expected_revision: task.revision,
+                    checkpoint_id: checkpoint.id.clone(),
+                    owner_id,
+                    expected_owner_revision: receiver.revision,
+                    instructions,
+                })
+            }
             Kind::Apply { task, result } => {
                 anyhow::ensure!(result.accepted, "Result must be accepted before Apply");
                 let paths = self
