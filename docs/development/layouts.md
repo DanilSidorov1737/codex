@@ -44,6 +44,11 @@ launches report the requirement rather than silently taking terminal ownership.
   recent task IDs; select those tasks for their approvals, checks and review.
   With actual Neovim focused, use Ctrl-G before host controls. See
   [recurring schedules](recurring-schedules.md) for bounds and recovery behavior.
+  The slice is qualified on `e06def499e`: 28 native TUI/official-Neovim tests,
+  actual form/controls/background/restart/Follow, 36 rapid switches across three
+  sizes and narrow counter scrolling passed. Switching layouts clears selection;
+  explicitly select the occurrence in Workspace before `t` Follow. Current
+  captures are in `/workspace/artifacts/cli-recurring-schedules/`.
 - Review/task inspection: `a` approves the first pending exact action, `r` rejects
   it, `v` accepts the exact current result digest, and `c` requests changes with
   entered instructions. Decisions require an explicit `y` against the displayed

@@ -16,7 +16,7 @@ committed; Review `51f914a851` and refresh-denial fix `9fadf32797` are qualified
 approved N1 scoped memory search; backend/CLI `8d33c5e0d8` and TUI `d6d049cc49`
 are delivered and qualified: 691 automated tests, real restart/scoped retrieval,
 remote-owner denial, actual CLI/TUI/Neovim and three-size rapid switching passed.
-N2 recurring schedules is now owner-approved and in progress; see
+N2 recurring schedules is delivered and qualified on `e06def499e`; see
 [its bounded contract](recurring-schedules.md). Broader knowledge promotion,
 hunks and staged repeated Apply remain later work.
 
@@ -46,7 +46,10 @@ These are bounded increments rather than separate services or mandatory permanen
 agents for the shared system functions. Use Ponytail, meaningful automated checks,
 physical CLI/TUI interaction, actual Neovim checks when affected, updated evidence
 and logical local commits for each approved slice. N1 qualification is complete;
-N2 recurring schedules is approved and in progress.
+N2 recurring schedules is complete: 700 automated tests and actual background,
+approval, pause/restart/resume, cancellation, budgets, crash/remote denial and
+native TUI/official-Neovim evidence. N3 reusable workflow templates is next
+proposed scope; do not begin it without matching owner instructions.
 Distributed workers, multimodal production, meetings, full-environment backup
 automation and protected self-improvement remain in their later roadmap phases.
 

@@ -1,5 +1,157 @@
 # Testing procedures and evidence
 
+## Recurring schedule qualification — 2026-10-11 UTC
+
+Application source `e06def499ef919e381bb8ec6e0ab7518960f280d`, storage
+`54954cfb7d`, API/CLI `d5f2115211`. Ponytail reused daemon/SQLite/grant/approval/
+budget and dashboard paths; no dependency or installation. Migration 7 preserves
+canonical state. Correctness review checked transactions, scope pins, descendant
+root accounting, late usage, occupied cleanup, owner-origin ordering and recovery.
+Complexity review replaced a duplicate Create match with one `if let`; no scheduler
+service, calendar parser or speculative framework. See [contract](recurring-schedules.md).
+
+### Automated checks and package
+
+From `/workspace/codex/codex-rs`, `. /workspace/.onboarding/activate.sh`, with
+`CARGO_INCREMENTAL=0 RUST_MIN_STACK=8388608` and test/Clippy/build flags
+`--locked --offline --profile dev-small -j4`:
+
+| Command/target | Completed result | Log in `recurring-schedules-n2/testlogs/` |
+| --- | --- | --- |
+| `cargo test -p codex-protocol -p codex-state --lib` | 371 protocol + 265 state; 0 failed/ignored | `recurring-state-protocol-current.log` |
+| `cargo test -p codex-app-server-protocol --lib schema_fixtures_tests -- --skip write_schema_fixtures_from_env` | 4 comparisons; 0 failed/ignored | `recurring-schema-comparisons.log` |
+| `cargo test -p codex-app-server --test all suite::v2::organization -- --nocapture` | 6 native API; 0 failed/ignored | `recurring-native-api.log` |
+| `cargo test -p codex-tui --lib organization -- --nocapture` | 28 native TUI/official-Neovim; 0 failed/ignored | `recurring-native-tui-current.log` |
+| `cargo test -p codex-app-server --lib request_processors::organization` | 1 owner-origin; 0 failed/ignored | `recurring-owner-origin.log` |
+| `cargo clippy -p codex-protocol -p codex-state -p codex-app-server-protocol -p codex-app-server -p codex-tui --lib -- -D warnings` | Exit 0 | `recurring-clippy-current.log` |
+| `cargo clippy -p codex-cli --bin codex -- -D warnings` | Exit 0 | `recurring-cli-clippy.log` |
+| `cargo fmt --check -p codex-protocol -p codex-state -p codex-app-server-protocol -p codex-app-server -p codex-tui -p codex-cli` | Exit 0 | `recurring-format-check.log` |
+| `cargo build -p codex-cli --bin codex` | Complete CLI, exit 0 | `recurring-cli-build.log` |
+
+Python from `/workspace/codex/sdk/python`, `. .venv/bin/activate`:
+`python -m pytest tests/test_contract_generation.py tests/test_public_api_signatures.py -q`
+passed 25 (`recurring-python-contracts.log`). **700 distinct tests passed**;
+`automated-checks.json` independently verifies counts and log SHA256s. Repeats and
+the two ignored schema-writing helpers are not double-counted. Native tests used
+authorized native execution because the outer sandbox masks protected paths;
+inner security assertions remained. Full Rust/Bazel/platform suites were unrun.
+
+Five new state scenarios cover atomic concurrent/deduplicated occurrence creation,
+frozen source despite edits, queued/live/approval/native-cleanup overlap skipping,
+missed times/backward clock, reopen/backup/restore, exact pause/revoke/cancel,
+future-only resume, stale revisions, scheduled-occurrence reauthorization denial,
+aggregate descendant/late usage, separate request ceiling, interrupted/uncertain
+work, scope/policy changes, migration from version 6 and paginated validation.
+The new native API check persists controls through restart and rejects stale or
+duplicate authority. TUI checks freeze identity/scope/config/revisions, keep
+asynchronous controls from stealing newer selection, and render narrow/untrusted
+content. Existing real Neovim edit/save/undo/diff/dirty/focus/startup checks pass.
+
+Contract generation: set `CODEX_APP_SERVER_SCHEMA_ROOT=/workspace/codex/codex-rs/app-server-protocol/schema`
+and `CODEX_APP_SERVER_SCHEMA_EXPERIMENTAL=0`, then `1`, sequentially; run
+`cargo test -p codex-app-server-protocol --lib schema_fixtures_tests::write_schema_fixtures_from_env -- --exact --ignored`.
+Both passed (`recurring-schema-stable.log`, `recurring-schema-experimental.log`).
+All four comparisons passed. Experimental owner endpoint wrappers are intentionally
+filtered out of flat stable exports; shared schedule DTOs remain exported.
+SDK generation, with its venv activated:
+`python scripts/update_sdk_artifacts.py generate-types --schema-dir ../../codex-rs/app-server-protocol/schema/json`.
+
+Official checksum-verified Neovim 0.12.6, Rust 1.95.0, Node 24.19.0 and pnpm
+10.34.5 were reused. Complete package, from the Rust directory:
+
+```sh
+CODEX_REPO_ROOT=/workspace/codex python3 /workspace/codex/scripts/build_codex_package.py --target x86_64-unknown-linux-gnu --package-dir /workspace/.onboarding/qualification/recurring-schedules-n2/package --entrypoint-bin /workspace/codex/codex-rs/target/dev-small/codex --code-mode-host-bin /workspace/.onboarding/qualification/memory-search-20261010/package/bin/codex-code-mode-host --bwrap-bin /workspace/.onboarding/qualification/memory-search-20261010/package/codex-resources/bwrap --rg-bin /workspace/.onboarding/qualification/memory-search-20261010/package/codex-path/rg --strip none
+```
+
+Exit 0 (`package-build.log`), unchanged verified helpers. CLI SHA256:
+`f6cd6855de7a3fef9d08f8bf4a51282b73e92cb0f2dbc98b2142be5b3a972b1a`.
+`preflight.json` confirms clean application diff, source commit and all five
+source/installed hashes before physical checks. Stable rustfmt emitted its known
+nightly-only imports warning; the format check passed. No install/network/secret
+setting changed.
+
+### Actual CLI/TUI/background/editor qualification
+
+Evidence/scripts: `/workspace/.onboarding/qualification/recurring-schedules-n2/`.
+Fresh owner-only home: `/workspace/.onboarding/qualification/n2-home`.
+Fresh synthetic project, custom agent and proposed prerequisite-free template;
+the injected OPENAI_API_KEY was removed from fixture process environments and
+historical homes were excluded. Actual native CLI
+started/installed the complete daemon. Only the owned localhost provider supplied
+Responses, while actual native sandbox commands wrote isolated files and host
+immutable oracles checked them. This is local control/accounting evidence rather
+than new live-model intelligence, pricing or provider compatibility.
+
+Commands below ran with `. /workspace/.onboarding/activate.sh` from the evidence
+directory using native execution, with logs redirected to the matching files.
+**They are single-use evidence, not instructions to replay the fixtures.**
+
+| Actual command | Outcome / receipt |
+| --- | --- |
+| `python3 launch-provider.py`; `python3 setup.py`; `python3 preflight.py` | Owned provider/complete daemon and proposed source only; zero inference before creation; five installed hashes match |
+| `python3 physical.py create` | Physically entered 20 fields, F6, paged exact scope/aggregate confirmation, y; first start +150 seconds, interval 60, maxRuns 2; default Operations tree/upcoming panel; exit 0 |
+| `python3 lifecycle.py background-first` | Frontend closed; first task waitingApproval; next due time skipped, one response and no report before native approval |
+| `python3 physical.py approve-first-pause` | Exact command approval, native oracle exit 0, needsReview; p/y paused the series; exit 0 |
+| `python3 lifecycle.py restart-paused` | Waited past a due time while paused; actual stop/start changed PID and preserved the complete schedule view/identities/counters |
+| `python3 physical.py resume`; `python3 lifecycle.py background-second` | u/y skipped overdue time, future start only; exit 0 then fresh second task with frontend closed; issuance cap reached |
+| `python3 physical.py approve-second-review` | Exact second approval and native oracle passed; later Follow harness assertion failed after layout switch selected the source instead of the occurrence; failed receipt retained |
+| `python3 physical.py review-existing` | Explicit Workspace selection of the already-completed occurrence, actual official Neovim Follow/Ctrl-G, 36 rapid switches at 120×36/50×20/160×48, actual PageDown to counters; exit 0; provider count unchanged at 4 |
+| `python3 lifecycle.py create-cancel`; `python3 physical.py cancel` | Fresh pending native action, x/y cancelled task/series, revoked grant and superseded approval before dispatch; exit 0 |
+| `python3 lifecycle.py create-budget` | One aggregate request allowed despite per-run ceiling 4; actual preauthorized local command completed, follow-up inference denied, failed task and completed series, no extra occurrence |
+| `python3 lifecycle.py create-restart` | Graceful stop failed current task/superseded approval; helper incorrectly expected forced-crash reconciliation and failed; one distinct fresh future occurrence issued; owner cancelled it with freshly read revision |
+| `python3 crash-recovery.py` | Verified owned daemon PID/identity/start time, actual SIGKILL, new PID, blocked series/needsReconciliation; helper then incorrectly expected pending approval to be superseded immediately; failed log retained |
+| `python3 finish-crash-check.py` | Existing crashed state only: inactive runtime/zero lease, exact late approval denied (RPC -32602), no new occurrence/request over another interval; owner cancel finally revoked/superseded; corrected exit 0 |
+| `python3 remote-denial.py` | Real TCP WebSocket schedule list/mutate both denied -32600 before returning owner data/authority; own remote server stopped |
+| `python3 verify.py`; `python3 cleanup.py` | Independent read-only verification passed, actual owned daemon/provider stopped, PID record removed, state/evidence preserved |
+
+`verification.json` confirms five series/seven unique occurrences, two distinct
+primary tasks still needsReview with native and independent immutable oracle exits
+0, approved exact actions, artifact hashes, unchanged original facts/oracles/no
+original report, cancelled/non-dispatched cases, aggregate request exhaustion,
+root/series sums, SQLite quick/FK checks and all five installed hashes. No
+acceptance or Apply occurred. **9 localhost Responses / 135 fixture-reported
+tokens / zero paid calls** includes the two graceful diagnostic occurrences.
+`gpt-5.5` is a fixture catalog label. Cleanup confirms frontend exits 0 for all
+five successful physical phases and known stopped/zombie processes; zombies
+are not executing. The failed original Follow phase was forcibly closed and
+does not have a normal-exit claim.
+
+### Retained failures and limits
+
+Initial state compile fixtures used nonexistent proposal names/fields, then an
+incorrect plan-result JSON path; corrected code uses existing ProposePlan.items
+and its array response. Initial Clippy identified the large Create variant;
+boxing its scope preserved the wire contract. Initial UI test lacked a scope
+fixture; corrected 28-test checks pass, and test preferences use a temporary
+directory rather than leaving an `unused` file. All original logs remain in
+`testlogs/`; no assertion or permission check was disabled.
+
+Physical helper failures above were corrected by using actual layout selection,
+distinguishing graceful shutdown from crash, and testing retained pending approval
+through the persisted lease/state fence. The first negative helper used the
+nonexistent `execution-mutate` subcommand, sent no RPC, and failed; corrected
+`organization execute FILE` received the real stale/paused/revoked/expired-attempt
+denial. Its failed log is retained. The failed SIGKILL helper asserted ownership
+and PID change before failing, but did not persist its old numeric PID; the
+corrected recovery receipt explicitly records that evidence limitation. Canonical
+state/results were inspected, never reset or recreated to hide a failed check.
+
+21 selected actual PNG/text captures and CRC-checked 47-file archive:
+`/workspace/artifacts/cli-recurring-schedules/cli-recurring-schedules-screenshots.zip`.
+The failed Follow frame remains privately in the evidence root. Native grid/RGB
+capture uses the existing official-Neovim terminal renderer; it does not create a
+fake editor. Selected captures were visually inspected. The reusable startup
+guide was saved/read back exactly at cloud draft revision 12; all other config
+fields matched. `requires_publish=true`: review/save settings and publish the
+refreshed snapshot to retain local work; fresh-task restoration is unverified.
+
+Unrun/later: calendars/cron/DST rules, infinite schedules, new paid-provider pilots,
+arbitrary host reboot/service supervision, remote/distributed workers, larger
+capacity, user Neovim plugins/LSP, automatic original Apply and N3–N8. Starts are
+best effort on a running host; already-admitted usage may overshoot token ceilings.
+Preserve every historical qualification home/task/package; do not rerun setup,
+authorization or crash scripts or start background inference loops automatically.
+
 ## Scoped memory search qualification — 2026-10-10 UTC
 
 Application source `d6d049cc49b42f3ed6f6a22c02974f051bfba5ff`, following backend/CLI

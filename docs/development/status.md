@@ -1,19 +1,75 @@
 # Current status and resumption instructions
 
 Phase 0: **exploration and planning complete for available inputs**.
-Current work: **N1 scoped memory search complete; owner-approved N2 recurring schedules in progress**.
+Current work: **N1 memory search and N2 recurring schedules complete; N3 workflows proposed**.
 Application features: **delivered for the documented single-owner Linux envelope**.
 The MVP's release criteria are **qualified for the documented single-owner Linux/GPT-5.5 envelope**.
 
-## Active recurring-schedule slice
+## Completed recurring-schedule slice — 2026-10-11 UTC
 
-The owner approved the proposed N2 slice with “ok lets do this”. Implement finite
-UTC interval schedules using the existing daemon, grants and accounting, with
-pause/resume/cancel and canonical CLI/TUI visibility. See the
-[contract and acceptance plan](recurring-schedules.md). Ponytail, meaningful
-automated checks, actual background/restart/approval/UI interaction, continuously
-updated evidence and periodic local commits are required. No paid pilot, push,
-publish, later N3–N8 implementation or automatic Apply is implied.
+The owner approved N2 with “ok lets do this”. Finite UTC interval schedules are
+delivered and qualified on **`e06def499ef919e381bb8ec6e0ab7518960f280d`**,
+following storage `54954cfb7d` and owner API/CLI `d5f2115211`. Ponytail reused
+SQLite, the daemon poller, task/grant transactions, native approval/stop paths,
+root accounting and existing dashboard forms/panels. No dependency or install
+was added. Migration 7 retains existing canonical data. See
+[recurring schedules](recurring-schedules.md) and [testing](testing.md).
+
+Each immutable task/scope snapshot has explicit finite interval, end, run count
+and aggregate limits. Fresh occurrence/task/grant identities commit atomically;
+root counters include descendants. Model/tool/coordination/claim gates enforce
+the series; scheduled roots/children cannot bypass it by reauthorization.
+Missed/overlapping starts skip to the future. Interrupted/uncertain work blocks
+further recurrence. Pause/cancel revoke live grants and supersede pending approvals;
+resume does not revive old attempts. Completed means issuance ended, rather than
+every occurrence finished. Limits: 10-second–31-day intervals, 31-day duration,
+1,000 issued runs, 128 live series and existing per-run bounds. Starts poll about
+every 5 seconds, best effort. In-flight usage can overshoot tokens; no monetary cap.
+
+Projects task `R` creates; `S` inspects schedules; selected series `p/u/x` control
+with exact revision/confirmation. Operations retains its hierarchy by default
+and adds upcoming UTC runs. Inspectors show canonical next time/counts/usage and
+recent task IDs. Actual Neovim and concept-art panels/palette remain. Switching
+layouts clears selection: select the occurrence explicitly in Workspace for Follow.
+
+**700 distinct automated tests passed**: protocol 371, state 265, schema 4,
+Python 25, native API 6, native TUI/official Neovim 28 and owner-origin 1.
+Production/CLI Clippy with warnings denied, affected formatting and complete
+CLI/package passed. Physical creation/confirmation, frontend exit 0, background
+approval/overlap skipping, two checked fresh occurrences, pause/native restart
+persistence, future-only resume, pending cancellation, aggregate request exhaustion,
+actual SIGKILL recovery and stale approval denial, remote-owner denial, actual
+Neovim Follow/host focus and 36 rapid layout switches at three sizes passed.
+Narrow scrolling reached real counters. Independent verification checks seven
+unique occurrences, immutable originals/oracles, root/series counters, SQLite
+quick/FK checks and all five installed package hashes.
+
+Five finite fixture series used **9 localhost Responses / 135 fixture-reported
+tokens / zero paid calls**, including diagnostics. Primary tasks remain two
+needsReview results; no acceptance or Apply. The graceful-stop case retained a
+failed attempt and a fresh cancelled occurrence; a true forced crash retained
+needsReconciliation with a blocked series and zero lease, denied late approval
+and no replay before owner cancellation. All failure logs/receipts remain.
+Corrected physical checks inspected existing results instead of replaying them.
+
+Current package: `/workspace/.onboarding/qualification/recurring-schedules-n2/package/`.
+CLI SHA256: `f6cd6855de7a3fef9d08f8bf4a51282b73e92cb0f2dbc98b2142be5b3a972b1a`.
+Evidence/scripts: `/workspace/.onboarding/qualification/recurring-schedules-n2/`.
+Private home: `/workspace/.onboarding/qualification/n2-home`.
+Owned services/frontends are stopped; cleanup records native stop, removed PID
+record and stopped/zombie processes. State, packages and failures are preserved.
+21 actual PNG/text captures and a CRC-checked 47-file archive are at
+`/workspace/artifacts/cli-recurring-schedules/`.
+The reusable startup guide was saved/read back exactly at cloud draft revision
+12, with install/network/repository/credential fields unchanged.
+`requires_publish=true`: review/save settings and publish the refreshed snapshot
+to retain local commits/packages. Saving does not publish or prove new-task restore.
+
+Do not rerun fixture setup, authorization or crash scripts, reauthorize old
+occurrences, replay accepted/applied historical tasks or redo paid pilots.
+N3 reusable bounded workflow templates is the next proposal; N3–N8 require their
+matching scope. Calendar/cron/timezones, infinite recurrence, automatic Apply,
+distributed workers, user Neovim plugins/LSP and new live-model checks remain later.
 
 ## Completed memory slice — 2026-10-10 UTC
 
@@ -79,8 +135,8 @@ failures remain, with corrected passing evidence; see [testing](testing.md).
 Limits: literal substring retrieval, no pagination/semantic search, retention,
 automatic capture/promotion or broader memory ACLs; additional platforms/user
 Neovim plugins and new live-provider checks are unrun. Earlier live GPT-5.5 and
-selective Apply evidence stays tied to its stated source below. N2 recurring
-schedules is the next bounded recommendation; N2–N8 need their matching scope.
+selective Apply evidence stays tied to its stated source below. N2 was the next
+recommendation at this historical checkpoint and is now qualified above.
 
 ## Expanded next-step proposal — 2026-10-10 UTC
 
@@ -90,7 +146,7 @@ are scoped memory search, recurring schedules, reusable workflows, structured
 handoffs/blockers, Operations organization editing, operational summaries,
 Neovim selection-to-task requests and a capability inventory with one additional
 read-only integration. This planning checkpoint preceded the N1 approval and
-completed implementation recorded above; N2 recurring schedules is now next.
+completed implementation recorded above; N2 has since been approved and qualified.
 
 That proposal changed planning documentation only. Application source then remained
 `9fadf32797`; selective Apply was the current checkpoint. No
@@ -206,8 +262,9 @@ remain separate work; the completed N1 search slice above supersedes this checkp
 
 Persistent configurable agents/roles/goals/projects/tasks, protected canonical state,
 bounded daemon work/delegation/context, all five layouts, official embedded Neovim,
-exact human review/Apply, owner boot limits, trusted price estimates and N1 scoped
-memory search are delivered. Next recommendation: N2 recurring schedules after
+exact human review/Apply, owner boot limits, trusted price estimates, N1 scoped
+memory search and N2 recurring schedules are delivered. Next recommendation: N3
+reusable bounded workflow templates after
 matching scope; preserve current fixture state and do not repeat paid pilots.
 Ponytail reuse-first implementation/review and logical local commits were used.
 
@@ -478,13 +535,15 @@ authorize push/publication, outbound communications or unbounded provider spendi
 1. Read AGENTS.md, this status, release matrix, MVP, decisions and testing.
 2. Check Git status/log and preserve changes in the existing checkout.
 3. Activate the pinned environment with `. /workspace/.onboarding/activate.sh`.
-   Final package: `/workspace/.onboarding/qualification/memory-search-20261010/package/bin/codex`.
+   Final package: `/workspace/.onboarding/qualification/recurring-schedules-n2/package/bin/codex`.
    Evidence root: `/workspace/.onboarding/qualification/`; fixture services are stopped.
-4. N1 and A05 are complete. Read memory-search-20261010/verification.json and the
-   separate live-gpt/ evidence. Preserve accepted/needsReview/applied fixture tasks;
-   services are stopped. Do not replay authorization/Apply, redo paid qualification
-   or create automatic inference loops. Next recommendation: N2 recurring schedules
-   after matching scope; use fresh scoped projects/grants for new approved tests.
+4. N1, N2 and A05 are complete. Read recurring-schedules-n2/{verification,cleanup}.json,
+   the historical memory-search-20261010/ verification and separate live-gpt/ evidence.
+   Preserve all historical tasks/results/series and failures; owned services are
+   stopped. Never rerun qualification setup/authorization/crash scripts, replay
+   authorization/Apply, redo paid pilots or create automatic inference loops.
+   Next recommendation: N3 reusable workflows after matching scope; use fresh
+   scoped projects/grants for new approved tests.
 5. Update acceptance/status/testing and make logical local commits after results.
    Do not start later roadmap phases without matching user scope, or infer push,
    merge, deploy, external messaging or financial authority.

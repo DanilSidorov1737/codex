@@ -1,6 +1,8 @@
 # Recurring schedules (N2)
 
-Status: owner-approved implementation in progress; not yet qualified.
+Status: owner-approved N2 delivered and qualified on application source
+`e06def499ef919e381bb8ec6e0ab7518960f280d` (2026-10-11 UTC).
+Storage `54954cfb7d`, owner API/CLI `d5f2115211`, dashboard `e06def499e`.
 
 Reuse the existing organization store, daemon poller, task grants, delegation,
 approval ledger and isolated workspace execution. No scheduler service, cron
@@ -27,6 +29,8 @@ parser or dependency is needed for bounded UTC intervals.
   children, native cleanup and unresolved usage/actions. Completed results may
   await human review while later isolated runs execute. Acceptance and Apply
   remain separate owner decisions.
+  A completed series has finished issuing occurrences; its last task can still
+  run or wait for approval. Inspect the occurrence's task state separately.
 - Ordinary polling runs a due occurrence only within its interval. If a whole
   interval was missed, advance to the next future time without a catch-up burst.
   Daemon startup and resume skip overdue times. Skips do not consume the run cap.
@@ -57,7 +61,7 @@ Use fresh deterministic local fixtures; no new paid pilots are required.
 4. Automated checks, full package and physical qualification, Ponytail/correctness
    review, evidence, current status/roadmap and logical local commits.
 
-## Current storage checkpoint
+## Implementation and qualification
 
 Implemented schedule/occurrence DTOs and migration 7, atomic materialization,
 scope snapshots and revision checks, missed-run skipping, nonoverlap, finite
@@ -68,24 +72,54 @@ tasks. Scheduled roots and children cannot bypass the series by reauthorization.
 Late usage remains accounted after pause. Unresolved usage and uncertain effects
 block automatic recurrence rather than granting another budget.
 
-The full state suite passed 265 tests (five new schedule scenarios); protocol
-passed 371 tests after adding the wire-contract scenario. Production-library
-Clippy passed with warnings denied after boxing the large create-scope payload;
-affected format checks and final-source qualification remain in progress.
-Initial compile/fixture errors are retained under the qualification directory.
-The protected owner API, thin schedule CLI commands, runtime polling/reconciliation,
-generated TypeScript/JSON/SDK contracts and native API test are implemented.
-All six organization API tests, four schema comparisons and 25 Python contracts
-passed; API/CLI checkpoint `d5f2115211` is committed. Dashboard creation, exact
-controls, canonical inspectors and Operations upcoming panel are implemented.
-The current native TUI/official-Neovim suite passed 28 tests; default first start
-is one hour ahead so reviewing the full form does not exhaust a one-minute window.
-Final lint/build and physical qualification remain in progress; this checkpoint
-is not an end-to-end schedule release.
+The protected owner API, thin CLI, daemon polling/reconciliation, generated
+TypeScript/JSON/SDK contracts and dashboard controls are implemented. Default
+first start is one hour ahead to allow review of the full authorization form.
+**700 distinct automated tests passed**: protocol 371, state 265 (five new
+schedule scenarios), native API 6, native TUI/official Neovim 28, schema
+comparisons 4, Python contracts 25 and owner-origin 1. Production libraries and
+CLI passed Clippy with warnings denied, affected formatting and complete build.
+
+Actual packaged CLI/TUI created the primary series through its 20-field form
+and exact confirmation. With the frontend closed, the daemon started its first
+run and skipped an overlapping due time while waiting for approval. The exact
+native command and immutable oracle passed. Owner pause persisted through real
+daemon stop/start; resume skipped the overdue time and issued a fresh future
+task with the frontend closed. Both primary runs passed native and independent
+immutable report checks and remain needsReview, with no acceptance or Apply.
+Actual official Neovim Follow, Ctrl-G host focus, narrow counter scrolling and
+36 rapid switches at 120×36, 50×20 and 160×48 passed with normal frontend exits 0.
+
+Fresh bounded cases proved cancellation before native dispatch, aggregate
+request exhaustion, and actual SIGKILL/restart recovery. The crashed series
+became blocked; its task/attempt require reconciliation, runtime is inactive and
+lease is zero. A late exact owner approval was denied. Pending approval is
+retained as evidence until owner cancellation supersedes it. No old attempt or
+new occurrence replayed after the crash. Real TCP WebSocket reads/controls were
+denied. Graceful shutdown is distinct: it cleanly fails the current attempt and
+supersedes its approval; the still-active series may issue a fresh future task.
+The observed second graceful-case task was cancelled and retained.
+
+Independent verification confirms five finite series, seven unique occurrences,
+root/series counters, SQLite quick/FK checks, immutable originals and all five
+installed package hashes. Total **9 localhost deterministic Responses / 135
+fixture-reported tokens / zero paid calls** includes all diagnostic cases.
+This qualifies local schedule controls, not new live-model quality or billing.
+Initial compile/test/harness failures remain with corrected evidence; see
+[testing](testing.md). No failure was hidden by resetting state or replaying work.
+
+Package: `/workspace/.onboarding/qualification/recurring-schedules-n2/package/`.
+CLI SHA256: `f6cd6855de7a3fef9d08f8bf4a51282b73e92cb0f2dbc98b2142be5b3a972b1a`.
+Evidence: `/workspace/.onboarding/qualification/recurring-schedules-n2/`.
+Private home: `/workspace/.onboarding/qualification/n2-home`.
+All owned services/frontends are stopped; cleanup retains canonical state,
+packages, artifacts and failures. Do not rerun setup/authorization/crash scripts.
+21 actual PNG/text captures and the CRC-checked 47-file archive are in
+`/workspace/artifacts/cli-recurring-schedules/`.
 
 ## Owner usage
 
-Use the complete N2 package when available, including its installed daemon.
+Use the complete N2 package, including its installed daemon.
 An existing daemon still uses its previously installed API: inspect active/queued
 work before updating it with the new package's
 `codex app-server daemon update --from-cli --yes`. Preserve canonical state and
@@ -150,6 +184,8 @@ selected series with confirmation. The Operations hierarchy remains the default
 view, with an upcoming-runs panel. Inspector times are explicitly UTC, not local
 wall-clock calendar rules. Select a recent occurrence task for approval/review;
 no result is automatically accepted or applied to original files.
+Layout switching clears selection; explicitly select the occurrence in Workspace
+before `t` Follow. PageDown/PageUp scroll the inspector at narrow sizes.
 
 Calendar/cron/timezone rules, infinite schedules, automatic original-workspace
 Apply, external effects, distributed workers and workflow templates remain later

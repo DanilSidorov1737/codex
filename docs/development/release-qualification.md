@@ -47,6 +47,21 @@ See [memory search](memory-search.md), [testing](testing.md) and status.md.
 
 ## Acceptance evidence
 
+The subsequent N2 recurring-schedule slice is qualified on `e06def499e`: 700
+distinct automated tests, production/CLI format/Clippy and complete package passed.
+Actual creation, background approval/overlap skipping, pause/restart persistence,
+future-only resume, two checked fresh occurrences, cancellation, aggregate request
+exhaustion, SIGKILL/restart fences, stale approval denial and remote-owner denial
+passed. Actual official-Neovim Follow, narrow scrolling and 36 rapid switches
+passed. Independent verification confirms five finite series/seven unique
+occurrences, two immutable oracles, unchanged originals and five installed hashes.
+Nine localhost fixture Responses/135 reported tokens, zero paid calls, no
+acceptance/Apply; owned services stopped. Graceful shutdown is distinct from
+forced crash. Initial failed harness evidence remains, with corrected read-only
+checks rather than replay. See [recurring schedules](recurring-schedules.md) and
+[testing](testing.md). Calendar/cron, new live-model quality and other platforms
+remain outside this qualification.
+
 | Criterion | Local result and evidence | Remaining boundary |
 | --- | --- | --- |
 | A01 arbitrary agents/forests | CLI creation/restart and native API preserved stable IDs; standalone and custom delegation ran | No mandatory role names or hierarchy levels |
