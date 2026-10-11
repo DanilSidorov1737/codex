@@ -2581,3 +2581,35 @@ startup/layout selection and provider-only registry setup errors were corrected
 in external qualification drivers. No production safeguard was weakened.
 Tasks 10–12, 14–18 and 20 remain in native qualification; task 1 still needs a
 real systemd user-manager/reboot-capable host.
+
+### Native stale-message regression
+
+The exact hunk Application completed once; repeated Apply refused. A later
+native buffer proposal also refused an external original-file change, retaining
+the owner's writer line, but background snapshot refresh cleared the local
+refusal message. Local editor decisions now mark failed outcomes as errors using
+the existing flag. The regression verifies a real changed original and subsequent
+asynchronous Snapshot preserve both file bytes and the refusal, before native
+mutation. The first test compile named a private helper type; construction now
+uses its existing serde contract without expanding production visibility.
+The corrected **70** TUI/official-Neovim checks pass, including the new regression.
+Distinct selected automated checks are now **790**. Clippy/build/package and the
+remaining physical editor recovery continue. Preserve the one Application and
+external owner file; never rerun the pre-Apply drivers.
+
+Native tasks 10–15 now pass their approved finite checks on the initial package:
+policy pause/resume/revoke with captured goal and retained three-request/45-token
+grant, scoped private note retirement/stale refusal/restoration/history, exact
+checkpoint replan and captured owner/model scorecards. The replan driver originally
+compared the whole grant; its nodeRevision correctly advances to the reviewed
+receiver revision, while grant ID/scope/accounting remain unchanged. Read-only
+continuation verifies both captured owners, one handoff, four requests/60 tokens
+and previously accepted discussion/goal results. Further background document
+checks finish after normal frontend exit, and exact acceptance after reattachment
+retains the original grant and leaves originals unchanged.
+Actual daemon SIGKILL after a single silent admitted localhost request fences
+unknown accounting without replay. Offline runtime/session/workspace bundling,
+quarantined source workspaces, remapped fresh-home restore, all controls/history/
+scoped notes/scorecards and corrupt/live-bundle refusals pass. The corrected
+fixture records 17 admitted/16 reported requests, 240 synthetic tokens, zero paid.
+Actual restored frontend/editor and final editor recovery remain pending.

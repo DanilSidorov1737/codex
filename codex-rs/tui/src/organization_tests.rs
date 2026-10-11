@@ -361,6 +361,69 @@ fn dashboard() -> Dashboard {
 }
 
 #[tokio::test]
+async fn changed_original_refusal_survives_background_snapshot() {
+    use crate::organization_editor::BufferProposal;
+    use sha2::Digest;
+    use sha2::Sha256;
+
+    let root = tempfile::tempdir().unwrap();
+    let path = root.path().join("owner.txt");
+    std::fs::write(&path, "Original owner text\n").unwrap();
+    let mut d = dashboard();
+    d.snapshot
+        .records
+        .push(OrganizationRecord::Project(OrganizationProjectPlan {
+            id: "project".into(),
+            name: "Owner project".into(),
+            roots: vec![root.path().to_str().unwrap().into()],
+            goal_id: None,
+            owner_id: None,
+            criteria: vec![],
+            revision: 1,
+        }));
+    d.confirmation = Some(Command::BufferProposal(Box::new(BufferProposal {
+        pin: serde_json::from_value(serde_json::json!({
+            "editorId": "captured-editor",
+            "buffer": 1,
+            "path": path,
+            "changedtick": 1,
+            "sha256": format!("{:x}", Sha256::digest(b"Original owner text\n")),
+            "modified": false,
+        }))
+        .unwrap(),
+        text: "Accepted proposal\n".into(),
+        result_digest: "accepted-result".into(),
+        artifact_sha256: format!("{:x}", Sha256::digest(b"Accepted proposal\n")),
+    })));
+    std::fs::write(&path, "Changed by the owner\n").unwrap();
+    d.key(KeyCode::Char('y').into());
+    assert!(d.confirmation.is_none());
+    assert!(
+        d.message
+            .contains("original changed since proposal preview")
+    );
+    let refusal = d.message.clone();
+    let (updates, incoming) = mpsc::channel(4);
+    d.updates = incoming;
+    updates
+        .send(Update::Snapshot(Snapshot {
+            records: d.snapshot.records.clone(),
+            schedules: vec![],
+            workflows: vec![],
+            report: None,
+        }))
+        .await
+        .unwrap();
+    d.update();
+    assert_eq!(d.message, refusal);
+    assert_eq!(
+        std::fs::read_to_string(path).unwrap(),
+        "Changed by the owner\n"
+    );
+    assert!(d.editor.is_none(), "refusal must precede native mutation");
+}
+
+#[tokio::test]
 async fn presets_are_discoverable_and_forms_pin_revisions_without_sending_authority() {
     let mut d = dashboard();
     let (tx, mut rx) = mpsc::channel(8);

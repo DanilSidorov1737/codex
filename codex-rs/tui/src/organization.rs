@@ -2395,6 +2395,7 @@ impl Dashboard {
                         })();
                         self.form = None;
                         self.following = false;
+                        self.message_is_error = result.is_err();
                         self.message=match result {Ok(())=>"Native editor decision applied; inspect buffers, undo or save explicitly".into(),Err(error)=>format!("Native editor decision refused or incomplete: {error}")};
                         return;
                     }
