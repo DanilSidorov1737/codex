@@ -16,9 +16,18 @@ Task 4 optional organization presets is also qualified on `a3e0fcca67`: full
 state 295/protocol 373, targeted TUI/editor 60, schema 4 and SDK 25 checks pass,
 plus real save/clone/refusals/restart and installed assets/SQLite integrity.
 Preserve `operations-batch/presets/{physical,restart-v3,cleanup}.json`, both failed
-restart harnesses and the cancelled future fixture. Zero inference ran. Current
-next work is tasks 6–9 project lifecycle/priorities/global limits/emergency pause;
-their implementation is in progress and not yet qualified.
+restart harnesses and the cancelled future fixture. Zero inference ran.
+Tasks 6–9 project lifecycle/priorities/global limits/emergency pause are qualified
+on `753464cd53`: state 301/protocol 373/TUI-editor 62/schema 4/SDK 25 checks and
+production CLI Clippy/build/format pass. Actual coding/document checks/acceptance,
+pause/refused approval/same-grant resume, completion/archive/reopen, exhausted
+admission refusal, 36 layout switches, restart, two exits 0 and native integrity
+pass. Four localhost responses/60 fixture tokens/zero paid; final global state is
+paused and owned services are stopped. Preserve `operations-batch/controls/`,
+both accepted unapplied results and the cancelled zero-usage probe; never replay
+setup/decisions or reset ceilings. Next work is tasks 10–15 bounded policy/goal
+supervision, replanning, discussions, knowledge maintenance and scorecards.
+Their implementation is in progress; none is qualified yet. Tasks 16–20 remain.
 [Batch checkpoint](next-twenty.md) is authoritative
 for remaining work; [host runbook](unattended-host-qualification.md) describes the
 unavailable logout/reboot checks. Preserve all fresh operations-batch fixtures
@@ -31,6 +40,10 @@ Receipts: `operations-batch/native/{physical,final-readonly,cleanup}.json`.
 Newer preset package: `operations-batch/preset-package/bin/codex`, SHA256
 `782d3145a153dd92c21bc0c96f5830380218a7158bbd83d2664f06841d06b45e`.
 Preset screenshots: `/workspace/artifacts/cli-organization-presets/cli-organization-presets-screenshots.zip`.
+Newer controls package: `operations-batch/controls-package/bin/codex`, SHA256
+`83f25d0809f5edd223d9c5e14da4f9d0ed538d65fe24e8482a8238c8a7d31340`.
+Controls receipts: `operations-batch/controls/{physical,restart}.json`; screenshots:
+`/workspace/artifacts/cli-owner-controls/cli-owner-controls-screenshots.zip`.
 
 The revised [autonomy/usability batch](autonomy-batch.md) is **complete: all twelve
 approved bounded items are implemented and qualified**. **770 selected automated

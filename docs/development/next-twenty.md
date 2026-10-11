@@ -77,8 +77,8 @@ Two read-only restart harness failures (saved Console layout and an incorrect
 asset list) are retained; corrected `restart-v3.json` passes. The initial final
 format check exposed test-only formatting; it is corrected and the rerun passes.
 
-Tasks 6–9 project lifecycle, priority/fair selection, global limits and emergency
-pause are now being implemented. They use separately versioned owner controls
+Tasks **6–9 are complete and qualified on `753464cd53`**: project lifecycle,
+priority/fair selection, global limits and emergency pause use versioned controls
 and immutable control history so pause/priority do not invalidate execution
 grants or reset original accounting. No other remaining task is qualified yet.
 Subsequent slices update this page, status and testing with exact commits,
@@ -97,4 +97,12 @@ Q native selection. The corrected 62 targeted TUI/actual-Neovim checks, four
 generated schema comparisons and 25 SDK contract checks pass. Missing global
 usage from older daemons is explicitly unavailable. Production CLI Clippy with
 warnings denied, CLI build and formatting pass. Fresh physical coding/document/
-control qualification remains in progress.
+control qualification and restart pass: two immutable real subprocess checks,
+exact owner acceptance, pause/refused approval/same-grant resume, completion/
+archive/reopen, exhausted admission refusal, unchanged originals and accounting,
+36 layout switches, two exits 0, installed asset hashes and SQLite integrity.
+Four localhost responses/60 synthetic tokens/zero paid. Final global state is
+paused; owned services are stopped. Preserve both accepted unapplied results and
+the cancelled zero-usage ceiling probe. All 26 native PNG/text pairs are archived
+under `/workspace/artifacts/cli-owner-controls/`. Next work is tasks 10–15;
+their implementation is in progress, with no further item qualified yet.

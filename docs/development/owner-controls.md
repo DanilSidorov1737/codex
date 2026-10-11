@@ -39,7 +39,7 @@ All forms use Tab/Enter, Shift-Tab, arrows for choices and Alt-Enter for newline
 Drafts and confirmations do not follow subsequent selection/background changes.
 No new dependency, workflow language or background service is added.
 
-## Project lifecycle and organization execution controls (in progress)
+## Project lifecycle and organization execution controls
 
 Approved next-twenty items 6–9 add concrete separately versioned controls through
 existing local-owner definition RPCs. No new dependency, worker engine or policy
@@ -85,5 +85,11 @@ Full state 301, protocol 373 and targeted TUI/actual-Neovim 62 checks pass,
 along with four generated schema comparisons and 25 Python SDK contract checks.
 Older daemons that omit global usage show unavailable rather than an invented
 zero. Production CLI Clippy with warnings denied, CLI build and formatting pass.
-Native qualification remains in progress; do not present this slice as delivered
-before physical checks.
+Native qualification passes on `753464cd53`: actual global ceilings/priorities,
+pause/refused approval/same-grant resume, coding/document subprocess checks and
+acceptance, completion/archive/reopen, exhausted global admission refusal,
+36 layout switches, restart and two native exits 0. Five installed asset hashes
+and SQLite integrity pass. Four localhost responses/60 fixture tokens/zero paid;
+final global state is paused and owned services are stopped. Two accepted results
+remain unapplied for later approved hunk/editor qualification. Preserve
+`operations-batch/controls/`; never replay its setup or decisions.

@@ -2435,3 +2435,56 @@ Package: `operations-batch/preset-package/bin/codex`, SHA256
 Nine actual PNG/text pairs archived at
 `/workspace/artifacts/cli-organization-presets/cli-organization-presets-screenshots.zip`.
 Preserve all fixtures and never rerun setup/physical mutations or reset counters.
+# Operations controls qualification (next-twenty items 6–9)
+
+Application source `753464cd53`; immutable package version
+`0.0.0-operations-controls.753464cd53`. CLI SHA256
+`83f25d0809f5edd223d9c5e14da4f9d0ed538d65fe24e8482a8238c8a7d31340`.
+Receipts/logs: `/workspace/.onboarding/qualification/operations-batch/`, with
+native state under `controls/{physical,restart}.json`. Never replay setup or
+decisions. Both accepted results remain unapplied for later approved editor/hunk
+qualification; the zero-usage exhausted-ceiling probe is cancelled. Final global
+state is paused and all owned daemon/provider/editor processes are stopped.
+
+From `codex-rs`, after `. /workspace/.onboarding/activate.sh`, locked/offline
+`CARGO_INCREMENTAL=0 RUST_MIN_STACK=8388608` dev-small/j4 checks pass:
+full state library **301**, protocol **373**, targeted TUI/actual-Neovim
+`--lib organization` **62**, generated schema comparisons **4**, production CLI
+Clippy `-- -D warnings`, CLI build and `cargo fmt --all -- --check`. Python SDK
+generation and existing contract/signature checks pass **25** from its existing
+virtual environment. Stable/experimental precomputed exports were regenerated
+before the final production build. No new dependency or tool installation.
+
+Six new failure-sensitive state checks cover global pause/late receipts/quiescent
+capacity/same-grant resume, exact criterion proofs/lifecycle/history, deterministic
+aging/40 paused candidates before LIMIT, root-descendant usage/unknown pool fence,
+concurrent capacity/request admissions and automatic workflow occurrence pause.
+Legacy downgrade fixtures remove the new migration's structures before creating
+older schemas; original downgrade assertions remain. The first broader run
+exposed those fixtures. The first TUI run exposed existing K/Q shortcut collisions;
+F/! now preserve old navigation/selection keys. Production lint caught a needless
+generic borrow, removed without lint allowances. All corrected checks pass.
+
+Fresh native `prepare.py`/`physical.py` entered actual commands through official
+Neovim 0.12.6's native terminal grid and the exact packaged CLI. F10 changed global
+ceilings; ! changed priorities; F12 paused/resumed; pending approval correctly
+refused during pause and resumed under the same grant. The paused high-priority
+project did not hide eligible document work. Two actual isolated Python edits and
+immutable subprocess oracles passed; the owner accepted exact results. F completed
+each project with pinned accepted criterion evidence, archived/reopened the
+document project and reopened coding. A new bounded task stayed queued/no attempts
+after four global requests, then was cancelled without resetting accounting.
+Original owner files remained unchanged. F11 inspected controls; 36 layout
+switches at three sizes, native exit 0, restart-retained results/grants/history/
+usage, final exact pause and second native exit 0 passed. Five installed assets
+match the package; SQLite quick/foreign-key checks pass.
+
+Provider evidence is **four localhost synthetic responses / 60 reported fixture
+tokens / zero paid requests**; no live-model quality or billing claim. The initial
+preflight assertion mistook an escape layer; AST inspection confirmed correct
+fixture newlines without changing files or issuing requests. All preserved native
+drivers passed. Twenty-six PNG/text pairs form a CRC-checked 52-entry archive:
+`/workspace/artifacts/cli-owner-controls/cli-owner-controls-screenshots.zip`.
+Only inactive rebuildable target artifacts were removed for disk headroom, with
+hash/size receipts; qualified packages/homes/results/grants/evidence were retained.
+
