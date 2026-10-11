@@ -64,6 +64,7 @@ export type { OrganizationApplicationState } from "./OrganizationApplicationStat
 export type { OrganizationApprovalState } from "./OrganizationApprovalState";
 export type { OrganizationArtifactBase } from "./OrganizationArtifactBase";
 export type { OrganizationArtifactEvidence } from "./OrganizationArtifactEvidence";
+export type { OrganizationAuditEvent } from "./OrganizationAuditEvent";
 export type { OrganizationBudgetReport } from "./OrganizationBudgetReport";
 export type { OrganizationCheckEvidence } from "./OrganizationCheckEvidence";
 export type { OrganizationCheckpointContent } from "./OrganizationCheckpointContent";
@@ -101,6 +102,7 @@ export type { OrganizationReplanItem } from "./OrganizationReplanItem";
 export type { OrganizationReport } from "./OrganizationReport";
 export type { OrganizationReportTotals } from "./OrganizationReportTotals";
 export type { OrganizationRoleVersion } from "./OrganizationRoleVersion";
+export type { OrganizationRuntimeResources } from "./OrganizationRuntimeResources";
 export type { OrganizationSchedule } from "./OrganizationSchedule";
 export type { OrganizationScheduleConfig } from "./OrganizationScheduleConfig";
 export type { OrganizationScheduleControl } from "./OrganizationScheduleControl";

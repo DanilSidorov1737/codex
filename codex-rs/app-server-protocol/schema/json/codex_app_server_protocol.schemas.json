@@ -16376,6 +16376,37 @@
         ],
         "type": "object"
       },
+      "OrganizationAuditEvent": {
+        "properties": {
+          "actor": {
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "operation": {
+            "type": "string"
+          },
+          "reference": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "sequence": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "actor",
+          "createdAt",
+          "operation",
+          "sequence"
+        ],
+        "type": "object"
+      },
       "OrganizationBudgetReport": {
         "properties": {
           "expiresAt": {
@@ -18503,6 +18534,17 @@
       },
       "OrganizationReport": {
         "properties": {
+          "auditEvents": {
+            "default": null,
+            "description": "Recent 200 global owner audit references, without arbitrary payload bodies. Scoped reports and older daemons leave this unavailable.",
+            "items": {
+              "$ref": "#/definitions/v2/OrganizationAuditEvent"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
           "generatedAt": {
             "format": "int64",
             "type": "integer"
@@ -18530,6 +18572,17 @@
               "string",
               "null"
             ]
+          },
+          "runtimeResources": {
+            "anyOf": [
+              {
+                "$ref": "#/definitions/v2/OrganizationRuntimeResources"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
           },
           "scorecards": {
             "anyOf": [
@@ -18681,6 +18734,41 @@
           "name",
           "roleId",
           "version"
+        ],
+        "type": "object"
+      },
+      "OrganizationRuntimeResources": {
+        "description": "Actual serving app-server process only; never attributed to a model or agent.",
+        "properties": {
+          "cpuTimeMs": {
+            "format": "uint64",
+            "minimum": 0.0,
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "measuredAtMs": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "processId": {
+            "format": "uint32",
+            "minimum": 0.0,
+            "type": "integer"
+          },
+          "residentBytes": {
+            "format": "uint64",
+            "minimum": 0.0,
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "measuredAtMs",
+          "processId"
         ],
         "type": "object"
       },

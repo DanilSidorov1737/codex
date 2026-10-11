@@ -357,6 +357,8 @@ mod tests {
             totals: OrganizationReportTotals::default(),
             global_usage: Some(OrganizationGlobalUsage::default()),
             scorecards: None,
+            audit_events: None,
+            runtime_resources: None,
             tasks: vec![a, b],
             usage: vec![OrganizationUsageReport {
                 task_id: "task".into(),

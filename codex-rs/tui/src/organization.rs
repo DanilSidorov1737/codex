@@ -25,6 +25,8 @@ use crate::tui::{FrameRequester, Tui, TuiEvent};
 
 #[path = "organization_form.rs"]
 mod form;
+#[path = "organization_graph.rs"]
+mod graph;
 #[path = "organization_palette.rs"]
 mod palette;
 #[path = "organization_report.rs"]
@@ -94,12 +96,14 @@ impl Default for PaneSettings {
 struct Preferences {
     preset: Preset,
     panes: [PaneSettings; 5],
+    graph: graph::Settings,
 }
 impl Default for Preferences {
     fn default() -> Self {
         Self {
             preset: Preset::Operations,
             panes: std::array::from_fn(|_| PaneSettings::default()),
+            graph: graph::Settings::default(),
         }
     }
 }
@@ -196,7 +200,7 @@ enum Command {
     },
 }
 enum Update {
-    Snapshot(Snapshot),
+    Snapshot(Box<Snapshot>),
     ReportText(String, std::result::Result<String, String>),
     Report(
         String,
@@ -384,7 +388,9 @@ async fn worker(
                     updates.send(Update::ReportText(id, result)).await?;
                 }
                 Command::Refresh => {
-                    updates.send(Update::Snapshot(load(&handle).await?)).await?;
+                    updates
+                        .send(Update::Snapshot(Box::new(load(&handle).await?)))
+                        .await?;
                     if let Some(task_id) = &selected {
                         let response: OrganizationExecutionReadResponse = handle
                             .request_typed(ClientRequest::OrganizationExecutionRead {
@@ -625,6 +631,8 @@ enum Projection {
     Workflows,
     Presets,
     Controls,
+    Health,
+    Incidents,
 }
 
 /// Iterative traversal keeps deep user-defined hierarchies off the call stack.
@@ -761,6 +769,7 @@ pub(crate) struct Dashboard {
     snapshot: Snapshot,
     projection: Projection,
     rows: Vec<Row>,
+    graph: graph::Graph,
     selected: Option<String>,
     collapsed: BTreeSet<String>,
     detail: Option<Box<OrganizationExecutionView>>,
@@ -1101,6 +1110,7 @@ impl Dashboard {
             snapshot: Snapshot::default(),
             projection: Projection::Default,
             rows: Vec::new(),
+            graph: graph::Graph::default(),
             selected: None,
             collapsed: BTreeSet::new(),
             detail: None,
@@ -1193,6 +1203,32 @@ impl Dashboard {
                     })
                 })
                 .collect()
+        } else if matches!(self.projection, Projection::Health | Projection::Incidents) {
+            self.snapshot
+                .report
+                .as_ref()
+                .map(|report| {
+                    report
+                        .tasks
+                        .iter()
+                        .filter(|t| {
+                            matches!(
+                                t.state.as_str(),
+                                "failed" | "blocked" | "needsReconciliation"
+                            ) || self.projection == Projection::Health && t.state == "running"
+                        })
+                        .map(|t| Row {
+                            id: t.task_id.clone(),
+                            label: format!(
+                                "{} · {} · {}",
+                                t.state,
+                                t.title,
+                                t.blocker.as_deref().unwrap_or("No reported blocker")
+                            ),
+                        })
+                        .collect()
+                })
+                .unwrap_or_default()
         } else if self.projection == Projection::Presets {
             self.snapshot
                 .records
@@ -1239,42 +1275,29 @@ impl Dashboard {
             && self.projection != Projection::Schedules
             && self.projection != Projection::Workflows
         {
-            let nodes: Vec<_> = self
-                .snapshot
-                .records
-                .iter()
-                .filter_map(|r| {
-                    if let OrganizationRecord::Node(n) = r {
-                        Some(n.clone())
-                    } else {
-                        None
-                    }
-                })
-                .collect();
-            let mut rows = tree(&nodes, &self.collapsed, &search);
-            let mut states: BTreeMap<&str, BTreeMap<&str, usize>> = BTreeMap::new();
-            for record in &self.snapshot.records {
-                if let OrganizationRecord::Task(task) = record {
-                    *states
-                        .entry(&task.owner_id)
-                        .or_default()
-                        .entry(&task.state)
-                        .or_default() += 1;
-                }
+            self.graph = graph::Graph::build(
+                &self.snapshot.records,
+                &self.collapsed,
+                &search,
+                &self.preferences.graph,
+            );
+            if self.preferences.graph.list {
+                let visible: BTreeSet<_> = self.graph.cards.iter().map(|c| c.id.as_str()).collect();
+                let nodes: Vec<_> = self
+                    .snapshot
+                    .records
+                    .iter()
+                    .filter_map(|r| match r {
+                        OrganizationRecord::Node(n) if visible.contains(n.id.as_str()) => {
+                            Some(n.clone())
+                        }
+                        _ => None,
+                    })
+                    .collect();
+                tree(&nodes, &self.collapsed, "")
+            } else {
+                self.graph.rows()
             }
-            for row in &mut rows {
-                if let Some(counts) = states.get(row.id.as_str()) {
-                    row.label.push_str(&format!(
-                        " · {}",
-                        counts
-                            .iter()
-                            .map(|(state, n)| format!("{n} {state}"))
-                            .collect::<Vec<_>>()
-                            .join(", ")
-                    ));
-                }
-            }
-            rows
         } else {
             let mut rows: Vec<_> = self
                 .snapshot
@@ -2636,6 +2659,9 @@ impl Dashboard {
             }
             return;
         }
+        if self.graph_key(key) {
+            return;
+        }
         match key.code {
             KeyCode::Esc | KeyCode::Char('q' | '1') | KeyCode::F(1) => {
                 if let Some(editor) = &mut self.editor
@@ -2933,7 +2959,13 @@ impl Dashboard {
                 Update::Snapshot(snapshot) => {
                     let first = self.snapshot.records.is_empty();
                     let selected = self.selected.clone();
-                    self.snapshot = snapshot;
+                    self.preferences.graph.cpu_percent = self.snapshot.report.as_ref().and_then(|r|r.runtime_resources.as_ref()).zip(snapshot.report.as_ref().and_then(|r|r.runtime_resources.as_ref())).and_then(|(old,new)| {
+                        if old.process_id!=new.process_id || new.measured_at_ms<=old.measured_at_ms {return None;}
+                        let elapsed=new.measured_at_ms.checked_sub(old.measured_at_ms)? as f64;
+                        let cpu=new.cpu_time_ms?.checked_sub(old.cpu_time_ms?)? as f64;
+                        Some(100.0*cpu/elapsed)
+                    });
+                    self.snapshot = *snapshot;
                     self.rebuild();
                     self.detail_text = clean(&self.details());
                     if self.confirmation.is_none()
@@ -3065,6 +3097,9 @@ impl Dashboard {
         self.send(Command::Refresh);
     }
     fn details(&self) -> String {
+        if let Some(text) = self.node_tab_text() {
+            return text;
+        }
         let mut text = self.workflow_details();
         if let Some(view) = self.selected_schedule() {
             let s = &view.schedule;
@@ -3491,7 +3526,10 @@ impl Dashboard {
         if let Some(editor) = &mut self.editor {
             editor.poll();
         }
-        let changed = matches!(&event, TuiEvent::Key(_) | TuiEvent::Paste(_));
+        let changed = matches!(
+            &event,
+            TuiEvent::Key(_) | TuiEvent::Paste(_) | TuiEvent::Mouse(_)
+        );
         match event {
             TuiEvent::Key(key) => self.key(key),
             TuiEvent::Paste(value) => {
@@ -3562,6 +3600,74 @@ impl Dashboard {
                             self.message = e.to_string();
                         }
                     }
+                }
+            }
+            TuiEvent::Mouse(mouse)
+                if self.diagram_active()
+                    && self.form.is_none()
+                    && self.palette.is_none()
+                    && self.confirmation.is_none()
+                    && self.memory_request.is_none()
+                    && self.input.is_none()
+                    && self.report_text.is_none() =>
+            {
+                use crossterm::event::{MouseButton, MouseEventKind};
+                match mouse.kind {
+                    MouseEventKind::Down(MouseButton::Left) => {
+                        let position = ratatui::layout::Position::new(mouse.column, mouse.row);
+                        if let Some((_, tab)) = self
+                            .graph
+                            .tab_hits
+                            .iter()
+                            .find(|(r, _)| r.contains(position))
+                        {
+                            self.preferences.graph.inspector_tab = *tab;
+                            self.inspect();
+                            self.save();
+                        } else if let Some((_, id)) = self
+                            .graph
+                            .toggle_hits
+                            .iter()
+                            .find(|(r, _)| r.contains(position))
+                        {
+                            let id = id.clone();
+                            if !self.collapsed.remove(&id) {
+                                self.collapsed.insert(id);
+                            }
+                            self.rebuild();
+                            self.inspect();
+                        } else if let Some((_, id)) =
+                            self.graph.hits.iter().find(|(r, _)| r.contains(position))
+                        {
+                            let id = id.clone();
+                            if self
+                                .snapshot
+                                .records
+                                .iter()
+                                .any(|r| matches!(r,OrganizationRecord::Node(n) if n.id==id))
+                            {
+                                self.selected = Some(id);
+                                self.inspect();
+                            }
+                        }
+                    }
+                    MouseEventKind::ScrollDown => {
+                        self.preferences.graph.pan.1 =
+                            self.preferences.graph.pan.1.saturating_add(3)
+                    }
+                    MouseEventKind::ScrollUp => {
+                        self.preferences.graph.pan.1 =
+                            self.preferences.graph.pan.1.saturating_sub(3)
+                    }
+                    MouseEventKind::ScrollRight => {
+                        self.preferences.graph.pan.0 =
+                            self.preferences.graph.pan.0.saturating_add(6)
+                    }
+                    MouseEventKind::ScrollLeft => {
+                        self.preferences.graph.pan.0 =
+                            self.preferences.graph.pan.0.saturating_sub(6)
+                    }
+                    _ => {}
                 }
             }
             TuiEvent::Mouse(mouse)

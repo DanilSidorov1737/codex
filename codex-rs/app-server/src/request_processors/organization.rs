@@ -209,7 +209,7 @@ impl OrganizationRequestProcessor {
         origin: ConnectionOrigin,
     ) -> Result<Option<ClientResponsePayload>, JSONRPCErrorError> {
         require_owner(origin)?;
-        let report = self
+        let mut report = self
             .store()
             .await?
             .operational_report(
@@ -220,6 +220,7 @@ impl OrganizationRequestProcessor {
             )
             .await
             .map_err(|error| invalid_params(format!("organization report rejected: {error:#}")))?;
+        report.runtime_resources = Some(runtime_resources());
         Ok(Some(OrganizationReportResponse { report }.into()))
     }
 
@@ -540,5 +541,60 @@ mod tests {
         for origin in [ConnectionOrigin::WebSocket, ConnectionOrigin::RemoteControl] {
             assert!(require_owner(origin).is_err());
         }
+    }
+}
+
+fn runtime_resources() -> codex_protocol::organization_report::OrganizationRuntimeResources {
+    let mut value = codex_protocol::organization_report::OrganizationRuntimeResources {
+        process_id: std::process::id(),
+        measured_at_ms: chrono::Utc::now().timestamp_millis(),
+        resident_bytes: None,
+        cpu_time_ms: None,
+    };
+    #[cfg(target_os = "linux")]
+    {
+        value.resident_bytes = std::fs::read_to_string("/proc/self/status")
+            .ok()
+            .and_then(|text| {
+                text.lines()
+                    .find(|line| line.starts_with("VmRSS:"))
+                    .and_then(|line| line.split_whitespace().nth(1))
+                    .and_then(|v| v.parse::<u64>().ok())
+                    .and_then(|kb| kb.checked_mul(1024))
+            });
+        let ticks = unsafe { libc::sysconf(libc::_SC_CLK_TCK) };
+        if let Ok(ticks) = u64::try_from(ticks)
+            && ticks > 0
+        {
+            value.cpu_time_ms = std::fs::read_to_string("/proc/self/stat")
+                .ok()
+                .and_then(|text| {
+                    let (_, fields) = text.rsplit_once(") ")?;
+                    let fields: Vec<_> = fields.split_whitespace().collect();
+                    let user = fields.get(11)?.parse::<u64>().ok()?;
+                    let system = fields.get(12)?.parse::<u64>().ok()?;
+                    user.checked_add(system)?
+                        .checked_mul(1000)?
+                        .checked_div(ticks)
+                });
+        }
+    }
+    value
+}
+
+#[test]
+fn runtime_resources_measure_only_the_serving_process_and_leave_unsupported_dimensions_unavailable()
+{
+    let value = runtime_resources();
+    assert_eq!(value.process_id, std::process::id());
+    assert!(value.measured_at_ms > 0);
+    #[cfg(target_os = "linux")]
+    {
+        assert!(value.resident_bytes.is_some_and(|bytes| bytes > 0));
+        assert!(value.cpu_time_ms.is_some());
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        assert!(value.resident_bytes.is_none() && value.cpu_time_ms.is_none());
     }
 }

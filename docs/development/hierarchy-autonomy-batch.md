@@ -43,8 +43,33 @@ suitable owner-designated host; it must not block independent work here.
 
 ## Current checkpoint
 
-Scope recorded; implementation and new qualification have not begun. Existing
-790-check evidence applies only to the previous batch. Next: the Operations
-branching renderer and navigation, with actual concept review, viewport/identity
-checks and physical interaction. Every later item remains pending until its
-implementation and meaningful native checks pass.
+Tasks 1–10 pass their first native UI/diagnostics checkpoint: 74 affected TUI/
+official-Neovim, full state311/protocol374, serving-process sampler1, schema4
+and SDK25 (**789 distinct selected checks**). Production CLI Clippy with warnings
+denied, build, complete format and raw generated contracts pass. Immutable preview
+`ui-package/` CLI SHA256 `472ce9e2eb7c8505c9ef03bfd97cd5302ac2d328128c3699834851566cf84493`
+passes actual CLI/official-Neovim mouse chevrons/tabs, spatial selection, subtree
+focus, ancestry search, overview/density/pan, health/incidents, empty running filter,
+list alternative, palette routing, 36 rapid switches at three sizes and exit0.
+Native36-node definitions/originals/accounting remain unchanged; zero model work.
+Installed five-asset hashes, single links, SQLite quick/FK and owned daemon stop
+pass (`ui-native/{prepared,physical,cleanup}.json`). Failed setup/coordinate/query/
+palette-title drivers and captures remain. These were harness corrections, not
+weakened production checks. Clippy corrections reuse native `is_multiple_of`,
+initialize Graph directly and box the enlarged snapshot event; corrected74 pass.
+A final package/read-only smoke for those memory/style corrections follows.
+
+Tasks 11–20 remain pending; continue the complete approved batch. The graph test
+covers10,000 deep nodes, not yet a new native broad-registry measurement; task20
+must provide that and deeper recovery qualification. No arbitrary active capacity,
+indefinite uptime, provider-quality or billing claim is added.
+
+Build headroom: only older duplicate generated libraries/metadata were pruned
+with SHA/byte receipts. The first build exhausted workspace space; its failure
+is retained. The inactive generated dev-small profile was copied, every file
+verified, then relocated through a stable path symlink to
+`/tmp/codex-hierarchy-build/dev-small`. Temporary caches may not survive a new
+cloud task; never remove qualified packages/fixtures or claim fresh restoration.
+No dependency installation or paid inference occurred. All intermediate missing
+report-fixture/private-test-field compilation failures remain in the logs;
+corrected checks retain safety assertions and helper privacy.

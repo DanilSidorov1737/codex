@@ -22,7 +22,7 @@ pub(super) fn foreground(rgb: (u8, u8, u8)) -> Color {
     crate::style::readable_color_on(background(rgb), Some(background(PANEL)))
 }
 
-fn panel(title: impl Into<String>, focused: bool) -> Block<'static> {
+pub(super) fn panel(title: impl Into<String>, focused: bool) -> Block<'static> {
     Block::default()
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
@@ -35,8 +35,9 @@ fn panel(title: impl Into<String>, focused: bool) -> Block<'static> {
         }))
 }
 
-fn state_color(state: &str) -> Color {
+pub(super) fn state_color(state: &str) -> Color {
     match state {
+        "idle" | "disabled" => foreground(MUTED),
         "running" | "accepted" | "completed" => foreground(GREEN),
         "failed" | "cancelled" | "needsReconciliation" => foreground((255, 88, 102)),
         "waitingApproval" | "needsReview" | "paused" | "waitingDependency" | "blocked" => {
@@ -139,6 +140,20 @@ impl Dashboard {
             ));
             lines.push(Line::styled(
                 " S  Schedules",
+                Style::default().fg(foreground(MUTED)),
+            ));
+        }
+        if self.preferences.preset == Preset::Operations {
+            lines.push(Line::styled(
+                " Alt-H Health",
+                Style::default().fg(foreground(MUTED)),
+            ));
+            lines.push(Line::styled(
+                " Alt-I Incidents",
+                Style::default().fg(foreground(MUTED)),
+            ));
+            lines.push(Line::styled(
+                " Ctrl-V Tree / list",
                 Style::default().fg(foreground(MUTED)),
             ));
         }
@@ -262,11 +277,35 @@ impl Dashboard {
             }
         }
         let names = [
-            "Agents", "Running", "Failed", "Approval", "Review", "Projects",
+            "Defined agents",
+            "Running",
+            "Failed",
+            "Approval",
+            "Server CPU",
+            "Server RSS",
         ];
+        let resources = self
+            .snapshot
+            .report
+            .as_ref()
+            .and_then(|r| r.runtime_resources.as_ref());
         let areas = Layout::horizontal([Constraint::Ratio(1, 6); 6]).split(area);
         for (i, area) in areas.iter().enumerate() {
-            Paragraph::new(format!("{}", counts[i]))
+            let value = if i == 4 {
+                self.preferences
+                    .graph
+                    .cpu_percent
+                    .map(|p| format!("{p:.1}%"))
+                    .unwrap_or_else(|| "Unavailable".into())
+            } else if i == 5 {
+                resources
+                    .and_then(|r| r.resident_bytes)
+                    .map(|bytes| format!("{:.1} MiB", bytes as f64 / (1024.0 * 1024.0)))
+                    .unwrap_or_else(|| "Unavailable".into())
+            } else {
+                counts[i].to_string()
+            };
+            Paragraph::new(value)
                 .style(
                     Style::default()
                         .fg(if i == 2 {
@@ -289,6 +328,10 @@ impl Dashboard {
             "Owner controls · F10 limits · F12 pause/resume · F11 returns"
         } else if self.projection == Projection::Presets {
             "Organization presets · D save node subtree · V clone"
+        } else if self.projection == Projection::Health {
+            "Health · running work and recorded incidents · Alt-I incidents"
+        } else if self.projection == Projection::Incidents {
+            "Incidents · actual failed / blocked / reconciliation work · Alt-H health"
         } else if self.projection == Projection::Goals {
             "Goal tree / milestones"
         } else if self.projection == Projection::Workflows {
@@ -321,7 +364,7 @@ impl Dashboard {
         let height = usize::from(inner.height / step);
         let start = selected.saturating_sub(height.saturating_sub(1));
         if self.rows.is_empty() {
-            Paragraph::new("No matching records.\n\nN New project   T New task\nG New goal      U New agent\n\nDefinitions stay idle until authorized.").style(Style::default().fg(foreground(MUTED))).wrap(Wrap { trim: false }).render(inner.inner(Margin::new(1, 0)), buffer);
+            Paragraph::new(if matches!(self.projection,Projection::Health|Projection::Incidents) {"No incidents in the loaded report.\nApproval waits and paused work are expected states.\nRefresh to obtain current evidence; Alt-H health."} else {"No matching records.\n\nN New project   T New task\nG New goal      U New agent\n\nDefinitions stay idle until authorized."}).style(Style::default().fg(foreground(MUTED))).wrap(Wrap { trim: false }).render(inner.inner(Margin::new(1, 0)), buffer);
         }
         for (line, (index, row)) in self
             .rows
@@ -425,9 +468,23 @@ impl Dashboard {
                 ));
             }
         }
+        if lines.is_empty()
+            && let Some(events) = self
+                .snapshot
+                .report
+                .as_ref()
+                .and_then(|r| r.audit_events.as_ref())
+        {
+            for e in events.iter().take(4) {
+                lines.push(Line::from(clean(&format!(
+                    "#{} {} · {}",
+                    e.sequence, e.actor, e.operation
+                ))));
+            }
+        }
         if lines.is_empty() {
             lines.push(Line::styled(
-                "Select a task for recorded actions.",
+                "Recorded activity unavailable; select a task or refresh.",
                 Style::default().fg(foreground(MUTED)),
             ));
         }
@@ -437,6 +494,7 @@ impl Dashboard {
     }
 
     pub(super) fn render(&mut self, area: Rect, buffer: &mut Buffer) -> Option<(u16, u16)> {
+        self.graph.tab_hits.clear();
         Clear.render(area, buffer);
         buffer.set_style(
             area,
@@ -637,7 +695,17 @@ impl Dashboard {
                     ])
                     .split(sections[1]);
                     self.summary(parts[0], buffer);
-                    self.rows_view(parts[1], buffer, self.projection != Projection::Schedules);
+                    if self.diagram_active() {
+                        self.graph.render(
+                            &mut self.preferences.graph,
+                            self.selected.as_deref(),
+                            &self.collapsed,
+                            parts[1],
+                            buffer,
+                        );
+                    } else {
+                        self.rows_view(parts[1], buffer, self.projection != Projection::Schedules);
+                    }
                     let bottom = Layout::horizontal([
                         Constraint::Percentage(50),
                         Constraint::Percentage(50),
@@ -779,6 +847,44 @@ impl Dashboard {
                     }),
                 ])
                 .split(areas[1]);
+                let tabbed = self.preferences.preset == Preset::Operations
+                    && matches!(self.record(), Some(OrganizationRecord::Node(_)))
+                    && self.confirmation.is_none();
+                let inspector_parts = Layout::vertical([
+                    Constraint::Length(if tabbed { 2 } else { 0 }),
+                    Constraint::Min(1),
+                ])
+                .split(right[0]);
+                if tabbed {
+                    let labels = ["Overview", "Agents", "Workflows", "Logs"];
+                    let tabs: Vec<_> = labels
+                        .iter()
+                        .enumerate()
+                        .map(|(i, label)| {
+                            Span::styled(
+                                format!(" {} {label} ", i + 1),
+                                Style::default().fg(
+                                    if i == usize::from(self.preferences.graph.inspector_tab % 4) {
+                                        foreground(BLUE)
+                                    } else {
+                                        foreground(MUTED)
+                                    },
+                                ),
+                            )
+                        })
+                        .collect();
+                    let mut x = inspector_parts[0].x;
+                    for (i, label) in labels.iter().enumerate() {
+                        let width = (label.len() + 4) as u16;
+                        let rect = Rect::new(x, inspector_parts[0].y, width, 1)
+                            .intersection(inspector_parts[0]);
+                        if !rect.is_empty() {
+                            self.graph.tab_hits.push((rect, i as u8));
+                        }
+                        x = x.saturating_add(width);
+                    }
+                    Paragraph::new(Line::from(tabs)).render(inspector_parts[0], buffer);
+                }
                 Paragraph::new(self.detail_text.as_str())
                     .wrap(Wrap { trim: false })
                     .scroll((self.scroll, 0))
@@ -794,13 +900,15 @@ impl Dashboard {
                         ),
                         pane.inspector_focus,
                     ))
-                    .render(right[0], buffer);
+                    .render(inspector_parts[1], buffer);
                 let actions = if self.selected_workflow().is_some() {
                     "[s] Preview template run\n[w] Workflows / default view\n[W] Save selected task chain\nRun tasks: select approval/result"
                 } else if self.selected_schedule().is_some() {
                     "[p] Pause       [u] Resume\n[x] Cancel      [f] Refresh\n[S] Schedules / default view\nRun approvals and results: select task"
                 } else if self.preferences.preset == Preset::Workspace {
                     "[t] Follow AI   [d] Live Diff\n[o] Independent Editing\n[e] Editor focus   [n] Next file\nCtrl-G host · Q task from selection"
+                } else if matches!(self.record(), Some(OrganizationRecord::Node(_))) {
+                    "[E] Edit / reparent / retire\n[Enter] Collapse / expand\nCtrl-O subtree · Ctrl-T whole tree\nAlt-1..4 inspector · Ctrl-F overview"
                 } else {
                     "[s] Authorize   [a] Approve\n[v] Accept      [c] Changes\n[A] Select files to Apply\n[p] Pause       [x] Cancel"
                 };

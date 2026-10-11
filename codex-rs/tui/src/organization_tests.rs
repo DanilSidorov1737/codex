@@ -201,6 +201,179 @@ fn node(id: &str, parent: Option<&str>) -> OrganizationNode {
     }
 }
 
+fn branching_records() -> Vec<OrganizationRecord> {
+    let mut root = node("root", None);
+    root.kind = OrganizationNodeKind::Group;
+    let mut work = task("active");
+    work.owner_id = "left".into();
+    work.state = "running".into();
+    let mut blocked = task("blocked");
+    blocked.owner_id = "right".into();
+    blocked.state = "needsReconciliation".into();
+    vec![
+        root,
+        node("left", Some("root")),
+        node("right", Some("root")),
+    ]
+    .into_iter()
+    .map(OrganizationRecord::Node)
+    .chain([
+        OrganizationRecord::Task(work),
+        OrganizationRecord::Task(blocked),
+    ])
+    .collect()
+}
+
+#[test]
+fn branching_graph_preserves_relationships_and_rolls_up_actual_loaded_work() {
+    let records = branching_records();
+    let chart = graph::Graph::build(&records, &BTreeSet::new(), "", &graph::Settings::default());
+    assert_eq!(chart.cards.len(), 3);
+    let root = &chart.cards[0];
+    let left = &chart.cards[1];
+    let right = &chart.cards[2];
+    assert_eq!(root.children, [1, 2]);
+    assert!(left.position.0 < right.position.0);
+    assert_eq!(left.position.1, right.position.1);
+    assert!(root.position.1 < left.position.1);
+    assert!(left.position.0 <= root.position.0 && root.position.0 <= right.position.0);
+    assert_eq!(
+        (
+            root.counts.agents,
+            root.counts.tasks,
+            root.counts.running,
+            root.counts.issues
+        ),
+        (2, 2, 1, 1)
+    );
+    assert_eq!(left.state, "running");
+    assert_eq!(right.state, "blocked");
+    assert_eq!(
+        chart.navigate(Some("root"), KeyCode::Down).as_deref(),
+        Some("left")
+    );
+    assert_eq!(
+        chart.navigate(Some("left"), KeyCode::Right).as_deref(),
+        Some("right")
+    );
+    assert_eq!(
+        chart.navigate(Some("right"), KeyCode::Up).as_deref(),
+        Some("root")
+    );
+}
+
+#[test]
+fn graph_search_and_state_filters_reveal_matches_with_ancestry_without_changing_definitions() {
+    let records = branching_records();
+    let captured = serde_json::to_value(&records).unwrap();
+    let collapsed = BTreeSet::from(["root".into()]);
+    let settings = graph::Settings::default();
+    assert_eq!(
+        graph::Graph::build(&records, &collapsed, "", &settings)
+            .cards
+            .len(),
+        1
+    );
+    let found = graph::Graph::build(&records, &collapsed, "right", &settings);
+    assert_eq!(
+        found
+            .cards
+            .iter()
+            .map(|c| c.id.as_str())
+            .collect::<Vec<_>>(),
+        ["root", "right"]
+    );
+    let mut issue_settings = settings;
+    issue_settings.filter = 2;
+    let issues = graph::Graph::build(&records, &collapsed, "", &issue_settings);
+    assert_eq!(
+        issues
+            .cards
+            .iter()
+            .map(|c| c.id.as_str())
+            .collect::<Vec<_>>(),
+        ["root", "right"]
+    );
+    assert_eq!(serde_json::to_value(&records).unwrap(), captured);
+}
+
+#[test]
+fn diagram_viewport_clips_cards_and_hit_targets_and_fits_an_overview() {
+    let mut settings = graph::Settings::default();
+    let mut chart = graph::Graph::build(&branching_records(), &BTreeSet::new(), "", &settings);
+    let outer = Rect::new(0, 0, 100, 40);
+    let area = Rect::new(10, 7, 66, 22);
+    let mut buffer = Buffer::empty(outer);
+    buffer[(0, 0)].set_symbol("!");
+    chart.render(
+        &mut settings,
+        Some("root"),
+        &BTreeSet::new(),
+        area,
+        &mut buffer,
+    );
+    assert_eq!(chart.hits.len(), 3);
+    assert!(
+        chart
+            .hits
+            .iter()
+            .all(|(rect, _)| rect.intersection(area) == *rect)
+    );
+    assert!(buffer.content.iter().any(|cell| cell.symbol() == "│"));
+    settings.pan = (u32::MAX, u32::MAX);
+    chart.render(
+        &mut settings,
+        Some("root"),
+        &BTreeSet::new(),
+        area,
+        &mut buffer,
+    );
+    assert!(settings.pan.0 <= chart.width && settings.pan.1 <= chart.height);
+    settings.overview = true;
+    chart.render(
+        &mut settings,
+        Some("right"),
+        &BTreeSet::new(),
+        area,
+        &mut buffer,
+    );
+    assert!(
+        chart.hits.is_empty(),
+        "overview clusters cannot pretend to uniquely select a node"
+    );
+    assert!(buffer.content.iter().any(|cell| cell.symbol() == "◎"));
+    assert_eq!(buffer[(0, 0)].symbol(), "!");
+}
+
+#[test]
+fn diagram_layout_handles_ten_thousand_deep_nodes_without_recursion_or_wrapped_coordinates() {
+    let records: Vec<_> = (0..10000)
+        .map(|i| OrganizationRecord::Node(node(&format!("n{i:05}"), None)))
+        .enumerate()
+        .map(|(i, mut r)| {
+            if let OrganizationRecord::Node(n) = &mut r {
+                n.parent_id = (i > 0).then(|| format!("n{:05}", i - 1));
+            }
+            r
+        })
+        .collect();
+    let start = std::time::Instant::now();
+    let chart = graph::Graph::build(&records, &BTreeSet::new(), "", &graph::Settings::default());
+    assert_eq!(chart.cards.len(), 10000);
+    assert!(
+        chart.height > 65535,
+        "layout geometry must not wrap terminal u16 coordinates"
+    );
+    assert_eq!(chart.cards[0].counts.agents, 10000);
+    assert!(
+        chart
+            .cards
+            .windows(2)
+            .all(|c| c[0].position.1 < c[1].position.1)
+    );
+    eprintln!("10000-deep diagram layout: {:?}", start.elapsed());
+}
+
 #[test]
 fn deep_tree_search_crosses_collapsed_branches_and_keeps_stable_ids() {
     let nodes: Vec<_> = (0..10000)
@@ -321,6 +494,7 @@ fn dashboard() -> Dashboard {
             ],
         },
         rows: vec![],
+        graph: graph::Graph::default(),
         selected: None,
         collapsed: BTreeSet::new(),
         detail: None,
@@ -406,12 +580,12 @@ async fn changed_original_refusal_survives_background_snapshot() {
     let (updates, incoming) = mpsc::channel(4);
     d.updates = incoming;
     updates
-        .send(Update::Snapshot(Snapshot {
+        .send(Update::Snapshot(Box::new(Snapshot {
             records: d.snapshot.records.clone(),
             schedules: vec![],
             workflows: vec![],
             report: None,
-        }))
+        })))
         .await
         .unwrap();
     d.update();
@@ -1371,24 +1545,24 @@ async fn refreshed_snapshot_preserves_selection_but_removes_deleted_selection() 
     d.rebuild();
     assert_eq!(d.selected.as_deref(), Some("two"));
     updates
-        .send(Update::Snapshot(Snapshot {
+        .send(Update::Snapshot(Box::new(Snapshot {
             report: Some(report_for_tasks(&["one"])),
             schedules: vec![],
             workflows: vec![],
             records: vec![OrganizationRecord::Task(task("one"))],
-        }))
+        })))
         .await
         .unwrap();
     d.update();
     assert_eq!(d.selected.as_deref(), Some("one"));
     assert!(matches!(command_rx.try_recv(), Ok(Command::Inspect(id)) if id == "one"));
     updates
-        .send(Update::Snapshot(Snapshot {
+        .send(Update::Snapshot(Box::new(Snapshot {
             report: Some(report_for_tasks(&["one"])),
             schedules: vec![],
             workflows: vec![],
             records: vec![OrganizationRecord::Task(task("one"))],
-        }))
+        })))
         .await
         .unwrap();
     d.update();
@@ -1401,12 +1575,12 @@ async fn refreshed_snapshot_preserves_selection_but_removes_deleted_selection() 
     d.rebuild();
     assert!(d.selected.is_none());
     updates
-        .send(Update::Snapshot(Snapshot {
+        .send(Update::Snapshot(Box::new(Snapshot {
             report: Some(report_for_tasks(&["new"])),
             schedules: vec![],
             workflows: vec![],
             records: vec![OrganizationRecord::Task(task("new"))],
-        }))
+        })))
         .await
         .unwrap();
     d.update();
@@ -1593,12 +1767,12 @@ async fn actual_dirty_editor_blocks_host_exit_and_owner_apply_dispatch() {
     let (updates, incoming) = mpsc::channel(4);
     d.updates = incoming;
     updates
-        .send(Update::Snapshot(Snapshot {
+        .send(Update::Snapshot(Box::new(Snapshot {
             report: None,
             schedules: vec![],
             workflows: vec![],
             records: d.snapshot.records.clone(),
-        }))
+        })))
         .await
         .unwrap();
     d.update();
@@ -1702,7 +1876,7 @@ async fn confirmed_apply_rejection_restores_real_editor_and_survives_refresh() {
     ))
     .await
     .unwrap();
-    tx.send(Update::Snapshot(Snapshot::default()))
+    tx.send(Update::Snapshot(Box::new(Snapshot::default())))
         .await
         .unwrap();
     d.update();
@@ -1733,7 +1907,7 @@ async fn uncertain_apply_stays_frozen_after_refresh_and_unrelated_success() {
         .await
         .unwrap();
     tx.send(Update::Changed).await.unwrap();
-    tx.send(Update::Snapshot(Snapshot::default()))
+    tx.send(Update::Snapshot(Box::new(Snapshot::default())))
         .await
         .unwrap();
     d.update();
@@ -1891,6 +2065,8 @@ fn empty_report() -> OrganizationReport {
         totals: OrganizationReportTotals::default(),
         global_usage: Some(OrganizationGlobalUsage::default()),
         scorecards: None,
+        audit_events: None,
+        runtime_resources: None,
         tasks: vec![],
         usage: vec![],
         usage_truncated: false,

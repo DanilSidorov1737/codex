@@ -20,6 +20,31 @@ pub struct OrganizationGlobalUsage {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
 #[serde(rename_all = "camelCase")]
+pub struct OrganizationAuditEvent {
+    #[ts(type = "number")]
+    pub sequence: i64,
+    pub actor: String,
+    pub operation: String,
+    pub reference: Option<String>,
+    #[ts(type = "number")]
+    pub created_at: i64,
+}
+
+/// Actual serving app-server process only; never attributed to a model or agent.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct OrganizationRuntimeResources {
+    pub process_id: u32,
+    #[ts(type = "number")]
+    pub measured_at_ms: i64,
+    #[ts(type = "number | null")]
+    pub resident_bytes: Option<u64>,
+    #[ts(type = "number | null")]
+    pub cpu_time_ms: Option<u64>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
+#[serde(rename_all = "camelCase")]
 pub struct OrganizationScorecard {
     pub project_id: String,
     pub workflow_run_id: Option<String>,
@@ -181,6 +206,12 @@ pub struct OrganizationReport {
     /// older daemons means unavailable, not a zero or guessed quality grade.
     #[serde(default)]
     pub scorecards: Option<OrganizationScorecards>,
+    /// Recent 200 global owner audit references, without arbitrary payload bodies.
+    /// Scoped reports and older daemons leave this unavailable.
+    #[serde(default)]
+    pub audit_events: Option<Vec<OrganizationAuditEvent>>,
+    #[serde(default)]
+    pub runtime_resources: Option<OrganizationRuntimeResources>,
     pub tasks: Vec<OrganizationTaskReport>,
     /// At most 2,000 grouped observations for this task page.
     pub usage: Vec<OrganizationUsageReport>,

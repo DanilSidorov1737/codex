@@ -1,6 +1,46 @@
 use super::*;
 
 #[tokio::test]
+async fn recent_owner_audit_is_bounded_reference_only_and_not_leaked_into_project_reports()
+-> Result<()> {
+    let home = Fixture::new();
+    let store = OrganizationStore::open(&home.0).await?;
+    let (_, attempt) = authorized_attempt(&store, false).await?;
+    for index in 0..205 {
+        sqlx::query("INSERT INTO organization_audit(actor,operation,payload) VALUES ('owner','qualification/event',?)")
+            .bind(serde_json::to_string(&serde_json::json!({"id":attempt.task_id,"body":"private-body-must-not-be-exported","index":index}))?)
+            .execute(&store.pool).await?;
+    }
+    let report = store.operational_report(None, None, 200, 1000).await?;
+    let events = report
+        .audit_events
+        .as_ref()
+        .expect("global owner audit available");
+    assert_eq!(events.len(), 200);
+    assert_eq!(events[0].sequence, report.sequence);
+    assert!(events.windows(2).all(|e| e[0].sequence > e[1].sequence));
+    assert!(
+        events
+            .iter()
+            .all(|e| e.reference.as_deref() == Some(attempt.task_id.as_str()))
+    );
+    assert!(!serde_json::to_string(events)?.contains("private-body-must-not-be-exported"));
+    let view = store.execution_view(&attempt.task_id).await?;
+    assert!(
+        store
+            .operational_report(Some(&view.task.project_id), None, 200, 1000)
+            .await?
+            .audit_events
+            .is_none()
+    );
+    assert!(
+        report.runtime_resources.is_none(),
+        "SQL store must not invent serving-process telemetry"
+    );
+    Ok(())
+}
+
+#[tokio::test]
 async fn scorecards_keep_missing_historical_attribution_unavailable() -> Result<()> {
     let home = Fixture::new();
     let store = OrganizationStore::open(&home.0).await?;

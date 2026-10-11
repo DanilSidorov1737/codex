@@ -204,3 +204,31 @@ clone form pinned to the displayed revision. F6 previews the exact decision and
 y confirms. Clones use fresh identities and copy only internal memberships;
 grants, tasks and private notes remain separate. Save/clone/restart/refusal
 qualification is recorded in testing.md. Presets remain optional and editable.
+
+## Current hierarchy batch: diagram controls
+
+The approved hierarchy/autonomy batch adds a branching Operations diagram;
+physical qualification is pending in hierarchy-autonomy-batch.md. Root children
+occupy side-by-side columns, with arbitrary deeper branches stacked inside each
+column. Definitions are not execution sessions; card counts describe loaded
+canonical tasks. Graph display and preferences grant no authority.
+
+Arrow keys select parents/children/siblings; Enter toggles a branch and Shift-Enter
+expands its descendants. Ctrl-arrow pans, Ctrl-B changes card density, Ctrl-F fits
+an overview, Ctrl-O focuses the selected subtree, Ctrl-T returns to the whole
+organization, Ctrl-E expands all and Ctrl-L collapses all. Overview dots may
+share cells, so its mouse targets are disabled; Enter returns to named cards.
+Ctrl-V switches to the indented list. Search reveals matches with ancestry;
+roles and `project:<id or name>` are searchable. Ctrl-N cycles all/running/issues/
+review filters. Alt-1..4 select Overview/Agents/Workflows/Logs. Alt-H and Alt-I
+show actual health/incident evidence, excluding expected approval/pause waits.
+The command palette routes these actions to the same existing handlers.
+
+CPU/RSS describe the serving app-server process, including its own runtime work,
+not individual agents or child tools. CPU percent uses consecutive same-PID,
+nondecreasing cumulative samples and a positive elapsed interval, on a one-core
+basis; first/unsupported/restarted samples are unavailable. Values may exceed
+100% on multiple cores. Cost remains an explicitly labeled owner-quote estimate,
+never an invoice. Recent audit exposes at most 200 metadata references without
+arbitrary payload bodies; current subtree references are distinct from captured
+attempt-owner scorecards. Older daemons leave new dimensions unavailable.

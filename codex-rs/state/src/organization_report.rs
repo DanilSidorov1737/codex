@@ -299,6 +299,24 @@ ORDER BY t.project_id,captured_run,captured_owner,captured_provider,captured_mod
                 reported_model_requests: row.try_get("reported")?,
             });
         }
+        let audit_events = if project_id.is_none() {
+            let rows=sqlx::query("SELECT sequence,actor,operation,created_at,COALESCE(json_extract(payload,'$.id'),json_extract(payload,'$.taskId'),json_extract(payload,'$.projectId'),json_extract(payload,'$.nodeId'),json_extract(payload,'$.groupId')) reference FROM organization_audit ORDER BY sequence DESC LIMIT 200").fetch_all(&mut *tx).await?;
+            Some(
+                rows.into_iter()
+                    .map(|row| {
+                        Ok(OrganizationAuditEvent {
+                            sequence: row.try_get("sequence")?,
+                            actor: row.try_get("actor")?,
+                            operation: row.try_get("operation")?,
+                            reference: row.try_get("reference")?,
+                            created_at: row.try_get("created_at")?,
+                        })
+                    })
+                    .collect::<Result<Vec<_>>>()?,
+            )
+        } else {
+            None
+        };
         tx.commit().await?;
         Ok(OrganizationReport {
             sequence,
@@ -307,6 +325,8 @@ ORDER BY t.project_id,captured_run,captured_owner,captured_provider,captured_mod
             totals,
             global_usage: Some(global_usage),
             scorecards: Some(OrganizationScorecards { entries, truncated }),
+            audit_events,
+            runtime_resources: None,
             tasks,
             usage,
             usage_truncated,

@@ -3062,6 +3062,17 @@ class OrganizationArtifactEvidence(BaseModel):
     sha256: str
 
 
+class OrganizationAuditEvent(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    actor: str
+    created_at: Annotated[int, Field(alias="createdAt")]
+    operation: str
+    reference: str | None = None
+    sequence: int
+
+
 class OrganizationBudgetReport(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
@@ -3598,6 +3609,16 @@ class OrganizationRoleVersion(BaseModel):
     name: str
     role_id: Annotated[str, Field(alias="roleId")]
     version: int
+
+
+class OrganizationRuntimeResources(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    cpu_time_ms: Annotated[int | None, Field(alias="cpuTimeMs", ge=0)] = None
+    measured_at_ms: Annotated[int, Field(alias="measuredAtMs")]
+    process_id: Annotated[int, Field(alias="processId", ge=0)]
+    resident_bytes: Annotated[int | None, Field(alias="residentBytes", ge=0)] = None
 
 
 class OrganizationScheduleConfig(BaseModel):
@@ -10329,6 +10350,13 @@ class OrganizationReport(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
+    audit_events: Annotated[
+        list[OrganizationAuditEvent] | None,
+        Field(
+            alias="auditEvents",
+            description="Recent 200 global owner audit references, without arbitrary payload bodies. Scoped reports and older daemons leave this unavailable.",
+        ),
+    ] = None
     generated_at: Annotated[int, Field(alias="generatedAt")]
     global_usage: Annotated[
         OrganizationGlobalUsage | None,
@@ -10339,6 +10367,9 @@ class OrganizationReport(BaseModel):
     ] = None
     next_cursor: Annotated[str | None, Field(alias="nextCursor")] = None
     project_id: Annotated[str | None, Field(alias="projectId")] = None
+    runtime_resources: Annotated[
+        OrganizationRuntimeResources | None, Field(alias="runtimeResources")
+    ] = None
     scorecards: Annotated[
         OrganizationScorecards | None,
         Field(

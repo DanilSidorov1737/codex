@@ -1,5 +1,50 @@
 # Testing procedures and evidence
 
+## Hierarchy batch: first UI/diagnostics checkpoint
+
+Evidence root `/workspace/.onboarding/qualification/hierarchy-batch/`.
+Full state311 (`graph-state-tests.log`), protocol374 (`ui-protocol-tests.log`),
+TUI/actual official-Neovim74 (`graph-tests-v8.log`), actual serving-process sampler1
+(`graph-resources-test.log`), generated schema4 (`ui-schema-check-raw.log`) and
+Python SDK25 (`ui-sdk-tests.log`) pass: **789 distinct selected checks**.
+Cargo cwd codex-rs, activation `. /workspace/.onboarding/activate.sh`,
+`CARGO_INCREMENTAL=0 RUST_MIN_STACK=8388608`, locked/offline/dev-small/-j4.
+Commands: `cargo test -p codex-state --lib`, `-p codex-protocol --lib`,
+`-p codex-tui --lib organization`, `-p codex-app-server --lib runtime_resources`,
+`-p codex-app-server-protocol --lib schema_fixtures_tests -- --skip write_schema_fixtures_from_env`.
+Native IPC/editor cases use authorized native execution. SDK uses its existing
+.venv and `python scripts/update_sdk_artifacts.py generate-types --schema-dir
+../../codex-rs/app-server-protocol/schema/json`, then its25 contract/signature checks.
+Production CLI Clippy `-D warnings` (`graph-cli-clippy-v2.log`), complete build
+(`graph-cli-build.log`) and complete fmt check (`ui-format-check.log`) pass.
+
+New checks verify branching coordinates/actual loaded subtree counts/relationship
+navigation, search through collapse with ancestry and no definition mutation,
+clipped paint/hits, cluster overview and iterative10k-depth/u32 geometry. State
+checks limit global audit to200 metadata references, omit arbitrary private payload
+bodies and withhold global history from scoped reports. Actual resource check
+asserts serving PID and supported measurements, with unsupported dimensions absent.
+
+Native `ui-native/physical.json` passes actual packaged CLI through official
+Neovim0.12.6: mouse chevron collapse/expand, spatial navigation, inspector tabs/
+mouse Logs, focused subtree, ancestry search, fit overview, density/two-axis pan,
+health/incidents, empty running filter, indented alternative and palette routing.
+36 rapid switches across120x36/50x20/280x80 and exit0 pass. No task/grant/model
+execution was authorized;36 definitions and owner original are unchanged.
+`cleanup.json` verifies all five installed hashes/single links, SQLitequick/FK and
+stopped owned daemon. Package preview1 CLI SHA256
+`472ce9e2eb7c8505c9ef03bfd97cd5302ac2d328128c3699834851566cf84493`.
+
+All failures retained: workspace exhaustion before generated profile relocation;
+report-fixture/private-test-field compile errors; four denied Clippy findings
+corrected without suppressions; formatted schema generation corrected to raw
+repository exports (four final comparisons pass); unsupported putRole driver tag
+corrected to createRoleVersion without recreating the root; mouse matched inspector
+name before card; prefilled search clearing and palette title corrected in drivers.
+Failed captures are archived separately. Native observations are finite local
+checks, not indefinite uptime or model-quality/billing evidence. Final packaging
+for snapshot boxing/style corrections and tasks11–20 remain; read the batch page.
+
 ## Operations batch final qualification
 
 2026-10-11 UTC. **Approved tasks 2–20 pass within their documented local bounds;
