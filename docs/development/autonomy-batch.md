@@ -135,3 +135,27 @@ its installed plugins/native LSP setup. Codex does not overwrite that config or
 download plugins. An actual official Rust `rust-analyzer` toolchain component is
 being installed locally for LSP qualification; it is not a new application
 library dependency. Tests and physical LSP evidence remain required.
+
+## Real mixed-model qualification
+
+Item 2 passes on the controls package/application source `ed7f9ba22c` using
+explicit GPT-5.4 Mini and GPT-5.5 selections in one two-step workflow. Four real
+OpenAI Responses requests, two actual native subprocess checks, accepted
+prerequisite fencing, explicit owner acceptance and exactly one Apply passed.
+The owner original files were absent until Apply. No retries were configured.
+Read-only model discovery returned HTTP 200; official model pages were retrieved
+through the inherited proxy with TLS verification. Verified rates per million
+input/cached/output tokens were 0.75/0.075/4.50 and 5/0.50/30 USD respectively.
+Eight preserved provider usage dimensions are not invented invoice data: the
+four response receipts estimate **$0.0198223 new / $0.3652553 combined** with the
+prior $0.345433 pilots, below the $1 working ceiling. This excludes invoice/tax
+adjustments and is not a provider monetary hard cap. No Luna Code Mode bypass,
+automatic model routing or external integration was added. The owned daemon is
+stopped. Preserve the fresh mixed-model home, workflow, grants, accepted results,
+usage and completed Apply; never replay its run script. Evidence:
+`autonomy-batch/mixed-models/{receipt,accounting}.json` and `run.log`.
+
+The planner/layout/config checkpoint `59e309181d` passes **51 TUI/editor tests**,
+including actual official Neovim loading the explicitly selected owner config
+and its bundled matchit plugin without modifying the config. Physical planner,
+customization and native LSP qualification remain in progress.
