@@ -40,6 +40,7 @@ organization is a template, not the product's fixed structure.
 B1 usage: [organization command guide](organization-commands.md).
 B3 contracts and bounds: [coordination](coordination.md).
 B4 layout usage and qualification: [layouts](layouts.md).
+Evidence reports and native selection: [reports and selection](reports-and-selection.md).
 Expanded owner controls: [Operations and workflow forms](owner-controls.md).
 Current workflow screenshots: `/workspace/artifacts/cli-workflows/cli-workflows-screenshots.zip`.
 Historical recurring screenshots: `/workspace/artifacts/cli-recurring-schedules/cli-recurring-schedules-screenshots.zip`.

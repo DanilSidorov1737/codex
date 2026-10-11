@@ -6,6 +6,8 @@ pub use codex_protocol::organization_coordination::{
     OrganizationNote, OrganizationNoteScope, OrganizationNoteSearchResult, OrganizationPlanItem,
 };
 pub use codex_protocol::organization_execution::*;
+pub use codex_protocol::organization_inventory::*;
+pub use codex_protocol::organization_report::*;
 pub use codex_protocol::organization_schedule::*;
 pub use codex_protocol::organization_workflow::*;
 use serde::Deserialize;
@@ -18,6 +20,22 @@ pub struct OrganizationListParams {
     pub kind: OrganizationRecordKind,
     pub cursor: Option<String>,
     pub limit: Option<u32>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS, ExperimentalApi)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[ts(export_to = "v2/")]
+pub struct OrganizationReportParams {
+    pub project_id: Option<String>,
+    pub cursor: Option<String>,
+    pub limit: Option<u32>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export_to = "v2/")]
+pub struct OrganizationReportResponse {
+    pub report: OrganizationReport,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
@@ -174,4 +192,16 @@ pub struct OrganizationWorkflowMutateParams {
 #[ts(export_to = "v2/")]
 pub struct OrganizationWorkflowMutateResponse {
     pub view: OrganizationWorkflowView,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS, ExperimentalApi)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[ts(export_to = "v2/")]
+pub struct OrganizationInventoryParams {}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export_to = "v2/")]
+pub struct OrganizationInventoryResponse {
+    pub inventory: OrganizationInventory,
 }

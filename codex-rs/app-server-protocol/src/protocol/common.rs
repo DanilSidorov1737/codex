@@ -829,6 +829,18 @@ client_request_definitions! {
         serialization: global("organization"),
         response: v2::OrganizationWorkflowMutateResponse,
     },
+    #[experimental("organization/inventory")]
+    OrganizationInventory => "organization/inventory" {
+        params: v2::OrganizationInventoryParams,
+        serialization: global_shared_read("organization"),
+        response: v2::OrganizationInventoryResponse,
+    },
+    #[experimental("organization/report")]
+    OrganizationReport => "organization/report" {
+        params: v2::OrganizationReportParams,
+        serialization: global_shared_read("organization"),
+        response: v2::OrganizationReportResponse,
+    },
     #[experimental("organization/execution/read")]
     OrganizationExecutionRead => "organization/execution/read" {
         params: v2::OrganizationExecutionReadParams,

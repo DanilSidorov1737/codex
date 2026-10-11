@@ -1517,6 +1517,16 @@ impl MessageProcessor {
                     .execution_read(params, session.origin)
                     .await
             }
+            ClientRequest::OrganizationInventory { params, .. } => {
+                self.organization_processor
+                    .inventory(params, session.origin)
+                    .await
+            }
+            ClientRequest::OrganizationReport { params, .. } => {
+                self.organization_processor
+                    .report(params, session.origin)
+                    .await
+            }
             ClientRequest::OrganizationWorkflowList { params, .. } => {
                 self.organization_processor
                     .workflow_list(params, session.origin)

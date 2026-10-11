@@ -24,6 +24,7 @@ use codex_app_server_protocol::OrganizationScheduleListParams;
 use codex_app_server_protocol::OrganizationScheduleListResponse;
 use codex_app_server_protocol::OrganizationScheduleMutateParams;
 use codex_app_server_protocol::OrganizationScheduleMutateResponse;
+use codex_app_server_protocol::{OrganizationReportParams, OrganizationReportResponse};
 use codex_app_server_protocol::{
     OrganizationWorkflowListParams, OrganizationWorkflowListResponse,
     OrganizationWorkflowMutateParams, OrganizationWorkflowMutateResponse,
@@ -186,6 +187,40 @@ impl OrganizationRequestProcessor {
             .await
             .map_err(|error| invalid_params(format!("execution read rejected: {error:#}")))?;
         Ok(Some(OrganizationExecutionReadResponse { view }.into()))
+    }
+
+    pub(crate) async fn inventory(
+        &self,
+        _params: codex_app_server_protocol::OrganizationInventoryParams,
+        origin: ConnectionOrigin,
+    ) -> Result<Option<ClientResponsePayload>, JSONRPCErrorError> {
+        require_owner(origin)?;
+        let inventory = crate::organization_inventory::inventory(&self.config, self.store().await?)
+            .await
+            .map_err(|error| invalid_params(format!("inventory unavailable: {error:#}")))?;
+        Ok(Some(
+            codex_app_server_protocol::OrganizationInventoryResponse { inventory }.into(),
+        ))
+    }
+
+    pub(crate) async fn report(
+        &self,
+        params: OrganizationReportParams,
+        origin: ConnectionOrigin,
+    ) -> Result<Option<ClientResponsePayload>, JSONRPCErrorError> {
+        require_owner(origin)?;
+        let report = self
+            .store()
+            .await?
+            .operational_report(
+                params.project_id.as_deref(),
+                params.cursor.as_deref(),
+                params.limit.unwrap_or(100),
+                chrono::Utc::now().timestamp(),
+            )
+            .await
+            .map_err(|error| invalid_params(format!("organization report rejected: {error:#}")))?;
+        Ok(Some(OrganizationReportResponse { report }.into()))
     }
 
     pub(crate) async fn schedule_list(

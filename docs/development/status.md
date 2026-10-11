@@ -26,10 +26,15 @@ key-routing bug, fixed in `55af0a0b5b`. A package hash preflight also refused st
 installed bytes; the supported `daemon update --from-cli --yes` with a distinct
 dev package version installed the qualified binary without resetting state.
 
-Continue items 7–12: restore approved report work from exact local stash
-`d46180ef3f8f1c5a70d4e769980f2c381cbeec35`, then complete Review inbox, local reports,
-resource attribution, actual Neovim selection requests and capability inventory.
-Its two initial state projection tests passed; it is not yet a qualified API/UI.
+Items 7–11 are implemented and under qualification. The report stash was restored;
+state projections, provider capture/inventory, Review inbox/summary UI and actual
+Neovim selection-to-proposed-task controls reuse existing authority paths. Two
+mistyped Rust test filters selected zero tests and are not evidence. All 373 protocol / 277 state tests and four schema comparisons pass.
+An additional workflow descendant-attribution test passes; timeout checks count
+as failed checks. Runtime/API/TUI/SDK and complete CLI checks are running. Initial TUI compilation caught missing test-fixture fields and a helper
+visibility boundary, corrected without weakening checks. Continue the automated
+matrix, then the fresh `expanded-batch/review-selection` physical fixture; do not
+replay any older fixture. See [reports and selection](reports-and-selection.md).
 
 Item 1 is delivered and physically qualified: a server-confirmed pre-intent
 rejection now restores actual Neovim input without frontend restart, with the

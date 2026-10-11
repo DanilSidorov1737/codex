@@ -130,6 +130,7 @@ mod model_catalog;
 mod models;
 mod models_refresh_worker;
 mod notification_media;
+mod organization_inventory;
 mod organization_runtime;
 mod organization_workspace;
 mod otel_reloader;

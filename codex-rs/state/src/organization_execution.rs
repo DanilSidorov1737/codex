@@ -101,6 +101,8 @@ impl OrganizationStore {
                 id: Uuid::now_v7().to_string(),
                 task_id: task_id.clone(),
                 authorization_id: authorization.id.clone(),
+                owner_id: Some(task.owner_id.clone()),
+                provider: None,
                 role_version_id: node.role_version_id.clone(),
                 generation: previous
                     .checked_add(1)

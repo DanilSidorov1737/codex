@@ -44,6 +44,8 @@ pub mod openai_models;
 pub mod organization;
 pub mod organization_coordination;
 pub mod organization_execution;
+pub mod organization_inventory;
+pub mod organization_report;
 pub mod organization_schedule;
 pub mod organization_workflow;
 pub mod parse_command;

@@ -109,6 +109,10 @@ pub struct OrganizationTaskAttempt {
     pub task_id: String,
     pub authorization_id: String,
     #[serde(default)]
+    pub owner_id: Option<String>,
+    #[serde(default)]
+    pub provider: Option<OrganizationProviderEvidence>,
+    #[serde(default)]
     pub role_version_id: Option<String>,
     #[ts(type = "number")]
     pub generation: i64,
@@ -128,6 +132,16 @@ pub struct OrganizationTaskAttempt {
     pub reported_tokens: i64,
     pub model_requests: u32,
     pub reported_model_requests: u32,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct OrganizationProviderEvidence {
+    pub id: String,
+    /// Origin only; never credentials, request headers, path or query values.
+    pub origin: Option<String>,
+    /// Hash of the endpoint without URL credentials/query/fragment and wire API.
+    pub endpoint_sha256: String,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]

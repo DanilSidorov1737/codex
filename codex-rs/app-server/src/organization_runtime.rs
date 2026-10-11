@@ -345,6 +345,17 @@ impl OrganizationRuntime {
                 now(),
             )
             .await?;
+        store
+            .record_attempt_provider(
+                &attempt.id,
+                &self.worker_id,
+                crate::organization_inventory::provider_evidence(
+                    &self.config.model_provider_id,
+                    &self.config.model_provider,
+                )?,
+                now(),
+            )
+            .await?;
         let stop = self.shutdown.child_token();
         let guard = Arc::new(AttemptGuard {
             store: store.clone(),

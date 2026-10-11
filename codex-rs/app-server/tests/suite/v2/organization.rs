@@ -347,6 +347,44 @@ Path('report.txt').write_text('checked background artifact')
     )
     .await?;
     let waiting = wait_task(&mut server, &task.id, "waitingApproval").await?;
+    let report: codex_app_server_protocol::OrganizationReportResponse = server
+        .request(|request_id| ClientRequest::OrganizationReport {
+            request_id,
+            params: codex_app_server_protocol::OrganizationReportParams {
+                project_id: Some(task.project_id.clone()),
+                cursor: None,
+                limit: Some(200),
+            },
+        })
+        .await?;
+    assert_eq!(report.report.totals.pending_approvals, 1);
+    assert_eq!(report.report.tasks[0].task_id, task.id);
+    assert_eq!(report.report.tasks[0].pending_approvals, 1);
+    assert!(report.report.tasks[0].attempt_id.is_some());
+    let inventory: codex_app_server_protocol::OrganizationInventoryResponse = server
+        .request(|request_id| ClientRequest::OrganizationInventory {
+            request_id,
+            params: codex_app_server_protocol::OrganizationInventoryParams {},
+        })
+        .await?;
+    let selected = inventory
+        .inventory
+        .providers
+        .iter()
+        .find(|provider| provider.selected)
+        .expect("effective provider exposed");
+    assert_eq!(selected.observation.model_requests, 1);
+    assert!(selected.observation.latest_attempt_id.is_some());
+    assert_eq!(
+        inventory
+            .inventory
+            .tools
+            .iter()
+            .find(|tool| tool.name == "exec_command")
+            .unwrap()
+            .completed,
+        0
+    );
     let attempt = &waiting.attempts[0];
     let workspace = std::path::Path::new(
         attempt

@@ -11,6 +11,9 @@ mod workflow;
 #[path = "organization_handoff_tests.rs"]
 mod handoff;
 
+#[path = "organization_report_tests.rs"]
+mod report;
+
 async fn authorized_attempt(
     store: &OrganizationStore,
     approval: bool,

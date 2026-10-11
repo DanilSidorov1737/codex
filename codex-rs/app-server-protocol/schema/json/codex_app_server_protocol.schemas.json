@@ -16367,6 +16367,65 @@
         ],
         "type": "object"
       },
+      "OrganizationBudgetReport": {
+        "properties": {
+          "expiresAt": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "grantId": {
+            "type": "string"
+          },
+          "maxModelRequests": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "maxTokens": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "model": {
+            "type": "string"
+          },
+          "modelRequests": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "revoked": {
+            "type": "boolean"
+          },
+          "rootId": {
+            "type": "string"
+          },
+          "taskAttempts": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "taskMaxAttempts": {
+            "format": "uint32",
+            "minimum": 0.0,
+            "type": "integer"
+          },
+          "usedTokens": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "expiresAt",
+          "grantId",
+          "maxModelRequests",
+          "maxTokens",
+          "model",
+          "modelRequests",
+          "revoked",
+          "rootId",
+          "taskAttempts",
+          "taskMaxAttempts",
+          "usedTokens"
+        ],
+        "type": "object"
+      },
       "OrganizationCheckEvidence": {
         "properties": {
           "argv": {
@@ -16885,6 +16944,65 @@
         ],
         "type": "object"
       },
+      "OrganizationInventory": {
+        "properties": {
+          "limitations": {
+            "type": "string"
+          },
+          "mcpServers": {
+            "items": {
+              "$ref": "#/definitions/v2/OrganizationMcpCapability"
+            },
+            "type": "array"
+          },
+          "providers": {
+            "items": {
+              "$ref": "#/definitions/v2/OrganizationProviderCapability"
+            },
+            "type": "array"
+          },
+          "tools": {
+            "items": {
+              "$ref": "#/definitions/v2/OrganizationToolCapability"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "limitations",
+          "mcpServers",
+          "providers",
+          "tools"
+        ],
+        "type": "object"
+      },
+      "OrganizationMcpCapability": {
+        "properties": {
+          "availableToTasks": {
+            "type": "boolean"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          },
+          "permissions": {
+            "type": "string"
+          },
+          "qualification": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "availableToTasks",
+          "enabled",
+          "name",
+          "permissions",
+          "qualification"
+        ],
+        "type": "object"
+      },
       "OrganizationMembership": {
         "properties": {
           "groupId": {
@@ -17391,6 +17509,104 @@
         ],
         "type": "object"
       },
+      "OrganizationProviderCapability": {
+        "properties": {
+          "credentialRequirement": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "observation": {
+            "$ref": "#/definitions/v2/OrganizationProviderObservation"
+          },
+          "origin": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "qualification": {
+            "type": "string"
+          },
+          "selected": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "credentialRequirement",
+          "id",
+          "observation",
+          "qualification",
+          "selected"
+        ],
+        "type": "object"
+      },
+      "OrganizationProviderEvidence": {
+        "additionalProperties": false,
+        "properties": {
+          "endpointSha256": {
+            "description": "Hash of the endpoint without URL credentials/query/fragment and wire API.",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "origin": {
+            "description": "Origin only; never credentials, request headers, path or query values.",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "endpointSha256",
+          "id"
+        ],
+        "type": "object"
+      },
+      "OrganizationProviderObservation": {
+        "properties": {
+          "checkedResults": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "failedAttempts": {
+            "description": "Task outcomes, not proof of a provider compatibility failure.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "latestAttemptId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "modelRequests": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "models": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "reportedModelRequests": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "checkedResults",
+          "failedAttempts",
+          "modelRequests",
+          "models",
+          "reportedModelRequests"
+        ],
+        "type": "object"
+      },
       "OrganizationRecord": {
         "oneOf": [
           {
@@ -17525,6 +17741,137 @@
           "memberships"
         ],
         "type": "string"
+      },
+      "OrganizationReport": {
+        "properties": {
+          "generatedAt": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "nextCursor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "projectId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "sequence": {
+            "description": "Canonical audit revision; paginated readers must not combine revisions.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "tasks": {
+            "items": {
+              "$ref": "#/definitions/v2/OrganizationTaskReport"
+            },
+            "type": "array"
+          },
+          "totals": {
+            "allOf": [
+              {
+                "$ref": "#/definitions/v2/OrganizationReportTotals"
+              }
+            ],
+            "description": "Complete totals for the selected project/store, independent of pagination."
+          },
+          "upcomingRuns": {
+            "items": {
+              "$ref": "#/definitions/v2/OrganizationUpcomingRun"
+            },
+            "type": "array"
+          },
+          "usage": {
+            "description": "At most 2,000 grouped observations for this task page.",
+            "items": {
+              "$ref": "#/definitions/v2/OrganizationUsageReport"
+            },
+            "type": "array"
+          },
+          "usageTruncated": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "generatedAt",
+          "sequence",
+          "tasks",
+          "totals",
+          "upcomingRuns",
+          "usage",
+          "usageTruncated"
+        ],
+        "type": "object"
+      },
+      "OrganizationReportTotals": {
+        "properties": {
+          "actionStates": {
+            "additionalProperties": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": "object"
+          },
+          "changesRequested": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "checksFailed": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "checksPassed": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "modelRequests": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "pendingApprovals": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "reportedModelRequests": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "reportedTokens": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "scheduleStates": {
+            "additionalProperties": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": "object"
+          },
+          "taskStates": {
+            "additionalProperties": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": "object"
+          }
+        },
+        "required": [
+          "actionStates",
+          "changesRequested",
+          "checksFailed",
+          "checksPassed",
+          "modelRequests",
+          "pendingApprovals",
+          "reportedModelRequests",
+          "reportedTokens",
+          "scheduleStates",
+          "taskStates"
+        ],
+        "type": "object"
       },
       "OrganizationRoleVersion": {
         "properties": {
@@ -17897,6 +18244,24 @@
             "minimum": 0.0,
             "type": "integer"
           },
+          "ownerId": {
+            "default": null,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "provider": {
+            "anyOf": [
+              {
+                "$ref": "#/definitions/v2/OrganizationProviderEvidence"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
           "reportedModelRequests": {
             "format": "uint32",
             "minimum": 0.0,
@@ -18129,6 +18494,115 @@
         ],
         "type": "object"
       },
+      "OrganizationTaskReport": {
+        "properties": {
+          "attemptId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "blocker": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "budget": {
+            "anyOf": [
+              {
+                "$ref": "#/definitions/v2/OrganizationBudgetReport"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "changesRequestedSequence": {
+            "format": "int64",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "checkpointId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "checksFailed": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "checksPassed": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "modelRequests": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "ownerId": {
+            "type": "string"
+          },
+          "pendingApprovals": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "projectId": {
+            "type": "string"
+          },
+          "reportedModelRequests": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "reportedTokens": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "resultDigest": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "revision": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "state": {
+            "type": "string"
+          },
+          "taskId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "workflowRunId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "checksFailed",
+          "checksPassed",
+          "modelRequests",
+          "ownerId",
+          "pendingApprovals",
+          "projectId",
+          "reportedModelRequests",
+          "reportedTokens",
+          "revision",
+          "state",
+          "taskId",
+          "title"
+        ],
+        "type": "object"
+      },
       "OrganizationTaskResult": {
         "properties": {
           "accepted": {
@@ -18185,6 +18659,124 @@
           "accepted"
         ],
         "type": "string"
+      },
+      "OrganizationToolCapability": {
+        "properties": {
+          "completed": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "failed": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "latestAttemptId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "permissions": {
+            "type": "string"
+          },
+          "uncertain": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "completed",
+          "failed",
+          "name",
+          "permissions",
+          "uncertain"
+        ],
+        "type": "object"
+      },
+      "OrganizationUpcomingRun": {
+        "properties": {
+          "dueAt": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "label": {
+            "type": "string"
+          },
+          "projectId": {
+            "type": "string"
+          },
+          "scheduleId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "dueAt",
+          "label",
+          "projectId",
+          "scheduleId"
+        ],
+        "type": "object"
+      },
+      "OrganizationUsageReport": {
+        "properties": {
+          "attempts": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "model": {
+            "type": "string"
+          },
+          "modelRequests": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "ownerId": {
+            "description": "Captured at claim time. Historical records are explicitly unknown.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "provider": {
+            "anyOf": [
+              {
+                "$ref": "#/definitions/v2/OrganizationProviderEvidence"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reportedModelRequests": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "reportedTokens": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "taskId": {
+            "type": "string"
+          },
+          "workflowRunId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "attempts",
+          "model",
+          "modelRequests",
+          "reportedModelRequests",
+          "reportedTokens",
+          "taskId"
+        ],
+        "type": "object"
       },
       "OrganizationWorkflowKind": {
         "enum": [

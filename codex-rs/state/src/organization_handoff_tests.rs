@@ -202,6 +202,21 @@ async fn checkpoint_handoff_persists_same_grant_usage_bases_and_fences_previous_
     );
     store.admit_model_request(&next.id, &worker, 1002).await?;
     store.checkpoint_usage(&next.id, &worker, 1, 20).await?;
+    let report = store.operational_report(None, None, 200, 1002).await?;
+    assert_eq!(report.totals.reported_tokens, 30);
+    assert_eq!(report.usage.len(), 2);
+    assert!(
+        report
+            .usage
+            .iter()
+            .any(|usage| usage.owner_id == source.owner_id && usage.reported_tokens == 10)
+    );
+    assert!(
+        report
+            .usage
+            .iter()
+            .any(|usage| usage.owner_id == next.owner_id && usage.reported_tokens == 20)
+    );
     let final_view = store.execution_view(&source.task_id).await?;
     assert_eq!(
         (

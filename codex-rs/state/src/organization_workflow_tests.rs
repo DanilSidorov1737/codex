@@ -497,3 +497,112 @@ async fn workflow_migration_from_seven_preserves_existing_tasks_and_crash_blocks
     );
     Ok(())
 }
+
+#[tokio::test]
+async fn reports_link_delegated_attempts_to_the_original_workflow_run() -> Result<()> {
+    use codex_protocol::organization_coordination::OrganizationCoordinationCall;
+    let home = Fixture::new();
+    let store = OrganizationStore::open(&home.0).await?;
+    let template = fixture(&store).await?;
+    let helper = node_from(
+        store
+            .mutate_owner(
+                node_mutation("Custom delegate", None, OrganizationNodeKind::Agent),
+                None,
+            )
+            .await?,
+    );
+    let mut input = request(&template);
+    input.scopes[0].scope.delegates = vec![helper.id.clone()];
+    input.scopes[0].scope.max_children = 1;
+    input.scopes[0].scope.max_model_requests = 8;
+    input.scopes[0].scope.require_tool_approval = false;
+    input.scopes[1].scope.artifacts = vec!["verified.txt".into()];
+    let preview = store.preview_workflow(input).await?;
+    let OrganizationWorkflowView::Run { run, .. } = store
+        .mutate_workflow(
+            OrganizationWorkflowMutation::Run {
+                preview: Box::new(preview),
+            },
+            1000,
+        )
+        .await?
+    else {
+        panic!("expected run")
+    };
+    let worker = Uuid::now_v7().to_string();
+    let root = store
+        .claim_task(&worker, &Uuid::now_v7().to_string(), 1000, 4)
+        .await?
+        .unwrap();
+    let tasks: Vec<OrganizationTask> = serde_json::from_value(
+        store
+            .coordinate(
+                &root.id,
+                &worker,
+                "plan",
+                OrganizationCoordinationCall::ProposePlan {
+                    items: vec![OrganizationPlanItem {
+                        key: "helper".into(),
+                        owner_id: helper.id.clone(),
+                        instructions: "Prepare the granted report".into(),
+                        criteria: vec!["Verified".into()],
+                        prerequisites: vec![],
+                    }],
+                },
+                1001,
+            )
+            .await?,
+    )?;
+    store
+        .coordinate(
+            &root.id,
+            &worker,
+            "delegate",
+            OrganizationCoordinationCall::Delegate {
+                task_id: tasks[0].id.clone(),
+            },
+            1001,
+        )
+        .await?;
+    let child = store
+        .claim_task(&worker, &Uuid::now_v7().to_string(), 1002, 4)
+        .await?
+        .unwrap();
+    store.admit_model_request(&child.id, &worker, 1002).await?;
+    store.checkpoint_usage(&child.id, &worker, 1, 15).await?;
+    let report = store
+        .operational_report(Some(&template.project_id), None, 200, 1002)
+        .await?;
+    let delegated = report
+        .tasks
+        .iter()
+        .find(|task| task.task_id == child.task_id)
+        .unwrap();
+    assert_eq!(delegated.workflow_run_id.as_deref(), Some(run.id.as_str()));
+    assert_eq!(
+        report
+            .usage
+            .iter()
+            .find(|usage| usage.task_id == child.task_id)
+            .unwrap()
+            .workflow_run_id
+            .as_deref(),
+        Some(run.id.as_str())
+    );
+    assert_eq!(report.totals.reported_tokens, 15);
+    assert_eq!(
+        report
+            .usage
+            .iter()
+            .map(|usage| usage.reported_tokens)
+            .sum::<i64>(),
+        15
+    );
+    assert_eq!(
+        delegated.budget.as_ref().unwrap().root_id,
+        root.authorization_id
+    );
+    store.close().await;
+    Ok(())
+}

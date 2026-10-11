@@ -1028,3 +1028,58 @@ async fn parent_pause_fences_child_and_late_usage_still_debits_root() -> Result<
     store.close().await;
     Ok(())
 }
+
+#[tokio::test]
+async fn reports_attribute_descendant_usage_without_double_counting_root_ledgers() -> Result<()> {
+    let home = Fixture::new();
+    let store = OrganizationStore::open(&home.0).await?;
+    let (worker, parent, helper) = root(&store, 1, 8).await?;
+    let tasks = plan(&store, &worker, &parent, vec![item("child", &helper, &[])]).await?;
+    delegate(&store, &worker, &parent, &tasks[0]).await?;
+    let child = store
+        .claim_task(&worker, &Uuid::now_v7().to_string(), 1002, 4)
+        .await?
+        .unwrap();
+    for (attempt, tokens) in [(&parent, 10), (&child, 15)] {
+        store
+            .admit_model_request(&attempt.id, &worker, 1002)
+            .await?;
+        store
+            .checkpoint_usage(&attempt.id, &worker, 1, tokens)
+            .await?;
+    }
+    let report = store.operational_report(None, None, 200, 1002).await?;
+    assert_eq!(report.totals.reported_tokens, 25);
+    assert_eq!(report.totals.model_requests, 2);
+    assert_eq!(
+        report
+            .usage
+            .iter()
+            .map(|usage| usage.reported_tokens)
+            .sum::<i64>(),
+        25
+    );
+    assert_eq!(
+        report
+            .usage
+            .iter()
+            .find(|usage| usage.task_id == child.task_id)
+            .unwrap()
+            .owner_id
+            .as_deref(),
+        Some(helper.as_str())
+    );
+    let budgets: Vec<_> = report
+        .tasks
+        .iter()
+        .map(|task| task.budget.as_ref().unwrap())
+        .collect();
+    assert_eq!(budgets[0].root_id, budgets[1].root_id);
+    assert!(
+        budgets
+            .iter()
+            .all(|budget| budget.used_tokens == 25 && budget.model_requests == 2)
+    );
+    store.close().await;
+    Ok(())
+}
