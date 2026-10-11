@@ -124,3 +124,5 @@ evidence gates; do not infer external operational or spending authority.
 Current autonomy batch details: [approved delivery](autonomy-batch.md),
 [local background health and full recovery](background-and-recovery.md) and
 [owner Neovim configuration sample](neovim-owner.lua).
+
+- [Operations native qualification](operations-native-qualification.md): reviewed policies, discussions, knowledge, replans, scorecards, detached completion, crash/full restore and 10,000 stored nodes.

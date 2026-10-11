@@ -114,6 +114,12 @@ integrations, distributed workers and automatic root acceptance/Apply remain
 deferred. Complete independent work when real-host systemd/reboot qualification
 is unavailable; never claim container restart proves host reboot. Preserve all
 historical state/accounting/evidence and use fresh qualification fixtures.
+The current native checkpoint is [operations native qualification](docs/development/operations-native-qualification.md).
+The original reviewed-autonomy fixture has one charged unknown request; keep it
+paused/stopped. Never restart the quarantined reviewed-autonomy-v2 source home.
+The controls code result now has one exact hunk Application; never replay its
+pre-Apply driver or write a second backend Application. Continue editor review
+only from its current bytes, recorded receipt and explicit native owner decisions.
 Then read [decisions](docs/development/decisions-and-risks.md),
 [MVP plan](docs/development/mvp.md), [testing](docs/development/testing.md) and
 [process](docs/development/process.md). Reconcile current user instructions with

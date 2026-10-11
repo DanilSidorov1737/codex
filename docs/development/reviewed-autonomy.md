@@ -2,8 +2,9 @@
 
 Tasks 10–15 extend the existing series, controls, handoffs, notes and report
 snapshot. They introduce no dependency, provider calls, new worker service or
-unbounded authority. Automated implementation is in progress; native package
-qualification follows. Read next-twenty.md and status.md for the actual checkpoint.
+unbounded authority. Implementation and fresh native qualification pass; see
+[operations native qualification](operations-native-qualification.md) for the
+actual scopes, receipts, failures and recovery boundaries. Read next-twenty.md and status.md for the actual checkpoint.
 
 ## Finite goal policy
 
