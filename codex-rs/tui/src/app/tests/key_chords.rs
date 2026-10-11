@@ -10,6 +10,7 @@ use crate::bottom_pane::SelectionViewParams;
 use crate::chatwidget::tests::helpers::render_bottom_popup;
 use crate::chatwidget::tests::helpers::set_active_cell;
 use crate::keymap::KeymapContext;
+
 #[cfg(unix)]
 use crate::pager_overlay::TranscriptHistoryState;
 use crate::test_support::test_path_display;
@@ -24,6 +25,45 @@ use crossterm::event::KeyCode;
 use crossterm::event::KeyEvent;
 use crossterm::event::KeyModifiers;
 use pretty_assertions::assert_eq;
+
+#[tokio::test]
+async fn organization_overlay_owns_function_keys_and_editor_chords() -> Result<()> {
+    let mut app = make_test_app().await;
+    let server = start_config_write_test_app_server(&app).await?;
+    let mut tui = crate::tui::test_support::make_test_tui()?;
+    let home = tempfile::tempdir()?;
+    app.overlay = Some(crate::pager_overlay::Overlay::Organization(Box::new(
+        crate::organization::Dashboard::open(
+            server.request_handle(),
+            tui.frame_requester(),
+            home.path(),
+            Some(crate::organization::Preset::Operations),
+            "test",
+            "model",
+        ),
+    )));
+    let contexts = app.active_keymap_contexts();
+    assert!(!contexts.contains_action(crate::keymap::KeymapActionId {
+        context: KeymapContext::Chat,
+        action: "toggle_voice"
+    }));
+    assert!(!contexts.contains(KeymapContext::Voice));
+    for code in [KeyCode::F(7), KeyCode::F(8), KeyCode::F(9)] {
+        let key = KeyEvent::from(code);
+        assert_eq!(app.route_key_chord_event(&mut tui, key), Some(key));
+    }
+    app.keymap =
+        RuntimeKeymap::from_config(&toml::from_str("[global]\nopen_external_editor = 'f7 f8'")?)
+            .expect("valid editor chord");
+    for code in [KeyCode::F(7), KeyCode::F(8)] {
+        let key = KeyEvent::from(code);
+        assert_eq!(app.route_key_chord_event(&mut tui, key), Some(key));
+        assert!(!app.key_chord_matcher.is_pending());
+    }
+    app.overlay = None;
+    server.shutdown().await?;
+    Ok(())
+}
 
 async fn chord_app() -> Result<(Box<App>, Tui, AppServerSession)> {
     let mut app = make_test_app().await;

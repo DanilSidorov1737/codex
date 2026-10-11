@@ -209,6 +209,10 @@ impl App {
         use crate::keymap::KeymapContextSet;
 
         if let Some(overlay) = &self.overlay {
+            if matches!(overlay, Overlay::Organization(_)) {
+                // The dashboard's forms and actual Neovim own their complete key stream.
+                return KeymapContextSet::raw_key_capture();
+            }
             let context = if matches!(overlay, Overlay::Transcript(view) if view.is_search_editing())
             {
                 KeymapContext::Editor

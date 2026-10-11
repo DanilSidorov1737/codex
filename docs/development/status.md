@@ -17,6 +17,25 @@ Physical qualification will use fresh `expanded-batch/owner-ui` fixtures and
 `owner-ui-home`; historical Apply/handoff/workflow fixtures remain untouched.
 See [owner controls](owner-controls.md). Items 7–12 remain approved next work.
 
+The actual editing pilot passed node/group/role/membership/reparent/retire/restore
+and cycle/stale-node checks, then caught F8 being consumed by the Console voice
+shortcut before the workflow form. Organization overlays now use the existing
+raw-key context so both forms and actual Neovim retain their function keys.
+All 39 selected tests and complete CLI production Clippy pass; the package is
+being rebuilt for guarded physical continuation. Preserve the failed pilot and two guarded
+continuations. The first harness mistakenly escaped into Console (60 refused
+localhost fixture requests, no paid requests or grants); the first continuation
+missed terminal attachment. These helpers were corrected without resetting state.
+`owner-ui-home` retains three nodes, two role versions, two proposed seed tasks,
+one saved workflow revision and zero authorizations/attempts. Services are stopped;
+resume only the unfinished workflow controls with the corrected package.
+
+Approved reports/inbox/resource work is saved in local stash
+`d46180ef3f8f1c5a70d4e769980f2c381cbeec35` while qualifying this key-routing fix.
+Its two meaningful state projection tests passed. Restore that exact stash after
+the owner-control code/docs checkpoint and continue items 7–12; it is not yet a
+delivered/qualified API or UI. Do not rerun completed fixture mutations.
+
 Item 1 is delivered and physically qualified: a server-confirmed pre-intent
 rejection now restores actual Neovim input without frontend restart, with the
 error retained through refresh. Uncertain outcomes and unrelated successful
