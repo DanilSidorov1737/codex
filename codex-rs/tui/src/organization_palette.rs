@@ -81,6 +81,12 @@ const ACTIONS: &[Action] = &[
         context: "select project; reviewable plan.json; planning and follow-up each need separate grants",
     },
     Action {
+        title: "Inspect agent readiness / matching owner actions",
+        shortcut: "Commands",
+        code: KeyCode::F(48),
+        context: "select agent; canonical loaded config/task/approval/budget/uncertainty evidence; missing evidence stays unknown",
+    },
+    Action {
         title: "Talk to selected agent / continue conversation",
         shortcut: "Commands",
         code: KeyCode::F(43),

@@ -174,6 +174,14 @@ impl OrganizationReplanItem {
 #[serde(tag = "type", rename_all = "camelCase", deny_unknown_fields)]
 pub enum OrganizationControlValue {
     #[serde(rename_all = "camelCase")]
+    RoleDraft {
+        id: String,
+        source_attempt_id: String,
+        name: String,
+        instructions: String,
+        applied: bool,
+    },
+    #[serde(rename_all = "camelCase")]
     GoalMetadata {
         goal: Box<OrganizationGoal>,
         project_id: String,

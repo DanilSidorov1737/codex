@@ -39,6 +39,7 @@ pub(super) async fn set(
     value: OrganizationControlValue,
 ) -> Result<OrganizationControl> {
     let id = match &value {
+        OrganizationControlValue::RoleDraft { id, .. } => format!("role-draft:{id}"),
         OrganizationControlValue::GoalMetadata { goal, .. } => format!("goal-meta:{}", goal.id),
         OrganizationControlValue::Deadline {
             kind, target_id, ..
@@ -75,6 +76,50 @@ pub(super) async fn set(
         "control revision conflict"
     );
     match &value {
+        OrganizationControlValue::RoleDraft {
+            id,
+            source_attempt_id,
+            name,
+            instructions,
+            applied,
+        } => {
+            ensure!(
+                *applied,
+                "role drafts originate from a fenced agent call; owners create ordinary role versions separately"
+            );
+            Uuid::parse_str(id)?;
+            text(name, 256)?;
+            text(instructions, 64 * 1024)?;
+            let mut pending = value.clone();
+            if let OrganizationControlValue::RoleDraft { applied, .. } = &mut pending {
+                *applied = false;
+            }
+            ensure!(
+                previous.as_ref().is_some_and(|old| old.value == pending),
+                "review the exact pending role draft; application is immutable"
+            );
+            let exists: i64 =
+                sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM organization_attempts WHERE id=?)")
+                    .bind(source_attempt_id)
+                    .fetch_one(&mut **tx)
+                    .await?;
+            ensure!(exists == 1, "role proposal source attempt missing");
+            let role = OrganizationRoleVersion {
+                id: id.clone(),
+                role_id: id.clone(),
+                name: name.clone(),
+                instructions: instructions.clone(),
+                version: 1,
+            };
+            sqlx::query(
+                "INSERT INTO organization_role_versions(id,role_id,version,data) VALUES (?,?,1,?)",
+            )
+            .bind(id)
+            .bind(id)
+            .bind(serde_json::to_string(&OrganizationRecord::Role(role))?)
+            .execute(&mut **tx)
+            .await?;
+        }
         OrganizationControlValue::GoalMetadata {
             goal,
             project_id,

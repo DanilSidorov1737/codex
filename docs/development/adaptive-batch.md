@@ -80,5 +80,10 @@ existing nested-goal/task forms plus reviewed responsibility metadata. There is
 no second workflow engine or automatic parent completion. See the same evidence
 document for precise bounds and pending native qualification.
 
-Continue tasks15–30 and all remaining native CLI/TUI/endurance checks; no new
+Verified next batches, owner-applied role/team drafts, guided1–32 node changes
+and captured canonical readiness evidence now have source/test checkpoints.
+State334/protocol377/TUI100 selections pass, including actual official Neovim
+cases. See the same evidence document for scope and pending native checks.
+
+Continue tasks19–30 and all remaining native CLI/TUI/endurance checks; no new
 approval is needed. All historical fixture/accounting/quarantine rules remain.

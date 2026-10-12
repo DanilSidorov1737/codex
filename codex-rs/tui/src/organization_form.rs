@@ -166,6 +166,71 @@ mod tests {
     use super::*;
 
     #[test]
+    fn guided_bulk_team_changes_keep_stable_new_ids_and_exact_bases() {
+        let original = OrganizationNode {
+            id: "existing".into(),
+            parent_id: None,
+            kind: OrganizationNodeKind::Group,
+            label: "Configured team".into(),
+            role_version_id: None,
+            model: None,
+            enabled: true,
+            revision: 5,
+        };
+        let mut form = Form::new(
+            Kind::Team {
+                expected_nodes: vec![original.clone()],
+                nodes: vec![original.clone()],
+            },
+            &[OrganizationRecord::Node(original.clone())],
+            None,
+            "fixture",
+        );
+        set(&mut form, 0, "Review this new team and worker together");
+        form.fields[1].choice = 2;
+        set(&mut form, 3, "Optional new team");
+        form.key(KeyCode::F(7).into());
+        set(&mut form, 9, "Optional specialist");
+        form.fields[8].choice = form.fields[8]
+            .choices
+            .iter()
+            .position(|(id, _)| id == &form.project_key)
+            .unwrap();
+        let Command::Definition(OrganizationMutation::SetControl { value, .. }) =
+            form.command().unwrap()
+        else {
+            panic!("team proposal")
+        };
+        let OrganizationControlValue::Team {
+            nodes,
+            expected_nodes,
+            applied: false,
+            ..
+        } = value
+        else {
+            panic!("pending team")
+        };
+        assert_eq!(nodes.len(), 2);
+        assert_eq!(nodes[0].kind, OrganizationNodeKind::Group);
+        assert_eq!(nodes[1].parent_id.as_ref(), Some(&nodes[0].id));
+        assert_eq!(expected_nodes, vec![original]);
+        assert_eq!(nodes[1].revision, 0);
+        let repeated = form.command().unwrap();
+        assert!(
+            matches!(repeated,Command::Definition(OrganizationMutation::SetControl {value:OrganizationControlValue::Team {nodes:ref again,..},..}) if again==&nodes)
+        );
+        for _ in 0..30 {
+            form.key(KeyCode::F(7).into());
+        }
+        assert_eq!(form.fields.len(), 192);
+        form.key(KeyCode::F(7).into());
+        assert_eq!(form.fields.len(), 192);
+        assert!(form.error.contains("32"));
+        form.key(KeyCode::F(8).into());
+        assert_eq!(form.fields.len(), 186);
+    }
+
+    #[test]
     fn project_planning_request_creates_reviewable_work_without_execution_authority() {
         let project = OrganizationProjectPlan {
             id: "p".into(),
@@ -2540,6 +2605,78 @@ impl Form {
         }
     }
     pub(super) fn key(&mut self, key: KeyEvent) {
+        if let Kind::Team {
+            expected_nodes,
+            nodes,
+        } = &mut self.kind
+        {
+            if key.code == KeyCode::F(7) {
+                if nodes.len() == 32 {
+                    self.error = "Team transactions contain at most 32 changes".into();
+                    return;
+                }
+                let node = OrganizationNode {
+                    id: uuid::Uuid::now_v7().to_string(),
+                    parent_id: Some(nodes[0].id.clone()),
+                    kind: OrganizationNodeKind::Agent,
+                    label: "New definition".into(),
+                    role_version_id: None,
+                    model: None,
+                    enabled: true,
+                    revision: 0,
+                };
+                let targets = std::iter::once(("new".into(), "New definition".into()))
+                    .chain(
+                        expected_nodes
+                            .iter()
+                            .map(|n| (n.id.clone(), n.label.clone())),
+                    )
+                    .collect();
+                let mut parents = self.fields[2].choices.clone();
+                parents.push((
+                    self.project_key.clone(),
+                    "First new definition (when creating)".into(),
+                ));
+                parents.extend(
+                    nodes
+                        .iter()
+                        .skip(1)
+                        .map(|n| (n.id.clone(), format!("Draft {}", n.label))),
+                );
+                self.focus = self.fields.len();
+                self.fields.extend([
+                    Field::select("Target definition", targets, Some("new")),
+                    Field::select("Operation", self.fields[1].choices.clone(), Some("agent")),
+                    Field::select("Parent", parents, Some("keep")),
+                    Field::text(
+                        "Name",
+                        "User-defined; captured existing versions are applied atomically",
+                        &node.label,
+                    ),
+                    Field::select("Role", self.fields[4].choices.clone(), Some("keep")),
+                    Field::text(
+                        "Model",
+                        "Blank uses configured default; no grants or memory copied",
+                        "",
+                    ),
+                ]);
+                nodes.push(node);
+                return;
+            }
+            if key.code == KeyCode::F(8) {
+                if self.focus >= 6 && nodes.len() > 1 {
+                    let index = (self.focus - 6) / 6;
+                    let start = 6 + index * 6;
+                    nodes.remove(index + 1);
+                    self.fields.drain(start..start + 6);
+                    self.focus = start.min(self.fields.len() - 1);
+                } else {
+                    self.error =
+                        "Focus an added change to remove; keep the selected definition".into();
+                }
+                return;
+            }
+        }
         if matches!(&self.kind, Kind::WorkflowSave { .. }) {
             if key.code == KeyCode::F(7) {
                 if self.fields.len() < 1 + 32 * 5 {
@@ -3521,34 +3658,72 @@ impl Form {
                 expected_nodes,
                 nodes,
             } => {
-                let original = nodes.first().context("select a definition first")?;
-                let creating = matches!(value(1).as_str(), "agent" | "group");
-                let mut node = original.clone();
-                if creating {
-                    node.id = self.project_key.clone();
-                    node.revision = 0;
-                    node.kind = if value(1) == "agent" {
-                        OrganizationNodeKind::Agent
-                    } else {
-                        OrganizationNodeKind::Group
-                    };
-                    node.enabled = true;
-                } else if value(1) == "retire" {
-                    node.enabled = false;
-                }
-                node.parent_id = match value(2).as_str() {
-                    "keep" if creating => Some(original.id.clone()),
-                    "keep" => original.parent_id.clone(),
-                    "root" => None,
-                    id => Some(id.to_owned()),
-                };
-                node.label = required(3)?;
-                node.role_version_id = if value(4) == "keep" {
-                    original.role_version_id.clone()
-                } else {
-                    (!value(4).is_empty()).then(|| value(4))
-                };
-                node.model = (!value(5).is_empty()).then(|| value(5));
+                anyhow::ensure!(
+                    !nodes.is_empty()
+                        && nodes.len() <= 32
+                        && self.fields.len() == 6 + 6 * (nodes.len() - 1),
+                    "invalid guided team draft"
+                );
+                let mut captured = BTreeSet::new();
+                let changed = nodes
+                    .iter()
+                    .enumerate()
+                    .map(|(index, placeholder)| {
+                        let start = if index == 0 { 1 } else { 7 + (index - 1) * 6 };
+                        let original = if index == 0 || value(start - 1) == "new" {
+                            placeholder
+                        } else {
+                            expected_nodes
+                                .iter()
+                                .find(|n| n.id == value(start - 1))
+                                .context("target definition unavailable")?
+                        };
+                        let creating = matches!(value(start).as_str(), "agent" | "group");
+                        anyhow::ensure!(
+                            creating || original.revision > 0,
+                            "Select an existing target for edit or retirement"
+                        );
+                        if original.revision > 0 {
+                            captured.insert(original.id.clone());
+                        }
+                        let mut node = original.clone();
+                        if creating {
+                            node.id = if index == 0 {
+                                self.project_key.clone()
+                            } else {
+                                placeholder.id.clone()
+                            };
+                            node.revision = 0;
+                            node.kind = if value(start) == "agent" {
+                                OrganizationNodeKind::Agent
+                            } else {
+                                OrganizationNodeKind::Group
+                            };
+                            node.enabled = true;
+                        } else if value(start) == "retire" {
+                            node.enabled = false;
+                        }
+                        node.parent_id = match value(start + 1).as_str() {
+                            "keep" if creating && original.revision > 0 => {
+                                Some(original.id.clone())
+                            }
+                            "keep" => original.parent_id.clone(),
+                            "root" => None,
+                            id => Some(id.into()),
+                        };
+                        node.label = required(start + 2)?;
+                        node.role_version_id = if value(start + 3) == "keep" {
+                            original.role_version_id.clone()
+                        } else {
+                            (!value(start + 3).is_empty()).then(|| value(start + 3))
+                        };
+                        node.model = (!value(start + 4).is_empty()).then(|| value(start + 4));
+                        if let Some(parent) = &node.parent_id {
+                            captured.insert(parent.clone());
+                        }
+                        Ok(node)
+                    })
+                    .collect::<anyhow::Result<Vec<_>>>()?;
                 Command::Definition(OrganizationMutation::SetControl {
                     expected_revision: None,
                     value: OrganizationControlValue::Team {
@@ -3556,12 +3731,10 @@ impl Form {
                         reason: required(0)?,
                         expected_nodes: expected_nodes
                             .iter()
-                            .filter(|n| {
-                                n.id == original.id || node.parent_id.as_deref() == Some(&n.id)
-                            })
+                            .filter(|n| captured.contains(&n.id))
                             .cloned()
                             .collect(),
-                        nodes: vec![node],
+                        nodes: changed,
                         applied: false,
                     },
                 })
@@ -3733,7 +3906,9 @@ impl Form {
             Constraint::Length(3),
         ])
         .split(inner.inner(Margin::new(1, 0)));
-        let help = if matches!(self.kind, Kind::WorkflowSave { .. }) {
+        let help = if matches!(self.kind, Kind::Team { .. }) {
+            "Tab / Enter next · Shift-Tab previous · F7 add change · F8 remove change\nAlt-Enter newline · F6 review atomic transaction · Esc close"
+        } else if matches!(self.kind, Kind::WorkflowSave { .. }) {
             "Tab / Enter next · Shift-Tab previous · F7 add step · F8 remove step\nAlt-Enter newline · F6 review exact template · Esc close"
         } else if matches!(self.kind, Kind::Apply { .. }) {
             "Tab / Enter next · Shift-Tab previous · Arrows / Space toggle\nF6 review exact selection · Esc close (no changes)"

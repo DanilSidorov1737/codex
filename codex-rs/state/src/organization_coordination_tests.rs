@@ -1096,6 +1096,356 @@ async fn planner_is_atomic_bounded_and_deduplicated() -> Result<()> {
 }
 
 #[tokio::test]
+async fn next_batches_require_verified_original_root_results_and_keep_original_limits() -> Result<()>
+{
+    let home = Fixture::new();
+    let store = OrganizationStore::open(&home.0).await?;
+    let (worker, parent, helper) = root(&store, 2, 8).await?;
+    store.admit_model_request(&parent.id, &worker, 1001).await?;
+    store.checkpoint_usage(&parent.id, &worker, 1, 2).await?;
+    let initial = plan(&store, &worker, &parent, vec![item("first", &helper, &[])]).await?;
+    delegate(&store, &worker, &parent, &initial[0]).await?;
+    let child = store
+        .claim_task(&worker, &Uuid::now_v7().to_string(), 1002, 2)
+        .await?
+        .unwrap();
+    let follow = |digest: &str, key: &str| OrganizationCoordinationCall::ProposeNextBatch {
+        verified_results: vec![OrganizationVerifiedResultReference {
+            task_id: child.task_id.clone(),
+            result_digest: digest.into(),
+        }],
+        items: vec![item(key, &helper, &[])],
+    };
+    assert!(
+        store
+            .coordinate(
+                &parent.id,
+                &worker,
+                "unverified",
+                follow("unverified", "next"),
+                1002
+            )
+            .await
+            .is_err()
+    );
+    store.admit_model_request(&child.id, &worker, 1002).await?;
+    store.checkpoint_usage(&child.id, &worker, 1, 3).await?;
+    let checked = result(&store, &worker, &child, 0).await?;
+    assert!(checked.accepted);
+    store.release_attempt_capacity(&child.id, &worker).await?;
+    let (foreign_worker, foreign_attempt) = authorized_attempt(&store, false).await?;
+    let foreign_result = store
+        .record_result(
+            &foreign_attempt.id,
+            &foreign_worker,
+            vec![OrganizationArtifactEvidence {
+                path: "report.txt".into(),
+                sha256: "b".repeat(64),
+                bytes: 1,
+            }],
+            vec![OrganizationCheckEvidence {
+                immutable_inputs: None,
+                argv: execution_scope().checks[0].clone(),
+                exit_code: Some(0),
+                output: "other project's actual oracle".into(),
+                truncated: false,
+            }],
+            1003,
+        )
+        .await?;
+    let foreign_view = store.execution_view(&foreign_attempt.task_id).await?;
+    store
+        .accept_result(
+            &foreign_attempt.task_id,
+            foreign_view.task.revision,
+            &foreign_result.digest,
+        )
+        .await?;
+    store
+        .release_attempt_capacity(&foreign_attempt.id, &foreign_worker)
+        .await?;
+    assert!(
+        store
+            .coordinate(
+                &parent.id,
+                &worker,
+                "accepted-foreign-project",
+                OrganizationCoordinationCall::ProposeNextBatch {
+                    verified_results: vec![OrganizationVerifiedResultReference {
+                        task_id: foreign_attempt.task_id,
+                        result_digest: foreign_result.digest
+                    }],
+                    items: vec![item("wrong-project", &helper, &[])]
+                },
+                1003
+            )
+            .await
+            .is_err()
+    );
+    let before = store.execution_view(&parent.task_id).await?;
+    assert!(
+        store
+            .coordinate(&parent.id, &worker, "stale", follow("stale", "next"), 1003)
+            .await
+            .is_err()
+    );
+    let next: Vec<OrganizationTask> = serde_json::from_value(
+        store
+            .coordinate(
+                &parent.id,
+                &worker,
+                "next",
+                follow(&checked.digest, "next"),
+                1003,
+            )
+            .await?,
+    )?;
+    assert_eq!(next[0].state, "proposed");
+    assert!(
+        store
+            .execution_view(&next[0].id)
+            .await?
+            .authorization
+            .is_none()
+    );
+    assert_eq!(before, store.execution_view(&parent.task_id).await?);
+    assert!(
+        store
+            .coordinate(
+                &parent.id,
+                &worker,
+                "over-ceiling",
+                follow(&checked.digest, "third"),
+                1003
+            )
+            .await
+            .is_err()
+    );
+    let foreign: Vec<OrganizationVerifiedResultReference> =
+        vec![OrganizationVerifiedResultReference {
+            task_id: parent.task_id.clone(),
+            result_digest: checked.digest,
+        }];
+    assert!(
+        store
+            .coordinate(
+                &parent.id,
+                &worker,
+                "foreign-proof",
+                OrganizationCoordinationCall::ProposeNextBatch {
+                    verified_results: foreign,
+                    items: vec![item("outside", &helper, &[])]
+                },
+                1003
+            )
+            .await
+            .is_err()
+    );
+    delegate(&store, &worker, &parent, &next[0]).await?;
+    let granted = store
+        .execution_view(&next[0].id)
+        .await?
+        .authorization
+        .unwrap();
+    let original = before.authorization.unwrap();
+    assert_eq!(granted.expires_at, original.expires_at);
+    assert_eq!(granted.scope, original.scope);
+    assert_eq!(
+        granted.root_authorization_id.as_deref(),
+        Some(original.id.as_str())
+    );
+    store.close().await;
+    Ok(())
+}
+
+#[tokio::test]
+async fn agent_role_and_team_drafts_need_exact_owner_application_without_authority_or_memory_copy()
+-> Result<()> {
+    let home = Fixture::new();
+    let store = OrganizationStore::open(&home.0).await?;
+    let (worker, attempt) = authorized_attempt(&store, false).await?;
+    store
+        .admit_model_request(&attempt.id, &worker, 1001)
+        .await?;
+    store.checkpoint_usage(&attempt.id, &worker, 1, 2).await?;
+    let before = store.execution_view(&attempt.task_id).await?;
+    let call = OrganizationCoordinationCall::ProposeRole {
+        name: "User-defined analyst".into(),
+        instructions: "Review local evidence within explicit grants".into(),
+    };
+    let receipt = store
+        .coordinate(&attempt.id, &worker, "role-draft", call.clone(), 1002)
+        .await?;
+    assert_eq!(
+        receipt,
+        store
+            .coordinate(&attempt.id, &worker, "role-draft", call, 1002)
+            .await?
+    );
+    let OrganizationRecord::Control(role_draft) = store
+        .read_definition(
+            OrganizationRecordKind::Controls,
+            receipt["proposalId"].as_str().unwrap(),
+        )
+        .await?
+    else {
+        panic!("role draft")
+    };
+    let mut applied = role_draft.value.clone();
+    let OrganizationControlValue::RoleDraft {
+        id,
+        name,
+        applied: flag,
+        ..
+    } = &mut applied
+    else {
+        panic!("role draft")
+    };
+    let role_id = id.clone();
+    *flag = true;
+    *name = "Altered proposal".into();
+    assert!(
+        store
+            .mutate_owner(
+                OrganizationMutation::SetControl {
+                    expected_revision: Some(role_draft.revision),
+                    value: applied.clone()
+                },
+                None
+            )
+            .await
+            .is_err()
+    );
+    if let OrganizationControlValue::RoleDraft { name, .. } = &mut applied {
+        *name = "User-defined analyst".into();
+    }
+    store
+        .mutate_owner(
+            OrganizationMutation::SetControl {
+                expected_revision: Some(role_draft.revision),
+                value: applied.clone(),
+            },
+            None,
+        )
+        .await?;
+    assert!(
+        store
+            .mutate_owner(
+                OrganizationMutation::SetControl {
+                    expected_revision: Some(role_draft.revision + 1),
+                    value: applied
+                },
+                None
+            )
+            .await
+            .is_err()
+    );
+    let OrganizationRecord::Role(role) = store
+        .read_definition(OrganizationRecordKind::Roles, &role_id)
+        .await?
+    else {
+        panic!("new role")
+    };
+    assert_eq!(role.version, 1);
+    assert_eq!(before, store.execution_view(&attempt.task_id).await?);
+    let draft = OrganizationTeamNodeDraft {
+        id: None,
+        parent_id: Some(before.task.owner_id.clone()),
+        kind: OrganizationNodeKind::Agent,
+        label: "Proposed specialist".into(),
+        role_version_id: Some(role.id),
+        model: Some("fixture-model".into()),
+        enabled: true,
+    };
+    let team_receipt = store
+        .coordinate(
+            &attempt.id,
+            &worker,
+            "team-draft",
+            OrganizationCoordinationCall::ProposeTeam {
+                reason: "Owner reviews optional team expansion".into(),
+                nodes: vec![draft.clone()],
+            },
+            1002,
+        )
+        .await?;
+    let OrganizationRecord::Control(team) = store
+        .read_definition(
+            OrganizationRecordKind::Controls,
+            team_receipt["proposalId"].as_str().unwrap(),
+        )
+        .await?
+    else {
+        panic!("team")
+    };
+    let OrganizationControlValue::Team { nodes, .. } = &team.value else {
+        panic!("team")
+    };
+    let new_id = nodes[0].id.clone();
+    assert!(
+        store
+            .read_definition(OrganizationRecordKind::Nodes, &new_id)
+            .await
+            .is_err()
+    );
+    let mut applied = team.value.clone();
+    if let OrganizationControlValue::Team { applied, .. } = &mut applied {
+        *applied = true;
+    }
+    store
+        .mutate_owner(
+            OrganizationMutation::SetControl {
+                expected_revision: Some(team.revision),
+                value: applied,
+            },
+            None,
+        )
+        .await?;
+    assert!(
+        store
+            .search_memory(
+                &before.task.project_id,
+                OrganizationNoteScope::Agent,
+                Some(&new_id),
+                ""
+            )
+            .await?
+            .notes
+            .is_empty()
+    );
+    assert_eq!(before, store.execution_view(&attempt.task_id).await?);
+    let outsider = node_from(
+        store
+            .mutate_owner(
+                node_mutation("Outside approved roster", None, OrganizationNodeKind::Agent),
+                None,
+            )
+            .await?,
+    );
+    assert!(
+        store
+            .coordinate(
+                &attempt.id,
+                &worker,
+                "unrostered",
+                OrganizationCoordinationCall::ProposeTeam {
+                    reason: "Forbidden scope".into(),
+                    nodes: vec![OrganizationTeamNodeDraft {
+                        id: Some(outsider.id),
+                        parent_id: None,
+                        ..draft
+                    }]
+                },
+                1002
+            )
+            .await
+            .is_err()
+    );
+    store.close().await;
+    Ok(())
+}
+
+#[tokio::test]
 async fn children_race_against_one_root_request_and_token_budget() -> Result<()> {
     let home = Fixture::new();
     let store = OrganizationStore::open(&home.0).await?;

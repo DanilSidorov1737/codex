@@ -230,3 +230,45 @@ are pending.
 No paid calls, external integrations, historical fixture mutations or GPT Dot
 integration have occurred. Continue the approved batch; these are source/test
 checkpoints, not delivery completion.
+
+## Verified follow-ups and organization drafts (qualification continues)
+
+Task15 adds `proposeNextBatch` to the existing fenced coordination tool. Each
+batch cites1–16 distinct, current accepted results with passing declared checks,
+from this exact project/goal/original grant. It then reuses the existing bounded
+plan/delegation engine. Proposed and delegated children retain original scope,
+model, paths, budgets and expiry; the cumulative child ceiling is unchanged.
+No new root authority, acceptance, Apply or budget reset occurs. Model requests
+and token reservations still share their existing transactional ledgers.
+
+Task16 adds narrow role/team proposal calls. The host assigns fresh identities
+and captures existing definition versions; agents cannot supply application flags
+or grants. Team references are limited to the caller, its ancestors and the
+original approved worker roster, with1–32 changes and64 captured definitions.
+New nodes may reference existing captured parents; a later owner bulk transaction
+can build a nested fresh structure. The existing exact team application remains
+separate. A role draft can only originate from a live admitted agent call; `%`
+reviews its exact owner application into a new immutable role version. Assignment
+is separate. Applied drafts are immutable and neither grants nor memory are
+copied. Creation/retirement remains user-configurable, without fixed role levels.
+
+Selected checks pass:334 state and377 protocol tests, exit0,
+`follow-up-state-protocol-v2.log`. They include accepted foreign-project evidence
+denial, stale result/cumulative ceiling denial, unchanged original scopes/expiry,
+proposal deduplication, altered/repeated role application refusal, no automatic
+node creation/authority/memory copy and unrostered team reference denial. Initial
+334 state checks passed too (`follow-up-state-initial.log`). This does not prove
+the new tool calls were driven through the real CLI or model host yet.
+
+Task17 extends the existing team form: F7 adds a change, F8 removes an added
+change. Stable fresh IDs, captured existing targets/parents,1–32 deltas and one
+exact transaction reuse the current stale/cycle/owner-confirmation checks. Task18
+adds an owner readiness view from canonical loaded definitions and reports,
+including disabled ancestors, missing grants, task/goal prerequisites, owner
+approvals/review, expiry, reported budgets, pending receipts and actual pressure.
+It identifies existing owner commands; incomplete/stale evidence remains unknown.
+It is a captured diagnostic view, not a provider probe or admission reservation.
+The100-test TUI selection passes (exit0, `follow-up-tui-initial.log`), including
+the new guided bulk/readiness cases and actual official-Neovim tests. Full native
+qualification is pending. No source-only
+checkpoint is final delivery; continue all approved independent tasks.

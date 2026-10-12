@@ -665,6 +665,36 @@ async fn business_date_inspector_distinguishes_overdue_from_closed_work() {
     assert!(closed.contains("-04:00") && closed.contains("independently fixed"));
 }
 
+#[tokio::test]
+async fn readiness_explains_actual_disabled_dependencies_and_pending_receipts_without_authority() {
+    let mut d = dashboard();
+    d.selected = Some("owner".into());
+    let OrganizationRecord::Node(n) = &mut d.snapshot.records[0] else {
+        panic!("agent")
+    };
+    n.enabled = false;
+    let OrganizationRecord::Task(t) = &mut d.snapshot.records[1] else {
+        panic!("task")
+    };
+    t.state = "proposed".into();
+    t.prerequisites = vec!["not-loaded".into()];
+    let report = d.snapshot.report.as_mut().unwrap();
+    let t = &mut report.tasks[0];
+    t.state = "proposed".into();
+    t.model_requests = 1;
+    t.reported_model_requests = 0;
+    let text = d.agent_readiness_text().unwrap();
+    assert!(
+        text.contains("Disabled definition owner")
+            && text.contains("Missing execution authorization")
+            && text.contains("not-loaded not loaded")
+            && text.contains("remain charged")
+    );
+    assert!(text.contains("grants no execution authority"));
+    d.key(KeyCode::F(48).into());
+    assert!(d.report_text.is_some() && d.confirmation.is_none());
+}
+
 fn view(id: &str) -> OrganizationExecutionView {
     OrganizationExecutionView {
         token_reservations: vec![],

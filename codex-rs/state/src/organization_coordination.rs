@@ -179,6 +179,73 @@ impl OrganizationStore {
         );
         let progress:i64=sqlx::query_scalar("SELECT (SELECT count(*) FROM organization_actions WHERE attempt_id=?)+(SELECT count(*) FROM organization_checkpoints WHERE attempt_id=?)").bind(attempt_id).bind(attempt_id).fetch_one(&mut *tx).await?;
         let result = match call {
+            OrganizationCoordinationCall::ProposeNextBatch {
+                verified_results,
+                items,
+            } => {
+                ensure!(
+                    (1..=16).contains(&verified_results.len()),
+                    "next batch needs 1–16 exact verified results"
+                );
+                let mut unique = HashSet::new();
+                for proof in verified_results {
+                    ensure!(
+                        unique.insert(proof.task_id.clone()),
+                        "duplicate next-batch result"
+                    );
+                    let (source, grant, _, result) = super::controls::comparison_evidence(
+                        &mut tx,
+                        &proof.task_id,
+                        &proof.result_digest,
+                    )
+                    .await?;
+                    ensure!(
+                        source.project_id == task.project_id
+                            && source.goal_id == task.goal_id
+                            && grant.root_authorization_id.as_ref().unwrap_or(&grant.id) == root,
+                        "next-batch evidence must come from this original goal/project/root"
+                    );
+                    ensure!(
+                        !result.checks.is_empty()
+                            && result.checks.iter().all(|c| c.exit_code == Some(0)),
+                        "next-batch evidence needs actual passing checks"
+                    );
+                }
+                serde_json::to_value(propose(&mut tx, &task, &authorization, items).await?)?
+            }
+            OrganizationCoordinationCall::ProposeRole { name, instructions } => {
+                ensure!(
+                    attempt.model_requests > 0,
+                    "role proposal needs an admitted model request"
+                );
+                text(&name, 256)?;
+                text(&instructions, 64 * 1024)?;
+                let id = Uuid::now_v7().to_string();
+                let control = super::controls::persist(
+                    &mut tx,
+                    None,
+                    format!("role-draft:{id}"),
+                    OrganizationControlValue::RoleDraft {
+                        id,
+                        source_attempt_id: attempt.id.clone(),
+                        name,
+                        instructions,
+                        applied: false,
+                    },
+                )
+                .await?;
+                event(&mut tx, "control/proposed", &control.id).await?;
+                serde_json::json!({"proposalId":control.id,"executionAuthority":false})
+            }
+            OrganizationCoordinationCall::ProposeTeam { reason, nodes } => {
+                ensure!(
+                    attempt.model_requests > 0,
+                    "team proposal needs an admitted model request"
+                );
+                let proposal = propose_team(&mut tx, &task, &authorization, reason, nodes).await?;
+                event(&mut tx, "control/proposed", &proposal.id).await?;
+                serde_json::json!({"proposalId":proposal.id,"executionAuthority":false})
+            }
             OrganizationCoordinationCall::ConversationReply { body } => serde_json::to_value(
                 super::conversation::reply(&mut tx, &task, &attempt, &body).await?,
             )?,
@@ -842,6 +909,74 @@ async fn propose(
         tasks.push(task);
     }
     Ok(tasks)
+}
+
+async fn propose_team(
+    tx: &mut Transaction<'_, Sqlite>,
+    task: &OrganizationTask,
+    authorization: &OrganizationTaskAuthorization,
+    reason: String,
+    drafts: Vec<OrganizationTeamNodeDraft>,
+) -> Result<OrganizationControl> {
+    ensure!(
+        (1..=32).contains(&drafts.len()),
+        "team draft supports 1–32 changes"
+    );
+    let mut bases = BTreeMap::new();
+    let mut nodes = Vec::new();
+    for draft in drafts {
+        text(&draft.label, 256)?;
+        if let Some(model) = &draft.model {
+            text(model, 256)?;
+        }
+        ensure!(
+            draft.kind == OrganizationNodeKind::Agent
+                || (draft.role_version_id.is_none() && draft.model.is_none()),
+            "groups have no execution role/model"
+        );
+        for id in draft.id.iter().chain(draft.parent_id.iter()) {
+            if id != &task.owner_id && !authorization.scope.delegates.contains(id) {
+                let ancestor:i64=sqlx::query_scalar("WITH RECURSIVE ancestors(id) AS (SELECT ? UNION SELECT n.parent_id FROM organization_nodes n JOIN ancestors a ON a.id=n.id WHERE n.parent_id IS NOT NULL) SELECT EXISTS(SELECT 1 FROM ancestors WHERE id=?)").bind(&task.owner_id).bind(id).fetch_one(&mut **tx).await?;
+                ensure!(
+                    ancestor == 1,
+                    "team proposals may reference only caller, its ancestors or the original approved roster"
+                );
+            }
+            bases.insert(id.clone(), read_node(tx, id).await?);
+        }
+        let (id, revision) = if let Some(id) = draft.id {
+            let base = bases.get(&id).context("team base missing")?;
+            ensure!(
+                base.kind == draft.kind,
+                "existing team node kind cannot change"
+            );
+            (id, base.revision)
+        } else {
+            (Uuid::now_v7().to_string(), 0)
+        };
+        nodes.push(OrganizationNode {
+            id,
+            revision,
+            parent_id: draft.parent_id,
+            kind: draft.kind,
+            label: draft.label,
+            role_version_id: draft.role_version_id,
+            model: draft.model,
+            enabled: draft.enabled,
+        });
+    }
+    super::controls::set(
+        tx,
+        None,
+        OrganizationControlValue::Team {
+            id: Uuid::now_v7().to_string(),
+            reason,
+            expected_nodes: bases.into_values().collect(),
+            nodes,
+            applied: false,
+        },
+    )
+    .await
 }
 
 /// Shared owner-template/agent-plan validation. Keys never refer to existing tasks.

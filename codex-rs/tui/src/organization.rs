@@ -1152,6 +1152,207 @@ impl Drop for Dashboard {
 }
 
 impl Dashboard {
+    fn agent_readiness_text(&self) -> Option<String> {
+        let OrganizationRecord::Node(node) = self.record()? else {
+            return None;
+        };
+        if node.kind != OrganizationNodeKind::Agent {
+            return None;
+        }
+        let mut text = format!(
+            "{} · stored readiness evidence\nAgent: {} · revision {}\nModel: {}\n",
+            node.label,
+            node.id,
+            node.revision,
+            node.model.as_deref().unwrap_or(&self.model)
+        );
+        let report = self.snapshot.report.as_ref();
+        text.push_str(&format!("Report sequence: {}. Loaded pages may be incomplete; runtime rechecks actual configuration, exact grants and all admission fences. This view grants no execution authority.\n",report.map(|r|r.sequence.to_string()).unwrap_or_else(||"unavailable".into())));
+        let nodes: BTreeMap<_, _> = self
+            .snapshot
+            .records
+            .iter()
+            .filter_map(|r| match r {
+                OrganizationRecord::Node(n) => Some((n.id.as_str(), n)),
+                _ => None,
+            })
+            .collect();
+        let mut parent = Some(node.id.as_str());
+        let mut visited = BTreeSet::new();
+        while let Some(id) = parent {
+            if !visited.insert(id) {
+                text.push_str("\nHierarchy cycle in loaded data; inspect definitions.\n");
+                break;
+            }
+            let Some(n) = nodes.get(id) else {
+                text.push_str(&format!(
+                    "\nAncestor {id} not loaded; readiness is unknown.\n"
+                ));
+                break;
+            };
+            if !n.enabled {
+                text.push_str(&format!(
+                    "\nDisabled definition {} · select it and E reviews its enabled state.\n",
+                    n.id
+                ));
+            }
+            parent = n.parent_id.as_deref();
+        }
+        if let Some(role) = &node.role_version_id {
+            if !self
+                .snapshot
+                .records
+                .iter()
+                .any(|r| matches!(r,OrganizationRecord::Role(r) if &r.id==role))
+            {
+                text.push_str("\nAssigned role version is not loaded; inspect role definitions before execution.\n");
+            }
+        } else {
+            text.push_str("\nNo custom role assigned; default instructions apply. L / E can create and assign a role separately.\n");
+        }
+        if self.control("global").is_some_and(|c| {
+            matches!(
+                c.value,
+                OrganizationControlValue::Global { paused: true, .. }
+            )
+        }) {
+            text.push_str("\nOrganization execution paused · F12 reviews Emergency organization pause / resume.\n");
+        }
+        if report
+            .and_then(|r| r.resource_pressure.as_ref())
+            .is_some_and(|p| !p.ready)
+        {
+            text.push_str("\nActual resource pressure blocks admission · Commands: configure actual resource pressure thresholds.\n");
+        }
+        let tasks: Vec<_> = self
+            .snapshot
+            .records
+            .iter()
+            .filter_map(|r| match r {
+                OrganizationRecord::Task(t) if t.owner_id == node.id => Some(t),
+                _ => None,
+            })
+            .collect();
+        let goals: BTreeMap<_, _> = self
+            .snapshot
+            .records
+            .iter()
+            .filter_map(|r| match r {
+                OrganizationRecord::Goal(g) => Some((g.id.as_str(), g)),
+                _ => None,
+            })
+            .collect();
+        let controls: BTreeMap<_, _> = self
+            .snapshot
+            .records
+            .iter()
+            .filter_map(|r| match r {
+                OrganizationRecord::Control(c) => Some((c.id.as_str(), c)),
+                _ => None,
+            })
+            .collect();
+        if tasks.is_empty() {
+            text.push_str("\nNo assigned tasks in the loaded definitions · T drafts a task; s separately reviews its exact authorization.\n");
+        }
+        for task in tasks.iter().take(64) {
+            text.push_str(&format!("\nTask {} · {}\n", task.id, task.state));
+            match task.state.as_str() {
+                "proposed"=>text.push_str("Missing execution authorization · select task, s reviews a separate finite grant.\n"),
+                "waitingApproval"=>text.push_str("Waiting for owner approval · select task, inspect the exact action, a approves / r rejects.\n"),
+                "needsReview"=>text.push_str("Waiting for result review · select task, v accepts / c requests changes.\n"),
+                "needsReconciliation"=>text.push_str("Uncertain execution · select task, Commands: inspect exact uncertain request/effects. No replay or counter reset.\n"),
+                "blocked"=>text.push_str("Verified blocker · select task, H reviews a bounded handoff; Commands routes assistance.\n"),
+                "failed"=>text.push_str("Recorded failure · inspect execution evidence and accounting before proposing more work.\n"),
+                _=>{},
+            }
+            for prerequisite in &task.prerequisites {
+                match self.snapshot.records.iter().find_map(|r| match r {
+                    OrganizationRecord::Task(t) if &t.id == prerequisite => Some(t),
+                    _ => None,
+                }) {
+                    Some(t) if t.state == "accepted" => {}
+                    Some(t) => text.push_str(&format!(
+                        "Prerequisite {} is {} · inspect/review that task first.\n",
+                        t.id, t.state
+                    )),
+                    None => text.push_str(&format!(
+                        "Prerequisite {prerequisite} not loaded; inspect its canonical evidence.\n"
+                    )),
+                }
+            }
+            let mut goal_id = task.goal_id.as_deref().or_else(|| {
+                self.snapshot.records.iter().find_map(|r| match r {
+                    OrganizationRecord::Project(p) if p.id == task.project_id => {
+                        p.goal_id.as_deref()
+                    }
+                    _ => None,
+                })
+            });
+            let mut seen = BTreeSet::new();
+            while let Some(id) = goal_id {
+                if !seen.insert(id) {
+                    text.push_str("Goal cycle in loaded data; inspect definitions.\n");
+                    break;
+                }
+                let Some(current) = goals.get(id) else {
+                    text.push_str(&format!("Goal {id} not loaded; readiness unknown.\n"));
+                    break;
+                };
+                if controls.get(format!("goal:{id}").as_str()).is_some_and(|c|matches!(&c.value,OrganizationControlValue::GoalReview {goal,completed:true,..} if goal.as_ref()==*current)) {text.push_str(&format!("Goal {id} owner-completed · select goal, Commands: Review goal criterion evidence; reopening is an explicit owner decision.\n"));}
+                if let Some(control) = controls.get(format!("goal-meta:{id}").as_str())
+                    && let OrganizationControlValue::GoalMetadata {
+                        goal,
+                        prerequisites,
+                        ..
+                    } = &control.value
+                {
+                    if goal.as_ref() != *current {
+                        text.push_str("Captured goal responsibility version changed · review goal responsibility / versioned prerequisites.\n");
+                    }
+                    for prerequisite in prerequisites {
+                        let exact = goals
+                            .get(prerequisite.goal.id.as_str())
+                            .is_some_and(|g| *g == prerequisite.goal.as_ref());
+                        let complete=controls.get(format!("goal:{}",prerequisite.goal.id).as_str()).is_some_and(|c|matches!(&c.value,OrganizationControlValue::GoalReview {goal,completed:true,..} if goal.as_ref()==prerequisite.goal.as_ref()));
+                        if !exact || !complete {
+                            text.push_str(&format!("Goal prerequisite {} lacks current exact owner completion · review goal prerequisites and criterion evidence.\n",prerequisite.goal.id));
+                        }
+                    }
+                }
+                goal_id = current.parent_id.as_deref();
+            }
+            if self.control(&format!("project:{}",task.project_id)).is_some_and(|c|matches!(c.value,OrganizationControlValue::Project {state,..} if state!=OrganizationProjectState::Active)) {text.push_str("Project is paused or closed · select project, F reviews its lifecycle.\n");}
+            if let Some(evidence) =
+                report.and_then(|r| r.tasks.iter().find(|t| t.task_id == task.id))
+            {
+                if evidence.revision != task.revision {
+                    text.push_str("Report task revision differs from the loaded definition; refresh before deciding.\n");
+                    continue;
+                }
+                if let Some(budget) = &evidence.budget {
+                    if budget.revoked || budget.expires_at <= chrono::Utc::now().timestamp() {
+                        text.push_str("Grant revoked or expired · inspect exact limits; continuation requires an explicit owner decision.\n");
+                    }
+                    if budget.used_tokens >= budget.max_tokens
+                        || budget.model_requests >= budget.max_model_requests
+                    {
+                        text.push_str("Original reported token/request allowance exhausted · inspect accounting; no automatic budget increase.\n");
+                    }
+                    text.push_str("Nominal held reservations and exact captured versions are in execution details; displayed remaining usage is not a capacity reservation.\n");
+                } else if task.state != "proposed" {
+                    text.push_str("Grant evidence unavailable in this report · inspect task execution details.\n");
+                }
+                if evidence.model_requests > evidence.reported_model_requests {
+                    text.push_str("Usage receipt pending; admitted requests remain charged. An active request may still be in flight.\n");
+                }
+            } else {
+                text.push_str(
+                    "Task report evidence not loaded; budget/approval readiness is unknown.\n",
+                );
+            }
+        }
+        Some(clean(&text))
+    }
     fn conversation_transcript(&self, id: &str) -> Option<String> {
         let control = self.snapshot.records.iter().find_map(|r| match r {
             OrganizationRecord::Control(c) if c.id == id => Some(c),
@@ -2374,6 +2575,7 @@ impl Dashboard {
             match self.record() {
                 Some(OrganizationRecord::Control(control)) => match &control.value {
                     OrganizationControlValue::Team { applied: false, .. }
+                    | OrganizationControlValue::RoleDraft { applied: false, .. }
                     | OrganizationControlValue::RoleRollback { applied: false, .. }
                     | OrganizationControlValue::WorkflowRollback { applied: false, .. }
                     | OrganizationControlValue::WorkflowImprovement { applied: false, .. }
@@ -2381,6 +2583,7 @@ impl Dashboard {
                         let mut value = control.value.clone();
                         match &mut value {
                             OrganizationControlValue::Team { applied, .. }
+                            | OrganizationControlValue::RoleDraft { applied, .. }
                             | OrganizationControlValue::RoleRollback { applied, .. }
                             | OrganizationControlValue::WorkflowRollback { applied, .. }
                             | OrganizationControlValue::WorkflowImprovement { applied, .. }
@@ -3888,6 +4091,16 @@ impl Dashboard {
             KeyCode::F(45) => self.open_form('ζ'),
             KeyCode::F(46) => self.open_form('η'),
             KeyCode::F(47) => self.open_form('θ'),
+            KeyCode::F(48) => {
+                let Some(text) = self.agent_readiness_text() else {
+                    self.message = "Select an agent for stored readiness evidence".into();
+                    return;
+                };
+                self.report_text = Some(text);
+                self.report_request = None;
+                self.scroll = 0;
+                self.pane().inspector = true;
+            }
             KeyCode::F(44) => {
                 let Some(OrganizationRecord::Control(control)) = self.record() else {
                     self.message = "Select a saved agent conversation".into();

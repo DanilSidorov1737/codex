@@ -35,6 +35,30 @@ parent's criteria. This never infers completion: the owner maps exact accepted
 results to every criterion, and unfinished descendants prevent closing a goal.
 Goal hierarchy edits and explicit dependencies share combined cycle checks.
 
+The next adaptive checkpoint adds **Inspect agent readiness / matching owner
+actions**. It uses captured canonical definitions/reports, including disabled
+ancestors, missing grants, task/goal prerequisites, owner decisions, expiry,
+reported budgets, pending receipts and pressure. It marks missing or stale
+evidence as unknown and links the existing owner keys/Commands actions. Refresh
+the view before acting; it neither probes a provider nor reserves capacity.
+
+The `@` team form now supports **F7 add change / F8 remove added change**, up to32
+changes in one reviewed atomic transaction. Each added row selects a new or
+captured existing target, its operation, parent, label, role and model. Fresh IDs
+stay stable in the draft; existing versions and parents remain pinned. You can
+choose an earlier fresh definition as a parent. F6 reviews the entire proposal;
+`%` applies its exact saved version. No grants or memory are copied.
+
+Authorized agents can call `proposeRole` or `proposeTeam` to save drafts only.
+Role application through `%` creates a new immutable version; E assigns it
+separately. Team application reuses the same owner transaction. Agents cannot
+supply `applied`, authority or captured revision fields. Existing team references
+are restricted to the caller, ancestors and original approved worker roster.
+`proposeNextBatch` cites current checked accepted results from the exact original
+project/goal/grant, then reuses bounded planning/delegation without renewing
+expiry, budgets or cumulative child limits. All new runtime and physical CLI/TUI
+qualification remains part of the unfinished approved batch.
+
 Expanded-batch items 5–6 reuse existing guarded owner RPCs and native forms.
 Qualified on `55af0a0b5b`; see status.md and testing.md for evidence.
 
