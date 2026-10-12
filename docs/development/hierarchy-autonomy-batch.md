@@ -149,3 +149,44 @@ Additional disk headroom relocated only the inactive generated default-profile
 cache after verifying every copied file and proving no active debug-profile
 compiler job (`inactive-debug-relocation.json`). Default-profile zombie children
 are not active services. All immutable packages/homes/grants/results remain.
+
+
+## Deeper native controls and finite background checkpoint
+
+`autonomy-native/local-controls.json` passes actual atomic team review, private
+export refusal, explicit promotion/cross-project share, measured instruction
+adoption, rolling accepted-outcome planning and finite local discovery. Native
+workflow comparison and exact recommendation, original-grant known-startup retry,
+retirement and ten finite detached jobs pass `workflow-recovery.json`:
+**117.075 seconds** after frontend exit, explicit captured owner acceptance,
+unchanged original background document, no extra Apply. Total35 localhost
+responses/525 synthetic fixture tokens/zero paid before uncertainty testing.
+The original startup driver rejected the expected failed/backoff state; a
+separate guarded continuation used its already queued second attempt and retained
+the first0-request/no-runtime-binding failure. Native grant/budget/deadline
+identity is unchanged; no reauthorization or replay.
+
+Real Neovim two-tab restoration/native undo and36 layout switches at three sizes
+pass. One remaining dirty flag correctly refused exit; fresh checkpoint recovery,
+actual undo and explicit native `:edit!` discard then exited0, retaining the private
+checkpoint and disk originals (`code-native.json`). The proof uses the actual
+editor and normal owner commands; no dirty guard was weakened.
+
+Packagepreview3 stripping exhausted temporary storage. Starting its walkthrough
+before staging completed was a process mistake. Its unstripped CLI was verified
+byte-identical to the passing production build; private updater assets validated,
+and failures/byte proof are retained. Fully completed preview4 SHA256
+`16309ae13e86262cb8903e355784deea7ce68eda9dbac78c89c1a1ec31a44fe4`
+is now verified and active; all hashes remain. Inactive compiler variants and
+unused fresh-fixture installed releases/package copies were verified and retained
+in temporary storage with mapping receipts; active bytes/state and historical
+qualified homes remain protected. Final preservation must retain the current
+package under /workspace for a later snapshot.
+
+Native313 bounded owner team proposals/applications created10,000 additional
+agent definitions without any model call or grant. With five existing definitions,
+10,005 crossed the dashboard's old10,000-node load ceiling and correctly produced
+an explicit error. The bounded node/goal fetch is raised to20,000 (other kinds
+stay2,000); active runtime capacity is unchanged. Preserve every definition and
+rerun the native fit/pan/search viewport. Crash/full restore and final artifacts/
+process cleanup remain pending; do not declare this entire batch qualified yet.

@@ -258,7 +258,7 @@ async fn load(handle: &AppServerRequestHandle) -> anyhow::Result<Snapshot> {
             kind,
             OrganizationRecordKind::Nodes | OrganizationRecordKind::Goals
         ) {
-            50
+            100
         } else {
             10
         };
@@ -279,7 +279,7 @@ async fn load(handle: &AppServerRequestHandle) -> anyhow::Result<Snapshot> {
             }
             anyhow::ensure!(
                 page + 1 < pages && response.next_cursor != cursor,
-                "layout record limit reached (10,000 nodes/goals; 2,000 other records per kind); use paginated CLI inspection"
+                "layout record limit reached (20,000 nodes/goals; 2,000 other records per kind); use paginated CLI inspection"
             );
             cursor = response.next_cursor;
         }

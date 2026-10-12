@@ -2802,3 +2802,14 @@ regression and all79 affected checks pass (`file-navigation-tui-v2.log`). Native
 code receipts retain5 responses/75 fixture tokens and exactly one completed Apply
 (`autonomy-native/apply-native.json`), with failed inbox-routing and inspector-label
 drivers preserved. Further new-feature physical/recovery qualification is pending.
+
+Native broad registry boundary: 313 bounded owner team proposals/applications
+create10,000 additional definitions (10,005total) in roughly62seconds with no
+new inference or grants. The old10,000 dashboard limit explicitly refused the
+extra existing nodes. Bounded node/goal pagination now permits20,000; other kinds
+remain2,000 and active runtime capacity is unchanged. All79 affected tests and
+production CLI Clippy/build pass; native replacement viewport verification follows.
+Crash/no-replay/full remapped restore/corruption refusal pass in `recovery.json`:
+36 admissions/35reported responses/525synthetic tokens/1unknown/0paid, even with
+safe recovery enabled on the unknown task. Original source is stopped/quarantined;
+future read-only frontend work targets only the fresh restored home.
