@@ -2962,3 +2962,47 @@ configuration and private frontend state are deliberately retained separately.
 Native failed drivers also record transient-toast/command-delivery assumptions and
 an extra terminal newline from native paste; corrected continuations preserved
 already saved edits, existing accepted results and the one-Application boundary.
+
+## Mission/usability batch final qualification
+
+All 25 bounded tasks pass on application source **`8cd392eaaa`**. Later commits
+are documentation only. Full contracts/evidence and protected-state instructions:
+[mission native qualification](mission-native-qualification.md).
+
+| Selection                                            |   Count | Evidence under `mission-batch/`           |
+| ---------------------------------------------------- | ------: | ----------------------------------------- |
+| State                                                |     322 | `final-state-tests.log`                   |
+| Protocol                                             |     375 | `final-protocol-tests.log`                |
+| Stable/experimental generated schema comparisons     |       4 | `final-schema-comparisons-v2.log`         |
+| Python SDK contracts/signatures                      |      25 | `final-sdk-contracts.log`                 |
+| Production formatter-driver regression               |       1 | `final-formatter-regression.log`          |
+| Runtime/workspace/provider/resources/network fences  |      15 | `final-ui-runtime-tests-v6.log`           |
+| TUI/forms/artifact/advice and actual official Neovim |      92 | `final-ui-runtime-tests-v6.log`           |
+| Exact wire/schema/unknown-authority contract         |       2 | `final-wire-contracts-v2.log`             |
+| **Distinct selected total**                          | **836** | All pass; no skipped/zero-test substitute |
+
+Production CLI Clippy `final-cli-clippy-v5.log`, locked/offline build
+`final-cli-build-v3.log`, package `final-package-build-v4.log`, generated contracts,
+30 changed Rust files and changed-doc formatting pass. Full root formatting is
+still unqualified: unavailable just/dotslash plus untouched legacy Rust ordering;
+no unrelated rewrite or installation occurred. The first final packaging command
+omitted required CODEX_REPO_ROOT and refused before staging; corrected command
+passes. Cache cleanup receipts preserve packages/state; final reset records an
+inventory hash, not content hashes. Future compilation is cold.
+
+Physical evidence passes coding/independent review, guided team/named views,
+scoped lesson/context/delegation/loop/assistance/rollback/goal evidence, actual
+owner shell/captured test panel/ordered labeled native diffs and manual save,
+dirty/base refusal and exactly one owner Apply, **1846.319-second** detached
+seven-document schedule, owned crash/charged unknown/no replay, stopped full fresh
+restore with corrupt/omitted-base refusal, and 72 rapid switches over two actual
+walkthroughs at three sizes. Final installed five assets match, 21 databases pass
+quick/FK checks, originals/accounting/Application are unchanged after restored
+GUI, and all owned batch services are stopped. Source home is quarantined.
+
+Final accounting:38 admitted/37 reported localhost requests,555 synthetic tokens,
+one charged unknown,zero active,zero paid. These are deterministic local responses
+with actual native tools/editor; no model-quality/billing/host-reboot claim.
+Screenshots:40 unmodified PNG/text pairs/84 CRC/hash-checked entries under
+`/workspace/artifacts/cli-mission-batch/`. Retained failed drivers and overwritten
+failure-capture limitations are documented. No push/publication/install occurred.

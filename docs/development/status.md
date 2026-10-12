@@ -1,57 +1,74 @@
 # Current status and resumption instructions
 
-## Current approved work: mission/usability batch
+## Latest delivery: mission/usability batch complete
 
-The owner approved all [25 mission/usability tasks](mission-batch.md) with
-“ok lets implement. ponytail, commit periodically, document, test”. Initial source
-`ddb67e5f32`; clean worktree. Inspection/implementation is in progress. Continue
-the full bounded batch with Ponytail, logical commits, documentation and actual
-application/editor testing. No new paid inference or external integration is in
-scope. Existing qualified homes/accounting/packages/Apply receipts stay protected.
-The complete previous hierarchy checkpoint below is historical evidence.
+All **25 bounded [mission/usability tasks](mission-batch.md)** are implemented
+and qualified on final application source **`8cd392eaaa`**. The owner approved
+implementation with Ponytail, periodic commits, documentation and testing;
+all independent work is complete. Later commits update documentation only.
+Read [native qualification](mission-native-qualification.md) and
+[final tests](testing.md#missionusability-batch-final-qualification).
 
-Current source checkpoints: `def0cdfa77` mission/evidence/coordination,
-`3d4374ebe9` workflow/artifact/editor/advice UI and `c29de75575` required-base
-recovery/generated contracts. All 25 items have bounded source implementations;
-final physical qualification is still in progress. Full state322/protocol375/
-schema4/SDK25 and formatter1 checks pass. The final affected suite passed
-15 app-server + 92 TUI/actual-Neovim tests; production CLI Clippy now passes
-`-D warnings` after removing redundant clones/match/nested-if lint findings.
-A rerun of the affected suite covers those lint-only changes.
+Delivered: responsive Operations cards and guided exact team transactions,
+memberships/private named views/explicit loading; versioned mission and editable
+playbooks; original-grant delegation, accepted goal evidence, independent review,
+assistance/duplicate/repeated-read advice; scoped lessons/freshness/context;
+captured artifact browsing/text previews; actual Neovim owner terminal/test panel
+and protected labeled three-way review; reviewed immutable role/template rollback;
+compatible-model evidence and finite resource previews.
 
-Actual corrected package source `c29de75575`, version
-`0.0.0-mission.preview1.c29de75575`, CLI SHA256
-`96f3b09c1791c4655c8ea2b2b5776720e46b8161ce8348110e30a033e8a3b325`.
-All five assets are hashed. Fresh UI qualification passes one guided agent
-proposal/exact application, a saved/restored named view and 36 rapid layout
-switches at three sizes, normal CLI exit0 and zero model usage. Its historical
-source remains unchanged. Never rerun the passing UI driver.
+**836 selected automated checks pass**, plus production CLI Clippy `-D warnings`,
+locked/offline final build/package, generated contracts and changed Rust/doc
+formatting. Actual CLI/TUI/official Neovim 0.12.6 tests pass: guided agent and
+named-view walkthrough, coding/independent review/approvals/acceptance, private
+context and delegated checks, loop/assistance/rollback/goal evidence, native shell
+and three-way manual save, dirty/base refusals, exactly one owner Apply, crash and
+fresh full restore. **1846.319 seconds detached**, seven scheduled document checks,
+and **72 total rapid layout switches** across the two package walkthroughs pass.
 
-Fresh mission qualification passes actual coding plus independent review with
-separate action approvals/owner acceptance, scoped private lesson/context,
-ready/delegate/wait under the original shared grant, repeated-read blocker,
-assistance resolution without replay, immutable role/template rollback and exact
-owner goal evidence. The **1846.319-second detached run passes**: seven bounded
-scheduled documents each completed an actual immutable check while the TUI was
-closed. Current total: 37 localhost requests/555 synthetic tokens/zero paid,
-zero unknown requests. Root acceptance and Apply remain owner-only.
+Final package version `0.0.0-mission.preview2.8cd392eaaa`, CLI SHA256
+`35f13f68ebcc6fe25c13336ddfa1300e42305c2504c686422e01964eaf9d693d`.
+All five final installed assets match. Persistent verified archive:
+`/workspace/.onboarding/qualification/mission-batch/final-package.tar.gz`;
+working package `/tmp/mission-final-package-v2`. Evidence root:
+`/workspace/.onboarding/qualification/mission-batch/`.
+Screenshots: `/workspace/artifacts/cli-mission-batch/cli-mission-batch-screenshots.zip`
+(40 actual PNG/text pairs, 84 CRC/hash-checked entries).
 
-Next: finish actual native terminal/library/three-way/dirty/base/one-Apply checks,
-crash/no-replay and fresh full restore, final corrected package verification,
-wire-contract/formatting checks, screenshot archive, docs and logical commits.
-Evidence root: `/workspace/.onboarding/qualification/mission-batch/`.
-Only fresh `/tmp/mission-ui-home` and `/tmp/mission-native-home` services are
-owned by this batch. Preserve all receipts/counters; never replay completed
-setup/grants/acceptance/Apply. `terminal.py` launches official Neovim on import.
+All owned batch services are stopped. Final retained accounting: **38 admitted /
+37 reported localhost requests, 555 synthetic tokens, one charged unknown, zero
+active and zero new paid calls**. Model responses are deterministic fixtures;
+actual tools, sandbox, oracles and editor run normally. No provider-quality or
+billing claim is made. Historical live estimate remains separate.
 
-Retained failures are distinct from passing checks: generated build variants
-exhausted available disk; obsolete fixture CLI aliases/cwd/tool calls and native
-selection/confirmation helpers failed. Corrections used canonical saved state
-and did not replay mutations. Only generated owned cache artifacts were pruned;
-qualified packages, fixture homes, protected state and user files stay retained.
-`generated-cache-rebuild-reset.json` records path/size inventory hashes, not
-content hashes. Some reused failure screenshot names overwrote earlier captures;
-remaining failure captures are preserved. No paid calls or installations ran.
+**NEVER restart `/tmp/mission-native-home`**: it is stopped and quarantined.
+Read `native-workflow/workspace-quarantine.json` (14 workspaces). Never rerun
+successful fixture setup/grants/acceptance/Apply or reset ceilings/accounting.
+`/tmp/mission-restored-home` stays globally paused/stopped; further review uses a
+new fresh restore. `/tmp/mission-ui-home` is also stopped; its unchanged historical
+source and one guided-node transaction are protected. All older fixtures retain
+their existing quarantine rules. Bundles retain required captured bases but exclude
+owner originals/configuration/credentials/packages/private frontend state;
+retain those separately. Verify receipts before any continuation.
+
+Failures and limitations: build variants filled the finite disk; obsolete helper
+commands/cwd/env/confirmation assumptions failed. Corrected continuations used
+saved canonical state. Actual lint findings, stale hunk wire-contract expectation
+and reversed/unlabeled native panes were fixed and affected checks rerun. Only
+owned generated compilation files were pruned with receipts; final cache reset
+records a path/size inventory hash, not content hashes. The cache is now cold;
+check space before a rebuild. Full root formatter remains unqualified because
+`just`/`dotslash` are absent and untouched legacy Rust ordering differs; the 30
+changed Rust files and changed docs pass. No tools were installed or assertions
+weakened. Some reused failure screenshots overwrote earlier captures; surviving
+failures are included in the archive.
+
+Next work needs owner-selected scope. The earlier approved real-host systemd
+user-manager/logout/reboot gate remains blocked on a suitable host (PID1 is
+`tail`); this container check does not qualify it. External integrations,
+distributed workers, increased concurrency, new paid pilots and automatic root
+acceptance/Apply remain separate. Default-two/max-four execution is unchanged.
+No push/merge/deployment/publication occurred.
 
 ## Latest delivery: hierarchy/autonomy batch complete
 

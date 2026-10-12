@@ -1,19 +1,19 @@
 # Codex CLI fork development
 
-Current approved work: [25 mission/usability tasks](mission-batch.md). Read its
-progress and [current status](status.md) before historical completed checkpoints.
-Use Ponytail, tests, actual CLI/TUI/official Neovim, docs and logical local commits.
+Latest delivery: **all 25 bounded [mission/usability tasks](mission-batch.md)
+are implemented and qualified** on final application source `8cd392eaaa`.
+Read [current status](status.md), [native qualification](mission-native-qualification.md)
+and [final tests](testing.md#missionusability-batch-final-qualification) first.
+836 selected checks and actual CLI/TUI/official-Neovim/30-minute background/
+crash/restore checks pass; no new paid inference or tools were installed.
+Screenshots: `/workspace/artifacts/cli-mission-batch/cli-mission-batch-screenshots.zip`.
 
-Latest delivery: **all twenty bounded hierarchy/autonomy tasks are implemented
-and qualified** on application source `970ba69195`, with **806 selected automated
-checks** and actual CLI/TUI/official-Neovim/background/10,005-node/crash/restore
-evidence. Read [current status](status.md), [batch scope](hierarchy-autonomy-batch.md),
-[native qualification](hierarchy-native-qualification.md) and
-[final tests](testing.md#hierarchyautonomy-batch-final-qualification).
-Screenshots: `/workspace/artifacts/cli-hierarchy-autonomy/cli-hierarchy-autonomy-screenshots.zip`.
-Existing authority/acceptance/Apply and the default-two/max-four active limit remain.
-External integrations and new paid inference remain deferred. The prior approved
-host logout/reboot task needs a suitable real host. Earlier delivery below is historical.
+All owned services are stopped. Preserve the one completed Application, charged
+unknown/accounting, source quarantine and every historical fixture. No independent
+batch implementation remains; choose the next bounded scope with the owner.
+Existing default-two/max-four limits and owner approval/acceptance/Apply remain.
+The earlier real-host logout/reboot gate still needs a suitable host; external
+integrations remain deferred. Earlier deliveries below are historical.
 
 ## Historical operations delivery
 

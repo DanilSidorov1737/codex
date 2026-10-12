@@ -165,6 +165,25 @@ active-capacity boundaries and all protected historical fixtures. Do not mark
 this batch complete at a source-only checkpoint; its finite 30-minute local
 qualification is required. Real-host logout/reboot remains separately blocked.
 
+The 25-task mission/usability batch is now implemented/qualified on final
+application source `8cd392eaaa`: 836 selected checks and actual CLI/TUI/official
+Neovim, 1846.319-second detached run, one owner-confirmed Apply and crash/fresh
+full restore pass. Read [native qualification](docs/development/mission-native-qualification.md)
+and latest status/testing first. All owned batch services are stopped. **NEVER
+restart `/tmp/mission-native-home`**; it is quarantined. Read
+`mission-batch/native-workflow/workspace-quarantine.json`. Preserve its one
+Application, 38 admitted/37 reported requests, 555 synthetic tokens and one
+charged unknown; never replay setup/grants/acceptance/Apply or reset limits.
+Fresh `/tmp/mission-restored-home` is paused/stopped; further review uses a fresh
+restore. UI home/source, all older protected fixtures, packages, failed drivers,
+private state and receipts stay preserved. Generated dev-small cache was pruned
+only after tests/lint/build; it needs a cold rebuild with checked disk headroom.
+No independent approved batch implementation remains; select new scope with the
+owner. Full root formatting needs missing just/dotslash and untouched legacy
+formatting work; changed-source checks pass. Real-host reboot/logout and external
+integrations/paid probes/distributed workers/increased concurrency/automatic root
+acceptance or Apply remain separately scoped. No push/publication is implied.
+
 Then read [decisions](docs/development/decisions-and-risks.md),
 [MVP plan](docs/development/mvp.md), [testing](docs/development/testing.md) and
 [process](docs/development/process.md). Reconcile current user instructions with

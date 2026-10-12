@@ -6,6 +6,13 @@ Use Ponytail implementation/review, logical local commits, continuous docs,
 meaningful automated tests and actual CLI/TUI/official Neovim interactions.
 Complete every independent item; source checkpoints do not close qualification.
 
+All 25 bounded tasks are now **implemented and qualified** on application source
+`8cd392eaaa`: 836 selected checks, production lint/build/package, actual CLI/TUI/
+official-Neovim, 1846.319-second detached run and crash/fresh full restore pass.
+Read [current status](status.md) and [native qualification](mission-native-qualification.md)
+for final artifacts, limitations and protected fixture instructions. Chronological
+checkpoints below describe intermediate work and do not override final status.
+
 | Task | Bounded implementation and acceptance                                                                                                                                                                                                                     |
 | ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1    | Readable Operations cards: responsive widths, full selected names, clearer states; keyboard/mouse and small terminals still work.                                                                                                                         |
@@ -52,7 +59,7 @@ independent batch. Fresh cloud-task snapshot restoration remains unverified.
 Implementation authorization supersedes onboarding's source-preservation rule
 for this feature work; unrelated setup/source/dependency changes remain excluded.
 
-## Progress and evidence
+## Historical implementation checkpoints
 
 Status: inspection and implementation in progress. Evidence root:
 `/workspace/.onboarding/qualification/mission-batch/`. Required checks: affected
