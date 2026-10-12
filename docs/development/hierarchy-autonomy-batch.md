@@ -120,3 +120,32 @@ rebuildable compiler variants were pruned with hash/byte receipts, preserving
 qualified packages/homes/accounting. Final production package, physical new
 features, native broad-registry scale, longer background and recovery qualification
 are pending. Fresh drivers are prepared; no new native/model work has run yet.
+
+## Native code and navigation checkpoint
+
+Fresh packagepreview2 SHA256
+`73c448db439eba3c31ebb0098b9c231e42aacdc84d81f1816869efc01aed6b12`
+ran two real native coding tasks with exact tool approvals, immutable calculator
+checks and explicit acceptance: five localhost responses/75 fixture tokens/zero
+paid. The native driver then attempted Apply from Review's action inbox, which
+excludes accepted tasks; this was a fixture routing mistake. A separate retained
+continuation selected Projects and performed exactly one completed Apply with no
+repeated admission, authorization or acceptance (`apply-native.json`). The
+original calculator now has the reviewed result; other originals remain intact.
+
+Inspection during that walkthrough also found a real new palette navigation bug:
+Workspace switching cleared the selected task before opening its declared file.
+The shared handler now opens through existing path/dirty guards first, then
+preserves selection while switching/focusing the actual editor. A real official
+Neovim regression tests task identity/file contents and dirty-buffer refusal.
+All79 affected tests pass (`file-navigation-tui-v2.log`). The initial regression
+fixture missed the existing boxed detail type; the compiler failure is retained
+and corrected without widening privacy or assertions. Clippy/current replacement
+package and remaining physical checks are in progress. Never rerun preparation,
+code-native.py, either historical acceptance, or Apply on this fresh native home.
+Continue only from the passing receipts and guarded continuation scripts.
+
+Additional disk headroom relocated only the inactive generated default-profile
+cache after verifying every copied file and proving no active debug-profile
+compiler job (`inactive-debug-relocation.json`). Default-profile zombie children
+are not active services. All immutable packages/homes/grants/results remain.

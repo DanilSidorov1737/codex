@@ -507,6 +507,62 @@ fn view(id: &str) -> OrganizationExecutionView {
     }
 }
 
+#[tokio::test]
+async fn palette_opens_declared_file_from_projects_without_losing_task_or_dirty_buffer() {
+    let home = tempfile::tempdir().unwrap();
+    let project = tempfile::tempdir().unwrap();
+    let file = project.path().join("review.txt");
+    std::fs::write(&file, "Owner original\n").unwrap();
+    let mut d = dashboard();
+    d.path = home.path().join("layouts.json");
+    d.preferences.preset = Preset::Projects;
+    d.snapshot
+        .records
+        .push(OrganizationRecord::Project(OrganizationProjectPlan {
+            id: "project".into(),
+            name: "Owned project".into(),
+            roots: vec![project.path().to_str().unwrap().into()],
+            goal_id: None,
+            owner_id: Some("owner".into()),
+            criteria: vec![],
+            revision: 1,
+        }));
+    d.selected = Some("one".into());
+    let mut detail = view("one");
+    detail.authorization=Some(serde_json::from_value(serde_json::json!({"id":"grant","taskId":"one","nodeRevision":1,"projectRevision":1,"expiresAt":99999,"revoked":false,"scope":{"inputFiles":[],"immutableFiles":[],"artifacts":["review.txt"],"checks":[],"model":"fixture","maxTokens":100,"maxSeconds":120,"maxModelRequests":2,"maxAttempts":1,"requireToolApproval":true,"delegates":[],"maxChildren":0,"autoAcceptChildren":false}})).unwrap());
+    d.detail = Some(Box::new(detail.clone()));
+    d.key(KeyCode::F(23).into());
+    assert_eq!(d.preferences.preset, Preset::Workspace);
+    assert_eq!(d.selected.as_deref(), Some("one"));
+    let editor = d.editor.as_mut().unwrap();
+    assert!(editor.focused);
+    assert_eq!(editor.pin_buffer().unwrap().path, file.to_str().unwrap());
+    editor
+        .key(KeyEvent::new(
+            KeyCode::Char('i'),
+            crossterm::event::KeyModifiers::NONE,
+        ))
+        .unwrap();
+    editor
+        .key(KeyEvent::new(
+            KeyCode::Char('x'),
+            crossterm::event::KeyModifiers::NONE,
+        ))
+        .unwrap();
+    editor.key(KeyCode::Esc.into()).unwrap();
+    editor.focused = false;
+    d.preferences.preset = Preset::Projects;
+    d.detail = Some(Box::new(detail));
+    d.key(KeyCode::F(23).into());
+    assert_eq!(
+        d.preferences.preset,
+        Preset::Projects,
+        "dirty editor refusal must retain the source layout"
+    );
+    assert!(d.editor.as_mut().unwrap().dirty().unwrap());
+    assert_eq!(std::fs::read_to_string(file).unwrap(), "Owner original\n");
+}
+
 fn dashboard() -> Dashboard {
     let (commands, _) = mpsc::channel(4);
     let (_, updates) = mpsc::channel(4);

@@ -2794,3 +2794,11 @@ fmt. Both files are byte-identical to batch base59d3f1ebf3
 mismatch, retained as a limitation. The unlocked wrong-profile writer changed
 only ordering in Cargo.lock; that unintended ordering change was restored and
 no dependency/version was added.
+
+Cross-layout file navigation regression: the shared handler opened after a layout
+switch erased selection. It now opens via existing guards and preserves selected
+identity across Workspace focus. Real official-Neovim task/file/dirty refusal
+regression and all79 affected checks pass (`file-navigation-tui-v2.log`). Native
+code receipts retain5 responses/75 fixture tokens and exactly one completed Apply
+(`autonomy-native/apply-native.json`), with failed inbox-routing and inspector-label
+drivers preserved. Further new-feature physical/recovery qualification is pending.

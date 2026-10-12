@@ -1505,10 +1505,10 @@ impl Dashboard {
             _ => None,
         })
     }
-    fn editor_open(&mut self, key: KeyCode) {
+    fn editor_open(&mut self, key: KeyCode) -> bool {
         if self.applying {
             self.message = "Application outcome pending; editor inputs remain frozen".into();
-            return;
+            return false;
         }
         let result = (|| -> anyhow::Result<()> {
             if self.editor.is_none() || self.editor.as_ref().is_some_and(|e| e.error.is_some()) {
@@ -1642,8 +1642,12 @@ impl Dashboard {
             }
             Ok(())
         })();
-        if let Err(e) = result {
-            self.message = e.to_string();
+        match result {
+            Ok(()) => true,
+            Err(e) => {
+                self.message = e.to_string();
+                false
+            }
         }
     }
     fn decision(&mut self, key: char) {
@@ -2858,8 +2862,15 @@ impl Dashboard {
                 ][n as usize - 1],
             ),
             KeyCode::F(23) => {
-                self.switch(Preset::Workspace);
-                self.editor_open(KeyCode::Char('o'));
+                let selected = self.selected.clone();
+                if self.editor_open(KeyCode::Char('o')) {
+                    self.switch(Preset::Workspace);
+                    self.selected = selected;
+                    self.inspect();
+                    if let Some(editor) = &mut self.editor {
+                        editor.focused = true;
+                    }
+                }
             }
             KeyCode::Char(n @ '2'..='5') => self.switch(
                 [
