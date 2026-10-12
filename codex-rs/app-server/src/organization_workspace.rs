@@ -415,6 +415,12 @@ impl TaskWorkspace {
                     }
                 };
                 Ok(OrganizationArtifactBase {
+                    captured: checkpoint.is_none_or(|checkpoint| {
+                        checkpoint
+                            .artifact_bases
+                            .iter()
+                            .any(|base| base.path == *relative && base.captured)
+                    }),
                     path: relative.clone(),
                     sha256,
                 })
@@ -993,6 +999,7 @@ mod tests {
                 sha256: hash(&artifact),
             }],
             artifact_bases: vec![OrganizationArtifactBase {
+                captured: false,
                 path: "file.txt".into(),
                 sha256: Some(hash(&base)),
             }],
@@ -1068,10 +1075,12 @@ mod tests {
         write_relative(original.path(), "later.txt", b"owner changed absent output")?;
         let bases = vec![
             OrganizationArtifactBase {
+                captured: false,
                 path: "report.txt".into(),
                 sha256: None,
             },
             OrganizationArtifactBase {
+                captured: false,
                 path: "later.txt".into(),
                 sha256: Some(format!("{:x}", Sha256::digest(b"initial original"))),
             },
@@ -1175,6 +1184,7 @@ mod tests {
         write_relative(original.path(), "report.txt", b"owner edit between steps")?;
         write_relative(source.path(), "report.txt", b"accepted first step")?;
         let first_base = OrganizationArtifactBase {
+            captured: false,
             path: "report.txt".into(),
             sha256: Some(format!("{:x}", Sha256::digest(b"initial original"))),
         };
@@ -1194,6 +1204,7 @@ mod tests {
             root: AbsolutePathBuf::try_from(destination.path())?,
             profile: PermissionProfile::default(),
             artifact_bases: vec![OrganizationArtifactBase {
+                captured: false,
                 path: "report.txt".into(),
                 sha256: Some(format!("{:x}", Sha256::digest(b"owner edit between steps"))),
             }],

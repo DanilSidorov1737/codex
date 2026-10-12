@@ -1972,6 +1972,7 @@ async fn workflow_runs_are_distinct_restart_durable_and_wait_for_exact_acceptanc
                 workspace: "/tmp/workflow-fixture".into(),
                 turn_id: None,
                 artifact_bases: vec![OrganizationArtifactBase {
+                    captured: false,
                     path: "report.txt".into(),
                     sha256: None,
                 }],

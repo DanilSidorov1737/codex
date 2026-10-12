@@ -3044,6 +3044,12 @@ class OrganizationArtifactBase(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
+    captured: Annotated[
+        bool | None,
+        Field(
+            description="New host snapshots persist bytes when sha256 is Some; false is legacy. Skip false so historical result digests retain their exact JSON shape."
+        ),
+    ] = None
     path: str
     sha256: Annotated[
         str | None,
@@ -3115,6 +3121,31 @@ class OrganizationCheckpointContent(BaseModel):
     blocker: str | None = None
     completed_steps: Annotated[list[str], Field(alias="completedSteps")]
     remaining_steps: Annotated[list[str], Field(alias="remainingSteps")]
+
+
+class MissionOrganizationControlValue(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    constraints: list[str]
+    priorities: list[str]
+    purpose: str
+    type: Annotated[Literal["mission"], Field(title="MissionOrganizationControlValueType")]
+
+
+class EscalationOrganizationControlValue(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    assignee_id: Annotated[str | None, Field(alias="assigneeId")] = None
+    reason: str
+    requested_action: Annotated[str, Field(alias="requestedAction")]
+    resolved: bool
+    task_id: Annotated[str, Field(alias="taskId")]
+    task_revision: Annotated[int, Field(alias="taskRevision")]
+    type: Annotated[Literal["escalation"], Field(title="EscalationOrganizationControlValueType")]
 
 
 class WorkflowImprovementOrganizationControlValue(BaseModel):
@@ -3373,6 +3404,18 @@ class OrganizationMembership(BaseModel):
     group_id: Annotated[str, Field(alias="groupId")]
     id: str
     node_id: Annotated[str, Field(alias="nodeId")]
+
+
+class ProposeLessonOrganizationMutation(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    body: str
+    expected_revision: Annotated[int, Field(alias="expectedRevision")]
+    result_digest: Annotated[str, Field(alias="resultDigest")]
+    task_id: Annotated[str, Field(alias="taskId")]
+    type: Annotated[Literal["proposeLesson"], Field(title="ProposeLessonOrganizationMutationType")]
 
 
 class SavePresetOrganizationMutation(BaseModel):
@@ -10113,6 +10156,49 @@ class OrganizationApplication(BaseModel):
     state: OrganizationApplicationState
 
 
+class RoleRollbackOrganizationControlValue(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    applied: bool
+    current: OrganizationRoleVersion
+    id: str
+    reason: str
+    source: OrganizationRoleVersion
+    type: Annotated[
+        Literal["roleRollback"], Field(title="RoleRollbackOrganizationControlValueType")
+    ]
+
+
+class WorkflowRollbackOrganizationControlValue(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    applied: bool
+    current: OrganizationWorkflowTemplate
+    id: str
+    reason: str
+    source: OrganizationWorkflowTemplate
+    source_run_id: Annotated[str, Field(alias="sourceRunId")]
+    source_run_revision: Annotated[int, Field(alias="sourceRunRevision")]
+    type: Annotated[
+        Literal["workflowRollback"], Field(title="WorkflowRollbackOrganizationControlValueType")
+    ]
+
+
+class GoalReviewOrganizationControlValue(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    completed: bool
+    evidence: list[OrganizationProjectEvidence]
+    goal: OrganizationGoal
+    type: Annotated[Literal["goalReview"], Field(title="GoalReviewOrganizationControlValueType")]
+
+
 class ReplanOrganizationControlValue(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
@@ -12801,7 +12887,12 @@ class TeamOrganizationControlValue(BaseModel):
 
 class OrganizationControlValue(
     RootModel[
-        WorkflowImprovementOrganizationControlValue
+        RoleRollbackOrganizationControlValue
+        | WorkflowRollbackOrganizationControlValue
+        | MissionOrganizationControlValue
+        | GoalReviewOrganizationControlValue
+        | EscalationOrganizationControlValue
+        | WorkflowImprovementOrganizationControlValue
         | ImprovementOrganizationControlValue
         | TeamOrganizationControlValue
         | SafeRecoveryOrganizationControlValue
@@ -12817,7 +12908,12 @@ class OrganizationControlValue(
         populate_by_name=True,
     )
     root: (
-        WorkflowImprovementOrganizationControlValue
+        RoleRollbackOrganizationControlValue
+        | WorkflowRollbackOrganizationControlValue
+        | MissionOrganizationControlValue
+        | GoalReviewOrganizationControlValue
+        | EscalationOrganizationControlValue
+        | WorkflowImprovementOrganizationControlValue
         | ImprovementOrganizationControlValue
         | TeamOrganizationControlValue
         | SafeRecoveryOrganizationControlValue
@@ -12874,7 +12970,8 @@ class SetControlOrganizationMutation(BaseModel):
 
 class OrganizationMutation(
     RootModel[
-        SetControlOrganizationMutation
+        ProposeLessonOrganizationMutation
+        | SetControlOrganizationMutation
         | SavePresetOrganizationMutation
         | ClonePresetOrganizationMutation
         | PromoteNoteOrganizationMutation
@@ -12891,7 +12988,8 @@ class OrganizationMutation(
         populate_by_name=True,
     )
     root: (
-        SetControlOrganizationMutation
+        ProposeLessonOrganizationMutation
+        | SetControlOrganizationMutation
         | SavePresetOrganizationMutation
         | ClonePresetOrganizationMutation
         | PromoteNoteOrganizationMutation

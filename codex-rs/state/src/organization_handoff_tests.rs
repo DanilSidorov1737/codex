@@ -47,6 +47,7 @@ async fn fixture(
                 workspace: "/tmp/state-only-checkpoint-fixture".into(),
                 turn_id: None,
                 artifact_bases: vec![OrganizationArtifactBase {
+                    captured: false,
                     path: "report.txt".into(),
                     sha256: Some("b".repeat(64)),
                 }],
@@ -781,6 +782,7 @@ async fn handoff_preserves_recurring_accounting_and_workflow_dependency_grants()
                     workspace: "/tmp/state-only-continuity".into(),
                     turn_id: None,
                     artifact_bases: vec![OrganizationArtifactBase {
+                        captured: false,
                         path: "report.txt".into(),
                         sha256: None,
                     }],

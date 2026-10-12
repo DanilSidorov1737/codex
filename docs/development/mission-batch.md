@@ -175,3 +175,34 @@ is claimed yet. Full contracts/runtime/production checks and finite qualificatio
 remain. A backup review identified the need to distinguish intentionally missing
 legacy base bytes from lost newly captured snapshots; that follow-up will make
 missing required snapshots fail full backup rather than silently omitting them.
+
+Required-base follow-up: captured artifact bases now carry a backward-compatible
+`captured` flag. False is omitted from JSON, preserving historical result digest
+shape; old records remain legacy. New host captures mark required bytes (or known
+absence), and checkpoint/workflow imports retain that status. Full backup refuses
+missing required snapshots; restore refuses omitted required inventory before
+creating its destination. Legacy missing bytes remain explicitly unavailable.
+All **322 state tests pass** again (`state-tests-v7.log`), including missing base
+backup refusal and manifest-omission refusal; the first compiler run caught the
+TypeScript generator's optional-bool annotation and the repository's existing
+`Option<_>` export pattern corrects it. Final protocol/contracts and production
+qualification now follow.
+
+Final source/contract checkpoint: full state **322**, full protocol **375**,
+generated schema comparisons **4** and Python SDK contracts/signatures **25**
+pass. Raw stable/experimental writers ran explicitly. The first schema build
+exhausted the 17 GiB generated build volume before a stop request reached it; no
+process was killed. SHA/byte receipts record pruning only inactive generated
+executables and consumer libraries predating the protocol change, preserving all
+qualified packages/homes/state/evidence. The bounded `-j4` retry passes. One
+comparison loaded a compiled stale experimental export while regeneration was
+finishing; after regeneration, all four unchanged comparisons pass. Retain these
+failure logs; no assertions or checks were suppressed.
+
+Migration 18 is a compatibility floor only (`SELECT 1`); older hosts refuse the
+new required-base recovery contract. It rewrites no old records, grants or usage.
+Full state rerun passes (`final-state-tests.log`); protocol receipt is
+`final-protocol-tests.log`, schema `final-schema-*-v2.log`/experimental and SDK
+`final-sdk-contracts.log`. Production build/Clippy and final UI/runtime/native
+workflow qualification remain. Prepared localhost/native/background helpers have
+not started any service, fresh execution home, grant or inference.

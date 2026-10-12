@@ -6,4 +6,9 @@ export type OrganizationArtifactBase = { path: string,
 /**
  * None means the file did not exist when the isolated attempt was prepared.
  */
-sha256: string | null, };
+sha256: string | null,
+/**
+ * New host snapshots persist bytes when sha256 is Some; false is legacy.
+ * Skip false so historical result digests retain their exact JSON shape.
+ */
+captured?: boolean, };

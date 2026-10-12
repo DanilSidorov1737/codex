@@ -14,9 +14,9 @@ Current checkpoint: formatter regression passes; tasks 1–5 source changes pass
 83 affected TUI/actual official-Neovim tests (`mission-batch/ui-tests-v6.log`).
 Mission/coordination source changes pass all 322 state tests; reviewed rollback and common-base bundle tests also pass. The corrected UI slice passes 92 affected tests, including real native terminal
 commands, captured tests, three-way diffs/dirty refusal/owner resolution and
-preview/advice bounds. A required-versus-legacy base-snapshot backup distinction
-is being added; final contracts/runtime/production and physical qualification
-remain. The first native named-view confirmation failed; its
+preview/advice bounds. Required-versus-legacy base-snapshot backup/restore refusal now passes the full
+322-test state suite. Final protocol/contracts/runtime/production and physical
+qualification remain. The first native named-view confirmation failed; its
 local routing fix and real-key regression need a corrected package walkthrough.
 The remaining workflow/knowledge/editor/resource items and full qualification
 are pending. Continue all 25; this is not final qualification. A fresh paused

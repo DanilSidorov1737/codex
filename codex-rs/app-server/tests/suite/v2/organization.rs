@@ -486,10 +486,12 @@ Path('report.txt').write_text('checked background artifact')
         evidence.artifact_bases,
         vec![
             OrganizationArtifactBase {
+                captured: true,
                 path: "report.txt".into(),
                 sha256: None
             },
             OrganizationArtifactBase {
+                captured: true,
                 path: "security.json".into(),
                 sha256: None
             }

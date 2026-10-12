@@ -229,6 +229,11 @@ pub struct OrganizationArtifactBase {
     pub path: String,
     /// None means the file did not exist when the isolated attempt was prepared.
     pub sha256: Option<String>,
+    /// New host snapshots persist bytes when sha256 is Some; false is legacy.
+    /// Skip false so historical result digests retain their exact JSON shape.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    #[ts(as = "Option<_>", optional)]
+    pub captured: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -551,6 +556,15 @@ pub enum OrganizationExecutionMutation {
 #[cfg(test)]
 mod application_tests {
     use super::*;
+    #[test]
+    fn captured_base_distinguishes_required_bytes_without_changing_legacy_digest_shape() {
+        let legacy = serde_json::json!({"path":"artifact.txt","sha256":"a".repeat(64)});
+        let mut base: OrganizationArtifactBase = serde_json::from_value(legacy.clone()).unwrap();
+        assert!(!base.captured);
+        assert_eq!(serde_json::to_value(&base).unwrap(), legacy);
+        base.captured = true;
+        assert_eq!(serde_json::to_value(&base).unwrap()["captured"], true);
+    }
 
     #[test]
     fn selection_preserves_legacy_apply_and_rejects_invalid_paths() -> anyhow::Result<()> {

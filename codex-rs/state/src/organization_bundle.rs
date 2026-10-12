@@ -336,6 +336,10 @@ impl OrganizationStore {
                 // Historical attempts only captured hashes. Missing legacy bytes
                 // stay unavailable; never infer a base from today's owner file.
                 if !source.try_exists()? {
+                    ensure!(
+                        !base.captured,
+                        "required captured artifact base is missing; full backup refused"
+                    );
                     continue;
                 }
                 owned(&codex_home.join("organization-artifact-bases"), true)?;
@@ -469,10 +473,24 @@ impl OrganizationStore {
             .fetch_all(&pool)
             .await?;
         let mut bases = BTreeSet::new();
+        let mut required_bases = BTreeSet::new();
         for data in attempts {
             let attempt: OrganizationTaskAttempt = serde_json::from_str(&data)?;
+            required_bases.extend(
+                attempt
+                    .artifact_bases
+                    .iter()
+                    .filter(|b| b.captured)
+                    .filter_map(|b| b.sha256.clone()),
+            );
             bases.extend(attempt.artifact_bases.into_iter().filter_map(|b| b.sha256));
         }
+        ensure!(
+            required_bases
+                .iter()
+                .all(|hash| paths.contains(&format!("organization-artifact-bases/{hash}"))),
+            "required captured base omitted from full bundle"
+        );
         for entry in &manifest.files {
             if let Some(hash) = entry.path.strip_prefix("organization-artifact-bases/") {
                 ensure!(

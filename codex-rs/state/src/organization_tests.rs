@@ -513,6 +513,7 @@ async fn artifact_bases_are_frozen_with_runtime_binding() -> Result<()> {
         workspace: "/tmp/isolated-task".into(),
         turn_id: None,
         artifact_bases: vec![OrganizationArtifactBase {
+            captured: false,
             path: "report.txt".into(),
             sha256: None,
         }],
@@ -1696,6 +1697,7 @@ async fn full_bundle_restores_evidence_runtime_paths_and_uncertain_accounting_wi
                 workspace: workspace.0.to_str().unwrap().into(),
                 turn_id: None,
                 artifact_bases: vec![OrganizationArtifactBase {
+                    captured: true,
                     path: "report.txt".into(),
                     sha256: Some(base_hash.clone()),
                 }],
@@ -1836,6 +1838,34 @@ async fn full_bundle_restores_evidence_runtime_paths_and_uncertain_accounting_wi
             .is_err(),
         "cannot replace a recovered home"
     );
+    let missing = Fixture::new();
+    let manifest_path = bundle.0.join("manifest.json");
+    let original_manifest = std::fs::read(&manifest_path)?;
+    let mut manifest: serde_json::Value = serde_json::from_slice(&original_manifest)?;
+    manifest["files"]
+        .as_array_mut()
+        .unwrap()
+        .retain(|entry| entry["path"] != format!("organization-artifact-bases/{base_hash}"));
+    std::fs::write(&manifest_path, serde_json::to_vec(&manifest)?)?;
+    assert!(
+        OrganizationStore::restore_bundle(&bundle.0, &missing.0)
+            .await
+            .is_err(),
+        "omitted required common base refuses restoration"
+    );
+    assert!(
+        !missing.0.exists(),
+        "required inventory is checked before destination creation"
+    );
+    std::fs::write(&manifest_path, original_manifest)?;
+    std::fs::remove_file(base_dir.join(&base_hash))?;
+    assert!(
+        store
+            .backup_bundle(&home.0, &Fixture::new().0)
+            .await
+            .is_err(),
+        "newly captured base loss refuses full backup"
+    );
     restored.close().await;
     store.close().await;
     Ok(())
@@ -1895,6 +1925,7 @@ async fn full_bundle_refuses_workspace_symlinks_instead_of_reading_owner_files()
                 workspace: workspace.0.to_str().unwrap().into(),
                 turn_id: None,
                 artifact_bases: vec![OrganizationArtifactBase {
+                    captured: false,
                     path: "report.txt".into(),
                     sha256: None,
                 }],

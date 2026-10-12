@@ -12331,6 +12331,10 @@
     },
     "OrganizationArtifactBase": {
       "properties": {
+        "captured": {
+          "description": "New host snapshots persist bytes when sha256 is Some; false is legacy. Skip false so historical result digests retain their exact JSON shape.",
+          "type": "boolean"
+        },
         "path": {
           "type": "string"
         },
@@ -12564,6 +12568,202 @@
     },
     "OrganizationControlValue": {
       "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "applied": {
+              "type": "boolean"
+            },
+            "current": {
+              "$ref": "#/definitions/OrganizationRoleVersion"
+            },
+            "id": {
+              "type": "string"
+            },
+            "reason": {
+              "type": "string"
+            },
+            "source": {
+              "$ref": "#/definitions/OrganizationRoleVersion"
+            },
+            "type": {
+              "enum": [
+                "roleRollback"
+              ],
+              "title": "RoleRollbackOrganizationControlValueType",
+              "type": "string"
+            }
+          },
+          "required": [
+            "applied",
+            "current",
+            "id",
+            "reason",
+            "source",
+            "type"
+          ],
+          "title": "RoleRollbackOrganizationControlValue",
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "applied": {
+              "type": "boolean"
+            },
+            "current": {
+              "$ref": "#/definitions/OrganizationWorkflowTemplate"
+            },
+            "id": {
+              "type": "string"
+            },
+            "reason": {
+              "type": "string"
+            },
+            "source": {
+              "$ref": "#/definitions/OrganizationWorkflowTemplate"
+            },
+            "sourceRunId": {
+              "type": "string"
+            },
+            "sourceRunRevision": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": {
+              "enum": [
+                "workflowRollback"
+              ],
+              "title": "WorkflowRollbackOrganizationControlValueType",
+              "type": "string"
+            }
+          },
+          "required": [
+            "applied",
+            "current",
+            "id",
+            "reason",
+            "source",
+            "sourceRunId",
+            "sourceRunRevision",
+            "type"
+          ],
+          "title": "WorkflowRollbackOrganizationControlValue",
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Owner intent is context; protected authority remains in native grants.",
+          "properties": {
+            "constraints": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "priorities": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "purpose": {
+              "type": "string"
+            },
+            "type": {
+              "enum": [
+                "mission"
+              ],
+              "title": "MissionOrganizationControlValueType",
+              "type": "string"
+            }
+          },
+          "required": [
+            "constraints",
+            "priorities",
+            "purpose",
+            "type"
+          ],
+          "title": "MissionOrganizationControlValue",
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "completed": {
+              "type": "boolean"
+            },
+            "evidence": {
+              "items": {
+                "$ref": "#/definitions/OrganizationProjectEvidence"
+              },
+              "type": "array"
+            },
+            "goal": {
+              "$ref": "#/definitions/OrganizationGoal"
+            },
+            "type": {
+              "enum": [
+                "goalReview"
+              ],
+              "title": "GoalReviewOrganizationControlValueType",
+              "type": "string"
+            }
+          },
+          "required": [
+            "completed",
+            "evidence",
+            "goal",
+            "type"
+          ],
+          "title": "GoalReviewOrganizationControlValue",
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "A local assistance request. Resolving it never queues work or grants access.",
+          "properties": {
+            "assigneeId": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "reason": {
+              "type": "string"
+            },
+            "requestedAction": {
+              "type": "string"
+            },
+            "resolved": {
+              "type": "boolean"
+            },
+            "taskId": {
+              "type": "string"
+            },
+            "taskRevision": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": {
+              "enum": [
+                "escalation"
+              ],
+              "title": "EscalationOrganizationControlValueType",
+              "type": "string"
+            }
+          },
+          "required": [
+            "reason",
+            "requestedAction",
+            "resolved",
+            "taskId",
+            "taskRevision",
+            "type"
+          ],
+          "title": "EscalationOrganizationControlValue",
+          "type": "object"
+        },
         {
           "additionalProperties": false,
           "properties": {
@@ -13629,6 +13829,40 @@
     },
     "OrganizationMutation": {
       "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "body": {
+              "type": "string"
+            },
+            "expectedRevision": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "resultDigest": {
+              "type": "string"
+            },
+            "taskId": {
+              "type": "string"
+            },
+            "type": {
+              "enum": [
+                "proposeLesson"
+              ],
+              "title": "ProposeLessonOrganizationMutationType",
+              "type": "string"
+            }
+          },
+          "required": [
+            "body",
+            "expectedRevision",
+            "resultDigest",
+            "taskId",
+            "type"
+          ],
+          "title": "ProposeLessonOrganizationMutation",
+          "type": "object"
+        },
         {
           "additionalProperties": false,
           "properties": {
