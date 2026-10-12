@@ -59,7 +59,7 @@ weakened production checks. Clippy corrections reuse native `is_multiple_of`,
 initialize Graph directly and box the enlarged snapshot event; corrected74 pass.
 A final package/read-only smoke for those memory/style corrections follows.
 
-Tasks 11–20 remain pending; continue the complete approved batch. The graph test
+Tasks 11–13 have an implementation checkpoint: goal/task cards retain canonical acceptance and pending-prerequisite evidence; rolling proposals capture up to eight accepted task digests/report revisions and owner-selected remaining criteria; transparent role/capability/load/outcome advice preserves draft owner selection and creates no authority. Native checkpoints now capture up to eight tabs/16 total windows with shared buffers, active tab/window, private unsaved text and native undo; version1 remains readable. Palette opens declared task files from other layouts using existing path/dirty guards. All77 affected TUI/official-Neovim checks pass (`planning-tabs-tests-v2.log`). Final physical packaged qualification remains task20. Tasks14–18 are in progress; continue the complete approved batch. The graph test
 covers10,000 deep nodes, not yet a new native broad-registry measurement; task20
 must provide that and deeper recovery qualification. No arbitrary active capacity,
 indefinite uptime, provider-quality or billing claim is added.

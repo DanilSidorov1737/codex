@@ -13,7 +13,11 @@ pub(crate) struct Session {
     size: (u16, u16),
     buffers: Vec<SavedBuffer>,
     windows: Vec<SavedWindow>,
-    layout: Layout,
+    layout: Option<Layout>,
+    #[serde(default)]
+    tabs: Vec<Layout>,
+    #[serde(default)]
+    active_tab: usize,
     active: usize,
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -69,7 +73,12 @@ impl Session {
     }
     pub(crate) fn summary(&self) -> String {
         format!(
-            "{} native windows, {} project files, {} unsaved buffers",
+            "{} native tabs, {} windows, {} project files, {} unsaved buffers",
+            if self.version == 1 {
+                1
+            } else {
+                self.tabs.len()
+            },
             self.windows.len(),
             self.buffers.len(),
             self.buffers.iter().filter(|b| b.lines.is_some()).count()
@@ -81,7 +90,7 @@ impl Session {
                 && self.size.0 <= MAX_COLUMNS
                 && self.size.1 > 0
                 && self.size.1 <= MAX_ROWS
-                && self.version == 1
+                && (self.version == 1 || self.version == 2)
                 && !self.windows.is_empty()
                 && self.windows.len() <= 16
                 && self.buffers.len() <= 16
@@ -105,7 +114,34 @@ impl Session {
             }
             Ok(())
         }
-        visit(&self.layout, 0, &mut leaves)?;
+        if self.version == 1 {
+            ensure!(
+                self.tabs.is_empty() && self.active_tab == 0,
+                "invalid legacy session tabs"
+            );
+            visit(
+                self.layout.as_ref().context("legacy layout missing")?,
+                0,
+                &mut leaves,
+            )?;
+        } else {
+            ensure!(
+                self.layout.is_none()
+                    && (1..=8).contains(&self.tabs.len())
+                    && self.active_tab < self.tabs.len(),
+                "session supports 1–8 native tabs"
+            );
+            for (index, tab) in self.tabs.iter().enumerate() {
+                let start = leaves.len();
+                visit(tab, 0, &mut leaves)?;
+                if index == self.active_tab {
+                    ensure!(
+                        leaves[start..].contains(&self.active),
+                        "active window belongs to another tab"
+                    );
+                }
+            }
+        }
         leaves.sort_unstable();
         ensure!(
             leaves == (0..self.windows.len()).collect::<Vec<_>>(),
@@ -203,8 +239,10 @@ impl Editor {
     pub(crate) fn save_session(&mut self, home: &Path, roots: &[PathBuf]) -> Result<Session> {
         ensure!(self.frozen.is_none(), "cannot checkpoint a frozen editor");
         let script = r#"
-if #vim.api.nvim_list_tabpages()~=1 then error('Session checkpoints support one native tab') end
-local wins=vim.api.nvim_tabpage_list_wins(0)
+local pages=vim.api.nvim_list_tabpages()
+if #pages>8 then error('Session exceeds 8 tabs') end
+local wins={}
+for _,tab in ipairs(pages) do for _,win in ipairs(vim.api.nvim_tabpage_list_wins(tab)) do table.insert(wins,win) end end
 if #wins>16 then error('Session exceeds 16 windows') end
 local buffers, windows, wi, bi, visible={},{},{},{},{}
 for i,w in ipairs(wins) do wi[w]=i-1; visible[vim.api.nvim_win_get_buf(w)]=true end
@@ -230,7 +268,12 @@ local function layout(x)
  local children={}; for _,child in ipairs(x[2]) do table.insert(children,layout(child)) end
  return {kind=x[1],value=children}
 end
-return vim.json.encode({version=1,size={vim.o.columns,vim.o.lines},buffers=buffers,windows=windows,layout=layout(vim.fn.winlayout()),active=active})
+local tabs,activeTab={},0
+for i,tab in ipairs(pages) do
+ table.insert(tabs,layout(vim.fn.winlayout(vim.api.nvim_tabpage_get_number(tab))))
+ if tab==vim.api.nvim_get_current_tabpage() then activeTab=i-1 end
+end
+return vim.json.encode({version=2,size={vim.o.columns,vim.o.lines},buffers=buffers,windows=windows,layout=vim.NIL,tabs=tabs,activeTab=activeTab,active=active})
 "#;
         let value = self.guarded_lua(script, vec![])?;
         let bytes = value
@@ -268,7 +311,6 @@ return vim.json.encode({version=1,size={vim.o.columns,vim.o.lines},buffers=buffe
         let json = serde_json::to_string(session)?;
         self.guarded_lua(r#"
 local encoded,recover=...; local s=vim.json.decode(encoded)
-if #vim.api.nvim_list_tabpages()~=1 then error('Restore supports one native tab') end
 for _,b in ipairs(vim.api.nvim_list_bufs()) do if vim.api.nvim_buf_is_loaded(b) and vim.bo[b].modified then error('Current dirty buffers prevent restore') end end
 local buffers={}
 for i,b in ipairs(s.buffers) do
@@ -276,7 +318,7 @@ for i,b in ipairs(s.buffers) do
  local id=vim.fn.bufadd(b.path); vim.fn.bufload(id); buffers[i]=id
  vim.api.nvim_buf_call(id,function() vim.cmd('silent checktime') end)
 end
-vim.cmd('only')
+vim.cmd('tabonly'); vim.cmd('only')
 local wins={}
 local function build(x,win)
  vim.api.nvim_set_current_win(win)
@@ -290,7 +332,13 @@ local function build(x,win)
  end
  for i,child in ipairs(x.value) do build(child,created[i]) end
 end
-build(s.layout,vim.api.nvim_get_current_win())
+local tabs=s.version==1 and {s.layout} or s.tabs
+local pages={}
+for i,tab in ipairs(tabs) do
+ if i>1 then vim.cmd('tabnew') end
+ pages[i]=vim.api.nvim_get_current_tabpage()
+ build(tab,vim.api.nvim_get_current_win())
+end
 if recover then
  for i,b in ipairs(s.buffers) do
   if b.lines~=vim.NIL then
@@ -304,7 +352,7 @@ for i,w in ipairs(wins) do
  vim.api.nvim_win_set_cursor(w,{math.min(saved.cursor[1],count),saved.cursor[2]})
  pcall(vim.api.nvim_win_set_width,w,saved.width); pcall(vim.api.nvim_win_set_height,w,saved.height)
 end
-vim.api.nvim_set_current_win(wins[s.active+1])
+vim.api.nvim_set_current_tabpage(pages[(s.activeTab or 0)+1]); vim.api.nvim_set_current_win(wins[s.active+1])
 return true
 "#,vec![json.into(),recover_unsaved.into()])?;
         self.focused = true;

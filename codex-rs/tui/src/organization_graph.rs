@@ -28,6 +28,7 @@ pub(super) struct Counts {
     pub running: usize,
     pub issues: usize,
     pub review: usize,
+    pub accepted: usize,
 }
 impl Counts {
     fn add(&mut self, other: &Self) {
@@ -36,6 +37,7 @@ impl Counts {
         self.running += other.running;
         self.issues += other.issues;
         self.review += other.review;
+        self.accepted += other.accepted;
     }
 }
 
@@ -61,9 +63,98 @@ pub(super) struct Graph {
     pub toggle_hits: Vec<(Rect, String)>,
     pub tab_hits: Vec<(Rect, u8)>,
     card_size: (u32, u32),
+    goals: bool,
 }
 
 impl Graph {
+    pub fn goals(
+        records: &[OrganizationRecord],
+        collapsed: &BTreeSet<String>,
+        search: &str,
+        settings: &Settings,
+    ) -> Self {
+        let tasks: BTreeMap<_, _> = records
+            .iter()
+            .filter_map(|r| match r {
+                OrganizationRecord::Task(t) => Some((t.id.as_str(), t)),
+                _ => None,
+            })
+            .collect();
+        let goals: BTreeSet<_> = records
+            .iter()
+            .filter_map(|r| match r {
+                OrganizationRecord::Goal(g) => Some(g.id.as_str()),
+                _ => None,
+            })
+            .collect();
+        let mut projected = Vec::new();
+        for record in records {
+            let (id, parent, label) = match record {
+                OrganizationRecord::Goal(g) => {
+                    (g.id.clone(), g.parent_id.clone(), g.objective.clone())
+                }
+                OrganizationRecord::Task(t)
+                    if t.goal_id.as_deref().is_some_and(|id| goals.contains(id)) =>
+                {
+                    (
+                        t.id.clone(),
+                        t.goal_id.clone(),
+                        format!(
+                            "{} · {}",
+                            t.instructions.chars().take(80).collect::<String>(),
+                            t.state
+                        ),
+                    )
+                }
+                _ => continue,
+            };
+            projected.push(OrganizationRecord::Node(OrganizationNode {
+                id,
+                parent_id: parent,
+                kind: OrganizationNodeKind::Group,
+                label,
+                role_version_id: None,
+                model: None,
+                enabled: true,
+                revision: 1,
+            }));
+            if let OrganizationRecord::Task(t) = record {
+                let mut t = t.clone();
+                t.owner_id = t.id.clone();
+                projected.push(OrganizationRecord::Task(t));
+            }
+        }
+        let mut graph = Self::build(&projected, collapsed, search, settings);
+        graph.goals = true;
+        for card in &mut graph.cards {
+            if goals.contains(card.id.as_str()) {
+                card.role = "Goal · criteria need owner review".into();
+                card.state = "defined";
+            } else if let Some(task) = tasks.get(card.id.as_str()) {
+                let blocked = task
+                    .prerequisites
+                    .iter()
+                    .filter(|id| tasks.get(id.as_str()).is_none_or(|t| t.state != "accepted"))
+                    .count();
+                card.role = format!(
+                    "{} prerequisites · {blocked} pending",
+                    task.prerequisites.len()
+                );
+                card.state = match task.state.as_str() {
+                    "accepted" => "accepted",
+                    "waitingDependency" => "waitingDependency",
+                    "running" => "running",
+                    "blocked" => "blocked",
+                    "needsReconciliation" => "needsReconciliation",
+                    "failed" => "failed",
+                    "waitingApproval" => "waitingApproval",
+                    "needsReview" => "needsReview",
+                    _ => "defined",
+                };
+            }
+        }
+        graph
+    }
     pub fn build(
         records: &[OrganizationRecord],
         collapsed: &BTreeSet<String>,
@@ -108,6 +199,7 @@ impl Graph {
             if let OrganizationRecord::Task(t) = r {
                 if let Some(c) = counts.get_mut(t.owner_id.as_str()) {
                     c.tasks += 1;
+                    c.accepted += usize::from(t.state == "accepted");
                     c.running += usize::from(t.state == "running");
                     c.issues += usize::from(matches!(
                         t.state.as_str(),
@@ -368,7 +460,12 @@ impl Graph {
         let filter = ["All", "Running", "Issues", "Review"][usize::from(settings.filter % 4)];
         let block = panel(
             format!(
-                "Hierarchy tree · {} · {filter} · Ctrl-F fit · / search",
+                "{} · {} · {filter} · Ctrl-F fit · / search",
+                if self.goals {
+                    "Goal dependencies"
+                } else {
+                    "Hierarchy tree"
+                },
                 self.cards.len()
             ),
             true,
@@ -517,7 +614,17 @@ impl Graph {
                 },
                 c.label
             );
-            let text = if settings.compact {
+            let text = if self.goals && settings.compact {
+                format!(
+                    "{} · {}/{} accepted",
+                    c.state, c.counts.accepted, c.counts.tasks
+                )
+            } else if self.goals {
+                format!(
+                    "{}\n{} / {} tasks accepted\n{}",
+                    c.role, c.counts.accepted, c.counts.tasks, c.state
+                )
+            } else if settings.compact {
                 format!("● {} · {} tasks", c.state, c.counts.tasks)
             } else {
                 format!(
@@ -727,8 +834,8 @@ impl Dashboard {
     }
 
     pub(super) fn diagram_active(&self) -> bool {
-        self.preferences.preset == Preset::Operations
-            && self.projection == Projection::Default
+        ((self.preferences.preset == Preset::Operations && self.projection == Projection::Default)
+            || self.projection == Projection::Goals)
             && !self.preferences.graph.list
     }
 
@@ -777,7 +884,9 @@ impl Dashboard {
             self.inspect();
             return true;
         }
-        if self.preferences.preset != Preset::Operations || self.projection != Projection::Default {
+        if (self.preferences.preset != Preset::Operations || self.projection != Projection::Default)
+            && self.projection != Projection::Goals
+        {
             return false;
         }
         if key.code == KeyCode::Enter && key.modifiers == KeyModifiers::SHIFT {

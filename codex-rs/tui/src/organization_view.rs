@@ -749,7 +749,17 @@ impl Dashboard {
                     ])
                     .split(sections[1]);
                     self.project_summary(parts[0], buffer);
-                    self.rows_view(parts[1], buffer, false);
+                    if self.diagram_active() {
+                        self.graph.render(
+                            &mut self.preferences.graph,
+                            self.selected.as_deref(),
+                            &self.collapsed,
+                            parts[1],
+                            buffer,
+                        );
+                    } else {
+                        self.rows_view(parts[1], buffer, false);
+                    }
                 }
                 Preset::Workspace
                     if self.editor.is_some() && self.projection == Projection::Default =>

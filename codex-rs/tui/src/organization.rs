@@ -1253,7 +1253,17 @@ impl Dashboard {
                 })
                 .collect()
         } else if self.projection == Projection::Goals {
-            goal_tree(&self.snapshot.records, &self.collapsed, &search)
+            self.graph = graph::Graph::goals(
+                &self.snapshot.records,
+                &self.collapsed,
+                &search,
+                &self.preferences.graph,
+            );
+            if self.preferences.graph.list {
+                goal_tree(&self.snapshot.records, &self.collapsed, &search)
+            } else {
+                self.graph.rows()
+            }
         } else if self.preferences.preset == Preset::Review {
             self.snapshot
                 .report
@@ -2181,6 +2191,9 @@ impl Dashboard {
         {
             form.prefill_scope(scope);
         }
+        if let Some(form) = &mut self.form {
+            form.planning_context(&self.snapshot.records, self.snapshot.report.as_ref());
+        }
     }
     fn selection_task(&mut self) {
         let capture = (|| -> anyhow::Result<(String, crate::organization_editor::Selection)> {
@@ -2694,6 +2707,10 @@ impl Dashboard {
                     Preset::Review,
                 ][n as usize - 1],
             ),
+            KeyCode::F(23) => {
+                self.switch(Preset::Workspace);
+                self.editor_open(KeyCode::Char('o'));
+            }
             KeyCode::Char(n @ '2'..='5') => self.switch(
                 [
                     Preset::Console,
@@ -3644,7 +3661,7 @@ impl Dashboard {
                                 .snapshot
                                 .records
                                 .iter()
-                                .any(|r| matches!(r,OrganizationRecord::Node(n) if n.id==id))
+                                .any(|r| record_id(r) == Some(id.as_str()))
                             {
                                 self.selected = Some(id);
                                 self.inspect();

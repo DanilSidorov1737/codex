@@ -393,6 +393,12 @@ const ACTIONS: &[Action] = &[
         context: "Workspace host focus; original files/splits/cursors/unsaved text",
     },
     Action {
+        title: "Open selected task file in Neovim",
+        shortcut: "palette",
+        code: KeyCode::F(23),
+        context: "any layout; declared project path and dirty-buffer guards",
+    },
+    Action {
         title: "Restore native Neovim session",
         shortcut: "F8",
         code: KeyCode::F(8),

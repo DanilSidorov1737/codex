@@ -375,6 +375,37 @@ fn diagram_layout_handles_ten_thousand_deep_nodes_without_recursion_or_wrapped_c
 }
 
 #[test]
+fn goal_diagram_links_owned_tasks_and_preserves_acceptance_and_prerequisite_evidence() {
+    let goal:OrganizationGoal=serde_json::from_value(serde_json::json!({"id":"mission","parentId":null,"objective":"Verified goal","criteria":["Owner verifies final outcome"],"revision":1})).unwrap();
+    let mut accepted = task("producer");
+    accepted.goal_id = Some(goal.id.clone());
+    accepted.state = "accepted".into();
+    let mut dependent = task("consumer");
+    dependent.goal_id = Some(goal.id.clone());
+    dependent.prerequisites = vec![accepted.id.clone()];
+    dependent.state = "waitingDependency".into();
+    let records = vec![
+        OrganizationRecord::Goal(goal),
+        OrganizationRecord::Task(accepted),
+        OrganizationRecord::Task(dependent),
+    ];
+    let captured = serde_json::to_value(&records).unwrap();
+    let graph = graph::Graph::goals(&records, &BTreeSet::new(), "", &graph::Settings::default());
+    assert_eq!(graph.cards.len(), 3);
+    let root = graph.cards.iter().find(|c| c.id == "mission").unwrap();
+    assert_eq!((root.counts.accepted, root.counts.tasks), (1, 2));
+    assert_eq!(
+        root.state, "defined",
+        "task acceptance does not certify a goal's criteria"
+    );
+    let child = graph.cards.iter().find(|c| c.id == "consumer").unwrap();
+    assert_eq!(child.parent.as_deref(), Some("mission"));
+    assert_eq!(child.role, "1 prerequisites · 0 pending");
+    assert_eq!(child.state, "waitingDependency");
+    assert_eq!(serde_json::to_value(&records).unwrap(), captured);
+}
+
+#[test]
 fn deep_tree_search_crosses_collapsed_branches_and_keeps_stable_ids() {
     let nodes: Vec<_> = (0..10000)
         .map(|i| {
@@ -2057,7 +2088,7 @@ fn absent_legacy_global_usage_is_unavailable_instead_of_invented_zero() {
     assert!(!text.contains("Whole organization: 0"));
 }
 
-fn empty_report() -> OrganizationReport {
+pub(super) fn empty_report() -> OrganizationReport {
     OrganizationReport {
         sequence: 0,
         generated_at: 0,

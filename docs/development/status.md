@@ -1,8 +1,7 @@
 # Current status and resumption instructions
 
 Current approved work: [hierarchy/autonomy batch](hierarchy-autonomy-batch.md),
-approved with “ok lets do this”. Work begins with the branching Operations
-view from the supplied concept, then the remaining local autonomy/editor tasks.
+approved with “ok lets do this”. Tasks1–10 are committed on `47221cd410` and pass first physical UI/diagnostics qualification. Goal/dependency projection, rolling proposal/assignment advice and bounded official-Neovim multi-tab checkpoints pass77 affected checks; final packaged physical checks remain. Team proposals, narrow startup recovery and cross-project reviewed knowledge are in progress. Continue tasks14–20; do not stop at this intermediate checkpoint.
 The completed prior twenty-task batch below is protected historical evidence.
 External integrations and new paid inference remain deferred.
 

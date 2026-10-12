@@ -2,6 +2,104 @@ use super::session::hash;
 use super::*;
 
 #[tokio::test]
+async fn official_neovim_checkpoint_restores_tabs_shared_buffers_active_window_and_legacy_layout() {
+    let home = tempfile::tempdir().unwrap();
+    let project = tempfile::tempdir().unwrap();
+    let a = project.path().join("first.txt");
+    let b = project.path().join("second.txt");
+    std::fs::write(&a, "original\n").unwrap();
+    std::fs::write(&b, "second\n").unwrap();
+    let roots = vec![project.path().to_path_buf()];
+    let mut editor = Editor::start(FrameRequester::test_dummy()).unwrap();
+    editor.open(&a, false).unwrap();
+    editor
+        .command("tabnew", vec![b.to_str().unwrap().into()])
+        .unwrap();
+    editor
+        .command("vsplit", vec![a.to_str().unwrap().into()])
+        .unwrap();
+    editor
+        .rpc(
+            "nvim_buf_set_lines",
+            vec![
+                0.into(),
+                0.into(),
+                (-1).into(),
+                true.into(),
+                Value::Array(vec!["unsaved shared 界".into()]),
+            ],
+        )
+        .unwrap();
+    let checkpoint = editor.save_session(home.path(), &roots).unwrap();
+    assert!(
+        checkpoint
+            .summary()
+            .contains("2 native tabs, 3 windows, 2 project files, 1 unsaved")
+    );
+    drop(editor);
+    let mut restored = Editor::start(FrameRequester::test_dummy()).unwrap();
+    restored
+        .restore_session(&Session::load(home.path(), &roots).unwrap(), &roots, true)
+        .unwrap();
+    assert_eq!(
+        restored
+            .rpc("nvim_eval", vec!["tabpagenr('$')".into()])
+            .unwrap()
+            .as_i64(),
+        Some(2)
+    );
+    assert_eq!(
+        restored
+            .rpc("nvim_eval", vec!["tabpagenr()".into()])
+            .unwrap()
+            .as_i64(),
+        Some(2)
+    );
+    assert_eq!(
+        restored
+            .rpc("nvim_get_current_line", vec![])
+            .unwrap()
+            .as_str(),
+        Some("unsaved shared 界")
+    );
+    restored.command("undo", vec![]).unwrap();
+    assert_eq!(
+        restored
+            .rpc("nvim_get_current_line", vec![])
+            .unwrap()
+            .as_str(),
+        Some("original")
+    );
+    assert_eq!(std::fs::read_to_string(&a).unwrap(), "original\n");
+    // v1 checkpoints remain data-only readable without expanding their original authority.
+    let path = home.path().join("organization-editor-session.json");
+    let mut legacy: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+    legacy["version"] = 1.into();
+    legacy["layout"] = legacy["tabs"][0].clone();
+    legacy["tabs"] = serde_json::json!([]);
+    legacy["activeTab"] = 0.into();
+    legacy["active"] = 0.into();
+    legacy["windows"] = serde_json::json!([legacy["windows"][0].clone()]);
+    std::fs::write(&path, serde_json::to_vec(&legacy).unwrap()).unwrap();
+    let loaded = Session::load(home.path(), &roots).unwrap();
+    restored.restore_session(&loaded, &roots, false).unwrap();
+    assert_eq!(
+        restored
+            .rpc("nvim_eval", vec!["tabpagenr('$')".into()])
+            .unwrap()
+            .as_i64(),
+        Some(1)
+    );
+    // An unbound active window and oversized tab set refuse before changing the editor.
+    legacy["version"] = 2.into();
+    legacy["tabs"] = serde_json::json!(vec![legacy["layout"].clone(); 9]);
+    legacy["layout"] = serde_json::Value::Null;
+    std::fs::write(&path, serde_json::to_vec(&legacy).unwrap()).unwrap();
+    assert!(Session::load(home.path(), &roots).is_err());
+}
+
+#[tokio::test]
 async fn official_neovim_session_restores_splits_cursors_and_explicit_unsaved_text_without_writing()
 {
     let home = tempfile::tempdir().unwrap();

@@ -434,6 +434,89 @@ mod tests {
     }
 
     #[test]
+    fn rolling_plan_advice_keeps_owner_choice_and_requires_review_of_remaining_work() {
+        let goal = OrganizationGoal {
+            id: "goal".into(),
+            parent_id: None,
+            objective: "Test Rust parser".into(),
+            criteria: vec!["Parser passes oracle".into()],
+            revision: 4,
+        };
+        let node = |id: &str, label: &str, enabled: bool| {
+            OrganizationRecord::Node(OrganizationNode {
+                id: id.into(),
+                parent_id: None,
+                kind: OrganizationNodeKind::Agent,
+                label: label.into(),
+                role_version_id: None,
+                model: None,
+                enabled,
+                revision: 1,
+            })
+        };
+        let mut done = task();
+        done.id = "done".into();
+        done.owner_id = "rust".into();
+        done.goal_id = Some("goal".into());
+        done.state = "accepted".into();
+        let project = OrganizationRecord::Project(OrganizationProjectPlan {
+            id: "project".into(),
+            name: "Parser".into(),
+            roots: vec![],
+            goal_id: Some("goal".into()),
+            owner_id: Some("writer".into()),
+            criteria: vec![],
+            revision: 2,
+        });
+        let records = vec![
+            project.clone(),
+            OrganizationRecord::Goal(goal.clone()),
+            node("writer", "Writer", true),
+            node("rust", "Rust parser", true),
+            node("disabled", "Rust specialist", false),
+            OrganizationRecord::Task(done.clone()),
+        ];
+        let mut report = super::super::tests::empty_report();
+        let evidence:OrganizationTaskReport=serde_json::from_value(serde_json::json!({"taskId":"done","projectId":"project","ownerId":"rust","title":"accepted parser","state":"accepted","revision":7,"resultDigest":"abc","pendingApprovals":0,"checksPassed":1,"checksFailed":0,"reportedTokens":10,"modelRequests":1,"reportedModelRequests":1})).unwrap();
+        report.tasks.push(evidence);
+        report.sequence = 42;
+        let mut form = Form::new(Kind::GoalPlan(goal), &records, Some(&project), "model");
+        form.planning_context(&records, Some(&report));
+        assert_eq!(
+            form.fields[1].value(),
+            "writer",
+            "recommendations preserve existing owner selection"
+        );
+        assert_eq!(form.fields[1].choices[0].0, "rust");
+        assert!(
+            !form.fields[1]
+                .choices
+                .iter()
+                .any(|(id, _)| id == "disabled")
+        );
+        assert!(form.fields[1].choices[0].1.contains("outcomes unavailable"));
+        set(&mut form, 6, "Owner says parser edge cases remain");
+        let Command::Definition(OrganizationMutation::PutTask {
+            instructions,
+            prerequisites,
+            owner_id,
+            ..
+        }) = form.command().unwrap()
+        else {
+            panic!("only a proposed task")
+        };
+        assert_eq!(owner_id, "writer");
+        assert_eq!(prerequisites, vec!["done"]);
+        assert!(
+            instructions.contains("abc")
+                && instructions.contains("report 42")
+                && instructions.contains("revision 4")
+                && instructions.contains("edge cases remain")
+        );
+        assert_eq!(done.state, "accepted");
+    }
+
+    #[test]
     fn shared_limit_form_pins_target_and_revision_without_resetting_usage() {
         let previous = OrganizationSharedLimit {
             id: "run:r".into(),
@@ -1615,6 +1698,11 @@ impl Form {
             ));
         }
         if let Kind::GoalPlan(goal) = &kind {
+            fields.push(Field::text(
+                "Remaining goal criteria",
+                "Owner marks what remains; accepted tasks never automatically fulfill the goal",
+                &goal.criteria.join("\n"),
+            ));
             let roster: Vec<_> = records
                 .iter()
                 .filter_map(|record| match record {
@@ -1675,6 +1763,63 @@ impl Form {
             Kind::SharedLimits { .. } => "Set shared project / workflow ceilings",
             Kind::Apply { .. } => "Select files to Apply",
         }
+    }
+    /// Advice changes draft choices only; grants and historical ownership stay intact.
+    pub(super) fn planning_context(
+        &mut self,
+        records: &[OrganizationRecord],
+        report: Option<&OrganizationReport>,
+    ) {
+        if !matches!(
+            self.kind,
+            Kind::Task | Kind::GoalPlan(_) | Kind::Selection { .. }
+        ) {
+            return;
+        }
+        let project = self.fields[0].value().to_string();
+        if let Kind::GoalPlan(goal) = &self.kind {
+            let accepted: Vec<_> = records.iter().filter_map(|r| match r {
+                OrganizationRecord::Task(t) if t.project_id==project && t.goal_id.as_deref()==Some(&goal.id) && t.state=="accepted" => {
+                    let evidence=report?.tasks.iter().find(|e|e.task_id==t.id && e.revision==t.revision && e.state=="accepted" && e.result_digest.is_some())?;
+                    Some(serde_json::json!({"taskId":t.id,"revision":t.revision,"digest":evidence.result_digest,"criteria":t.criteria,"checksPassed":evidence.checks_passed,"checksFailed":evidence.checks_failed}))
+                }, _=>None,
+            }).take(8).collect();
+            let mut prompt = self.fields[3].value().to_string();
+            prompt.push_str(&format!("\nRolling planning context (report {}; at most eight accepted results, no inferred goal completion): {}. Propose ONLY remaining work. Missing evidence is unavailable. All output requires separate owner workflow/scope review.", report.map(|r|r.sequence).map(|n|n.to_string()).unwrap_or_else(||"unavailable".into()),serde_json::json!(accepted)));
+            self.fields[3].input.set_text_clearing_elements(&prompt);
+            self.fields[5].input.set_text_clearing_elements(
+                &accepted
+                    .iter()
+                    .filter_map(|v| v["taskId"].as_str())
+                    .collect::<Vec<_>>()
+                    .join("\n"),
+            );
+        }
+        let selected = self.fields[1].value().to_string();
+        let query = self.fields[3].value().to_lowercase();
+        let terms: BTreeSet<_> = query
+            .split(|c: char| !c.is_alphanumeric())
+            .filter(|s| s.len() > 3)
+            .collect();
+        // ponytail: transparent lexical advice, not a learned quality predictor; qualify one before replacing it.
+        let mut ranked:Vec<_>=records.iter().filter_map(|r| match r {
+            OrganizationRecord::Node(n) if n.enabled && n.kind==OrganizationNodeKind::Agent => {
+                let role=records.iter().find_map(|r|match r {OrganizationRecord::Role(role) if Some(&role.id)==n.role_version_id.as_ref()=>Some(role),_=>None});
+                let capabilities=format!("{} {}",n.label,role.map(|r|format!("{} {}",r.name,r.instructions)).unwrap_or_default()).to_lowercase();
+                let matches=terms.iter().filter(|t|capabilities.split(|c:char|!c.is_alphanumeric()).any(|s|s==**t)).count();
+                let load=records.iter().filter(|r|matches!(r,OrganizationRecord::Task(t) if t.owner_id==n.id && !matches!(t.state.as_str(),"accepted"|"cancelled"|"failed"))).count();
+                let outcomes=report.and_then(|r|r.scorecards.as_ref()).map(|s|s.entries.iter().filter(|e|e.project_id==project && e.owner_id.as_deref()==Some(&n.id)).fold((0i64,0i64),|(accepted,failed),e|(accepted+e.accepted_results,failed+e.failed_attempts)));
+                let evidence=outcomes.map(|(a,f)|format!("{a} accepted/{f} failed captured attempts")).unwrap_or_else(||"outcomes unavailable".into());
+                Some((std::cmp::Reverse(matches),load,n.id.clone(),format!("{} · {matches} capability terms · {load} open tasks · {evidence}",n.label)))
+            }, _=>None,
+        }).collect();
+        ranked.sort_by(|a, b| (&a.0, a.1, &a.2).cmp(&(&b.0, b.1, &b.2)));
+        let choices = ranked
+            .into_iter()
+            .map(|(_, _, id, label)| (id, label))
+            .collect();
+        self.fields[1] =
+            Field::select("Assignment advice · choose owner", choices, Some(&selected));
     }
     pub(super) fn prefill_scope(&mut self, scope: &OrganizationExecutionScope) {
         if !matches!(
@@ -2367,6 +2512,14 @@ impl Form {
                             required(6)?,
                             required(3)?,
                             serde_json::to_string_pretty(selection)?
+                        )
+                    } else if let Kind::GoalPlan(goal) = &self.kind {
+                        format!(
+                            "{}\nOwner-reviewed remaining criteria for goal {} revision {} (untrusted planning content): {}",
+                            required(3)?,
+                            goal.id,
+                            goal.revision,
+                            required(6)?
                         )
                     } else {
                         required(3)?
