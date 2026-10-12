@@ -323,6 +323,28 @@ impl OrganizationStore {
         let attempts: Vec<String> = sqlx::query_scalar("SELECT data FROM organization_attempts WHERE json_extract(data,'$.workspace') IS NOT NULL").fetch_all(&self.pool).await?;
         for data in attempts {
             let attempt: OrganizationTaskAttempt = serde_json::from_str(&data)?;
+            for base in &attempt.artifact_bases {
+                let Some(hash) = &base.sha256 else {
+                    continue;
+                };
+                ensure!(valid_base_hash(hash), "invalid captured artifact base hash");
+                let name = format!("organization-artifact-bases/{hash}");
+                let source = codex_home.join(&name);
+                if manifest.files.iter().any(|f| f.path == name) {
+                    continue;
+                }
+                // Historical attempts only captured hashes. Missing legacy bytes
+                // stay unavailable; never infer a base from today's owner file.
+                if !source.try_exists()? {
+                    continue;
+                }
+                owned(&codex_home.join("organization-artifact-bases"), true)?;
+                ensure!(
+                    format!("{:x}", Sha256::digest(read(&source)?)) == *hash,
+                    "artifact base integrity mismatch"
+                );
+                capture(&destination, &source, &name, &mut manifest)?;
+            }
             let path = attempt.workspace.context("workspace missing")?;
             Uuid::parse_str(&attempt.id)?;
             ensure!(Path::new(&path).is_absolute(), "workspace must be absolute");
@@ -385,6 +407,10 @@ impl OrganizationStore {
             ensure!(paths.insert(entry.path.clone()), "duplicate manifest path");
             ensure!(
                 entry.path == "organization/organization.sqlite"
+                    || entry
+                        .path
+                        .strip_prefix("organization-artifact-bases/")
+                        .is_some_and(valid_base_hash)
                     || runtime_names.contains(&entry.path)
                     || entry.path.starts_with("sessions/")
                     || entry.path.starts_with("archived_sessions/")
@@ -439,6 +465,22 @@ impl OrganizationStore {
             .fetch_one(&pool)
             .await?;
         let canonical: Vec<(String,String)> = sqlx::query_as("SELECT id,json_extract(data,'$.workspace') FROM organization_attempts WHERE json_extract(data,'$.workspace') IS NOT NULL ORDER BY id").fetch_all(&pool).await?;
+        let attempts: Vec<String> = sqlx::query_scalar("SELECT data FROM organization_attempts")
+            .fetch_all(&pool)
+            .await?;
+        let mut bases = BTreeSet::new();
+        for data in attempts {
+            let attempt: OrganizationTaskAttempt = serde_json::from_str(&data)?;
+            bases.extend(attempt.artifact_bases.into_iter().filter_map(|b| b.sha256));
+        }
+        for entry in &manifest.files {
+            if let Some(hash) = entry.path.strip_prefix("organization-artifact-bases/") {
+                ensure!(
+                    bases.contains(hash) && entry.sha256 == hash && entry.bytes <= 8 * 1024 * 1024,
+                    "undeclared or changed captured artifact base"
+                );
+            }
+        }
         pool.close().await;
         ensure!(
             identity == manifest.database_id
@@ -574,4 +616,11 @@ impl OrganizationStore {
         sync_directory(&destination)?;
         Ok(restored)
     }
+}
+
+fn valid_base_hash(hash: &str) -> bool {
+    hash.len() == 64
+        && hash
+            .bytes()
+            .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
 }

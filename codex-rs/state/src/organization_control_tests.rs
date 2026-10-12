@@ -36,6 +36,133 @@ fn global(paused: bool, requests: u32, tokens: i64, active: u32) -> Organization
 }
 
 #[tokio::test]
+async fn role_rollback_creates_reviewed_immutable_history_and_retains_running_captures()
+-> Result<()> {
+    let home = Fixture::new();
+    let store = OrganizationStore::open(&home.0).await?;
+    let Some(OrganizationRecord::Role(source)) = store
+        .mutate_owner(
+            OrganizationMutation::CreateRoleVersion {
+                role_id: None,
+                expected_version: None,
+                name: "Custom instructions".into(),
+                instructions: "Original checked instructions".into(),
+            },
+            None,
+        )
+        .await?
+    else {
+        panic!("source")
+    };
+    let Some(OrganizationRecord::Role(current)) = store
+        .mutate_owner(
+            OrganizationMutation::CreateRoleVersion {
+                role_id: Some(source.role_id.clone()),
+                expected_version: Some(1),
+                name: source.name.clone(),
+                instructions: "Changed instructions".into(),
+            },
+            None,
+        )
+        .await?
+    else {
+        panic!("current")
+    };
+    let mut agent = node_from(
+        store
+            .mutate_owner(
+                node_mutation("Arbitrary worker", None, OrganizationNodeKind::Agent),
+                None,
+            )
+            .await?,
+    );
+    agent = node_from(
+        store
+            .mutate_owner(
+                OrganizationMutation::PutNode {
+                    id: Some(agent.id.clone()),
+                    expected_revision: Some(agent.revision),
+                    parent_id: None,
+                    kind: agent.kind,
+                    label: agent.label,
+                    role_version_id: Some(current.id.clone()),
+                    model: None,
+                    enabled: true,
+                },
+                None,
+            )
+            .await?,
+    );
+    let project = execution_project(&store, &agent.id).await?;
+    let task = execution_task(&store, &agent.id, &project).await?;
+    store
+        .authorize_task(&task.id, task.revision, execution_scope(), 1000)
+        .await?;
+    let worker = Uuid::now_v7().to_string();
+    let attempt = store
+        .claim_task(&worker, &Uuid::now_v7().to_string(), 1000, 2)
+        .await?
+        .unwrap();
+    let id = Uuid::now_v7().to_string();
+    let mut value = OrganizationControlValue::RoleRollback {
+        id: id.clone(),
+        reason: "Restore checked instructions".into(),
+        current: Box::new(current.clone()),
+        source: Box::new(source.clone()),
+        applied: true,
+    };
+    assert!(
+        set(&store, None, value.clone()).await.is_err(),
+        "proposal must be saved before application"
+    );
+    if let OrganizationControlValue::RoleRollback { applied, .. } = &mut value {
+        *applied = false;
+    }
+    let mut forged = value.clone();
+    if let OrganizationControlValue::RoleRollback { source, .. } = &mut forged {
+        source.instructions = "Forged past content".into();
+    }
+    assert!(set(&store, None, forged).await.is_err());
+    let proposal = set(&store, None, value.clone()).await?;
+    let before = store.execution_view(&task.id).await?;
+    if let OrganizationControlValue::RoleRollback { applied, .. } = &mut value {
+        *applied = true;
+    }
+    let applied = set(&store, Some(proposal.revision), value.clone()).await?;
+    assert!(
+        set(&store, Some(applied.revision), value).await.is_err(),
+        "applied proposal cannot replay"
+    );
+    let OrganizationRecord::Role(restored) = store
+        .read_definition(OrganizationRecordKind::Roles, &id)
+        .await?
+    else {
+        panic!("restored")
+    };
+    assert_eq!(
+        (restored.version, restored.instructions),
+        (3, source.instructions)
+    );
+    assert_eq!(store.execution_view(&task.id).await?, before);
+    assert_eq!(
+        before.attempts[0].role_version_id.as_deref(),
+        Some(current.id.as_str())
+    );
+    store
+        .admit_model_request(&attempt.id, &worker, 1001)
+        .await?;
+    assert_eq!(
+        store
+            .list_definitions(OrganizationRecordKind::ControlHistory, None, 200)
+            .await?
+            .0
+            .len(),
+        2
+    );
+    Ok(())
+}
+
+#[tokio::test]
 async fn mission_versions_and_incomplete_goal_evidence_never_create_authority() -> Result<()> {
     let home = Fixture::new();
     let store = OrganizationStore::open(&home.0).await?;

@@ -15,6 +15,24 @@ pub(crate) struct Preview {
     hash: String,
 }
 impl Preview {
+    pub(crate) fn captured_text(home: &Path, text: &str) -> Result<Self> {
+        ensure!(text.len() <= 1024 * 1024, "captured text exceeds 1 MiB");
+        let directory = tempfile::Builder::new()
+            .prefix(".organization-preview-")
+            .tempdir_in(home)?;
+        let mut file = tempfile::NamedTempFile::new_in(directory.path())?;
+        file.write_all(text.as_bytes())?;
+        file.as_file().sync_all()?;
+        file.persist(directory.path().join("artifact"))
+            .context("persist captured text")?;
+        Ok(Self {
+            root: directory.path().into(),
+            directory,
+            relative: "artifact".into(),
+            expected: None,
+            hash: format!("{:x}", Sha256::digest(text.as_bytes())),
+        })
+    }
     pub(crate) fn new(
         home: &Path,
         root: &Path,

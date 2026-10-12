@@ -1,6 +1,153 @@
 use super::*;
 
 #[tokio::test]
+async fn real_three_way_review_preserves_common_base_owner_and_agent_and_refuses_dirty_buffers() {
+    let project = tempfile::tempdir().unwrap();
+    let base = project.path().join("base.txt");
+    let owner = project.path().join("owner.txt");
+    let agent = project.path().join("agent.txt");
+    std::fs::write(&base, "common base\n").unwrap();
+    std::fs::write(&owner, "owner change\n").unwrap();
+    std::fs::write(&agent, "agent change\n").unwrap();
+    let mut editor = Editor::start(FrameRequester::test_dummy()).unwrap();
+    editor.open(&owner, false).unwrap();
+    editor.paste("unsaved owner change").unwrap();
+    assert!(editor.three_way(&base, &owner, &agent).is_err());
+    editor.rpc("nvim_command", vec!["edit!".into()]).unwrap();
+    editor.three_way(&base, &owner, &agent).unwrap();
+    assert_eq!(
+        editor
+            .rpc("nvim_eval", vec!["winnr('$')".into()])
+            .unwrap()
+            .as_i64(),
+        Some(3)
+    );
+    for _ in 0..3 {
+        assert_eq!(
+            editor
+                .rpc(
+                    "nvim_eval",
+                    vec!["&diff && &readonly && !&modifiable".into()]
+                )
+                .unwrap()
+                .as_i64(),
+            Some(1)
+        );
+        editor.command("wincmd", vec!["w".into()]).unwrap();
+    }
+    assert_eq!(std::fs::read_to_string(&owner).unwrap(), "owner change\n");
+    editor.open(&owner, false).unwrap();
+    editor
+        .rpc(
+            "nvim_buf_set_lines",
+            vec![
+                0.into(),
+                0.into(),
+                (-1).into(),
+                true.into(),
+                Value::Array(vec!["owner resolves both changes".into()]),
+            ],
+        )
+        .unwrap();
+    editor.command("write", vec![]).unwrap();
+    assert_eq!(
+        std::fs::read_to_string(&owner).unwrap(),
+        "owner resolves both changes\n"
+    );
+    assert_eq!(std::fs::read_to_string(&base).unwrap(), "common base\n");
+    assert_eq!(std::fs::read_to_string(&agent).unwrap(), "agent change\n");
+}
+
+#[tokio::test]
+async fn actual_neovim_terminal_runs_owner_commands_beside_unsaved_code_and_captured_tests() {
+    let home = tempfile::tempdir().unwrap();
+    let project = tempfile::tempdir().unwrap();
+    let original = project.path().join("code.txt");
+    std::fs::write(&original, "saved code\n").unwrap();
+    let mut editor = Editor::start(FrameRequester::test_dummy()).unwrap();
+    editor.open(&original, false).unwrap();
+    let buffer = editor.rpc("nvim_get_current_buf", vec![]).unwrap();
+    editor
+        .rpc(
+            "nvim_buf_set_lines",
+            vec![
+                buffer.clone(),
+                0.into(),
+                (-1).into(),
+                true.into(),
+                Value::Array(vec!["unsaved owner code".into()]),
+            ],
+        )
+        .unwrap();
+    editor.terminal(project.path()).unwrap();
+    assert_eq!(
+        editor
+            .rpc("nvim_eval", vec!["&buftype".into()])
+            .unwrap()
+            .as_str(),
+        Some("terminal")
+    );
+    editor
+        .paste("printf native-terminal-ok > terminal-proof.txt\n")
+        .unwrap();
+    let proof = project.path().join("terminal-proof.txt");
+    for _ in 0..100 {
+        if proof.exists() {
+            break;
+        }
+        tokio::time::sleep(Duration::from_millis(20)).await;
+        editor.poll();
+    }
+    assert_eq!(
+        std::fs::read_to_string(&proof).unwrap(),
+        "native-terminal-ok"
+    );
+    assert_eq!(std::fs::read_to_string(&original).unwrap(), "saved code\n");
+    assert_eq!(
+        editor
+            .rpc(
+                "nvim_buf_get_lines",
+                vec![buffer, 0.into(), (-1).into(), true.into()]
+            )
+            .unwrap(),
+        Value::Array(vec!["unsaved owner code".into()])
+    );
+    assert!(
+        editor
+            .save_session(home.path(), &[project.path().into()])
+            .is_err(),
+        "terminal jobs must not be serialized as project files"
+    );
+    let panel = crate::organization_preview::Preview::captured_text(
+        home.path(),
+        "Captured oracle\nexit 0\nPASS\n",
+    )
+    .unwrap();
+    editor.captured_panel(&panel.path()).unwrap();
+    assert_eq!(
+        editor
+            .rpc("nvim_get_current_line", vec![])
+            .unwrap()
+            .as_str(),
+        Some("Captured oracle")
+    );
+    assert_eq!(
+        editor
+            .rpc("nvim_eval", vec!["&modifiable".into()])
+            .unwrap()
+            .as_i64(),
+        Some(0)
+    );
+    assert_eq!(
+        editor
+            .rpc("nvim_eval", vec!["winnr('$')".into()])
+            .unwrap()
+            .as_i64(),
+        Some(3)
+    );
+}
+
+#[tokio::test]
 async fn official_neovim_loads_opt_in_owner_config_and_bundled_plugin_without_changing_it() {
     let home = tempfile::tempdir().unwrap();
     let path = home.path().join("init.lua");

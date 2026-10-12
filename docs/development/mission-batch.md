@@ -128,3 +128,50 @@ identity returns its receipt. Actual runtime qualification remains pending.
 Knowledge freshness advice and artifact/text/native-terminal/three-way UI source
 are now in progress, with new affected UI/editor testing underway. Updated
 generated contracts, final Clippy/build and all physical gates remain pending.
+
+Next source checkpoint in qualification: **322 state tests pass**
+(`state-tests-v5.log`), including reviewed immutable role rollback, captured
+workflow rollback without changing original runs/grants, and full-bundle
+preservation of original common-base snapshots. Workflow rollback sources are
+versions captured in prior runs; never invent overwritten unused-template history.
+The new rollback control history retains the exact replaced and source versions.
+Role rollback creates a fresh immutable version; assignment remains a separate
+owner decision.
+
+An intermediate UI build passes **88 affected tests** (`mission-ui-tests-v2.log`),
+including actual official-Neovim terminal commands beside unsaved code and a
+read-only test panel. Three-way UI and additional advice/preview tests were added
+after that compiler loaded organization.rs; do not count that receipt as their
+qualification. A complete corrected rerun (`mission-ui-tests-v3.log`) is running.
+
+Artifact browsing scans at most 32 current result tasks/128 outputs after bounded
+project-report loading. Search uses literal metadata text (path, task/project,
+captured owner, digest and checks); limits are explicit. Inline Markdown/text/CSV
+previews verify captured bytes/hash, use literal UTF-8 and refuse binary or >64 KiB
+content. Neovim owns all editing. Original common-base bytes are private,
+content-addressed host snapshots outside agent workspaces (8 MiB/file, 64 MiB/
+attempt). Full bundles preserve only canonical referenced snapshots with hash/size
+checks. Legacy missing bases remain unavailable. Three-way views use protected
+read-only base/owner/agent copies; owner resolution opens/saves the actual original
+explicitly. Existing Apply/dirty/base guards and one-Application rule remain.
+
+Memory advice compares only scoped retrieved age (>30 days), identical text and
+differing source versions; it changes no notes. Model advice uses selected endpoint
+provenance and matching captured scorecards; unavailable/unknown evidence remains
+unavailable, no probes/fallback occur. Resource previews show proposed ceilings,
+loaded remaining global/project pools and trusted quote provenance. They are
+advice, not reservations, invoices or hard monetary caps. Physical checks and
+finite 30-minute qualification are still pending. Fresh localhost fixture helpers
+are prepared only; no new native workflow home/provider/inference has started.
+
+The corrected complete affected UI suite now passes **92 tests**
+(`mission-ui-tests-v4.log`), including actual Neovim three-way diffs, dirty refusal
+and explicit owner resolution/save without changing base/agent files. The prior
+run had 91 pass/1 fail because its test sent `edit!` as the structured command
+name; it now uses the editor's actual bang command correctly, with all assertions
+retained. Artifact hash/size/binary/traversal, exact-endpoint model advice and
+demand-versus-remaining-resource assertions pass. No physical packaged CLI pass
+is claimed yet. Full contracts/runtime/production checks and finite qualification
+remain. A backup review identified the need to distinguish intentionally missing
+legacy base bytes from lost newly captured snapshots; that follow-up will make
+missing required snapshots fail full backup rather than silently omitting them.

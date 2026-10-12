@@ -285,9 +285,144 @@ pub(super) fn inventory_text(inventory: &OrganizationInventory) -> String {
     text
 }
 
+pub(super) fn model_advice(
+    report: &OrganizationReport,
+    provider: &OrganizationProviderEvidence,
+) -> String {
+    let mut text = String::from(
+        "\nMODEL ADVICE · selected configured endpoint, captured bounded-runtime results\n",
+    );
+    let entries = report
+        .scorecards
+        .as_ref()
+        .map(|s| s.entries.as_slice())
+        .unwrap_or(&[]);
+    let mut candidates: Vec<_> = entries
+        .iter()
+        .filter(|s| {
+            s.provider.as_ref() == Some(provider)
+                && s.model.is_some()
+                && s.accepted_results > 0
+                && s.checks_passed > 0
+                && s.uncertain_attempts == 0
+        })
+        .collect();
+    candidates.sort_by_key(|s| std::cmp::Reverse((s.accepted_results, s.checks_passed)));
+    for s in candidates.iter().take(8) {
+        text.push_str(&format!("Candidate {} · project {} · {} owner-accepted results · checks {} pass / {} fail · {} failed / {} blocked attempts · {} reported tokens / {}/{} requests reported\nCaptured endpoint SHA256 {}\n",s.model.as_deref().unwrap_or("unavailable"),s.project_id,s.accepted_results,s.checks_passed,s.checks_failed,s.failed_attempts,s.blocked_attempts,s.reported_tokens,s.reported_model_requests,s.model_requests,provider.endpoint_sha256));
+    }
+    if candidates.is_empty() {
+        text.push_str("No checked, accepted candidate at this exact configured endpoint; recommendation unavailable.\n");
+    }
+    text.push_str("Counts describe captured tasks, not general model quality or a price ranking. Compatibility is revalidated for new grants; unavailable/Code Mode-only models may refuse. Choose explicitly in a scope; no fallback or model change is performed. Missing/unreported cost remains unavailable.\n");
+    text
+}
+
+pub(super) async fn inventory_advice(
+    handle: &AppServerRequestHandle,
+    inventory: &OrganizationInventory,
+) -> anyhow::Result<String> {
+    let mut text = inventory_text(inventory);
+    let Some(selected) = inventory.providers.iter().find(|p| p.selected) else {
+        text.push_str("\nModel advice unavailable: no selected configured provider.\n");
+        return Ok(text);
+    };
+    let report = load(handle, None).await?;
+    let source = selected.observation.latest_attempt_id.as_deref();
+    let Some(task) = report
+        .tasks
+        .iter()
+        .find(|t| t.attempt_id.as_deref() == source && source.is_some())
+    else {
+        text.push_str("\nModel advice unavailable: no current endpoint provenance in the bounded loaded report.\n");
+        return Ok(text);
+    };
+    let response: OrganizationExecutionReadResponse = handle
+        .request_typed(ClientRequest::OrganizationExecutionRead {
+            request_id: request_id(),
+            params: OrganizationExecutionReadParams {
+                task_id: task.task_id.clone(),
+            },
+        })
+        .await?;
+    if let Some(provider) = response
+        .view
+        .attempts
+        .iter()
+        .find(|a| Some(a.id.as_str()) == source)
+        .and_then(|a| a.provider.as_ref())
+        .filter(|p| p.id == selected.id)
+    {
+        text.push_str(&model_advice(&report, provider));
+    } else {
+        text.push_str("\nModel advice unavailable: captured configured endpoint missing.\n");
+    }
+    Ok(text)
+}
+
+/// Advice only, computed after scoped retrieval. Never retires or promotes notes.
+pub(super) fn freshness(notes: &[OrganizationNote], now: i64) -> String {
+    let mut text = String::from("\nMEMORY REVIEW ADVICE · loaded scoped matches only\n");
+    for (index, note) in notes.iter().enumerate() {
+        if now.saturating_sub(note.created_at) > 30 * 24 * 3600 {
+            text.push_str(&format!(
+                "{}: older than 30 days; verify against current evidence.\n",
+                note.id
+            ));
+        }
+        for prior in &notes[..index] {
+            if note.project_id != prior.project_id || note.scope != prior.scope {
+                continue;
+            }
+            if note.body == prior.body {
+                text.push_str(&format!(
+                    "{} / {}: identical text; review duplication.\n",
+                    prior.id, note.id
+                ));
+            } else if note.source_note_id.as_deref().unwrap_or(&note.id)
+                == prior.source_note_id.as_deref().unwrap_or(&prior.id)
+            {
+                text.push_str(&format!(
+                    "{} / {}: differing versions of one source; review possible conflict.\n",
+                    prior.id, note.id
+                ));
+            }
+        }
+    }
+    text.push_str("Age/identity/text comparisons are suggestions, not semantic truth. O reviews a correction/promotion; originals and history remain.\n");
+    text
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn scoped_freshness_advice_does_not_merge_or_retire_notes() {
+        let note: OrganizationNote = serde_json::from_value(serde_json::json!({"id":"source","projectId":"project","authorId":"agent","taskId":"task","attemptId":"attempt","scope":"agent","body":"Original evidence","createdAt":1,"ownerReviewed":false})).unwrap();
+        let duplicate = OrganizationNote {
+            id: "duplicate".into(),
+            ..note.clone()
+        };
+        let correction = OrganizationNote {
+            id: "correction".into(),
+            source_note_id: Some(note.id.clone()),
+            body: "Changed evidence".into(),
+            ..note.clone()
+        };
+        let unrelated = OrganizationNote {
+            id: "unrelated".into(),
+            project_id: "other-project".into(),
+            ..note.clone()
+        };
+        let notes = vec![note, duplicate, correction, unrelated];
+        let before = notes.clone();
+        let text = freshness(&notes, 31 * 24 * 3600);
+        assert!(text.contains("source / duplicate: identical"));
+        assert!(text.contains("source / correction: differing versions"));
+        assert!(!text.contains("source / unrelated:"));
+        assert!(text.contains("older than 30 days"));
+        assert_eq!(notes, before);
+    }
     fn task(state: &str) -> OrganizationTaskReport {
         OrganizationTaskReport {
             task_id: "task".into(),

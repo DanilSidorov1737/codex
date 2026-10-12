@@ -379,6 +379,7 @@ impl TaskWorkspace {
             file.write_all(&bytes)?;
             file.sync_all()?;
         }
+        let mut base_bytes = 0u64;
         let artifact_bases = scope
             .artifacts
             .iter()
@@ -398,10 +399,17 @@ impl TaskWorkspace {
                         .clone()
                 } else {
                     match std::fs::symlink_metadata(&path) {
-                        Ok(_) => Some(format!(
-                            "{:x}",
-                            Sha256::digest(read_relative(&project, relative)?)
-                        )),
+                        Ok(_) => {
+                            let bytes = read_relative(&project, relative)?;
+                            base_bytes = base_bytes
+                                .checked_add(bytes.len() as u64)
+                                .context("base snapshot size overflow")?;
+                            ensure!(
+                                base_bytes <= MAX_INPUT_BYTES,
+                                "artifact bases exceed 64 MiB"
+                            );
+                            Some(capture_artifact_base(&config.codex_home, &bytes)?)
+                        }
                         Err(error) if error.kind() == std::io::ErrorKind::NotFound => None,
                         Err(error) => return Err(error.into()),
                     }
@@ -508,6 +516,32 @@ impl TaskWorkspace {
         }
         Ok(checks)
     }
+}
+
+/// Content-addressed host bytes live outside all granted agent workspaces.
+fn capture_artifact_base(home: &Path, bytes: &[u8]) -> Result<String> {
+    ensure!(
+        bytes.len() as u64 <= MAX_FILE_BYTES,
+        "artifact base exceeds 8 MiB"
+    );
+    let directory = home.join("organization-artifact-bases");
+    private_directory(&directory, false)?;
+    let hash = format!("{:x}", Sha256::digest(bytes));
+    match read_relative(&directory, &hash) {
+        Ok(existing) => ensure!(
+            existing == bytes,
+            "captured base changed; inspect host recovery"
+        ),
+        Err(error)
+            if error
+                .downcast_ref::<std::io::Error>()
+                .is_some_and(|e| e.kind() == std::io::ErrorKind::NotFound) =>
+        {
+            write_relative_checked(&directory, &hash, bytes, Some(None))?
+        }
+        Err(error) => return Err(error),
+    }
+    Ok(hash)
 }
 
 fn verified_checkpoint_file(
@@ -898,6 +932,36 @@ fn current_uid() -> u32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn captured_common_base_is_private_reused_verified_and_never_overwrites_corruption()
+    -> Result<()> {
+        let home = tempfile::tempdir()?;
+        let bytes = b"original shared base\n";
+        let hash = capture_artifact_base(home.path(), bytes)?;
+        let path = home.path().join("organization-artifact-bases").join(&hash);
+        assert_eq!(read_relative(path.parent().unwrap(), &hash)?, bytes);
+        assert_eq!(capture_artifact_base(home.path(), bytes)?, hash);
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            assert_eq!(
+                std::fs::metadata(path.parent().unwrap())?
+                    .permissions()
+                    .mode()
+                    & 0o777,
+                0o700
+            );
+            assert_eq!(
+                std::fs::metadata(&path)?.permissions().mode() & 0o777,
+                0o600
+            );
+        }
+        std::fs::write(&path, b"corrupt owner snapshot")?;
+        assert!(capture_artifact_base(home.path(), bytes).is_err());
+        assert_eq!(std::fs::read(&path)?, b"corrupt owner snapshot");
+        assert!(capture_artifact_base(home.path(), &vec![0; MAX_FILE_BYTES as usize + 1]).is_err());
+        Ok(())
+    }
 
     #[tokio::test]
     async fn exact_hunk_application_rejects_stale_hashes_and_preserves_unselected_changes()

@@ -1683,6 +1683,10 @@ async fn full_bundle_restores_evidence_runtime_paths_and_uncertain_accounting_wi
     private_directory(&workspace.0).await?;
     private_file(&workspace.0.join("report.txt"), true)?.write_all(b"checked evidence")?;
     private_file(&home.0.join("auth.json"), true)?.write_all(b"excluded test credential")?;
+    let base_hash = format!("{:x}", Sha256::digest(b"common captured base"));
+    let base_dir = home.0.join("organization-artifact-bases");
+    private_directory(&base_dir).await?;
+    private_file(&base_dir.join(&base_hash), true)?.write_all(b"common captured base")?;
     let (worker, attempt) = authorized_attempt(&store, false).await?;
     store
         .bind_attempt_runtime(
@@ -1693,7 +1697,7 @@ async fn full_bundle_restores_evidence_runtime_paths_and_uncertain_accounting_wi
                 turn_id: None,
                 artifact_bases: vec![OrganizationArtifactBase {
                     path: "report.txt".into(),
-                    sha256: None,
+                    sha256: Some(base_hash.clone()),
                 }],
             },
             1001,
@@ -1776,6 +1780,15 @@ async fn full_bundle_restores_evidence_runtime_paths_and_uncertain_accounting_wi
     assert!(!bundle.0.join("auth.json").exists());
     let restored = OrganizationStore::restore_bundle(&bundle.0, &destination.0).await?;
     assert_eq!(restored.database_id().await?, store.database_id().await?);
+    assert_eq!(
+        std::fs::read(
+            destination
+                .0
+                .join("organization-artifact-bases")
+                .join(&base_hash)
+        )?,
+        b"common captured base"
+    );
     let view = restored.execution_view(&attempt.task_id).await?;
     assert_eq!(view.task.state, "accepted");
     assert_eq!(view.result.as_ref().unwrap().digest, result.digest);

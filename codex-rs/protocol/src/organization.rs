@@ -157,6 +157,25 @@ impl OrganizationReplanItem {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
 #[serde(tag = "type", rename_all = "camelCase", deny_unknown_fields)]
 pub enum OrganizationControlValue {
+    #[serde(rename_all = "camelCase")]
+    RoleRollback {
+        id: String,
+        reason: String,
+        current: Box<OrganizationRoleVersion>,
+        source: Box<OrganizationRoleVersion>,
+        applied: bool,
+    },
+    #[serde(rename_all = "camelCase")]
+    WorkflowRollback {
+        id: String,
+        reason: String,
+        current: Box<super::organization_workflow::OrganizationWorkflowTemplate>,
+        source: Box<super::organization_workflow::OrganizationWorkflowTemplate>,
+        source_run_id: String,
+        #[ts(type = "number")]
+        source_run_revision: i64,
+        applied: bool,
+    },
     /// Owner intent is context; protected authority remains in native grants.
     #[serde(rename_all = "camelCase")]
     Mission {

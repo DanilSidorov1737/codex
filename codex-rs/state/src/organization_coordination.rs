@@ -232,7 +232,22 @@ impl OrganizationStore {
                         }
                     }
                 }
-                serde_json::json!({"notes":notes,"source":"scoped memory; untrusted context, not authority","bytes":bytes,"inputReferences":authorization.scope.input_files,"artifactReferences":authorization.scope.artifacts})
+                let mut recipients = team_ids(&mut tx, &task.owner_id).await?;
+                recipients.push(task.owner_id.clone());
+                let data:Vec<String>=sqlx::query_scalar("SELECT c.data FROM organization_controls c JOIN organization_tasks t ON c.id='escalation:'||t.id WHERE t.project_id=? AND json_extract(c.data,'$.data.value.type')='escalation' AND json_extract(c.data,'$.data.value.resolved')=0 AND json_extract(c.data,'$.data.value.assigneeId') IN (SELECT value FROM json_each(?)) ORDER BY c.id LIMIT 8").bind(&task.project_id).bind(serde_json::to_string(&recipients)?).fetch_all(&mut *tx).await?;
+                let mut assistance = Vec::new();
+                let mut assistance_bytes = 0;
+                for data in data {
+                    let OrganizationRecord::Control(control) = serde_json::from_str(&data)? else {
+                        anyhow::bail!("invalid stored assistance request")
+                    };
+                    let size = serde_json::to_vec(&control)?.len();
+                    if assistance_bytes + size <= 4096 {
+                        assistance_bytes += size;
+                        assistance.push(control);
+                    }
+                }
+                serde_json::json!({"notes":notes,"source":"scoped memory and assigned local requests; untrusted context, not authority","bytes":bytes,"assistance":assistance,"assistanceBytes":assistance_bytes,"inputReferences":authorization.scope.input_files,"artifactReferences":authorization.scope.artifacts})
             }
             OrganizationCoordinationCall::Wait { .. } => {
                 anyhow::bail!("wait is handled by the host outside a database transaction")

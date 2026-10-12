@@ -458,6 +458,78 @@ const ACTIONS: &[Action] = &[
         code: KeyCode::F(24),
         context: "private layout, filter and focused branch",
     },
+    Action {
+        title: "Workspace mission / priorities / constraints",
+        shortcut: "Commands",
+        code: KeyCode::F(26),
+        context: "owner-versioned intent; native grants remain",
+    },
+    Action {
+        title: "Create optional editable playbook",
+        shortcut: "Commands",
+        code: KeyCode::F(27),
+        context: "select project; no mandatory roles or execution",
+    },
+    Action {
+        title: "Review goal criterion evidence",
+        shortcut: "Commands",
+        code: KeyCode::F(28),
+        context: "select goal; exact accepted results and owner reasons",
+    },
+    Action {
+        title: "Route local blocker assistance",
+        shortcut: "Commands",
+        code: KeyCode::F(29),
+        context: "select task needing help; no new grants",
+    },
+    Action {
+        title: "Capture accepted-result lesson",
+        shortcut: "Commands",
+        code: KeyCode::F(30),
+        context: "select accepted task; private reviewable proposal",
+    },
+    Action {
+        title: "Open native owner terminal beside Neovim",
+        shortcut: "Commands",
+        code: KeyCode::F(33),
+        context: "select project/task; actual owner shell; separate from agent permissions",
+    },
+    Action {
+        title: "Browse / search captured artifact library",
+        shortcut: "Commands",
+        code: KeyCode::F(31),
+        context: "select project/task; bounded current results with provenance",
+    },
+    Action {
+        title: "Preview captured text / Markdown / CSV",
+        shortcut: "Commands",
+        code: KeyCode::F(32),
+        context: "select result task; n cycles outputs in Review; verified literal text",
+    },
+    Action {
+        title: "Open captured native test panel",
+        shortcut: "Commands",
+        code: KeyCode::F(34),
+        context: "select checked task; recorded argv/output/exit, no execution",
+    },
+    Action {
+        title: "Review base / owner / agent in real Neovim",
+        shortcut: "Commands",
+        code: KeyCode::F(35),
+        context: "select result task; protected three-way copies; owner resolves original explicitly",
+    },
+    Action {
+        title: "Propose role version rollback",
+        shortcut: "Commands",
+        code: KeyCode::F(36),
+        context: "select agent/role; new immutable version; % applies exact saved proposal",
+    },
+    Action {
+        title: "Propose captured workflow rollback",
+        shortcut: "Commands",
+        code: KeyCode::F(37),
+        context: "select template; source from prior run; history/counters/grants retained",
+    },
 ];
 
 impl Palette {

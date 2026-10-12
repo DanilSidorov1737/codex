@@ -23,6 +23,8 @@ use crate::organization_editor::Editor;
 use crate::organization_preview::Preview;
 use crate::tui::{FrameRequester, Tui, TuiEvent};
 
+#[path = "organization_artifacts.rs"]
+mod artifacts;
 #[path = "organization_form.rs"]
 mod form;
 #[path = "organization_graph.rs"]
@@ -204,6 +206,12 @@ struct Snapshot {
     limited: bool,
 }
 enum Command {
+    ArtifactLibrary {
+        id: String,
+        project_id: String,
+        query: String,
+    },
+    NativeTerminal(PathBuf),
     NamedView {
         name: String,
         action: String,
@@ -470,11 +478,18 @@ async fn worker(
             Command::MemorySearch(params) => Some(params.clone()),
             _ => None,
         };
+        let report_id = match &command {
+            Command::Summary(id, _)
+            | Command::Inventory(id)
+            | Command::ArtifactLibrary { id, .. } => Some(id.clone()),
+            _ => None,
+        };
         let mut apply_rejected = false;
         let operation = async {
             match command {
                 Command::RestoreEditor(..)
                 | Command::BufferProposal(..)
+                | Command::NativeTerminal(..)
                 | Command::NamedView { .. } => {
                     anyhow::bail!("native editor actions must stay on the frontend")
                 }
@@ -485,8 +500,18 @@ async fn worker(
                         .map_err(|error| error.to_string());
                     updates.send(Update::Report(id, report, focus)).await?;
                 }
+                Command::ArtifactLibrary {
+                    id,
+                    project_id,
+                    query,
+                } => {
+                    let result = artifacts::catalog(&handle, &project_id, &query)
+                        .await
+                        .map_err(|e| e.to_string());
+                    updates.send(Update::ReportText(id, result)).await?;
+                }
                 Command::Inventory(id) => {
-                    let result = handle
+                    let result = match handle
                         .request_typed::<OrganizationInventoryResponse>(
                             ClientRequest::OrganizationInventory {
                                 request_id: request_id(),
@@ -494,8 +519,18 @@ async fn worker(
                             },
                         )
                         .await
-                        .map(|response| reporting::inventory_text(&response.inventory))
-                        .map_err(|error| error.to_string());
+                    {
+                        Ok(response) => {
+                            match reporting::inventory_advice(&handle, &response.inventory).await {
+                                Ok(text) => Ok(clean(&text)),
+                                Err(error) => Ok(clean(&format!(
+                                    "{}\nModel advice unavailable: {error}",
+                                    reporting::inventory_text(&response.inventory)
+                                ))),
+                            }
+                        }
+                        Err(error) => Err(error.to_string()),
+                    };
                     updates.send(Update::ReportText(id, result)).await?;
                 }
                 Command::Refresh | Command::MoreRecords => {
@@ -722,6 +757,10 @@ async fn worker(
         if let Some(error) = error {
             let update = match memory_request {
                 Some(params) => Update::Memory(params, Err(error)),
+                None if report_id.is_some() => Update::ReportText(
+                    report_id.unwrap_or_default(),
+                    Err("Read-only report failed or timed out; no execution was authorized".into()),
+                ),
                 None if apply_rejected => Update::ApplyRejected(error),
                 None => Update::Error(error),
             };
@@ -912,6 +951,7 @@ pub(crate) struct Dashboard {
     worker: tokio::task::JoinHandle<()>,
     editor: Option<Editor>,
     preview: Option<Preview>,
+    review_previews: Vec<Preview>,
     editor_area: Rect,
     editor_file: usize,
     following: bool,
@@ -992,6 +1032,143 @@ impl Dashboard {
             self.message = error.to_string();
             self.message_is_error = true;
         }
+    }
+
+    fn three_way_review(&mut self) {
+        let outcome = (|| -> anyhow::Result<()> {
+            anyhow::ensure!(!self.applying, "Application outcome pending");
+            let view = self
+                .detail
+                .as_ref()
+                .filter(|v| Some(&v.task.id) == self.selected.as_ref())
+                .context("select a result task and wait for evidence")?;
+            let result = view.result.as_ref().context("no captured result")?;
+            let artifact = result
+                .artifacts
+                .get(self.review_file % result.artifacts.len().max(1))
+                .context("no captured artifact")?;
+            let base = result
+                .artifact_bases
+                .iter()
+                .find(|b| b.path == artifact.path)
+                .context("original base evidence missing")?;
+            let home = self.path.parent().context("owner home missing")?;
+            let base_preview = match &base.sha256 {
+                Some(hash) => {
+                    anyhow::ensure!(
+                        hash.len() == 64 && hash.bytes().all(|b| b.is_ascii_hexdigit()),
+                        "invalid captured base hash"
+                    );
+                    let directory = home.join("organization-artifact-bases");
+                    let file=codex_utils_path::open_relative_regular_file(&directory,Path::new(hash)).context("original base bytes unavailable (legacy or incomplete recovery); do not invent a merge base")?;
+                    anyhow::ensure!(
+                        file.metadata()?.len() <= 1024 * 1024,
+                        "three-way base exceeds 1 MiB"
+                    );
+                    let bytes = file.metadata()?.len();
+                    Preview::new(
+                        home,
+                        &directory,
+                        hash,
+                        Some(&OrganizationArtifactEvidence {
+                            path: hash.clone(),
+                            sha256: hash.clone(),
+                            bytes,
+                        }),
+                    )?
+                }
+                None => Preview::captured_text(home, "")?,
+            };
+            let project = self.selected_project().context("project unavailable")?;
+            let root = Path::new(project.roots.first().context("project root unavailable")?);
+            let owner_preview =
+                match codex_utils_path::open_relative_regular_file(root, Path::new(&artifact.path))
+                {
+                    Ok(_) => Preview::new(home, root, &artifact.path, None)?,
+                    Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+                        Preview::captured_text(home, "")?
+                    }
+                    Err(e) => return Err(e.into()),
+                };
+            let workspace = view
+                .attempts
+                .iter()
+                .find(|a| a.id == result.attempt_id)
+                .and_then(|a| a.workspace.as_deref())
+                .context("captured workspace unavailable")?;
+            let agent_preview =
+                Preview::new(home, Path::new(workspace), &artifact.path, Some(artifact))?;
+            if self.editor.is_none() {
+                self.editor = Some(Editor::start(self.frame.clone())?);
+            }
+            self.editor
+                .as_mut()
+                .context("editor unavailable")?
+                .three_way(
+                    &base_preview.path(),
+                    &owner_preview.path(),
+                    &agent_preview.path(),
+                )?;
+            self.review_previews = vec![base_preview, owner_preview, agent_preview];
+            self.following = false;
+            self.preferences.preset = Preset::Workspace;
+            self.report_request = None;
+            self.report_text = None;
+            self.save();
+            Ok(())
+        })();
+        self.message_is_error = outcome.is_err();
+        self.message=match outcome {Ok(())=>"Three native diff panes: base / owner at capture / verified agent · read-only copies · Ctrl-G then o edits original separately · Apply still checks original base".into(),Err(e)=>format!("Three-way review unavailable: {e}")};
+    }
+
+    fn captured_checks_panel(&mut self) {
+        let result = (|| -> anyhow::Result<()> {
+            anyhow::ensure!(!self.applying, "Application outcome pending");
+            let view = self
+                .detail
+                .as_ref()
+                .filter(|v| Some(&v.task.id) == self.selected.as_ref())
+                .context("select a task and wait for captured evidence")?;
+            let result = view
+                .result
+                .as_ref()
+                .context("task has no captured result")?;
+            anyhow::ensure!(!result.checks.is_empty(), "no captured native checks");
+            let mut text = format!(
+                "CAPTURED NATIVE CHECKS\nTask {} / attempt {} / result {}\nAccepted {}\n",
+                view.task.id, result.attempt_id, result.digest, result.accepted
+            );
+            for check in &result.checks {
+                text.push_str(&format!(
+                    "\nargv {:?}\nexit {:?} · output truncated {}\nProtected inputs {:?}\n{}\n",
+                    check.argv,
+                    check.exit_code,
+                    check.truncated,
+                    check.immutable_inputs,
+                    check.output
+                ));
+            }
+            let preview = Preview::captured_text(
+                self.path.parent().context("owner home missing")?,
+                &clean(&text),
+            )?;
+            if self.editor.is_none() {
+                self.editor = Some(Editor::start(self.frame.clone())?);
+            }
+            self.editor
+                .as_mut()
+                .context("editor unavailable")?
+                .captured_panel(&preview.path())?;
+            self.preview = Some(preview);
+            self.following = false;
+            self.preferences.preset = Preset::Workspace;
+            self.report_request = None;
+            self.report_text = None;
+            self.save();
+            Ok(())
+        })();
+        self.message_is_error = result.is_err();
+        self.message=match result {Ok(())=>"Actual Neovim test panel · captured evidence, no test execution · Ctrl-G host focus".into(),Err(e)=>e.to_string()};
     }
 
     fn hunk_form(&mut self) {
@@ -1253,6 +1430,7 @@ impl Dashboard {
             worker,
             editor: None,
             preview: None,
+            review_previews: Vec::new(),
             editor_area: Rect::default(),
             editor_file: 0,
             following: false,
@@ -1271,6 +1449,27 @@ impl Dashboard {
     }
     fn send(&mut self, command: Command) {
         let command = match command {
+            Command::NativeTerminal(root) => {
+                let result = (|| -> anyhow::Result<()> {
+                    anyhow::ensure!(!self.applying, "Application outcome pending");
+                    if self.editor.is_none() {
+                        self.editor = Some(Editor::start(self.frame.clone())?);
+                    }
+                    self.editor
+                        .as_mut()
+                        .context("editor unavailable")?
+                        .terminal(&root)?;
+                    self.preferences.preset = Preset::Workspace;
+                    self.report_request = None;
+                    self.report_text = None;
+                    self.following = false;
+                    self.save();
+                    Ok(())
+                })();
+                self.message_is_error = result.is_err();
+                self.message = match result { Ok(()) => "Native owner terminal · commands use your owner shell, independently of agent grants · Ctrl-G host focus".into(), Err(e) => e.to_string() };
+                return;
+            }
             Command::NamedView { name, action } => {
                 if let Err(error) = self.named_view(&name, &action) {
                     self.message = error.to_string();
@@ -1283,7 +1482,10 @@ impl Dashboard {
         if let Err(error) = self.commands.try_send(command) {
             self.message = "Owner request queue busy; retry after refresh.".into();
             let command = error.into_inner();
-            if matches!(&command, Command::Summary(..) | Command::Inventory(..)) {
+            if matches!(
+                &command,
+                Command::Summary(..) | Command::Inventory(..) | Command::ArtifactLibrary { .. }
+            ) {
                 self.report_text = Some(self.message.clone());
             }
             if matches!(command, Command::MemorySearch(_)) {
@@ -1722,6 +1924,90 @@ impl Dashboard {
             _ => None,
         })
     }
+    fn rollback_form(&mut self, role: bool) {
+        let kind = (|| -> anyhow::Result<form::Kind> {
+            if role {
+                let id = match self.record() {
+                    Some(OrganizationRecord::Node(n)) => n
+                        .role_version_id
+                        .as_deref()
+                        .context("selected node has no captured role")?,
+                    Some(OrganizationRecord::Role(r)) => r.id.as_str(),
+                    _ => anyhow::bail!("select an agent/role for rollback"),
+                };
+                let selected = self
+                    .snapshot
+                    .records
+                    .iter()
+                    .find_map(|r| match r {
+                        OrganizationRecord::Role(v) if v.id == id => Some(v),
+                        _ => None,
+                    })
+                    .context("selected role not loaded")?;
+                let versions = self
+                    .snapshot
+                    .records
+                    .iter()
+                    .filter_map(|r| match r {
+                        OrganizationRecord::Role(v) if v.role_id == selected.role_id => {
+                            Some(v.clone())
+                        }
+                        _ => None,
+                    })
+                    .collect::<Vec<_>>();
+                let current = versions
+                    .iter()
+                    .max_by_key(|v| v.version)
+                    .context("role history unavailable")?
+                    .clone();
+                anyhow::ensure!(
+                    versions.iter().any(|v| v.version < current.version),
+                    "no earlier loaded role version"
+                );
+                Ok(form::Kind::RoleRollback { current, versions })
+            } else {
+                let Some(OrganizationWorkflowView::Template { template }) =
+                    self.selected_workflow()
+                else {
+                    anyhow::bail!("select the current workflow template")
+                };
+                let current = template.clone();
+                let runs = self
+                    .snapshot
+                    .workflows
+                    .iter()
+                    .filter_map(|v| match v {
+                        OrganizationWorkflowView::Run { run, .. }
+                            if run.preview.template.id == current.id
+                                && run.preview.template.revision < current.revision =>
+                        {
+                            Some((**run).clone())
+                        }
+                        _ => None,
+                    })
+                    .collect::<Vec<_>>();
+                anyhow::ensure!(
+                    !runs.is_empty(),
+                    "no earlier version captured in a loaded run; do not invent discarded history"
+                );
+                Ok(form::Kind::WorkflowRollback { current, runs })
+            }
+        })();
+        match kind {
+            Ok(kind) => {
+                self.form = Some(form::Form::new(
+                    kind,
+                    &self.snapshot.records,
+                    self.record(),
+                    &self.model,
+                ))
+            }
+            Err(e) => {
+                self.message = e.to_string();
+                self.message_is_error = true;
+            }
+        }
+    }
     fn editor_open(&mut self, key: KeyCode) -> bool {
         if self.applying {
             self.message = "Application outcome pending; editor inputs remain frozen".into();
@@ -1872,11 +2158,15 @@ impl Dashboard {
             match self.record() {
                 Some(OrganizationRecord::Control(control)) => match &control.value {
                     OrganizationControlValue::Team { applied: false, .. }
+                    | OrganizationControlValue::RoleRollback { applied: false, .. }
+                    | OrganizationControlValue::WorkflowRollback { applied: false, .. }
                     | OrganizationControlValue::WorkflowImprovement { applied: false, .. }
                     | OrganizationControlValue::Improvement { applied: false, .. } => {
                         let mut value = control.value.clone();
                         match &mut value {
                             OrganizationControlValue::Team { applied, .. }
+                            | OrganizationControlValue::RoleRollback { applied, .. }
+                            | OrganizationControlValue::WorkflowRollback { applied, .. }
                             | OrganizationControlValue::WorkflowImprovement { applied, .. }
                             | OrganizationControlValue::Improvement { applied, .. } => {
                                 *applied = true
@@ -2022,6 +2312,77 @@ impl Dashboard {
     }
     fn open_form(&mut self, key: char) {
         let kind = match key {
+            'µ' => form::Kind::Mission(self.control("mission")),
+            'π' => {
+                let id = match self.record() {
+                    Some(OrganizationRecord::Project(p)) => Some(p.id.clone()),
+                    Some(OrganizationRecord::Task(t)) => Some(t.project_id.clone()),
+                    _ => None,
+                };
+                let Some(project) = self.snapshot.records.iter().find_map(|r| match r {
+                    OrganizationRecord::Project(p) if Some(&p.id) == id.as_ref() => Some(p.clone()),
+                    _ => None,
+                }) else {
+                    self.message = "Select a project for an editable playbook".into();
+                    return;
+                };
+                form::Kind::Playbook(project)
+            }
+            'γ' => {
+                let Some(OrganizationRecord::Goal(goal)) = self.record() else {
+                    self.message = "Select a goal to review its criteria".into();
+                    return;
+                };
+                let accepted = self
+                    .snapshot
+                    .report
+                    .as_ref()
+                    .map(|r| {
+                        r.tasks
+                            .iter()
+                            .filter(|t| t.state == "accepted" && t.result_digest.is_some())
+                            .cloned()
+                            .collect()
+                    })
+                    .unwrap_or_default();
+                form::Kind::GoalReview {
+                    goal: goal.clone(),
+                    previous: self.control(&format!("goal:{}", goal.id)),
+                    accepted,
+                }
+            }
+            'ε' => {
+                let Some(OrganizationRecord::Task(task)) = self.record() else {
+                    self.message = "Select a task needing assistance".into();
+                    return;
+                };
+                form::Kind::Escalation {
+                    task: task.clone(),
+                    previous: self.control(&format!("escalation:{}", task.id)),
+                }
+            }
+            'λ' => {
+                let Some(view) = self
+                    .detail
+                    .as_ref()
+                    .filter(|v| Some(&v.task.id) == self.selected.as_ref())
+                else {
+                    self.message = "Select an accepted task and wait for its evidence".into();
+                    return;
+                };
+                let Some(result) = view
+                    .result
+                    .as_ref()
+                    .filter(|r| r.accepted && view.task.state == "accepted")
+                else {
+                    self.message = "Lessons require an exact accepted result".into();
+                    return;
+                };
+                form::Kind::Lesson {
+                    task: view.task.clone(),
+                    digest: result.digest.clone(),
+                }
+            }
             '~' => form::Kind::NamedView(
                 self.preferences
                     .views
@@ -2651,6 +3012,7 @@ impl Dashboard {
         match &self.memory_result {
             Some(Ok(result)) => {
                 text.push_str(&format!("Showing {} of {} matching notes (newest first).\n", result.notes.len(), result.matched_count));
+                text.push_str(&reporting::freshness(&result.notes, chrono::Utc::now().timestamp()));
                 if result.matched_count == 0 { text.push_str("No matching notes.\n"); }
                 for note in &result.notes {
                     text.push_str(&format!("Owner reviewed: {} · source: {} · team: {}\n",note.owner_reviewed,note.source_note_id.as_deref().unwrap_or("original"),note.group_id.as_deref().unwrap_or("none")));
@@ -2842,6 +3204,11 @@ impl Dashboard {
                         return;
                     }
                     if let Some(c) = self.confirmation.take() {
+                        if matches!(c, Command::NamedView { .. } | Command::NativeTerminal(..)) {
+                            self.form = None;
+                            self.send(c);
+                            return;
+                        }
                         match self.commands.try_send(c) {
                             Ok(()) => {
                                 self.form = None;
@@ -2883,6 +3250,16 @@ impl Dashboard {
             match key.code {
                 KeyCode::Esc => self.form = None,
                 KeyCode::F(6) => match form.command() {
+                    Ok(command @ Command::ArtifactLibrary { .. }) => {
+                        if let Command::ArtifactLibrary { id, .. } = &command {
+                            self.report_request = Some(id.clone());
+                        }
+                        self.form = None;
+                        self.report_text =
+                            Some("Loading bounded captured artifact library…".into());
+                        self.scroll = 0;
+                        self.send(command);
+                    }
                     Ok(Command::WorkflowPreview(request)) => {
                         self.send(Command::WorkflowPreview(request));
                         self.message = "Loading exact workflow preview; no work authorized".into();
@@ -3109,6 +3486,59 @@ impl Dashboard {
             }
             KeyCode::F(24) => self.open_form('~'),
             KeyCode::F(25) => self.send(Command::MoreRecords),
+            KeyCode::F(26) => self.open_form('µ'),
+            KeyCode::F(27) => self.open_form('π'),
+            KeyCode::F(28) => self.open_form('γ'),
+            KeyCode::F(29) => self.open_form('ε'),
+            KeyCode::F(30) => self.open_form('λ'),
+            KeyCode::F(31) => {
+                if let Some(project) = self.selected_project().cloned() {
+                    self.form = Some(form::Form::new(
+                        form::Kind::ArtifactLibrary(project.id),
+                        &self.snapshot.records,
+                        self.record(),
+                        &self.model,
+                    ));
+                } else {
+                    self.message = "Select a project or task for the artifact library".into();
+                }
+            }
+            KeyCode::F(32) => {
+                let result = self
+                    .detail
+                    .as_ref()
+                    .filter(|v| Some(&v.task.id) == self.selected.as_ref())
+                    .context("select a task and wait for evidence")
+                    .and_then(|v| {
+                        artifacts::text(
+                            v,
+                            self.path.parent().context("owner home missing")?,
+                            self.review_file,
+                        )
+                    });
+                self.report_text =
+                    Some(result.unwrap_or_else(|e| format!("Text/data preview unavailable: {e}")));
+                self.scroll = 0;
+            }
+            KeyCode::F(33) => {
+                if let Some(root) = self
+                    .selected_project()
+                    .and_then(|p| p.roots.first())
+                    .cloned()
+                {
+                    self.confirmation = Some(Command::NativeTerminal(root.into()));
+                    self.confirmation_text = clean(&self.details());
+                    self.message =
+                        "Open owner shell in actual Neovim · review cwd and authority · y / Esc"
+                            .into();
+                } else {
+                    self.message = "Select a project or task for the native terminal".into();
+                }
+            }
+            KeyCode::F(34) => self.captured_checks_panel(),
+            KeyCode::F(35) => self.three_way_review(),
+            KeyCode::F(36) => self.rollback_form(true),
+            KeyCode::F(37) => self.rollback_form(false),
             KeyCode::Char(n @ '2'..='5') => self.switch(
                 [
                     Preset::Console,
@@ -3511,6 +3941,67 @@ impl Dashboard {
         }
         self.send(Command::Refresh);
     }
+    fn resource_preview(&self, project: &str, scopes: &[&OrganizationExecutionScope]) -> String {
+        let tokens = scopes
+            .iter()
+            .fold(0i64, |sum, s| sum.saturating_add(s.max_tokens));
+        let requests = scopes.iter().fold(0u64, |sum, s| {
+            sum.saturating_add(u64::from(s.max_model_requests))
+        });
+        let seconds = scopes.iter().fold(0u64, |sum, s| {
+            sum.saturating_add(u64::from(s.max_seconds) * u64::from(s.max_attempts))
+        });
+        let mut text = format!(
+            "\nRESOURCE PREVIEW · {} proposed grants\nDemand ceilings: {tokens} reported tokens / {requests} admitted requests / {seconds} summed attempt seconds (not a runtime prediction)\n",
+            scopes.len()
+        );
+        if let (
+            Some(OrganizationControl {
+                value:
+                    OrganizationControlValue::Global {
+                        limits: Some(limit),
+                        ..
+                    },
+                ..
+            }),
+            Some(usage),
+        ) = (
+            self.control("global"),
+            self.snapshot
+                .report
+                .as_ref()
+                .and_then(|r| r.global_usage.as_ref()),
+        ) {
+            text.push_str(&format!("Loaded global remaining: {} tokens / {} requests / {} active slots; {} unresolved terminal requests\n",limit.max_tokens.saturating_sub(usage.reported_tokens).max(0),i64::from(limit.max_model_requests).saturating_sub(usage.model_requests).max(0),i64::from(limit.max_active).saturating_sub(usage.active).max(0),usage.unresolved_requests));
+        } else {
+            text.push_str("Global remaining unavailable or no shared ceiling configured; native per-grant/capacity fences still apply.\n");
+        }
+        for view in &self.snapshot.workflows {
+            if let OrganizationWorkflowView::Limit { limit, usage } = view
+                && limit.project_id == project
+                && limit.run_id.is_none()
+                && limit.series_id.is_none()
+            {
+                text.push_str(&format!("Loaded project pool {} v{} remaining: {} tokens / {} requests / {} active slots\n",limit.id,limit.revision,limit.max_tokens.saturating_sub(usage.reported_tokens).max(0),i64::from(limit.max_model_requests).saturating_sub(usage.model_requests).max(0),i64::from(limit.max_active).saturating_sub(usage.active).max(0)));
+            }
+        }
+        for scope in scopes {
+            if let Some(estimate) = self
+                .prices
+                .as_ref()
+                .and_then(|p| p.estimate(&self.provider, &scope.model, 0, scope.max_tokens))
+            {
+                text.push_str(&estimate);
+            } else {
+                text.push_str(&format!(
+                    "{} quote estimate unavailable: no matching owner price provenance.\n",
+                    scope.model
+                ));
+            }
+        }
+        text.push_str("Loaded usage is advice, not a reservation. Backend admission rechecks current ledgers, pauses, unknown effects and exact grants. Already-admitted usage may exceed token ceilings; monetary estimates are not invoices or hard spending caps.\n");
+        text
+    }
     fn details(&self) -> String {
         if let Some(text) = self.node_tab_text() {
             return text;
@@ -3730,7 +4221,16 @@ impl Dashboard {
                         t.instructions,
                         t.criteria.join("\n"),
                         t.prerequisites.join(", ")
-                    )
+                    );
+                    text.push_str(match t.state.as_str() {
+                        "proposed"=>"\nNext: s reviews exact local inputs, artifacts, checks, worker roster and finite budgets; saving a task starts no execution.\n",
+                        "waitingApproval"=>"\nNext: inspect the exact pending action and a approves / r rejects it.\n",
+                        "needsReview"=>"\nNext: inspect recorded artifacts/checks; v explicitly accepts or c requests changes.\n",
+                        "accepted"=>"\nNext: W reviews plan.json as an editable workflow; s previews a selected template's exact scopes. A separately selects Apply; Commands can capture a private lesson.\n",
+                        "blocked"=>"\nNext: inspect the verified checkpoint; H explicitly hands off under remaining original limits. Commands routes local assistance.\n",
+                        "needsReconciliation"=>"\nNext: inspect unknown effects and accounting; do not replay. Local assistance records the required owner decision.\n",
+                        _=>"\nNext: inspect progress and prerequisites; pause/cancel and evidence stay available independently of the frontend.\n",
+                    });
                 }
                 _ => {}
             }
@@ -3885,6 +4385,9 @@ impl Dashboard {
                 Command::NamedView { name, action } => serde_json::to_string_pretty(
                     &serde_json::json!({"savedView":name,"operation":action}),
                 ),
+                Command::NativeTerminal(root) => serde_json::to_string_pretty(
+                    &serde_json::json!({"action":"Open actual Neovim terminal","cwd":root,"authority":"Owner shell; commands entered here have owner permissions, separately from agent sandbox/grants","checkpoint":"Close terminal windows before saving project-file checkpoints"}),
+                ),
                 Command::RestoreEditor(session, recover) => serde_json::to_string_pretty(
                     &serde_json::json!({"nativeSession":session,"recoverUnsaved":recover,"writesOriginalFiles":false}),
                 ),
@@ -3905,9 +4408,18 @@ impl Dashboard {
                 ),
                 _ => return text,
             };
-            if let Command::Execution(OrganizationExecutionMutation::Authorize { scope, .. }) =
-                command
+            if let Command::Execution(OrganizationExecutionMutation::Authorize {
+                scope,
+                task_id,
+                ..
+            }) = command
             {
+                if let Some(project) = self.snapshot.records.iter().find_map(|r| match r {
+                    OrganizationRecord::Task(t) if &t.id == task_id => Some(t.project_id.as_str()),
+                    _ => None,
+                }) {
+                    text.push_str(&self.resource_preview(project, &[scope]));
+                }
                 text.push_str("\nStarting authorizes background model work in an isolated workspace.\nTools: exec_command, apply_patch; no agent network or owner credentials.\nFinal acceptance and Apply remain separate owner actions.\nToken ceilings permit an already-admitted request to finish.\n");
                 if let Some(estimate) = self.prices.as_ref().and_then(|prices| {
                     prices.estimate(&self.provider, &scope.model, 0, scope.max_tokens)
@@ -3915,6 +4427,32 @@ impl Dashboard {
                     text.push_str(&estimate);
                 } else {
                     text.push_str("Cost estimate unavailable: no matching owner price quote.\n");
+                }
+            }
+            if let Command::Definition(OrganizationMutation::PutTask {
+                project_id,
+                instructions,
+                id: None,
+                ..
+            }) = command
+            {
+                let duplicates: Vec<_> = self
+                    .snapshot
+                    .records
+                    .iter()
+                    .filter_map(|r| match r {
+                        OrganizationRecord::Task(t)
+                            if t.project_id == *project_id
+                                && t.instructions.trim() == instructions.trim() =>
+                        {
+                            Some(format!("{} · {}", t.id, t.state))
+                        }
+                        _ => None,
+                    })
+                    .take(8)
+                    .collect();
+                if !duplicates.is_empty() {
+                    text.push_str(&format!("\nExact instruction matches in loaded project tasks (owner decides whether repetition is useful):\n{}\n",duplicates.join("\n")));
                 }
             }
             if matches!(
@@ -3958,7 +4496,30 @@ impl Dashboard {
                 }
             }
             if let Command::Workflow(OrganizationWorkflowMutation::Run { preview }) = command {
-                text.push_str(&format!("\nAuthorizes {} fresh tasks in background. Fixed per-step grants sum to {} tokens / {} requests.\nPrerequisites require owner acceptance. Expired/failed/interrupted grants block work; no automatic restart or Apply.\nToken ceilings allow already-admitted usage; cost estimate unavailable.\n", preview.template.items.len(), preview.max_tokens, preview.max_model_requests));
+                text.push_str(&format!("\nAuthorizes {} fresh tasks in background. Fixed per-step grants sum to {} tokens / {} requests.\nPrerequisites require owner acceptance. Expired/failed/interrupted grants block work; no automatic restart or Apply.\n", preview.template.items.len(), preview.max_tokens, preview.max_model_requests));
+                text.push_str(&self.resource_preview(
+                    &preview.template.project_id,
+                    &preview.scopes.iter().map(|s| &s.scope).collect::<Vec<_>>(),
+                ));
+                for item in &preview.template.items {
+                    for task in self
+                        .snapshot
+                        .records
+                        .iter()
+                        .filter_map(|r| match r {
+                            OrganizationRecord::Task(t)
+                                if t.project_id == preview.template.project_id
+                                    && t.instructions.trim() == item.instructions.trim() =>
+                            {
+                                Some(t)
+                            }
+                            _ => None,
+                        })
+                        .take(8)
+                    {
+                        text.push_str(&format!("Duplicate-work advice: step {} matches loaded task {} ({}) exactly; owner decides whether to repeat.\n",item.key,task.id,task.state));
+                    }
+                }
             }
             if let Command::Workflow(
                 OrganizationWorkflowMutation::CreateSeries {

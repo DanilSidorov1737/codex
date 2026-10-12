@@ -76,6 +76,128 @@ fn series_config(runs: u32) -> codex_protocol::organization_schedule::Organizati
 }
 
 #[tokio::test]
+async fn reviewed_workflow_rollback_preserves_captured_runs_and_all_original_grants() -> Result<()>
+{
+    let home = Fixture::new();
+    let store = OrganizationStore::open(&home.0).await?;
+    let source = fixture(&store).await?;
+    let preview = store.preview_workflow(request(&source)).await?;
+    let OrganizationWorkflowView::Run { run, .. } = store
+        .mutate_workflow(
+            OrganizationWorkflowMutation::Run {
+                preview: Box::new(preview),
+            },
+            1000,
+        )
+        .await?
+    else {
+        panic!("run")
+    };
+    let mut items = source.items.clone();
+    items[0].instructions = "Changed instructions".into();
+    let OrganizationWorkflowView::Template { template: current } = store
+        .mutate_workflow(
+            OrganizationWorkflowMutation::Put {
+                id: source.id.clone(),
+                expected_revision: Some(source.revision),
+                project_id: source.project_id.clone(),
+                label: source.label.clone(),
+                items,
+            },
+            1001,
+        )
+        .await?
+    else {
+        panic!("current")
+    };
+    let mut originals = Vec::new();
+    for id in run.task_ids.values() {
+        originals.push(store.execution_view(id).await?);
+    }
+    let id = Uuid::now_v7().to_string();
+    let value = OrganizationControlValue::WorkflowRollback {
+        id,
+        reason: "Restore prior captured workflow".into(),
+        current: Box::new(current),
+        source: Box::new(source.clone()),
+        source_run_id: run.id.clone(),
+        source_run_revision: run.revision,
+        applied: false,
+    };
+    let Some(OrganizationRecord::Control(proposal)) = store
+        .mutate_owner(
+            OrganizationMutation::SetControl {
+                expected_revision: None,
+                value: value.clone(),
+            },
+            None,
+        )
+        .await?
+    else {
+        panic!("proposal")
+    };
+    let mut altered = value.clone();
+    if let OrganizationControlValue::WorkflowRollback { source, .. } = &mut altered {
+        source.items[0].instructions = "Invented old version".into();
+    }
+    assert!(
+        store
+            .mutate_owner(
+                OrganizationMutation::SetControl {
+                    expected_revision: Some(proposal.revision),
+                    value: altered
+                },
+                None
+            )
+            .await
+            .is_err()
+    );
+    let mut value = value;
+    if let OrganizationControlValue::WorkflowRollback { applied, .. } = &mut value {
+        *applied = true;
+    }
+    store
+        .mutate_owner(
+            OrganizationMutation::SetControl {
+                expected_revision: Some(proposal.revision),
+                value: value.clone(),
+            },
+            None,
+        )
+        .await?;
+    assert!(
+        store
+            .mutate_owner(
+                OrganizationMutation::SetControl {
+                    expected_revision: Some(proposal.revision + 1),
+                    value
+                },
+                None
+            )
+            .await
+            .is_err()
+    );
+    let data: String =
+        sqlx::query_scalar("SELECT data FROM organization_workflow_templates WHERE id=?")
+            .bind(&source.id)
+            .fetch_one(&store.pool)
+            .await?;
+    let template: OrganizationWorkflowTemplate = serde_json::from_str(&data)?;
+    assert_eq!(template.revision, 3);
+    assert_eq!(template.items, source.items);
+    for before in originals {
+        assert_eq!(store.execution_view(&before.task.id).await?, before);
+    }
+    let data: String = sqlx::query_scalar("SELECT data FROM organization_workflow_runs WHERE id=?")
+        .bind(&run.id)
+        .fetch_one(&store.pool)
+        .await?;
+    let retained: OrganizationWorkflowRun = serde_json::from_str(&data)?;
+    assert_eq!(&retained, run.as_ref());
+    Ok(())
+}
+
+#[tokio::test]
 async fn finite_discussion_waits_for_review_and_imports_only_permitted_contributions() -> Result<()>
 {
     let home = Fixture::new();

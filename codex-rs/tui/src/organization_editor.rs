@@ -734,6 +734,52 @@ return vim.json.encode(r)
         self.focused = true;
         Ok(())
     }
+    /// Owner shell in actual Neovim's native terminal, alongside current buffers.
+    pub(crate) fn terminal(&mut self, root: &Path) -> Result<()> {
+        let root = std::fs::canonicalize(root)?;
+        ensure!(root.is_dir(), "terminal project root must be a directory");
+        self.guarded_lua(
+            r#"local root=...; vim.cmd('botright 8new'); local job=vim.fn.jobstart({vim.o.shell},{term=true,cwd=root}); if job<=0 then error('native terminal did not start') end; vim.cmd('startinsert'); return job"#,
+            vec![root.to_str().context("non-UTF8 terminal root")?.into()],
+        )?;
+        self.focused = true;
+        Ok(())
+    }
+    pub(crate) fn captured_panel(&mut self, path: &Path) -> Result<()> {
+        self.guarded_lua(
+            r#"local path=...; vim.api.nvim_cmd({cmd='split',mods={split='botright'},args={path}},{ }); vim.api.nvim_win_set_height(0,8); vim.bo.readonly=true; vim.bo.modifiable=false; return true"#,
+            vec![path.to_str().context("non-UTF8 captured panel")?.into()],
+        )?;
+        self.focused = true;
+        Ok(())
+    }
+    pub(crate) fn three_way(&mut self, base: &Path, owner: &Path, agent: &Path) -> Result<()> {
+        ensure!(
+            !self.dirty()?,
+            "save or checkpoint modified Neovim buffers before changing review mode"
+        );
+        self.command("only", vec![])?;
+        for (index, path) in [base, owner, agent].iter().enumerate() {
+            if index == 0 {
+                self.open(path, true)?;
+            } else {
+                self.command(
+                    "vsplit",
+                    vec![path.to_str().context("non-UTF8 review path")?.into()],
+                )?;
+            }
+            self.command("diffthis", vec![])?;
+            self.rpc(
+                "nvim_exec_lua",
+                vec![
+                    "vim.bo.readonly=true; vim.bo.modifiable=false; return true".into(),
+                    Value::Array(vec![]),
+                ],
+            )?;
+        }
+        self.focused = true;
+        Ok(())
+    }
     pub(crate) fn reload_follow(&mut self) -> Result<()> {
         if self.focused || self.dirty()? {
             return Ok(());

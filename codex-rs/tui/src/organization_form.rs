@@ -5,6 +5,30 @@ use crossterm::event::KeyModifiers;
 use ratatui::layout::Margin;
 
 pub(super) enum Kind {
+    RoleRollback {
+        current: OrganizationRoleVersion,
+        versions: Vec<OrganizationRoleVersion>,
+    },
+    WorkflowRollback {
+        current: OrganizationWorkflowTemplate,
+        runs: Vec<OrganizationWorkflowRun>,
+    },
+    ArtifactLibrary(String),
+    Mission(Option<OrganizationControl>),
+    GoalReview {
+        goal: OrganizationGoal,
+        previous: Option<OrganizationControl>,
+        accepted: Vec<OrganizationTaskReport>,
+    },
+    Escalation {
+        task: OrganizationTask,
+        previous: Option<OrganizationControl>,
+    },
+    Lesson {
+        task: OrganizationTask,
+        digest: String,
+    },
+    Playbook(OrganizationProjectPlan),
     NamedView(Vec<String>),
     RestoreEditor(Box<crate::organization_editor::Session>),
     HunkApply {
@@ -129,6 +153,114 @@ mod tests {
             state: "proposed".into(),
             revision: 7,
         }
+    }
+
+    #[test]
+    fn optional_playbooks_use_arbitrary_workers_and_distinct_reviewers_without_grants() {
+        let project = OrganizationProjectPlan {
+            id: "project".into(),
+            name: "Local".into(),
+            roots: vec!["/tmp/project".into()],
+            goal_id: None,
+            owner_id: Some("worker".into()),
+            criteria: vec![],
+            revision: 1,
+        };
+        let records: Vec<_> = ["worker", "reviewer"]
+            .into_iter()
+            .map(|id| {
+                OrganizationRecord::Node(OrganizationNode {
+                    id: id.into(),
+                    label: format!("Arbitrary {id}"),
+                    parent_id: None,
+                    kind: OrganizationNodeKind::Agent,
+                    role_version_id: None,
+                    model: None,
+                    enabled: true,
+                    revision: 1,
+                })
+            })
+            .collect();
+        let mut form = Form::new(Kind::Playbook(project), &records, None, "model");
+        assert!(form.command().is_err(), "objective required");
+        set(&mut form, 2, "Review permitted local facts");
+        for mode in 0..4 {
+            form.fields[0].choice = mode;
+            form.fields[4].choice = 2;
+            let Command::Workflow(OrganizationWorkflowMutation::Put {
+                items,
+                expected_revision,
+                ..
+            }) = form.command().unwrap()
+            else {
+                panic!("editable template only")
+            };
+            assert_eq!(expected_revision, None);
+            assert_eq!(items[0].owner_id, "worker");
+            assert_eq!(items[1].owner_id, "reviewer");
+            assert_eq!(items[1].prerequisites, vec!["produce"]);
+            assert!(items[1].instructions.contains("disagreements"));
+            form.fields[4].choice = 1;
+            assert!(form.command().is_err(), "self review refuses");
+        }
+        form.fields[0].choice = 2;
+        form.fields[4].choice = 0;
+        assert!(form.command().is_err(), "audit requires independent review");
+        form.fields[0].choice = 0;
+        assert!(
+            form.command().is_ok(),
+            "single-agent coding retains owner review"
+        );
+    }
+
+    #[test]
+    fn mission_and_lesson_forms_pin_owner_versions_and_accepted_sources() {
+        let previous = OrganizationControl {
+            id: "mission".into(),
+            revision: 7,
+            value: OrganizationControlValue::Mission {
+                purpose: "Prior purpose".into(),
+                priorities: vec!["Evidence".into()],
+                constraints: vec!["Exact grants".into()],
+            },
+        };
+        let mut mission = Form::new(Kind::Mission(Some(previous)), &[], None, "model");
+        set(&mut mission, 0, "New owner purpose");
+        let Command::Definition(OrganizationMutation::SetControl {
+            expected_revision,
+            value: OrganizationControlValue::Mission { purpose, .. },
+        }) = mission.command().unwrap()
+        else {
+            panic!("intent only")
+        };
+        assert_eq!(expected_revision, Some(7));
+        assert_eq!(purpose, "New owner purpose");
+        let mut accepted = task();
+        accepted.state = "accepted".into();
+        let mut lesson = Form::new(
+            Kind::Lesson {
+                task: accepted,
+                digest: "exact-result".into(),
+            },
+            &[],
+            None,
+            "model",
+        );
+        assert!(lesson.command().is_err());
+        set(&mut lesson, 0, "Review this lesson before sharing");
+        let Command::Definition(OrganizationMutation::ProposeLesson {
+            task_id,
+            expected_revision,
+            result_digest,
+            ..
+        }) = lesson.command().unwrap()
+        else {
+            panic!("proposal only")
+        };
+        assert_eq!(
+            (task_id, expected_revision, result_digest),
+            ("original-task".into(), 7, "exact-result".into())
+        );
     }
 
     #[test]
@@ -1521,7 +1653,37 @@ impl Form {
             .or_else(|| project.and_then(|p| p.goal_id.as_deref()));
         let owner = project.and_then(|p| p.owner_id.as_deref());
         let mut fields = match &kind {
+            Kind::RoleRollback {current,versions}=>vec![Field::text("Reason","Creates a new immutable version; E assigns it separately; running captures remain", ""),Field::select("Restore role version",versions.iter().filter(|v|v.role_id==current.role_id && v.version<current.version).map(|v|(v.id.clone(),format!("{} v{} · {}",v.name,v.version,v.id))).collect(),None)],
+            Kind::WorkflowRollback {current,runs}=>vec![Field::text("Reason","Restore a version captured in a prior run; exact proposal then % applies; running captures remain", ""),Field::select("Captured earlier workflow",runs.iter().filter(|r|r.preview.template.id==current.id && r.preview.template.revision<current.revision).map(|r|(r.id.clone(),format!("{} v{} · run {}",r.preview.template.label,r.preview.template.revision,r.id))).collect(),None)],
+            Kind::ArtifactLibrary(_) => vec![Field::text("Artifact query","Literal substring of captured path/task/project/owner/version/check status; empty browses a bounded catalog", "")],
             Kind::WorkflowImprovement {runs,..} => vec![Field::select("Baseline workflow run",runs.iter().map(|r|(r.id.clone(),format!("{} v{} · {}",r.preview.template.label,r.preview.template.revision,r.id))).collect(),None),Field::select("Candidate workflow run",runs.iter().map(|r|(r.id.clone(),format!("{} v{} · {}",r.preview.template.label,r.preview.template.revision,r.id))).collect(),None),Field::text("Why the checks represent intended work", "Every paired step must have accepted identical protected checks; % separately adopts this tested template", "")],
+            Kind::Mission(previous)=> {
+                let (purpose,priorities,constraints)=match previous.as_ref().map(|c|&c.value) {Some(OrganizationControlValue::Mission{purpose,priorities,constraints})=>(purpose.clone(),priorities.join("\n"),constraints.join("\n")),_=>(String::new(),"Useful verified outcomes".into(),"Use only exact granted paths, tools, workers and budgets\nFinal acceptance and Apply belong to the owner".into())};
+                vec![Field::text("Mission","Owner intent; native permissions/budgets remain enforced",&purpose),Field::text("Priorities","One per line",&priorities),Field::text("Constraints","One per line; agents cannot edit protected controls",&constraints)]
+            }
+            Kind::GoalReview {goal,previous,accepted}=> {
+                let completed=previous.as_ref().is_some_and(|c|matches!(c.value,OrganizationControlValue::GoalReview{completed:true,..}));
+                let proofs=match previous.as_ref().map(|c|&c.value) {Some(OrganizationControlValue::GoalReview{evidence,..})=>evidence.as_slice(),_=>&[]};
+                let mut fields=vec![Field::select("Goal state",vec![("open".into(),"In progress / record partial evidence".into()),("complete".into(),"Owner verifies every criterion".into())],Some(if completed {"complete"} else {"open"}))];
+                for (i,criterion) in goal.criteria.iter().enumerate() {
+                    let proof=proofs.iter().find(|p|p.criterion as usize==i);
+                    let choices=std::iter::once((String::new(),"No evidence selected".into())).chain(accepted.iter().map(|t|(t.task_id.clone(),t.title.clone()))).collect();
+                    fields.push(Field::select(format!("Criterion {}: {criterion}",i+1),choices,proof.map(|p|p.task_id.as_str())));
+                    fields.push(Field::text("Why this exact accepted result satisfies it","Actual checks required; task acceptance alone is not goal completion",proof.map(|p|p.explanation.as_str()).unwrap_or("")));
+                }
+                fields
+            }
+            Kind::Escalation {task,previous}=> {
+                let (assignee,reason,action)=match previous.as_ref().map(|c|&c.value) {Some(OrganizationControlValue::Escalation{assignee_id,reason,requested_action,..})=>(assignee_id.clone(),reason.clone(),requested_action.clone()),_=>(None,format!("{} needs assistance",task.id),String::new())};
+                let choices=std::iter::once((String::new(),"Human owner".into())).chain(records.iter().filter_map(|r|match r {OrganizationRecord::Node(n) if n.enabled=>Some((n.id.clone(),n.label.clone())),_=>None})).collect();
+                vec![Field::select("Responsible agent / team / human",choices,assignee.as_deref()),Field::text("Reason","Local request; no new execution authority",&reason),Field::text("Requested action","What is needed to unblock this task",&action),Field::select("Status",vec![("open".into(),"Open assistance request".into()),("resolved".into(),"Resolve the exact existing request".into())],None)]
+            }
+            Kind::Lesson {..}=>vec![Field::text("What to reuse and avoid","Private proposal pinned to the accepted result; O separately reviews/promotes", "")],
+            Kind::Playbook(project)=> {
+                let workers=records.iter().filter_map(|r|match r {OrganizationRecord::Node(n) if n.enabled && n.kind==OrganizationNodeKind::Agent=>Some((n.id.clone(),n.label.clone())),_=>None}).collect::<Vec<_>>();
+                let reviewers=std::iter::once((String::new(),"No reviewer step (owner reviews result)".into())).chain(workers.clone()).collect();
+                vec![Field::select("Playbook",vec![("coding".into(),"Coding".into()),("research".into(),"Local research".into()),("audit".into(),"Independent audit".into()),("knowledge".into(),"Knowledge maintenance".into())],None),Field::text("Workflow name","Editable ordinary template; saving runs nothing",&format!("{} workflow",project.name)),Field::text("Objective","Local inputs, outputs and checks are authorized separately",""),Field::select("Worker",workers,project.owner_id.as_deref()),Field::select("Independent reviewer",reviewers,None)]
+            }
             Kind::NamedView(names)=>vec![Field::select("Operation",vec![("save".into(),"Save current view".into()),("restore".into(),"Restore view".into()),("delete".into(),"Delete view".into())],None),Field::text("New view name","Up to eight private named views", ""),Field::select("Saved view",names.iter().map(|name|(name.clone(),name.clone())).collect(),None)],
             Kind::Team {expected_nodes,nodes} => {
                 let node = &nodes[0];
@@ -1944,6 +2106,14 @@ impl Form {
     }
     pub(super) fn title(&self) -> &'static str {
         match self.kind {
+            Kind::Mission(_) => "Workspace mission / priorities / constraints",
+            Kind::RoleRollback { .. } => "Review role rollback proposal",
+            Kind::WorkflowRollback { .. } => "Review captured workflow rollback proposal",
+            Kind::ArtifactLibrary(_) => "Browse / search captured artifact library",
+            Kind::GoalReview { .. } => "Goal criteria / exact accepted evidence",
+            Kind::Escalation { .. } => "Route local assistance / resolve request",
+            Kind::Lesson { .. } => "Capture an accepted-result lesson proposal",
+            Kind::Playbook(_) => "Optional editable playbook · no required roles",
             Kind::NamedView(_) => "Named views · save / restore / delete",
             Kind::RestoreEditor(_) => "Restore actual Neovim session · exact owner choice",
             Kind::HunkApply { .. } => "Select exact accepted hunks · one durable Apply",
@@ -2274,6 +2444,165 @@ impl Form {
             Ok(lines(i))
         };
         Ok(match &self.kind {
+            Kind::RoleRollback { current, versions } => {
+                let source = versions
+                    .iter()
+                    .find(|v| v.id == value(1))
+                    .context("select an earlier captured role version")?;
+                Command::Definition(OrganizationMutation::SetControl {
+                    expected_revision: None,
+                    value: OrganizationControlValue::RoleRollback {
+                        id: self.project_key.clone(),
+                        reason: required(0)?,
+                        current: Box::new(current.clone()),
+                        source: Box::new(source.clone()),
+                        applied: false,
+                    },
+                })
+            }
+            Kind::WorkflowRollback { current, runs } => {
+                let run = runs
+                    .iter()
+                    .find(|r| r.id == value(1))
+                    .context("select an earlier captured workflow run")?;
+                Command::Definition(OrganizationMutation::SetControl {
+                    expected_revision: None,
+                    value: OrganizationControlValue::WorkflowRollback {
+                        id: self.project_key.clone(),
+                        reason: required(0)?,
+                        current: Box::new(current.clone()),
+                        source: Box::new(run.preview.template.clone()),
+                        source_run_id: run.id.clone(),
+                        source_run_revision: run.revision,
+                        applied: false,
+                    },
+                })
+            }
+            Kind::ArtifactLibrary(project_id) => {
+                let query = value(0);
+                anyhow::ensure!(
+                    query.len() <= 256 && !query.chars().any(char::is_control),
+                    "artifact query supports 256 bytes without controls"
+                );
+                Command::ArtifactLibrary {
+                    id: self.project_key.clone(),
+                    project_id: project_id.clone(),
+                    query,
+                }
+            }
+            Kind::Mission(previous) => Command::Definition(OrganizationMutation::SetControl {
+                expected_revision: previous.as_ref().map(|c| c.revision),
+                value: OrganizationControlValue::Mission {
+                    purpose: required(0)?,
+                    priorities: lines(1),
+                    constraints: lines(2),
+                },
+            }),
+            Kind::GoalReview {
+                goal,
+                previous,
+                accepted,
+            } => {
+                let mut evidence = Vec::new();
+                for i in 0..goal.criteria.len() {
+                    let id = value(1 + 2 * i);
+                    if id.is_empty() {
+                        continue;
+                    }
+                    let task = accepted
+                        .iter()
+                        .find(|t| t.task_id == id)
+                        .context("select current accepted evidence")?;
+                    evidence.push(OrganizationProjectEvidence {
+                        criterion: i as u32,
+                        task_id: id,
+                        result_digest: task
+                            .result_digest
+                            .clone()
+                            .context("result digest unavailable")?,
+                        explanation: required(2 + 2 * i)?,
+                    });
+                }
+                Command::Definition(OrganizationMutation::SetControl {
+                    expected_revision: previous.as_ref().map(|c| c.revision),
+                    value: OrganizationControlValue::GoalReview {
+                        goal: Box::new(goal.clone()),
+                        completed: value(0) == "complete",
+                        evidence,
+                    },
+                })
+            }
+            Kind::Escalation { task, previous } => {
+                let value = if value(3) == "resolved" {
+                    let mut captured = previous
+                        .as_ref()
+                        .context("save and review a request first")?
+                        .value
+                        .clone();
+                    let OrganizationControlValue::Escalation { resolved, .. } = &mut captured
+                    else {
+                        anyhow::bail!("invalid assistance request")
+                    };
+                    *resolved = true;
+                    captured
+                } else {
+                    OrganizationControlValue::Escalation {
+                        task_id: task.id.clone(),
+                        task_revision: task.revision,
+                        assignee_id: optional(0),
+                        reason: required(1)?,
+                        requested_action: required(2)?,
+                        resolved: false,
+                    }
+                };
+                Command::Definition(OrganizationMutation::SetControl {
+                    expected_revision: previous.as_ref().map(|c| c.revision),
+                    value,
+                })
+            }
+            Kind::Lesson { task, digest } => {
+                Command::Definition(OrganizationMutation::ProposeLesson {
+                    task_id: task.id.clone(),
+                    expected_revision: task.revision,
+                    result_digest: digest.clone(),
+                    body: required(0)?,
+                })
+            }
+            Kind::Playbook(project) => {
+                let owner = required(3)?;
+                let reviewer = optional(4);
+                anyhow::ensure!(
+                    reviewer.as_ref() != Some(&owner),
+                    "independent review needs a distinct configured owner"
+                );
+                anyhow::ensure!(
+                    value(0) != "audit" || reviewer.is_some(),
+                    "audit playbook needs an independent reviewer"
+                );
+                let mut items = vec![OrganizationPlanItem {
+                    key: "produce".into(),
+                    owner_id: owner,
+                    instructions: format!(
+                        "{}: {}. Use only permitted local inputs. Produce cited, reviewable draft.md and propose useful lessons; claim only evidenced outcomes.",
+                        value(0),
+                        required(2)?
+                    ),
+                    criteria: vec![
+                        "Owner-selected native checks pass and evidence is cited".into(),
+                    ],
+                    prerequisites: vec![],
+                }];
+                if let Some(owner_id) = reviewer {
+                    items.push(OrganizationPlanItem{key:"review".into(),owner_id,instructions:"Independently inspect permitted draft.md and its evidence. Produce review.md with verified findings, counterexamples, disagreements and limitations. Root acceptance and Apply stay with the owner.".into(),criteria:vec!["Declared review checks pass; findings link to source evidence".into()],prerequisites:vec!["produce".into()]});
+                }
+                Command::Workflow(OrganizationWorkflowMutation::Put {
+                    id: self.project_key.clone(),
+                    expected_revision: None,
+                    project_id: project.id.clone(),
+                    label: required(1)?,
+                    items,
+                })
+            }
             Kind::RestoreEditor(session) => {
                 Command::RestoreEditor(session.clone(), required(0)?.parse()?)
             }

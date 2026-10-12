@@ -496,6 +496,22 @@ async fn named_views_preserve_settings_and_drop_stale_identities_without_executi
     assert!(Preferences::load(&d.path).unwrap().views.is_empty());
 }
 
+#[tokio::test]
+async fn named_view_confirmation_stays_on_the_frontend_with_no_backend_receiver() {
+    let mut d = dashboard();
+    let home = tempfile::tempdir().unwrap();
+    d.path = home.path().join("layouts.json");
+    d.confirmation = Some(Command::NamedView {
+        name: "Confirmed view".into(),
+        action: "save".into(),
+    });
+    d.key(KeyCode::Char('y').into());
+    let prefs = Preferences::load(&d.path).unwrap();
+    assert_eq!(prefs.views[0].name, "Confirmed view");
+    assert!(d.confirmation.is_none());
+    assert!(!d.message_is_error);
+}
+
 #[test]
 fn cached_definitions_require_contiguous_nonowner_events_and_the_same_serving_process() {
     let mut previous = report_for_tasks(&[]);
@@ -613,6 +629,115 @@ fn view(id: &str) -> OrganizationExecutionView {
     }
 }
 
+#[test]
+fn artifact_data_preview_rechecks_hash_and_declared_origin_and_refuses_binary_and_oversize() {
+    use sha2::{Digest, Sha256};
+    let home = tempfile::tempdir().unwrap();
+    let workspace = tempfile::tempdir().unwrap();
+    let file = workspace.path().join("data.csv");
+    let body = "name,value\n\"quoted name\",7\n";
+    std::fs::write(&file, body).unwrap();
+    let mut v = view("one");
+    v.attempts.push(serde_json::from_value(serde_json::json!({"id":"captured","taskId":"one","authorizationId":"grant","ownerId":"original-worker","generation":1,"threadId":"thread","workspace":workspace.path(),"state":"needsReview","startedAt":1,"leaseUntil":2,"reportedTokens":0,"modelRequests":0,"reportedModelRequests":0})).unwrap());
+    v.result = Some(OrganizationTaskResult {
+        attempt_id: "captured".into(),
+        digest: "exact-version".into(),
+        artifacts: vec![OrganizationArtifactEvidence {
+            path: "data.csv".into(),
+            sha256: format!("{:x}", Sha256::digest(body.as_bytes())),
+            bytes: body.len() as u64,
+        }],
+        artifact_bases: vec![],
+        checks: vec![],
+        accepted: false,
+    });
+    let text = artifacts::text(&v, home.path(), 0).unwrap();
+    assert!(text.contains(body));
+    assert!(text.contains("original-worker"));
+    assert!(text.contains("exact-version"));
+    std::fs::write(&file, "changed after recording").unwrap();
+    assert!(artifacts::text(&v, home.path(), 0).is_err());
+    v.result.as_mut().unwrap().artifacts[0].bytes = 65537;
+    assert!(
+        artifacts::text(&v, home.path(), 0)
+            .unwrap_err()
+            .to_string()
+            .contains("64 KiB")
+    );
+    let binary = b"binary\0text";
+    std::fs::write(&file, binary).unwrap();
+    v.result.as_mut().unwrap().artifacts[0] = OrganizationArtifactEvidence {
+        path: "data.csv".into(),
+        sha256: format!("{:x}", Sha256::digest(binary)),
+        bytes: binary.len() as u64,
+    };
+    assert!(
+        artifacts::text(&v, home.path(), 0)
+            .unwrap_err()
+            .to_string()
+            .contains("binary")
+    );
+    v.result.as_mut().unwrap().artifacts[0].path = "../data.csv".into();
+    assert!(artifacts::text(&v, home.path(), 0).is_err());
+}
+
+#[test]
+fn model_advice_requires_the_exact_configured_endpoint_and_captured_checked_outcomes() {
+    let mut report = empty_report();
+    let provider = OrganizationProviderEvidence {
+        id: "selected".into(),
+        origin: Some("http://localhost".into()),
+        endpoint_sha256: "a".repeat(64),
+    };
+    let card:OrganizationScorecard=serde_json::from_value(serde_json::json!({"projectId":"project","workflowRunId":null,"ownerId":"worker","provider":provider,"model":"captured-compatible","attempts":2,"acceptedResults":1,"failedAttempts":0,"blockedAttempts":1,"uncertainAttempts":0,"checksPassed":1,"checksFailed":0,"reportedTokens":22,"modelRequests":2,"reportedModelRequests":2})).unwrap();
+    report.scorecards = Some(OrganizationScorecards {
+        entries: vec![card],
+        truncated: false,
+    });
+    assert!(reporting::model_advice(&report, &provider).contains("Candidate captured-compatible"));
+    let changed = OrganizationProviderEvidence {
+        endpoint_sha256: "b".repeat(64),
+        ..provider.clone()
+    };
+    assert!(!reporting::model_advice(&report, &changed).contains("Candidate captured-compatible"));
+    report.scorecards.as_mut().unwrap().entries[0].uncertain_attempts = 1;
+    assert!(!reporting::model_advice(&report, &provider).contains("Candidate captured-compatible"));
+    assert!(reporting::model_advice(&report, &provider).contains("recommendation unavailable"));
+}
+
+#[tokio::test]
+async fn resource_preview_distinguishes_demand_remaining_pools_and_unknown_quote() {
+    let mut d = dashboard();
+    let scope:OrganizationExecutionScope=serde_json::from_value(serde_json::json!({"inputFiles":[],"immutableFiles":[],"artifacts":["report.txt"],"checks":[],"model":"model","maxTokens":100,"maxSeconds":60,"maxModelRequests":2,"maxAttempts":1,"requireToolApproval":true,"delegates":[],"maxChildren":0})).unwrap();
+    d.snapshot
+        .records
+        .push(OrganizationRecord::Control(OrganizationControl {
+            id: "global".into(),
+            revision: 1,
+            value: OrganizationControlValue::Global {
+                paused: false,
+                limits: Some(OrganizationSharedCeilings {
+                    max_tokens: 150,
+                    max_model_requests: 3,
+                    max_active: 2,
+                }),
+            },
+        }));
+    d.snapshot.report.as_mut().unwrap().global_usage = Some(OrganizationGlobalUsage {
+        reported_tokens: 50,
+        model_requests: 1,
+        active: 1,
+        unresolved_requests: 0,
+    });
+    let text = d.resource_preview("project", &[&scope, &scope]);
+    assert!(
+        text.contains("200 reported tokens / 4 admitted requests / 120 summed attempt seconds")
+    );
+    assert!(text.contains("100 tokens / 2 requests / 1 active slots"));
+    assert!(text.contains("quote estimate unavailable"));
+    assert!(text.contains("not a reservation"));
+}
+
 #[tokio::test]
 async fn palette_opens_declared_file_from_projects_without_losing_task_or_dirty_buffer() {
     let home = tempfile::tempdir().unwrap();
@@ -714,6 +839,7 @@ fn dashboard() -> Dashboard {
         worker: tokio::spawn(std::future::pending()),
         editor: None,
         preview: None,
+        review_previews: Vec::new(),
         editor_area: Rect::default(),
         editor_file: 0,
         following: false,

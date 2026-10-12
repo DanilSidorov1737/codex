@@ -37,6 +37,8 @@ pub(super) async fn set(
     value: OrganizationControlValue,
 ) -> Result<OrganizationControl> {
     let id = match &value {
+        OrganizationControlValue::RoleRollback { id, .. } => format!("rollback-role:{id}"),
+        OrganizationControlValue::WorkflowRollback { id, .. } => format!("rollback-workflow:{id}"),
         OrganizationControlValue::Mission { .. } => "mission".into(),
         OrganizationControlValue::GoalReview { goal, .. } => format!("goal:{}", goal.id),
         OrganizationControlValue::Escalation { task_id, .. } => format!("escalation:{task_id}"),
@@ -61,6 +63,100 @@ pub(super) async fn set(
         "control revision conflict"
     );
     match &value {
+        OrganizationControlValue::RoleRollback {
+            id,
+            reason,
+            current,
+            source,
+            applied,
+        } => {
+            check_rollback_proposal(&value, &previous, *applied)?;
+            Uuid::parse_str(id)?;
+            text(reason, 4096)?;
+            ensure!(
+                current.role_id == source.role_id && source.version < current.version,
+                "select an earlier version of the same role"
+            );
+            for role in [current, source] {
+                let stored: String =
+                    sqlx::query_scalar("SELECT data FROM organization_role_versions WHERE id=?")
+                        .bind(&role.id)
+                        .fetch_one(&mut **tx)
+                        .await?;
+                ensure!(
+                    serde_json::from_str::<OrganizationRecord>(&stored)?
+                        == OrganizationRecord::Role((**role).clone()),
+                    "captured role changed"
+                );
+            }
+            let latest: i64 = sqlx::query_scalar(
+                "SELECT max(version) FROM organization_role_versions WHERE role_id=?",
+            )
+            .bind(&current.role_id)
+            .fetch_one(&mut **tx)
+            .await?;
+            ensure!(
+                latest == current.version,
+                "latest role changed; recapture rollback"
+            );
+            if *applied {
+                let replacement = OrganizationRoleVersion {
+                    id: id.clone(),
+                    role_id: current.role_id.clone(),
+                    version: latest.checked_add(1).context("role version exhausted")?,
+                    name: source.name.clone(),
+                    instructions: source.instructions.clone(),
+                };
+                let data = serde_json::to_string(&OrganizationRecord::Role(replacement.clone()))?;
+                sqlx::query("INSERT INTO organization_role_versions(id,role_id,version,data) VALUES (?,?,?,?)").bind(id).bind(&replacement.role_id).bind(replacement.version).bind(data).execute(&mut **tx).await?;
+            }
+        }
+        OrganizationControlValue::WorkflowRollback {
+            id,
+            reason,
+            current,
+            source,
+            source_run_id,
+            source_run_revision,
+            applied,
+        } => {
+            check_rollback_proposal(&value, &previous, *applied)?;
+            Uuid::parse_str(id)?;
+            text(reason, 4096)?;
+            ensure!(
+                source.id == current.id
+                    && source.project_id == current.project_id
+                    && source.revision < current.revision,
+                "select an earlier captured version of the same workflow"
+            );
+            let data: String = sqlx::query_scalar(
+                "SELECT data FROM organization_workflow_templates WHERE id=? AND revision=?",
+            )
+            .bind(&current.id)
+            .bind(current.revision)
+            .fetch_one(&mut **tx)
+            .await?;
+            ensure!(
+                serde_json::from_str::<
+                    codex_protocol::organization_workflow::OrganizationWorkflowTemplate,
+                >(&data)?
+                    == **current,
+                "current workflow changed"
+            );
+            let run = comparison_run(tx, source_run_id, *source_run_revision).await?;
+            ensure!(
+                run.preview.template == **source,
+                "rollback source differs from captured run"
+            );
+            if *applied {
+                let mut replacement = (**source).clone();
+                replacement.revision = current
+                    .revision
+                    .checked_add(1)
+                    .context("workflow revision exhausted")?;
+                sqlx::query("UPDATE organization_workflow_templates SET revision=?,data=? WHERE id=? AND revision=?").bind(replacement.revision).bind(serde_json::to_string(&replacement)?).bind(&current.id).bind(current.revision).execute(&mut **tx).await?;
+            }
+        }
         OrganizationControlValue::Mission {
             purpose,
             priorities,
@@ -708,6 +804,34 @@ pub(super) async fn set(
     .execute(&mut **tx)
     .await?;
     Ok(control)
+}
+
+fn check_rollback_proposal(
+    value: &OrganizationControlValue,
+    previous: &Option<OrganizationControl>,
+    applied: bool,
+) -> Result<()> {
+    ensure!(
+        !previous.as_ref().is_some_and(|c| matches!(
+            c.value,
+            OrganizationControlValue::RoleRollback { applied: true, .. }
+                | OrganizationControlValue::WorkflowRollback { applied: true, .. }
+        )),
+        "applied rollback is immutable"
+    );
+    if applied {
+        let mut pending = value.clone();
+        match &mut pending {
+            OrganizationControlValue::RoleRollback { applied, .. }
+            | OrganizationControlValue::WorkflowRollback { applied, .. } => *applied = false,
+            _ => unreachable!(),
+        };
+        ensure!(
+            previous.as_ref().is_some_and(|c| c.value == pending),
+            "save and review the exact rollback proposal first"
+        );
+    }
+    Ok(())
 }
 
 pub(super) async fn check_project_edit(
