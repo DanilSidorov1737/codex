@@ -5,6 +5,7 @@ use crossterm::event::KeyModifiers;
 use ratatui::layout::Margin;
 
 pub(super) enum Kind {
+    NamedView(Vec<String>),
     RestoreEditor(Box<crate::organization_editor::Session>),
     HunkApply {
         task: OrganizationTask,
@@ -540,6 +541,68 @@ mod tests {
                 ..
             })
         ));
+    }
+
+    #[test]
+    fn guided_team_creation_and_retirement_pin_bases_without_json_or_authority() {
+        let node = OrganizationNode {
+            id: "existing".into(),
+            parent_id: None,
+            kind: OrganizationNodeKind::Group,
+            label: "Custom group".into(),
+            role_version_id: Some("not-in-loaded-role-list".into()),
+            model: None,
+            enabled: true,
+            revision: 7,
+        };
+        let mut form = Form::new(
+            Kind::Team {
+                expected_nodes: vec![node.clone()],
+                nodes: vec![node.clone()],
+            },
+            &[OrganizationRecord::Node(node.clone())],
+            None,
+            "model",
+        );
+        set(&mut form, 0, "Approved optional worker");
+        form.fields[1].choice = 1;
+        set(&mut form, 3, "Custom worker");
+        let Command::Definition(OrganizationMutation::SetControl {
+            value:
+                OrganizationControlValue::Team {
+                    expected_nodes,
+                    nodes,
+                    applied,
+                    ..
+                },
+            ..
+        }) = form.command().unwrap()
+        else {
+            panic!("team proposal")
+        };
+        assert!(!applied);
+        assert_eq!(expected_nodes, vec![node.clone()]);
+        assert_eq!(nodes[0].revision, 0);
+        assert_eq!(nodes[0].kind, OrganizationNodeKind::Agent);
+        assert_eq!(nodes[0].parent_id.as_deref(), Some("existing"));
+        assert!(uuid::Uuid::parse_str(&nodes[0].id).is_ok());
+        assert_ne!(nodes[0].id, node.id);
+        form.fields[1].choice = 3;
+        let Command::Definition(OrganizationMutation::SetControl {
+            value: OrganizationControlValue::Team { nodes, .. },
+            ..
+        }) = form.command().unwrap()
+        else {
+            panic!("team proposal")
+        };
+        assert_eq!(nodes[0].id, node.id);
+        assert_eq!(nodes[0].revision, 7);
+        assert!(!nodes[0].enabled);
+        assert_eq!(
+            nodes[0].role_version_id, node.role_version_id,
+            "retirement preserves a captured role absent from the loaded selector"
+        );
+        assert_eq!(nodes[0].parent_id, None);
     }
 
     #[test]
@@ -1459,7 +1522,18 @@ impl Form {
         let owner = project.and_then(|p| p.owner_id.as_deref());
         let mut fields = match &kind {
             Kind::WorkflowImprovement {runs,..} => vec![Field::select("Baseline workflow run",runs.iter().map(|r|(r.id.clone(),format!("{} v{} · {}",r.preview.template.label,r.preview.template.revision,r.id))).collect(),None),Field::select("Candidate workflow run",runs.iter().map(|r|(r.id.clone(),format!("{} v{} · {}",r.preview.template.label,r.preview.template.revision,r.id))).collect(),None),Field::text("Why the checks represent intended work", "Every paired step must have accepted identical protected checks; % separately adopts this tested template", "")],
-            Kind::Team {nodes,..} => vec![Field::text("Why change the team", "Definitions only; no copied grants or execution", ""),Field::text("Reviewed node delta (JSON)", "1–32 nodes; existing revision pinned; fresh UUID/revision0; enabled=false retires", &serde_json::to_string_pretty(nodes).unwrap_or_default())],
+            Kind::NamedView(names)=>vec![Field::select("Operation",vec![("save".into(),"Save current view".into()),("restore".into(),"Restore view".into()),("delete".into(),"Delete view".into())],None),Field::text("New view name","Up to eight private named views", ""),Field::select("Saved view",names.iter().map(|name|(name.clone(),name.clone())).collect(),None)],
+            Kind::Team {expected_nodes,nodes} => {
+                let node = &nodes[0];
+                let parents = std::iter::once(("keep".into(),"Keep parent / create under selected node".into()))
+                    .chain(std::iter::once(("root".into(),"No parent (root)".into())))
+                    .chain(expected_nodes.iter().map(|n|(n.id.clone(),n.label.clone()))).collect();
+                let roles = std::iter::once(("keep".into(),"Keep captured role".into())).chain(std::iter::once((String::new(),"No role".into()))).chain(records.iter().filter_map(|r|match r {OrganizationRecord::Role(role)=>Some((role.id.clone(),format!("{} v{}",role.name,role.version))),_=>None})).collect();
+                vec![Field::text("Why change the team","Save proposal first; % separately reviews/applies; no grants or memory copied",""),
+                    Field::select("Operation",vec![("edit".into(),"Rename / move selected definition".into()),("agent".into(),"Create agent".into()),("group".into(),"Create group".into()),("retire".into(),"Retire selected definition".into())],None),
+                    Field::select("Parent",parents,None),Field::text("Name","User-defined; no required role or level",&node.label),
+                    Field::select("Role",roles,Some("keep")),Field::text("Model","Blank uses configured default; selection grants no execution",node.model.as_deref().unwrap_or(""))]
+            },
             Kind::Recovery {previous,..} => {
                 let (enabled,max)=match previous.as_ref().map(|c|&c.value) {Some(OrganizationControlValue::SafeRecovery{enabled,max_retries,..})=>(*enabled,*max_retries),_=>(false,1)};
                 vec![Field::select("Known startup recovery",vec![("off".into(),"Disabled".into()),("on".into(),"Explicitly permit pre-runtime retries".into())],Some(if enabled {"on"} else {"off"})),Field::text("Max original-grant retries", "1–2; immutable after first save; original attempts/deadline still apply", &max.to_string())]
@@ -1870,6 +1944,7 @@ impl Form {
     }
     pub(super) fn title(&self) -> &'static str {
         match self.kind {
+            Kind::NamedView(_) => "Named views · save / restore / delete",
             Kind::RestoreEditor(_) => "Restore actual Neovim session · exact owner choice",
             Kind::HunkApply { .. } => "Select exact accepted hunks · one durable Apply",
             Kind::Agent => "New agent",
@@ -2660,14 +2735,55 @@ impl Form {
                     },
                 })
             }
-            Kind::Team { expected_nodes, .. } => {
+            Kind::NamedView(_) => Command::NamedView {
+                name: required(if value(0) == "save" { 1 } else { 2 })?,
+                action: required(0)?,
+            },
+            Kind::Team {
+                expected_nodes,
+                nodes,
+            } => {
+                let original = nodes.first().context("select a definition first")?;
+                let creating = matches!(value(1).as_str(), "agent" | "group");
+                let mut node = original.clone();
+                if creating {
+                    node.id = self.project_key.clone();
+                    node.revision = 0;
+                    node.kind = if value(1) == "agent" {
+                        OrganizationNodeKind::Agent
+                    } else {
+                        OrganizationNodeKind::Group
+                    };
+                    node.enabled = true;
+                } else if value(1) == "retire" {
+                    node.enabled = false;
+                }
+                node.parent_id = match value(2).as_str() {
+                    "keep" if creating => Some(original.id.clone()),
+                    "keep" => original.parent_id.clone(),
+                    "root" => None,
+                    id => Some(id.to_owned()),
+                };
+                node.label = required(3)?;
+                node.role_version_id = if value(4) == "keep" {
+                    original.role_version_id.clone()
+                } else {
+                    (!value(4).is_empty()).then(|| value(4).to_owned())
+                };
+                node.model = (!value(5).is_empty()).then(|| value(5).to_owned());
                 Command::Definition(OrganizationMutation::SetControl {
                     expected_revision: None,
                     value: OrganizationControlValue::Team {
                         id: self.project_key.clone(),
                         reason: required(0)?,
-                        expected_nodes: expected_nodes.clone(),
-                        nodes: serde_json::from_str(&required(1)?)?,
+                        expected_nodes: expected_nodes
+                            .iter()
+                            .filter(|n| {
+                                n.id == original.id || node.parent_id.as_deref() == Some(&n.id)
+                            })
+                            .cloned()
+                            .collect(),
+                        nodes: vec![node],
                         applied: false,
                     },
                 })

@@ -68,3 +68,23 @@ unchanged formatter-contract regression passes (1 test, exit 0,
 `formatter-regression.log`); its assertion was not weakened. Empty listings produce
 no stdin-reading formatter command. Tasks 1–5 have source changes under affected
 TUI/native-editor regression testing; physical package qualification remains.
+
+Tasks 1–5 source checkpoint: responsive/wrapped card geometry, guided one-node
+create/move/rename/retire proposals, inspector cross-team memberships, eight
+private named views and snapshot caching/explicit additional pages are implemented.
+Cached definitions require contiguous non-owner audit events and the same serving
+process; owner changes/gaps/restarts reload, tasks/controls update on runtime
+changes. Incomplete pages are labeled; initial bounds remain 20,000 nodes/goals
+and 2,000 other kinds, with up to 100 extra 200-record pages on explicit request.
+Views capture at most 64 collapsed branches/256-byte search and retain the existing
+64 KiB preference/privacy checks. Restore drops stale selected/focused identities;
+Console uses its existing native settings. A guided team proposal edits one node;
+the existing native API still supports atomic 1–32-node deltas. No grants or memory
+are copied. Retiring preserves a captured role missing from the loaded selector.
+
+All **83 affected TUI/actual official-Neovim tests pass** (`ui-tests-v6.log`).
+Compiler fixtures/string matches and an existing palette-order assertion initially
+failed; corrected code retains the assertions and all prior shortcuts. One build
+session disappeared with no final receipt (`ui-tests-v5.log`); confirmed no live
+duplicate build/OOM kill, then the rerun passed. Physical CLI packaging and new UI
+qualification follow; tasks 6–24 and final task 25 are not complete.

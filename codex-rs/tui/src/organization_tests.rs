@@ -122,7 +122,7 @@ async fn background_requests_survive_startup_overlap_and_cancelled_dashboard() {
         });
         account_ready.recv().await.unwrap();
         let old_handle = handle.clone();
-        let mut old_dashboard = tokio::spawn(async move { load(&old_handle).await });
+        let mut old_dashboard = tokio::spawn(async move { load(&old_handle, &mut None, 0, false).await });
         tokio::select! {
             seen = list_ready.recv() => { seen.unwrap(); }
             result = &mut old_dashboard => panic!("dashboard collided with startup: {:?}",
@@ -468,6 +468,112 @@ fn preferences_roundtrip_all_presets_and_reject_aliases() {
     }
 }
 
+#[tokio::test]
+async fn named_views_preserve_settings_and_drop_stale_identities_without_execution() {
+    let mut d = dashboard();
+    let home = tempfile::tempdir().unwrap();
+    d.path = home.path().join("layouts.json");
+    d.preferences.preset = Preset::Operations;
+    d.search = "Custom owner".into();
+    d.selected = Some("owner".into());
+    d.preferences.graph.focus = Some("owner".into());
+    d.preferences.panes[3].width = 52;
+    d.named_view("Team", "save").unwrap();
+    d.preferences.panes[3].width = 25;
+    d.search.clear();
+    d.named_view("Team", "restore").unwrap();
+    assert_eq!(d.preferences.panes[3].width, 52);
+    assert_eq!(d.search, "Custom owner");
+    assert_eq!(d.selected.as_deref(), Some("owner"));
+    let prefs = Preferences::load(&d.path).unwrap();
+    assert_eq!(prefs.views[0].name, "Team");
+    d.snapshot.records.clear();
+    d.named_view("Team", "restore").unwrap();
+    assert_eq!(d.selected, None);
+    assert_eq!(d.preferences.graph.focus, None);
+    assert!(d.named_view("bad\nname", "save").is_err());
+    d.named_view("Team", "delete").unwrap();
+    assert!(Preferences::load(&d.path).unwrap().views.is_empty());
+}
+
+#[test]
+fn cached_definitions_require_contiguous_nonowner_events_and_the_same_serving_process() {
+    let mut previous = report_for_tasks(&[]);
+    previous.sequence = 1;
+    let mut report = previous.clone();
+    assert!(cache_valid(Some(&previous), &report));
+    report.sequence = 2;
+    assert!(!cache_valid(Some(&previous), &report));
+    report.audit_events = Some(vec![OrganizationAuditEvent {
+        sequence: 2,
+        actor: "host".into(),
+        operation: "attempt/progress".into(),
+        reference: Some("attempt".into()),
+        created_at: 0,
+    }]);
+    assert!(cache_valid(Some(&previous), &report));
+    report.audit_events.as_mut().unwrap()[0].actor = "owner".into();
+    assert!(!cache_valid(Some(&previous), &report));
+    report.audit_events.as_mut().unwrap()[0].actor = "host".into();
+    report.sequence = 3;
+    assert!(!cache_valid(Some(&previous), &report));
+    report.sequence = 1;
+    report.runtime_resources = Some(OrganizationRuntimeResources {
+        process_id: 123,
+        measured_at_ms: 1,
+        resident_bytes: None,
+        cpu_time_ms: None,
+    });
+    assert!(!cache_valid(Some(&previous), &report));
+}
+
+#[test]
+fn operations_cards_resize_and_memberships_do_not_change_the_primary_tree() {
+    let mut records = branching_records();
+    records.push(OrganizationRecord::Membership(OrganizationMembership {
+        id: "membership".into(),
+        node_id: "left".into(),
+        group_id: "right".into(),
+    }));
+    let mut settings = graph::Settings::default();
+    let mut chart = graph::Graph::build(&records, &BTreeSet::new(), "", &settings);
+    let original = serde_json::to_value(&records).unwrap();
+    let mut widths = vec![];
+    for width in [200, 50, 120, 1] {
+        let area = Rect::new(0, 0, width, 40);
+        let mut buffer = Buffer::empty(area);
+        chart.render(
+            &mut settings,
+            Some("left"),
+            &BTreeSet::new(),
+            area,
+            &mut buffer,
+        );
+        widths.push(chart.width);
+        assert!(
+            chart
+                .hits
+                .iter()
+                .all(|(rect, _)| rect.intersection(area) == *rect)
+        );
+    }
+    assert!(
+        widths[0] > widths[1],
+        "wide cards adapt to smaller terminals"
+    );
+    assert_eq!(serde_json::to_value(&records).unwrap(), original);
+    assert_eq!(
+        chart
+            .cards
+            .iter()
+            .find(|c| c.id == "left")
+            .unwrap()
+            .parent
+            .as_deref(),
+        Some("root")
+    );
+}
+
 fn task(id: &str) -> OrganizationTask {
     OrganizationTask {
         id: id.into(),
@@ -571,6 +677,7 @@ fn dashboard() -> Dashboard {
         path: PathBuf::from("unused"),
         projection: Projection::Default,
         snapshot: Snapshot {
+            limited: false,
             report: Some(report_for_tasks(&["one", "two"])),
             schedules: vec![],
             workflows: vec![],
@@ -668,6 +775,7 @@ async fn changed_original_refusal_survives_background_snapshot() {
     d.updates = incoming;
     updates
         .send(Update::Snapshot(Box::new(Snapshot {
+            limited: false,
             records: d.snapshot.records.clone(),
             schedules: vec![],
             workflows: vec![],
@@ -1633,6 +1741,7 @@ async fn refreshed_snapshot_preserves_selection_but_removes_deleted_selection() 
     assert_eq!(d.selected.as_deref(), Some("two"));
     updates
         .send(Update::Snapshot(Box::new(Snapshot {
+            limited: false,
             report: Some(report_for_tasks(&["one"])),
             schedules: vec![],
             workflows: vec![],
@@ -1645,6 +1754,7 @@ async fn refreshed_snapshot_preserves_selection_but_removes_deleted_selection() 
     assert!(matches!(command_rx.try_recv(), Ok(Command::Inspect(id)) if id == "one"));
     updates
         .send(Update::Snapshot(Box::new(Snapshot {
+            limited: false,
             report: Some(report_for_tasks(&["one"])),
             schedules: vec![],
             workflows: vec![],
@@ -1663,6 +1773,7 @@ async fn refreshed_snapshot_preserves_selection_but_removes_deleted_selection() 
     assert!(d.selected.is_none());
     updates
         .send(Update::Snapshot(Box::new(Snapshot {
+            limited: false,
             report: Some(report_for_tasks(&["new"])),
             schedules: vec![],
             workflows: vec![],
@@ -1855,6 +1966,7 @@ async fn actual_dirty_editor_blocks_host_exit_and_owner_apply_dispatch() {
     d.updates = incoming;
     updates
         .send(Update::Snapshot(Box::new(Snapshot {
+            limited: false,
             report: None,
             schedules: vec![],
             workflows: vec![],

@@ -446,6 +446,18 @@ const ACTIONS: &[Action] = &[
         code: KeyCode::Char('B'),
         context: "Workspace host focus; pinned clean original; native undo; explicit save",
     },
+    Action {
+        title: "Load more records",
+        shortcut: "Commands",
+        code: KeyCode::F(25),
+        context: "additional bounded pages; no execution",
+    },
+    Action {
+        title: "Named views: save / restore / delete",
+        shortcut: "Commands",
+        code: KeyCode::F(24),
+        context: "private layout, filter and focused branch",
+    },
 ];
 
 impl Palette {

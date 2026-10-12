@@ -97,6 +97,18 @@ struct Preferences {
     preset: Preset,
     panes: [PaneSettings; 5],
     graph: graph::Settings,
+    views: Vec<SavedView>,
+}
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct SavedView {
+    name: String,
+    preset: Preset,
+    panes: [PaneSettings; 5],
+    graph: graph::Settings,
+    search: String,
+    selected: Option<String>,
+    collapsed: BTreeSet<String>,
 }
 impl Default for Preferences {
     fn default() -> Self {
@@ -104,6 +116,7 @@ impl Default for Preferences {
             preset: Preset::Operations,
             panes: std::array::from_fn(|_| PaneSettings::default()),
             graph: graph::Settings::default(),
+            views: vec![],
         }
     }
 }
@@ -141,13 +154,29 @@ impl Preferences {
         let mut content = String::new();
         file.read_to_string(&mut content)?;
         let mut prefs: Self = serde_json::from_str(&content)?;
-        for pane in &mut prefs.panes {
+        if prefs.views.len() > 8
+            || prefs
+                .views
+                .iter()
+                .any(|v| v.name.len() > 64 || v.search.len() > 256 || v.collapsed.len() > 64)
+        {
+            return Err(std::io::Error::other("saved view bounds exceeded"));
+        }
+        for pane in prefs
+            .panes
+            .iter_mut()
+            .chain(prefs.views.iter_mut().flat_map(|v| v.panes.iter_mut()))
+        {
             pane.width = pane.width.clamp(25, 75);
             pane.sidebar_width = pane.sidebar_width.clamp(16, 40);
         }
         Ok(prefs)
     }
     fn save(&self, path: &Path) -> std::io::Result<()> {
+        let bytes = serde_json::to_vec_pretty(self)?;
+        if bytes.len() > 65535 {
+            return Err(std::io::Error::other("layout preferences exceed 64 KiB"));
+        }
         let parent = path
             .parent()
             .ok_or_else(|| std::io::Error::other("missing preferences directory"))?;
@@ -158,7 +187,7 @@ impl Preferences {
             file.as_file()
                 .set_permissions(std::fs::Permissions::from_mode(0o600))?;
         }
-        serde_json::to_writer_pretty(&mut file, self)?;
+        file.write_all(&bytes)?;
         file.write_all(b"\n")?;
         file.as_file().sync_all()?;
         file.persist(path).map_err(|e| e.error)?;
@@ -166,17 +195,23 @@ impl Preferences {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 struct Snapshot {
     records: Vec<OrganizationRecord>,
     schedules: Vec<OrganizationScheduleView>,
     workflows: Vec<OrganizationWorkflowView>,
     report: Option<OrganizationReport>,
+    limited: bool,
 }
 enum Command {
+    NamedView {
+        name: String,
+        action: String,
+    },
     RestoreEditor(Box<crate::organization_editor::Session>, bool),
     BufferProposal(Box<crate::organization_editor::BufferProposal>),
     Refresh,
+    MoreRecords,
     Summary(String, reporting::Focus),
     Inventory(String),
     Inspect(String),
@@ -241,8 +276,52 @@ fn utc_time(seconds: i64) -> String {
         .unwrap_or_else(|| format!("{seconds} UTC epoch"))
 }
 
-async fn load(handle: &AppServerRequestHandle) -> anyhow::Result<Snapshot> {
+fn cache_valid(previous: Option<&OrganizationReport>, report: &OrganizationReport) -> bool {
+    let Some(previous) = previous else {
+        return false;
+    };
+    if previous.runtime_resources.as_ref().map(|r| r.process_id)
+        != report.runtime_resources.as_ref().map(|r| r.process_id)
+    {
+        return false;
+    }
+    if report.sequence == previous.sequence {
+        return true;
+    }
+    let Some(events) = &report.audit_events else {
+        return false;
+    };
+    report.sequence > previous.sequence
+        && events
+            .iter()
+            .filter(|e| e.sequence > previous.sequence)
+            .count() as i64
+            == report.sequence - previous.sequence
+        && !events
+            .iter()
+            .any(|e| e.sequence > previous.sequence && e.actor == "owner")
+}
+async fn load(
+    handle: &AppServerRequestHandle,
+    cache: &mut Option<Snapshot>,
+    extra_pages: usize,
+    force: bool,
+) -> anyhow::Result<Snapshot> {
+    let report = reporting::load(handle, None).await?;
+    let reusable = !force && cache_valid(cache.as_ref().and_then(|s| s.report.as_ref()), &report);
+    if reusable
+        && cache
+            .as_ref()
+            .and_then(|s| s.report.as_ref())
+            .is_some_and(|old| old.sequence == report.sequence)
+    {
+        let mut snapshot = cache.as_ref().context("cache unavailable")?.clone();
+        snapshot.report = Some(report);
+        *cache = Some(snapshot.clone());
+        return Ok(snapshot);
+    }
     let mut records = Vec::new();
+    let mut limited = reusable && cache.as_ref().is_some_and(|s| s.limited);
     for kind in [
         OrganizationRecordKind::Nodes,
         OrganizationRecordKind::Roles,
@@ -253,6 +332,19 @@ async fn load(handle: &AppServerRequestHandle) -> anyhow::Result<Snapshot> {
         OrganizationRecordKind::Presets,
         OrganizationRecordKind::Controls,
     ] {
+        if reusable
+            && !matches!(
+                kind,
+                OrganizationRecordKind::Tasks | OrganizationRecordKind::Controls
+            )
+        {
+            if let Some(cached) = cache.as_ref() {
+                records.extend(cached.records.iter().filter(|r|match (kind,r) {
+                    (OrganizationRecordKind::Nodes,OrganizationRecord::Node(_))|(OrganizationRecordKind::Roles,OrganizationRecord::Role(_))|(OrganizationRecordKind::Goals,OrganizationRecord::Goal(_))|(OrganizationRecordKind::Projects,OrganizationRecord::Project(_))|(OrganizationRecordKind::Memberships,OrganizationRecord::Membership(_))|(OrganizationRecordKind::Presets,OrganizationRecord::Preset(_))|(OrganizationRecordKind::Controls,OrganizationRecord::Control(_))=>true,_=>false,
+                }).cloned());
+            }
+            continue;
+        }
         let mut cursor = None;
         let pages = if matches!(
             kind,
@@ -261,7 +353,7 @@ async fn load(handle: &AppServerRequestHandle) -> anyhow::Result<Snapshot> {
             100
         } else {
             10
-        };
+        } + extra_pages;
         for page in 0..pages {
             let response: OrganizationListResponse = handle
                 .request_typed(ClientRequest::OrganizationList {
@@ -278,15 +370,19 @@ async fn load(handle: &AppServerRequestHandle) -> anyhow::Result<Snapshot> {
                 break;
             }
             anyhow::ensure!(
-                page + 1 < pages && response.next_cursor != cursor,
-                "layout record limit reached (20,000 nodes/goals; 2,000 other records per kind); use paginated CLI inspection"
+                response.next_cursor != cursor,
+                "organization cursor did not advance"
             );
+            if page + 1 == pages {
+                limited = true;
+                break;
+            }
             cursor = response.next_cursor;
         }
     }
     let mut schedules = Vec::new();
     let mut cursor = None;
-    for page in 0..10 {
+    for page in 0..(10 + extra_pages) {
         let response: OrganizationScheduleListResponse = handle
             .request_typed(ClientRequest::OrganizationScheduleList {
                 request_id: request_id(),
@@ -302,9 +398,13 @@ async fn load(handle: &AppServerRequestHandle) -> anyhow::Result<Snapshot> {
             break;
         }
         anyhow::ensure!(
-            page < 9 && response.next_cursor != cursor,
-            "layout schedule limit reached (2,000); use paginated CLI inspection"
+            response.next_cursor != cursor,
+            "schedule cursor did not advance"
         );
+        if page + 1 == 10 + extra_pages {
+            limited = true;
+            break;
+        }
         cursor = response.next_cursor;
     }
     let mut workflows = Vec::new();
@@ -315,7 +415,7 @@ async fn load(handle: &AppServerRequestHandle) -> anyhow::Result<Snapshot> {
         OrganizationWorkflowKind::Series,
     ] {
         let mut cursor = None;
-        for page in 0..10 {
+        for page in 0..(10 + extra_pages) {
             let response: OrganizationWorkflowListResponse = handle
                 .request_typed(ClientRequest::OrganizationWorkflowList {
                     request_id: request_id(),
@@ -332,18 +432,25 @@ async fn load(handle: &AppServerRequestHandle) -> anyhow::Result<Snapshot> {
                 break;
             }
             anyhow::ensure!(
-                page < 9 && response.next_cursor != cursor,
-                "layout workflow limit reached (2,000 per kind); use paginated CLI inspection"
+                response.next_cursor != cursor,
+                "workflow cursor did not advance"
             );
+            if page + 1 == 10 + extra_pages {
+                limited = true;
+                break;
+            }
             cursor = response.next_cursor;
         }
     }
-    Ok(Snapshot {
+    let snapshot = Snapshot {
         records,
         schedules,
         workflows,
-        report: Some(reporting::load(handle, None).await?),
-    })
+        report: Some(report),
+        limited,
+    };
+    *cache = Some(snapshot.clone());
+    Ok(snapshot)
 }
 
 async fn worker(
@@ -353,6 +460,8 @@ async fn worker(
     updates: mpsc::Sender<Update>,
 ) {
     let mut selected: Option<String> = None;
+    let mut cache = None;
+    let mut extra_pages = 0;
     let mut interval = tokio::time::interval(Duration::from_secs(3));
     interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
     loop {
@@ -364,7 +473,9 @@ async fn worker(
         let mut apply_rejected = false;
         let operation = async {
             match command {
-                Command::RestoreEditor(..) | Command::BufferProposal(..) => {
+                Command::RestoreEditor(..)
+                | Command::BufferProposal(..)
+                | Command::NamedView { .. } => {
                     anyhow::bail!("native editor actions must stay on the frontend")
                 }
                 Command::Summary(id, focus) => {
@@ -387,9 +498,15 @@ async fn worker(
                         .map_err(|error| error.to_string());
                     updates.send(Update::ReportText(id, result)).await?;
                 }
-                Command::Refresh => {
+                Command::Refresh | Command::MoreRecords => {
+                    let more = matches!(command, Command::MoreRecords);
+                    if more {
+                        extra_pages = (extra_pages + 10).min(100);
+                    }
                     updates
-                        .send(Update::Snapshot(Box::new(load(&handle).await?)))
+                        .send(Update::Snapshot(Box::new(
+                            load(&handle, &mut cache, extra_pages, more).await?,
+                        )))
                         .await?;
                     if let Some(task_id) = &selected {
                         let response: OrganizationExecutionReadResponse = handle
@@ -1153,6 +1270,16 @@ impl Dashboard {
         &mut self.preferences.panes[self.preferences.preset.index()]
     }
     fn send(&mut self, command: Command) {
+        let command = match command {
+            Command::NamedView { name, action } => {
+                if let Err(error) = self.named_view(&name, &action) {
+                    self.message = error.to_string();
+                    self.message_is_error = true;
+                }
+                return;
+            }
+            command => command,
+        };
         if let Err(error) = self.commands.try_send(command) {
             self.message = "Owner request queue busy; retry after refresh.".into();
             let command = error.into_inner();
@@ -1180,6 +1307,96 @@ impl Dashboard {
         self.rebuild();
         self.inspect();
         self.save();
+    }
+    fn named_view(&mut self, name: &str, action: &str) -> anyhow::Result<()> {
+        anyhow::ensure!(
+            !name.is_empty() && name.len() <= 64 && !name.chars().any(char::is_control),
+            "view name must be 1–64 bytes without control characters"
+        );
+        match action {
+            "save" => {
+                anyhow::ensure!(
+                    self.preferences.views.len() < 8
+                        || self.preferences.views.iter().any(|v| v.name == name),
+                    "at most eight saved views"
+                );
+                anyhow::ensure!(
+                    self.search.len() <= 256 && self.collapsed.len() <= 64,
+                    "view supports a 256-byte filter and 64 collapsed branches"
+                );
+                let view = SavedView {
+                    name: name.into(),
+                    preset: self.preferences.preset,
+                    panes: self.preferences.panes.clone(),
+                    graph: self.preferences.graph.clone(),
+                    search: self.search.clone(),
+                    selected: self.selected.clone(),
+                    collapsed: self.collapsed.clone(),
+                };
+                let mut preferences = self.preferences.clone();
+                preferences.views.retain(|v| v.name != name);
+                preferences.views.push(view);
+                preferences.save(&self.path)?;
+                self.preferences = preferences;
+            }
+            "restore" => {
+                let view = self
+                    .preferences
+                    .views
+                    .iter()
+                    .find(|v| v.name == name)
+                    .context("saved view not found")?
+                    .clone();
+                anyhow::ensure!(
+                    view.preset != Preset::Console,
+                    "return to Console through F1"
+                );
+                if let Some(editor) = &mut self.editor {
+                    editor.focused = false;
+                }
+                self.preferences.preset = view.preset;
+                self.preferences.panes = view.panes;
+                self.preferences.graph = view.graph;
+                let ids: BTreeSet<_> = self
+                    .snapshot
+                    .records
+                    .iter()
+                    .filter_map(|r| match r {
+                        OrganizationRecord::Node(n) => Some(n.id.as_str()),
+                        OrganizationRecord::Task(t) => Some(t.id.as_str()),
+                        OrganizationRecord::Project(p) => Some(p.id.as_str()),
+                        OrganizationRecord::Goal(g) => Some(g.id.as_str()),
+                        _ => None,
+                    })
+                    .collect();
+                self.preferences.graph.focus = self
+                    .preferences
+                    .graph
+                    .focus
+                    .take()
+                    .filter(|id| ids.contains(id.as_str()));
+                self.selected = view.selected.filter(|id| ids.contains(id.as_str()));
+                self.collapsed = view
+                    .collapsed
+                    .into_iter()
+                    .filter(|id| ids.contains(id.as_str()))
+                    .collect();
+                self.search = view.search;
+                self.projection = Projection::Default;
+                self.rebuild();
+                self.inspect();
+                self.save();
+            }
+            "delete" => {
+                let mut preferences = self.preferences.clone();
+                preferences.views.retain(|v| v.name != name);
+                preferences.save(&self.path)?;
+                self.preferences = preferences;
+            }
+            _ => anyhow::bail!("unknown saved view operation"),
+        }
+        self.message = format!("Saved view {name}: {action}");
+        Ok(())
     }
     fn rebuild(&mut self) {
         let search = self.search.to_lowercase();
@@ -1805,21 +2022,39 @@ impl Dashboard {
     }
     fn open_form(&mut self, key: char) {
         let kind = match key {
+            '~' => form::Kind::NamedView(
+                self.preferences
+                    .views
+                    .iter()
+                    .map(|v| v.name.clone())
+                    .collect(),
+            ),
             '@' => {
                 let Some(OrganizationRecord::Node(node)) = self.record() else {
                     self.message = "Select a definition to propose team changes".into();
                     return;
                 };
                 let expected_nodes = std::iter::once(node.clone())
+                    .chain(self.snapshot.records.iter().filter_map(|r| match r {
+                        OrganizationRecord::Node(n) if Some(&n.id) == node.parent_id.as_ref() => {
+                            Some(n.clone())
+                        }
+                        _ => None,
+                    }))
                     .chain(
                         self.snapshot
                             .records
                             .iter()
                             .filter_map(|r| match r {
-                                OrganizationRecord::Node(n) if n.id != node.id => Some(n.clone()),
+                                OrganizationRecord::Node(n)
+                                    if n.id != node.id
+                                        && Some(&n.id) != node.parent_id.as_ref() =>
+                                {
+                                    Some(n.clone())
+                                }
                                 _ => None,
                             })
-                            .take(63),
+                            .take(if node.parent_id.is_some() { 62 } else { 63 }),
                     )
                     .collect();
                 form::Kind::Team {
@@ -2872,6 +3107,8 @@ impl Dashboard {
                     }
                 }
             }
+            KeyCode::F(24) => self.open_form('~'),
+            KeyCode::F(25) => self.send(Command::MoreRecords),
             KeyCode::Char(n @ '2'..='5') => self.switch(
                 [
                     Preset::Console,
@@ -3143,16 +3380,16 @@ impl Dashboard {
                         let cpu=new.cpu_time_ms?.checked_sub(old.cpu_time_ms?)? as f64;
                         Some(100.0*cpu/elapsed)
                     });
+                    let changed=self.snapshot.records!=snapshot.records || self.snapshot.workflows!=snapshot.workflows || self.snapshot.schedules!=snapshot.schedules;
                     self.snapshot = *snapshot;
-                    self.rebuild();
+                    if changed {self.rebuild();}
                     self.detail_text = clean(&self.details());
                     if self.confirmation.is_none()
                         && self.memory_request.is_none()
                         && !self.message_is_error
                         && !self.applying
                     {
-                        self.message =
-                            "Owner state loaded; definitions do not imply running agents.".into();
+                        self.message = if self.snapshot.limited {"Partial record pages loaded · Commands → Load more records; counts cover loaded definitions."} else {"Owner state loaded; definitions do not imply running agents."}.into();
                     }
                     if first || self.selected != selected {
                         self.inspect();
@@ -3645,6 +3882,9 @@ impl Dashboard {
         }
         if let Some(command) = &self.confirmation {
             let value = match command {
+                Command::NamedView { name, action } => serde_json::to_string_pretty(
+                    &serde_json::json!({"savedView":name,"operation":action}),
+                ),
                 Command::RestoreEditor(session, recover) => serde_json::to_string_pretty(
                     &serde_json::json!({"nativeSession":session,"recoverUnsaved":recover,"writesOriginalFiles":false}),
                 ),

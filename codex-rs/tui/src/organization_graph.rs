@@ -324,7 +324,7 @@ impl Graph {
             }
         }
         let mut graph = Self {
-            card_size: if settings.compact { (18, 3) } else { (28, 5) },
+            card_size: if settings.compact { (18, 3) } else { (28, 7) },
             ..Self::default()
         };
         let mut indices = BTreeMap::new();
@@ -386,10 +386,17 @@ impl Graph {
                 position: (0, 0),
             });
         }
+        graph.layout();
+        graph
+    }
+
+    fn layout(&mut self) {
+        self.width = 0;
+        self.height = 0;
         // The concept uses one column per top-level branch, with descendant branches
         // stacked inside that column. Arbitrary deeper levels remain scrollable.
-        let spacing = graph.card_size.0 + 10;
-        let roots: Vec<_> = graph
+        let spacing = self.card_size.0 + 10;
+        let roots: Vec<_> = self
             .cards
             .iter()
             .enumerate()
@@ -397,31 +404,24 @@ impl Graph {
             .collect();
         let mut root_x = 0;
         for root in roots {
-            let columns = graph.cards[root].children.len().max(1) as u32;
-            graph.cards[root].position = (root_x + (columns - 1) * spacing / 2, 0);
-            for (column, child) in graph.cards[root].children.clone().into_iter().enumerate() {
-                let mut y = graph.card_size.1 + 3;
+            let columns = self.cards[root].children.len().max(1) as u32;
+            self.cards[root].position = (root_x + (columns - 1) * spacing / 2, 0);
+            for (column, child) in self.cards[root].children.clone().into_iter().enumerate() {
+                let mut y = self.card_size.1 + 3;
                 let mut stack = vec![(child, 0u32)];
                 while let Some((i, depth)) = stack.pop() {
-                    graph.cards[i].position =
+                    self.cards[i].position =
                         (root_x + column as u32 * spacing + 2 + depth.min(3) * 2, y);
-                    y += graph.card_size.1 + 3;
-                    stack.extend(
-                        graph.cards[i]
-                            .children
-                            .iter()
-                            .rev()
-                            .map(|c| (*c, depth + 1)),
-                    );
+                    y += self.card_size.1 + 3;
+                    stack.extend(self.cards[i].children.iter().rev().map(|c| (*c, depth + 1)));
                 }
             }
             root_x += columns * spacing;
         }
-        for card in &graph.cards {
-            graph.width = graph.width.max(card.position.0 + graph.card_size.0);
-            graph.height = graph.height.max(card.position.1 + graph.card_size.1);
+        for card in &self.cards {
+            self.width = self.width.max(card.position.0 + self.card_size.0);
+            self.height = self.height.max(card.position.1 + self.card_size.1);
         }
-        graph
     }
 
     pub fn rows(&self) -> Vec<Row> {
@@ -502,6 +502,22 @@ impl Graph {
         if self.cards.is_empty() {
             Paragraph::new("No matching nodes · Ctrl-N filter · Ctrl-T whole organization\nU creates an idle agent; execution needs authorization.").render(inner,buffer);
             return;
+        }
+        if !self.goals && !settings.compact {
+            let columns: usize = self
+                .cards
+                .iter()
+                .filter(|c| c.parent.is_none())
+                .map(|c| c.children.len().max(1))
+                .sum();
+            let width = (u32::from(inner.width).saturating_add(10) / columns.max(1) as u32)
+                .saturating_sub(10)
+                .clamp(28, 48);
+            if self.card_size.0 != width {
+                self.card_size.0 = width;
+                self.layout();
+                settings.centered = None;
+            }
         }
         if settings.centered.as_deref() != selected || settings.size != (inner.width, inner.height)
         {
@@ -650,7 +666,8 @@ impl Graph {
                 format!("● {} · {} tasks", c.state, c.counts.tasks)
             } else {
                 format!(
-                    "{}\n● {} · {} active\n{} agents · {} tasks · {} issues",
+                    "{}\n{}\n● {} · {} active\nAgents {} · Tasks {} · Issues {}",
+                    c.label,
                     c.role,
                     c.state,
                     c.counts.running,
@@ -662,6 +679,7 @@ impl Graph {
             Paragraph::new(text)
                 .style(Style::default().fg(state_color(c.state)))
                 .block(panel(title, is_selected))
+                .wrap(Wrap { trim: false })
                 .render(local, &mut tile);
             let x0 = x.max(px);
             let y0 = y.max(py);
@@ -732,6 +750,26 @@ impl Dashboard {
             "{}\n{}\nPrimary hierarchy · loaded records\n\n",
             node.label, node.id
         );
+        text.push_str("Configured cross-team memberships (no authority)\n");
+        for record in &self.snapshot.records {
+            if let OrganizationRecord::Membership(m) = record
+                && (m.node_id == node.id || m.group_id == node.id)
+            {
+                let name = |id: &str| {
+                    self.snapshot
+                        .records
+                        .iter()
+                        .find_map(|r| match r {
+                            OrganizationRecord::Node(n) if n.id == id => Some(n.label.as_str()),
+                            _ => None,
+                        })
+                        .unwrap_or(id)
+                        .to_owned()
+                };
+                text.push_str(&format!("{} → {}\n", name(&m.node_id), name(&m.group_id)));
+            }
+        }
+        text.push('\n');
         match self.preferences.graph.inspector_tab % 4 {
             1 => {
                 for record in &self.snapshot.records {

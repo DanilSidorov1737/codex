@@ -277,7 +277,7 @@ impl Dashboard {
             }
         }
         let names = [
-            "Defined agents",
+            "Loaded agents",
             "Running",
             "Failed",
             "Approval",
