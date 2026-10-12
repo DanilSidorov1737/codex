@@ -1,7 +1,6 @@
 use super::*;
-use codex_protocol::organization_coordination::{
-    OrganizationCoordinationCall, OrganizationNoteScope,
-};
+use codex_protocol::organization_coordination::OrganizationCoordinationCall;
+use codex_protocol::organization_coordination::OrganizationNoteScope;
 
 fn preset(record: Option<OrganizationRecord>) -> OrganizationPreset {
     let Some(OrganizationRecord::Preset(preset)) = record else {

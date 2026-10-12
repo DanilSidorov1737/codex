@@ -1,11 +1,13 @@
 //! Inventory reads definitions and canonical observations; never connects or probes.
-use anyhow::{Result, ensure};
+use anyhow::Result;
+use anyhow::ensure;
 use codex_core::config::Config;
 use codex_model_provider_info::ModelProviderInfo;
 use codex_protocol::organization_execution::OrganizationProviderEvidence;
 use codex_protocol::organization_inventory::*;
 use codex_state::organization::OrganizationStore;
-use sha2::{Digest, Sha256};
+use sha2::Digest;
+use sha2::Sha256;
 
 pub(crate) fn provider_evidence(
     id: &str,

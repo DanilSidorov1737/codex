@@ -1,7 +1,11 @@
 //! Read-only SQL projections. Never sum a root ledger once per descendant.
 use super::OrganizationStore;
-use super::execution::{check_fence, event, read_project, write_attempt};
-use anyhow::{Result, ensure};
+use super::execution::check_fence;
+use super::execution::event;
+use super::execution::read_project;
+use super::execution::write_attempt;
+use anyhow::Result;
+use anyhow::ensure;
 use codex_protocol::organization_execution::OrganizationProviderEvidence;
 use codex_protocol::organization_report::*;
 use sqlx::Row;

@@ -1,7 +1,8 @@
 //! Bounded owner-only projections of canonical records, never model summaries.
 use crate::organization_execution::OrganizationProviderEvidence;
 use schemars::JsonSchema;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
+use serde::Serialize;
 use std::collections::BTreeMap;
 use ts_rs::TS;
 

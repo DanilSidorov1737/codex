@@ -1,13 +1,17 @@
 //! Checkpoint content cannot grant authority. Owner handoffs keep the same grant
 //! and counters, and only resume stopped work with reconciled effects/usage.
 use super::OrganizationStore;
-use super::actions::{supersede_approvals, valid_hash};
+use super::actions::supersede_approvals;
+use super::actions::valid_hash;
 use super::definitions::text;
 use super::execution::*;
-use anyhow::{Context, Result, ensure};
+use anyhow::Context;
+use anyhow::Result;
+use anyhow::ensure;
 use codex_protocol::organization_coordination::OrganizationCheckpointContent;
 use codex_protocol::organization_execution::*;
-use sqlx::{Sqlite, Transaction};
+use sqlx::Sqlite;
+use sqlx::Transaction;
 use std::collections::HashSet;
 use uuid::Uuid;
 

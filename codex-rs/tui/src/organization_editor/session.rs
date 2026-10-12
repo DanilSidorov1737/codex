@@ -1,7 +1,9 @@
 //! Data-only checkpoints and native buffer proposals. Never replay Ex scripts.
 use super::*;
-use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
+use serde::Deserialize;
+use serde::Serialize;
+use sha2::Digest;
+use sha2::Sha256;
 use std::path::PathBuf;
 
 const MAX_SESSION: usize = 4 * 1024 * 1024;

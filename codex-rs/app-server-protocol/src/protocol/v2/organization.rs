@@ -2,9 +2,10 @@ use crate::JsonSchema;
 use crate::TS;
 use codex_experimental_api_macros::ExperimentalApi;
 pub use codex_protocol::organization::*;
-pub use codex_protocol::organization_coordination::{
-    OrganizationNote, OrganizationNoteScope, OrganizationNoteSearchResult, OrganizationPlanItem,
-};
+pub use codex_protocol::organization_coordination::OrganizationNote;
+pub use codex_protocol::organization_coordination::OrganizationNoteScope;
+pub use codex_protocol::organization_coordination::OrganizationNoteSearchResult;
+pub use codex_protocol::organization_coordination::OrganizationPlanItem;
 pub use codex_protocol::organization_execution::*;
 pub use codex_protocol::organization_inventory::*;
 pub use codex_protocol::organization_report::*;

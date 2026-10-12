@@ -2,13 +2,17 @@ use super::*;
 use codex_app_server_protocol::OrganizationMemorySearchParams;
 use codex_app_server_protocol::OrganizationMemorySearchResponse;
 use codex_app_server_protocol::OrganizationNoteScope;
-use serde_json::{Value, json};
-use std::sync::{
-    Arc,
-    atomic::{AtomicUsize, Ordering},
-};
-use wiremock::matchers::{method, path};
-use wiremock::{Mock, MockServer, Request, ResponseTemplate};
+use serde_json::Value;
+use serde_json::json;
+use std::sync::Arc;
+use std::sync::atomic::AtomicUsize;
+use std::sync::atomic::Ordering;
+use wiremock::Mock;
+use wiremock::MockServer;
+use wiremock::Request;
+use wiremock::ResponseTemplate;
+use wiremock::matchers::method;
+use wiremock::matchers::path;
 
 fn tool_result(body: &Value, call: &str) -> Value {
     let item = body["input"]

@@ -1,5 +1,6 @@
 //! Render a reviewable user unit; installation/activation belongs to the owner.
-use anyhow::{Result, ensure};
+use anyhow::Result;
+use anyhow::ensure;
 use std::path::Path;
 
 fn quote(path: &Path) -> Result<String> {

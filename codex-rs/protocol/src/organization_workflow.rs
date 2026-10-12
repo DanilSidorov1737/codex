@@ -4,7 +4,8 @@ use crate::organization::OrganizationTask;
 use crate::organization_coordination::OrganizationPlanItem;
 use crate::organization_execution::OrganizationExecutionScope;
 use schemars::JsonSchema;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
+use serde::Serialize;
 use std::collections::BTreeMap;
 use ts_rs::TS;
 

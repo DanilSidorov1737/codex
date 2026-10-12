@@ -1,18 +1,20 @@
 //! Pinned local relative reads, for trusted hosts consuming untrusted task files.
-use std::{fs::File, io, path::Path};
+use std::fs::File;
+use std::io;
+use std::path::Path;
 
 /// Open a regular, single-link file without following any relative symlink.
 /// The root is trusted host data; callers must bound the file's size/read length.
 #[cfg(unix)]
 pub fn open_relative_regular_file(root: &Path, relative: &Path) -> io::Result<File> {
-    use std::os::{
-        fd::{AsRawFd, FromRawFd},
-        unix::{
-            ffi::OsStrExt,
-            fs::{MetadataExt, OpenOptionsExt},
-        },
-    };
-    use std::{ffi::CString, fs::OpenOptions, path::Component};
+    use std::ffi::CString;
+    use std::fs::OpenOptions;
+    use std::os::fd::AsRawFd;
+    use std::os::fd::FromRawFd;
+    use std::os::unix::ffi::OsStrExt;
+    use std::os::unix::fs::MetadataExt;
+    use std::os::unix::fs::OpenOptionsExt;
+    use std::path::Component;
     let mut parts = relative.components().peekable();
     if relative.as_os_str().is_empty() || !parts.clone().all(|p| matches!(p, Component::Normal(_)))
     {
