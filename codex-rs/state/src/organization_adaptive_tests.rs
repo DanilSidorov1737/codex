@@ -1,5 +1,432 @@
 use super::*;
 
+#[tokio::test]
+async fn knowledge_synthesis_rechecks_sources_and_never_replaces_or_promotes_them() -> Result<()> {
+    use codex_protocol::organization_coordination::*;
+    use sha2::Digest;
+    let home = Fixture::new();
+    let store = OrganizationStore::open(&home.0).await?;
+    let (worker, attempt) = authorized_attempt(&store, false).await?;
+    store
+        .admit_model_request(&attempt.id, &worker, 1001)
+        .await?;
+    store.checkpoint_usage(&attempt.id, &worker, 1, 3).await?;
+    let before = store.execution_view(&attempt.task_id).await?;
+    let source: OrganizationNote = serde_json::from_value(
+        store
+            .coordinate(
+                &attempt.id,
+                &worker,
+                "source",
+                OrganizationCoordinationCall::WriteNote {
+                    scope: OrganizationNoteScope::Agent,
+                    body: "Parser evidence, with an unresolved edge case".into(),
+                },
+                1002,
+            )
+            .await?,
+    )?;
+    let reference = OrganizationNoteReference {
+        note_id: source.id.clone(),
+        body_sha256: format!("{:x}", sha2::Sha256::digest(source.body.as_bytes())),
+    };
+    let (other_worker, other) = authorized_attempt(&store, false).await?;
+    let private: OrganizationNote = serde_json::from_value(
+        store
+            .coordinate(
+                &other.id,
+                &other_worker,
+                "private",
+                OrganizationCoordinationCall::WriteNote {
+                    scope: OrganizationNoteScope::Agent,
+                    body: "Private other-project context".into(),
+                },
+                1002,
+            )
+            .await?,
+    )?;
+    assert!(
+        store
+            .coordinate(
+                &attempt.id,
+                &worker,
+                "foreign-synthesis",
+                OrganizationCoordinationCall::ProposeKnowledge {
+                    sources: vec![OrganizationNoteReference {
+                        note_id: private.id,
+                        body_sha256: format!("{:x}", sha2::Sha256::digest(private.body.as_bytes()))
+                    }],
+                    body: "Unauthorized summary".into(),
+                    conflicts: vec![]
+                },
+                1002
+            )
+            .await
+            .is_err()
+    );
+    let receipt = store
+        .coordinate(
+            &attempt.id,
+            &worker,
+            "synthesis",
+            OrganizationCoordinationCall::ProposeKnowledge {
+                sources: vec![reference.clone()],
+                body: "Verify the parser edge case independently".into(),
+                conflicts: vec![
+                    "An earlier note claims all edge cases are covered; this is not verified"
+                        .into(),
+                ],
+            },
+            1002,
+        )
+        .await?;
+    let OrganizationRecord::Control(proposal) = store
+        .read_definition(
+            OrganizationRecordKind::Controls,
+            receipt["proposalId"].as_str().unwrap(),
+        )
+        .await?
+    else {
+        panic!("proposal")
+    };
+    let OrganizationControlValue::KnowledgeProposal { id, .. } = &proposal.value else {
+        panic!("proposal")
+    };
+    assert!(
+        store
+            .read_definition(OrganizationRecordKind::Notes, id)
+            .await
+            .is_err()
+    );
+    let mut reviewed = proposal.value.clone();
+    if let OrganizationControlValue::KnowledgeProposal { reviewed, .. } = &mut reviewed {
+        *reviewed = true;
+    }
+    let retirement = |retired| OrganizationControlValue::Knowledge {
+        note_id: source.id.clone(),
+        body_sha256: reference.body_sha256.clone(),
+        retired,
+        reason: "Owner reviews source currency".into(),
+    };
+    set_control(&store, None, retirement(true)).await?;
+    assert!(
+        set_control(&store, Some(proposal.revision), reviewed.clone())
+            .await
+            .is_err(),
+        "retired source cannot be silently consolidated"
+    );
+    set_control(&store, Some(1), retirement(false)).await?;
+    set_control(&store, Some(proposal.revision), reviewed.clone()).await?;
+    assert!(
+        set_control(&store, Some(proposal.revision + 1), reviewed)
+            .await
+            .is_err(),
+        "review cannot duplicate a private synthesis"
+    );
+    let OrganizationRecord::Note(summary) = store
+        .read_definition(OrganizationRecordKind::Notes, id)
+        .await?
+    else {
+        panic!("private summary")
+    };
+    assert_eq!(summary.scope, OrganizationNoteScope::Agent);
+    assert!(
+        summary.body.contains("not proof of truth")
+            && summary.body.contains(&reference.body_sha256)
+    );
+    assert_eq!(
+        store
+            .read_definition(OrganizationRecordKind::Notes, &source.id)
+            .await?,
+        OrganizationRecord::Note(source)
+    );
+    assert_eq!(before, store.execution_view(&attempt.task_id).await?);
+    assert!(
+        store
+            .search_memory(
+                &summary.project_id,
+                OrganizationNoteScope::Project,
+                None,
+                "edge case"
+            )
+            .await?
+            .notes
+            .is_empty()
+    );
+    store.close().await;
+    Ok(())
+}
+
+#[tokio::test]
+async fn workspace_library_requires_explicit_projects_current_reviewed_public_sources_and_acl_before_search()
+-> Result<()> {
+    use codex_protocol::organization_coordination::*;
+    use sha2::Digest;
+    let home = Fixture::new();
+    let store = OrganizationStore::open(&home.0).await?;
+    let (worker, attempt) = authorized_attempt(&store, false).await?;
+    let view = store.execution_view(&attempt.task_id).await?;
+    let source: OrganizationNote = serde_json::from_value(
+        store
+            .coordinate(
+                &attempt.id,
+                &worker,
+                "private-source",
+                OrganizationCoordinationCall::WriteNote {
+                    scope: OrganizationNoteScope::Agent,
+                    body: "Shared checksum evidence".into(),
+                },
+                1001,
+            )
+            .await?,
+    )?;
+    let (other_worker, other) = authorized_attempt(&store, false).await?;
+    let other_view = store.execution_view(&other.task_id).await?;
+    let excluded = execution_project(&store, &view.task.owner_id).await?;
+    let reference = |note: &OrganizationNote| OrganizationNoteReference {
+        note_id: note.id.clone(),
+        body_sha256: format!("{:x}", sha2::Sha256::digest(note.body.as_bytes())),
+    };
+    let projects = vec![
+        view.task.project_id.clone(),
+        other_view.task.project_id.clone(),
+    ];
+    assert!(
+        set_control(
+            &store,
+            None,
+            OrganizationControlValue::WorkspaceLibrary {
+                projects: projects.clone(),
+                sources: vec![reference(&source)]
+            }
+        )
+        .await
+        .is_err(),
+        "private notes cannot be published"
+    );
+    store
+        .mutate_owner(
+            OrganizationMutation::PromoteNote {
+                source_id: source.id.clone(),
+                group_id: None,
+                body: source.body.clone(),
+            },
+            None,
+        )
+        .await?;
+    let published = store
+        .search_memory(
+            &view.task.project_id,
+            OrganizationNoteScope::Project,
+            None,
+            "checksum",
+        )
+        .await?
+        .notes
+        .remove(0);
+    set_control(
+        &store,
+        None,
+        OrganizationControlValue::WorkspaceLibrary {
+            projects,
+            sources: vec![reference(&published)],
+        },
+    )
+    .await?;
+    let shared = store
+        .search_memory(
+            &other_view.task.project_id,
+            OrganizationNoteScope::Project,
+            None,
+            "checksum",
+        )
+        .await?;
+    assert_eq!(shared.notes, vec![published.clone()]);
+    assert_eq!(shared.matched_count, 1);
+    assert_eq!(
+        store
+            .search_memory(&excluded, OrganizationNoteScope::Project, None, "checksum")
+            .await?
+            .matched_count,
+        0
+    );
+    let context = store
+        .coordinate(
+            &other.id,
+            &other_worker,
+            "library-context",
+            OrganizationCoordinationCall::Context {
+                query: "checksum".into(),
+            },
+            1002,
+        )
+        .await?;
+    assert!(
+        context["notes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|note| note["id"] == published.id)
+    );
+    set_control(
+        &store,
+        None,
+        OrganizationControlValue::Knowledge {
+            note_id: published.id.clone(),
+            body_sha256: reference(&published).body_sha256,
+            retired: true,
+            reason: "Owner withdrew this source".into(),
+        },
+    )
+    .await?;
+    assert!(
+        store
+            .search_memory(
+                &other_view.task.project_id,
+                OrganizationNoteScope::Project,
+                None,
+                "checksum"
+            )
+            .await?
+            .notes
+            .is_empty()
+    );
+    set_control(
+        &store,
+        Some(1),
+        OrganizationControlValue::WorkspaceLibrary {
+            projects: vec![],
+            sources: vec![],
+        },
+    )
+    .await?;
+    assert_eq!(
+        store
+            .search_memory(
+                &other_view.task.project_id,
+                OrganizationNoteScope::Project,
+                None,
+                "checksum"
+            )
+            .await?
+            .matched_count,
+        0
+    );
+    store.close().await;
+    Ok(())
+}
+
+#[tokio::test]
+async fn meeting_follow_up_pins_accepted_source_bytes_preserves_dissent_and_grants_no_authority()
+-> Result<()> {
+    use sha2::Digest;
+    let home = Fixture::new();
+    let store = OrganizationStore::open(&home.0).await?;
+    let agent = node_from(
+        store
+            .mutate_owner(
+                node_mutation("Meeting source owner", None, OrganizationNodeKind::Agent),
+                None,
+            )
+            .await?,
+    );
+    let project = execution_project(&store, &agent.id).await?;
+    let task = execution_task(&store, &agent.id, &project).await?;
+    let mut scope = execution_scope();
+    scope.artifacts = vec!["discussion/discussion-conclusion.json".into()];
+    store
+        .authorize_task(&task.id, task.revision, scope, 1000)
+        .await?;
+    let worker = Uuid::now_v7().to_string();
+    let attempt = store
+        .claim_task(&worker, &Uuid::now_v7().to_string(), 1000, 2)
+        .await?
+        .unwrap();
+    let source_body=serde_json::json!({"conclusions":["Verify the implementation"],"agreements":["Use local evidence"],"dissent":["The benchmark omits large inputs"],"evidence":["oracle.py"],"followUpProposals":["Test larger inputs"]}).to_string();
+    let result = store
+        .record_result(
+            &attempt.id,
+            &worker,
+            vec![OrganizationArtifactEvidence {
+                path: "discussion/discussion-conclusion.json".into(),
+                sha256: format!("{:x}", sha2::Sha256::digest(source_body.as_bytes())),
+                bytes: source_body.len() as u64,
+            }],
+            vec![OrganizationCheckEvidence {
+                immutable_inputs: None,
+                argv: execution_scope().checks[0].clone(),
+                exit_code: Some(0),
+                output: "conclusion oracle passed".into(),
+                truncated: false,
+            }],
+            1001,
+        )
+        .await?;
+    let source = store.execution_view(&attempt.task_id).await?;
+    let mutation = |revision, body: String| OrganizationMutation::MeetingFollowUp {
+        source_task_id: source.task.id.clone(),
+        expected_source_revision: revision,
+        result_digest: result.digest.clone(),
+        source_body: body,
+        owner_id: source.task.owner_id.clone(),
+        goal_id: source.task.goal_id.clone(),
+        instructions: "Verify larger inputs and retain the dissent".into(),
+        criteria: vec!["An independent large-input oracle passes".into()],
+    };
+    assert!(
+        store
+            .mutate_owner(mutation(source.task.revision, source_body.clone()), None)
+            .await
+            .is_err(),
+        "review alone does not accept the conclusion"
+    );
+    store
+        .accept_result(&source.task.id, source.task.revision, &result.digest)
+        .await?;
+    let accepted = store.execution_view(&source.task.id).await?;
+    assert!(
+        store
+            .mutate_owner(mutation(source.task.revision, source_body.clone()), None)
+            .await
+            .is_err(),
+        "source revision is exact"
+    );
+    assert!(
+        store
+            .mutate_owner(
+                mutation(
+                    accepted.task.revision,
+                    source_body.replace("large inputs", "small inputs")
+                ),
+                None
+            )
+            .await
+            .is_err(),
+        "cannot replace evidence or dissent"
+    );
+    let Some(OrganizationRecord::Task(draft)) = store
+        .mutate_owner(mutation(accepted.task.revision, source_body), None)
+        .await?
+    else {
+        panic!("linked draft")
+    };
+    assert_eq!(draft.prerequisites, vec![source.task.id]);
+    assert!(
+        draft.instructions.contains("benchmark omits large inputs")
+            && draft.instructions.contains(&result.digest)
+    );
+    assert!(
+        store
+            .execution_view(&draft.id)
+            .await?
+            .authorization
+            .is_none()
+    );
+    assert_eq!(accepted, store.execution_view(&attempt.task_id).await?);
+    store.close().await;
+    Ok(())
+}
+
 async fn goal(store: &OrganizationStore, parent_id: Option<String>) -> Result<OrganizationGoal> {
     let Some(OrganizationRecord::Goal(goal)) = store
         .mutate_owner(

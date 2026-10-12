@@ -59,6 +59,29 @@ project/goal/grant, then reuses bounded planning/delegation without renewing
 expiry, budgets or cumulative child limits. All new runtime and physical CLI/TUI
 qualification remains part of the unfinished approved batch.
 
+**Review meeting conclusion / draft linked follow-up** requires an accepted
+`discussion/discussion-conclusion.json` artifact of at most16 KiB. Its exact source
+bytes, task revision and result digest are pinned. F6 includes conclusions,
+agreements, dissent, evidence and proposals for review. Saving creates a linked
+task draft; authorize its actual work separately.
+
+Agents can use `proposeKnowledge` to draft a synthesis and conflict claims from
+permitted current notes with exact source hashes. Select its saved control and
+`%` reviews the unchanged proposal and current sources before creating one private
+synthesis. Claims remain untrusted; this does not settle truth, replace originals
+or publish them. Existing separate retirement/correction/promotion actions remain.
+
+**Publish / revoke owner-approved workspace knowledge library** opens opt-in
+project/source toggles. Search owner-reviewed PROJECT notes first to provide
+source candidates. Select every participating project, including each source's
+project, and the exact notes to publish. At most32 projects /64 sources are allowed.
+Private notes cannot be published. F6 / y saves a versioned policy; clearing its
+selections revokes future retrieval. Hash drift, retirement or correction also
+exclude a source. Search/context enforce membership before reading foreign rows,
+retain original provenance, and grant no execution or original-file access.
+Previously delivered content is not erased by withdrawal. These source/test
+checkpoints still await the full native workflow qualification.
+
 Expanded-batch items 5–6 reuse existing guarded owner RPCs and native forms.
 Qualified on `55af0a0b5b`; see status.md and testing.md for evidence.
 

@@ -22,6 +22,13 @@ pub struct OrganizationVerifiedResultReference {
     pub result_digest: String,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct OrganizationNoteReference {
+    pub note_id: String,
+    pub body_sha256: String,
+}
+
 /// Content only: the host captures existing revisions and creates fresh identities.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -97,6 +104,11 @@ pub struct OrganizationMessage {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
 #[serde(tag = "type", rename_all = "camelCase", deny_unknown_fields)]
 pub enum OrganizationCoordinationCall {
+    ProposeKnowledge {
+        sources: Vec<OrganizationNoteReference>,
+        body: String,
+        conflicts: Vec<String>,
+    },
     #[serde(rename_all = "camelCase")]
     ProposeNextBatch {
         verified_results: Vec<OrganizationVerifiedResultReference>,

@@ -85,5 +85,11 @@ and captured canonical readiness evidence now have source/test checkpoints.
 State334/protocol377/TUI100 selections pass, including actual official Neovim
 cases. See the same evidence document for scope and pending native checks.
 
-Continue tasks19–30 and all remaining native CLI/TUI/endurance checks; no new
+Linked meeting follow-ups, hash-pinned synthesis/conflict review and the explicit
+selected-project library now have source/test checkpoints. State337/protocol377/
+TUI102 selections pass, including official Neovim; full root formatting passes.
+Private sources cannot be published and withdrawal stops future library retrieval.
+Full contracts, production lint/package and physical/endurance checks remain.
+
+Continue tasks23–30 and all remaining native CLI/TUI/endurance checks; no new
 approval is needed. All historical fixture/accounting/quarantine rules remain.

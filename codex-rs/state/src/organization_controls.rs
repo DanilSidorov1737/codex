@@ -39,6 +39,10 @@ pub(super) async fn set(
     value: OrganizationControlValue,
 ) -> Result<OrganizationControl> {
     let id = match &value {
+        OrganizationControlValue::KnowledgeProposal { id, .. } => {
+            format!("knowledge-proposal:{id}")
+        }
+        OrganizationControlValue::WorkspaceLibrary { .. } => "library".into(),
         OrganizationControlValue::RoleDraft { id, .. } => format!("role-draft:{id}"),
         OrganizationControlValue::GoalMetadata { goal, .. } => format!("goal-meta:{}", goal.id),
         OrganizationControlValue::Deadline {
@@ -76,6 +80,24 @@ pub(super) async fn set(
         "control revision conflict"
     );
     match &value {
+        OrganizationControlValue::KnowledgeProposal { reviewed, .. } => {
+            ensure!(
+                *reviewed,
+                "knowledge proposals originate from a fenced agent call; owner review is separate"
+            );
+            let mut pending = value.clone();
+            if let OrganizationControlValue::KnowledgeProposal { reviewed, .. } = &mut pending {
+                *reviewed = false;
+            }
+            ensure!(
+                previous.as_ref().is_some_and(|old| old.value == pending),
+                "review the exact knowledge proposal; reviewed proposals are immutable"
+            );
+            super::knowledge::review(tx, &value).await?;
+        }
+        OrganizationControlValue::WorkspaceLibrary { projects, sources } => {
+            super::knowledge::validate_library(tx, projects, sources).await?
+        }
         OrganizationControlValue::RoleDraft {
             id,
             source_attempt_id,

@@ -179,6 +179,21 @@ impl OrganizationStore {
         );
         let progress:i64=sqlx::query_scalar("SELECT (SELECT count(*) FROM organization_actions WHERE attempt_id=?)+(SELECT count(*) FROM organization_checkpoints WHERE attempt_id=?)").bind(attempt_id).bind(attempt_id).fetch_one(&mut *tx).await?;
         let result = match call {
+            OrganizationCoordinationCall::ProposeKnowledge {
+                sources,
+                body,
+                conflicts,
+            } => {
+                ensure!(
+                    attempt.model_requests > 0,
+                    "knowledge proposal requires an admitted model request"
+                );
+                let proposal =
+                    super::knowledge::propose(&mut tx, &task, &attempt, sources, body, conflicts)
+                        .await?;
+                event(&mut tx, "control/proposed", &proposal.id).await?;
+                serde_json::json!({"proposalId":proposal.id,"assertions":"Untrusted synthesis/conflict claims; owner review does not establish truth"})
+            }
             OrganizationCoordinationCall::ProposeNextBatch {
                 verified_results,
                 items,
@@ -776,7 +791,10 @@ pub(super) async fn share_note(
     Ok(())
 }
 
-async fn team_ids(tx: &mut Transaction<'_, Sqlite>, author_id: &str) -> Result<Vec<String>> {
+pub(super) async fn team_ids(
+    tx: &mut Transaction<'_, Sqlite>,
+    author_id: &str,
+) -> Result<Vec<String>> {
     let node = read_node(tx, author_id).await?;
     if !node.enabled || !ancestors_enabled(tx, author_id).await? {
         return Ok(vec![]);
@@ -824,6 +842,12 @@ async fn search_notes(
                 notes.push(note);
             }
         }
+    }
+    if scope == OrganizationNoteScope::Project {
+        let shared = super::knowledge::library_search(tx, project_id, &needle).await?;
+        matched_count += shared.matched_count;
+        notes.extend(shared.notes);
+        notes.truncate(16);
     }
     Ok(OrganizationNoteSearchResult {
         notes,

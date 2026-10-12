@@ -174,6 +174,22 @@ impl OrganizationReplanItem {
 #[serde(tag = "type", rename_all = "camelCase", deny_unknown_fields)]
 pub enum OrganizationControlValue {
     #[serde(rename_all = "camelCase")]
+    KnowledgeProposal {
+        id: String,
+        project_id: String,
+        author_id: String,
+        source_attempt_id: String,
+        sources: Vec<crate::organization_coordination::OrganizationNoteReference>,
+        body: String,
+        conflicts: Vec<String>,
+        reviewed: bool,
+    },
+    /// Explicit owner publication: selected projects and exact reviewed public notes.
+    WorkspaceLibrary {
+        projects: Vec<String>,
+        sources: Vec<crate::organization_coordination::OrganizationNoteReference>,
+    },
+    #[serde(rename_all = "camelCase")]
     RoleDraft {
         id: String,
         source_attempt_id: String,
@@ -426,6 +442,18 @@ pub enum OrganizationRecord {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
 #[serde(tag = "type", rename_all = "camelCase", deny_unknown_fields)]
 pub enum OrganizationMutation {
+    #[serde(rename_all = "camelCase")]
+    MeetingFollowUp {
+        source_task_id: String,
+        #[ts(type = "number")]
+        expected_source_revision: i64,
+        result_digest: String,
+        source_body: String,
+        owner_id: String,
+        goal_id: Option<String>,
+        instructions: String,
+        criteria: Vec<String>,
+    },
     #[serde(rename_all = "camelCase")]
     ConversationPrompt {
         id: Option<String>,

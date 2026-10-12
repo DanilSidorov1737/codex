@@ -87,6 +87,18 @@ const ACTIONS: &[Action] = &[
         context: "select agent; canonical loaded config/task/approval/budget/uncertainty evidence; missing evidence stays unknown",
     },
     Action {
+        title: "Review meeting conclusion / draft linked follow-up",
+        shortcut: "Commands",
+        code: KeyCode::F(49),
+        context: "select accepted conclusion; pinned source evidence and dissent; no automatic execution",
+    },
+    Action {
+        title: "Publish / revoke owner-approved workspace knowledge library",
+        shortcut: "Commands",
+        code: KeyCode::F(50),
+        context: "selected projects; search owner-reviewed PROJECT notes first; exact sources only; no execution authority",
+    },
+    Action {
         title: "Talk to selected agent / continue conversation",
         shortcut: "Commands",
         code: KeyCode::F(43),

@@ -39,6 +39,9 @@ mod conversation;
 #[path = "organization_goal.rs"]
 mod goal;
 
+#[path = "organization_knowledge.rs"]
+mod knowledge;
+
 #[path = "organization_presets.rs"]
 mod presets;
 

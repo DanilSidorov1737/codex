@@ -272,3 +272,54 @@ The100-test TUI selection passes (exit0, `follow-up-tui-initial.log`), including
 the new guided bulk/readiness cases and actual official-Neovim tests. Full native
 qualification is pending. No source-only
 checkpoint is final delivery; continue all approved independent tasks.
+
+## Meeting, synthesis/conflict review and shared library checkpoint
+
+Task19 creates a linked proposed task from an exact current owner-accepted meeting
+conclusion. The owner preview verifies captured artifact bytes; the mutation pins
+source task revision/result digest and checks the submitted source body's SHA256
+and length against that immutable artifact. Required conclusion, agreement,
+dissent, evidence and follow-up fields remain in the source. Source bodies are
+limited to16 KiB. The stored draft retains complete provenance and the accepted
+source as a prerequisite; it gets no grant. Conclusions remain untrusted claims
+that follow-up work must verify independently.
+
+Tasks20–21 add `proposeKnowledge` for1–16 permitted current hash-pinned notes,
+a bounded synthesis and at most eight conflict claims. Caller project/author
+come from the host; ACLs precede note selection/decoding. A proposal alone creates
+no note. `%` reviews the exact sources/body/conflicts, rechecks current permissions
+and hashes, then adds one private synthesis without replacing or promoting its
+sources. Reviewed proposals are immutable. The note explicitly says claims are
+not proof of truth; conflict claims and provenance remain in protected history.
+Retirement/correction/promotion use existing separate owner actions. A synthesis
+may use an explicitly published library source only while its current ACL permits.
+
+Task22 adds an explicit owner library policy with up to32 selected projects and64
+exact source notes. Only current owner-reviewed PROJECT notes can be published;
+private notes cannot enter it. Recipient membership is checked before reading
+foreign rows and before search/context matching. Body-hash changes, correction
+or retirement exclude a source; SQL/decoding failures propagate rather than being
+silently ignored. Search/context retain original source project/author/provenance
+and existing16-result/8-KiB bounds. Clearing the policy revokes future retrieval;
+it does not erase already delivered knowledge or change execution grants.
+Commands offers project/source toggles. Successful memory-search results and
+loaded public notes provide candidates; stored policy entries that are outside
+the loaded page remain visible, preserving selections for exact review.
+
+State337/protocol377 checks pass (exit0, `knowledge-state-protocol-v2.log`), including
+private foreign-source denial, retired-source review refusal, immutable private
+synthesis, no source replacement/promotion or grant changes, private-library
+publication refusal, allowed/excluded recipient search/context and withdrawal.
+Earlier state335 passes are in `meeting-state-v2.log` and
+`knowledge-state-initial.log`. The first meeting run failed because the fixture
+authorized `report.txt` while reporting a conclusion artifact; the fixture now
+declares that artifact, without weakening host checks. Preserve
+`meeting-state-initial.log`. The first TUI compile caught a Result/Option mismatch
+in candidate-note loading; only successful searches now supply candidates.
+Preserve `knowledge-tui-initial.log`; rerun102 selected TUI tests pass, exit0,
+`knowledge-tui-v2.log`, including official Neovim and the new meeting/library forms.
+
+Full formatting, contract regeneration, production lint/build/package and actual
+CLI/TUI/endurance qualification continue. No external integration, paid inference
+or protected historical fixture mutation occurred. Tasks23–30 remain unfinished;
+do not stop at this source/test checkpoint.

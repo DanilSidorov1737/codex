@@ -6,6 +6,14 @@ use crossterm::event::KeyModifiers;
 use ratatui::layout::Margin;
 
 pub(super) enum Kind {
+    WorkspaceLibrary {
+        previous: Option<OrganizationControl>,
+        projects: Vec<(String, String)>,
+        sources: Vec<(
+            codex_protocol::organization_coordination::OrganizationNoteReference,
+            String,
+        )>,
+    },
     GoalMetadata {
         goal: OrganizationGoal,
         previous: Option<OrganizationControl>,
@@ -87,6 +95,11 @@ pub(super) enum Kind {
     Task,
     GoalPlan(OrganizationGoal),
     ProjectPlanning(OrganizationProjectPlan),
+    MeetingFollowUp {
+        source: OrganizationTask,
+        result_digest: String,
+        source_body: String,
+    },
     Discovery(OrganizationProjectPlan),
     WorkflowImprovement {
         template: OrganizationWorkflowTemplate,
@@ -164,6 +177,77 @@ pub(super) struct HunkFile {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn library_form_defaults_to_no_publication_and_pins_selected_source_hashes() {
+        let reference = codex_protocol::organization_coordination::OrganizationNoteReference {
+            note_id: "source".into(),
+            body_sha256: "a".repeat(64),
+        };
+        let mut form = Form::new(
+            Kind::WorkspaceLibrary {
+                previous: None,
+                projects: vec![("p".into(), "Selected project".into())],
+                sources: vec![(reference.clone(), "Reviewed public note".into())],
+            },
+            &[],
+            None,
+            "fixture",
+        );
+        let Command::Definition(OrganizationMutation::SetControl {
+            value: OrganizationControlValue::WorkspaceLibrary { projects, sources },
+            ..
+        }) = form.command().unwrap()
+        else {
+            panic!("library")
+        };
+        assert!(projects.is_empty() && sources.is_empty());
+        form.fields[0].choice = 1;
+        form.fields[1].choice = 1;
+        assert!(
+            matches!(form.command().unwrap(),Command::Definition(OrganizationMutation::SetControl {value:OrganizationControlValue::WorkspaceLibrary {projects,sources},..}) if projects==vec!["p"] && sources==vec![reference])
+        );
+    }
+
+    #[test]
+    fn meeting_follow_up_form_captures_immutable_source_and_only_creates_a_draft() {
+        let source = task();
+        let project = OrganizationRecord::Project(OrganizationProjectPlan {
+            id: source.project_id.clone(),
+            name: "Meeting".into(),
+            roots: vec![],
+            goal_id: source.goal_id.clone(),
+            owner_id: Some(source.owner_id.clone()),
+            criteria: vec![],
+            revision: 1,
+        });
+        let node = OrganizationRecord::Node(OrganizationNode {
+            id: source.owner_id.clone(),
+            parent_id: None,
+            kind: OrganizationNodeKind::Agent,
+            label: "Follow-up owner".into(),
+            role_version_id: None,
+            model: None,
+            enabled: true,
+            revision: 1,
+        });
+        let body = "Captured conclusion with dissent";
+        let mut form = Form::new(
+            Kind::MeetingFollowUp {
+                source: source.clone(),
+                result_digest: "exact-result".into(),
+                source_body: body.into(),
+            },
+            &[project, node],
+            Some(&OrganizationRecord::Task(source.clone())),
+            "fixture",
+        );
+        assert!(form.command().is_err());
+        set(&mut form, 3, "Independently verify the disputed claim");
+        assert!(
+            matches!(form.command().unwrap(),Command::Definition(OrganizationMutation::MeetingFollowUp {source_task_id,expected_source_revision,result_digest,source_body,..}) if source_task_id==source.id && expected_source_revision==source.revision && result_digest=="exact-result" && source_body==body)
+        );
+    }
 
     #[test]
     fn guided_bulk_team_changes_keep_stable_new_ids_and_exact_bases() {
@@ -1919,6 +2003,18 @@ impl Form {
             .or_else(|| project.and_then(|p| p.goal_id.as_deref()));
         let owner = project.and_then(|p| p.owner_id.as_deref());
         let mut fields = match &kind {
+            Kind::WorkspaceLibrary {previous,projects,sources}=>{
+                let (selected_projects,selected_sources)=match previous.as_ref().map(|c|&c.value) {Some(OrganizationControlValue::WorkspaceLibrary {projects,sources})=>(projects.as_slice(),sources.as_slice()),_=>(&[][..],&[][..])};
+                let mut fields=Vec::new();
+                for (id,label) in projects {
+                    fields.push(Field::select(format!("Library access: {label}"),vec![(String::new(),"No library access".into()),(id.clone(),"Explicitly permit this project to read selected sources".into())],Some(if selected_projects.contains(id){id}else{""})));
+                }
+                for (reference,label) in sources {
+                    fields.push(Field::select(format!("Publish source: {label}"),vec![(String::new(),"Do not publish".into()),(reference.note_id.clone(),format!("Publish exact SHA256 {}",reference.body_sha256))],Some(if selected_sources.contains(reference){&reference.note_id}else{""})));
+                }
+                if fields.is_empty(){fields.push(Field::text("No sources loaded","Create projects and search current owner-reviewed project notes before publishing",""));}
+                fields
+            }
             Kind::GoalMetadata {previous,..} => {
                 let (project,responsible,prerequisites)=match previous.as_ref().map(|c|&c.value) {
                     Some(OrganizationControlValue::GoalMetadata {project_id,responsible_node_id,prerequisites,..})=>(Some(project_id.as_str()),Some(responsible_node_id.as_str()),prerequisites.as_slice()),
@@ -2178,13 +2274,13 @@ impl Form {
                 for item in items {fields.extend(Self::step_fields(item,&agents));}
                 fields
             },
-            Kind::Task | Kind::GoalPlan(_) | Kind::ProjectPlanning(_) | Kind::Discovery(_) | Kind::Selection {..} => vec![
+            Kind::Task | Kind::GoalPlan(_) | Kind::ProjectPlanning(_) | Kind::MeetingFollowUp {..} | Kind::Discovery(_) | Kind::Selection {..} => vec![
                 Field::select(
                     "Project",
                     records
                         .iter()
                         .filter_map(|r| match r {
-                            OrganizationRecord::Project(p) if !matches!(&kind,Kind::Selection {project_id,..} if project_id!=&p.id) && !matches!(&kind,Kind::Discovery(project)|Kind::ProjectPlanning(project) if project.id!=p.id) => Some((p.id.clone(), p.name.clone())),
+                            OrganizationRecord::Project(p) if !matches!(&kind,Kind::Selection {project_id,..} if project_id!=&p.id) && !matches!(&kind,Kind::MeetingFollowUp {source,..} if source.project_id!=p.id) && !matches!(&kind,Kind::Discovery(project)|Kind::ProjectPlanning(project) if project.id!=p.id) => Some((p.id.clone(), p.name.clone())),
                             _ => None,
                         })
                         .collect(),
@@ -2362,6 +2458,19 @@ impl Form {
                 None,
             ));
         }
+        if let Kind::MeetingFollowUp { source, .. } = &kind {
+            fields[3] = Field::text(
+                "Owner-selected follow-up",
+                "Describe which proposed action to pursue. F6 includes the exact source conclusion, evidence and dissent for review",
+                "",
+            );
+            fields[4].input.set_text_clearing_elements("Follow-up independently verifies cited evidence and preserves the source dissent\nOwner reviews the result before acceptance or Apply");
+            fields[5] = Field::select(
+                "Required meeting prerequisite",
+                vec![(source.id.clone(), source.id.clone())],
+                None,
+            );
+        }
         if let Kind::ProjectPlanning(_) = &kind {
             fields[3] = Field::text(
                 "Planning request",
@@ -2437,6 +2546,9 @@ impl Form {
     }
     pub(super) fn title(&self) -> &'static str {
         match self.kind {
+            Kind::WorkspaceLibrary { .. } => {
+                "Owner opt-in library / selected projects and exact public sources"
+            }
             Kind::GoalMetadata { .. } => "Goal responsibility / exact prerequisites",
             Kind::Deadline { .. } => "Business due date / explicit local timezone",
             Kind::Conversation { .. } => {
@@ -2475,6 +2587,9 @@ impl Form {
             Kind::Task => "New task",
             Kind::GoalPlan(_) => "Propose goal planner · starts no execution",
             Kind::ProjectPlanning(_) => "Plan a project from an owner request · proposal only",
+            Kind::MeetingFollowUp { .. } => {
+                "Review meeting source / draft follow-up · no execution"
+            }
             Kind::Discovery(_) => "Propose finite local discovery · separate authorization",
             Kind::WorkflowImprovement { .. } => {
                 "Compare evaluated workflow versions · owner recommendation"
@@ -2865,6 +2980,41 @@ impl Form {
             Ok(lines(i))
         };
         Ok(match &self.kind {
+            Kind::WorkspaceLibrary {
+                previous,
+                projects,
+                sources,
+            } => Command::Definition(OrganizationMutation::SetControl {
+                expected_revision: previous.as_ref().map(|c| c.revision),
+                value: OrganizationControlValue::WorkspaceLibrary {
+                    projects: projects
+                        .iter()
+                        .enumerate()
+                        .filter(|(index, _)| !value(*index).is_empty())
+                        .map(|(_, p)| p.0.clone())
+                        .collect(),
+                    sources: sources
+                        .iter()
+                        .enumerate()
+                        .filter(|(index, _)| !value(projects.len() + *index).is_empty())
+                        .map(|(_, s)| s.0.clone())
+                        .collect(),
+                },
+            }),
+            Kind::MeetingFollowUp {
+                source,
+                result_digest,
+                source_body,
+            } => Command::Definition(OrganizationMutation::MeetingFollowUp {
+                source_task_id: source.id.clone(),
+                expected_source_revision: source.revision,
+                result_digest: result_digest.clone(),
+                source_body: source_body.clone(),
+                owner_id: required(1)?,
+                goal_id: optional(2),
+                instructions: required(3)?,
+                criteria: criteria(4)?,
+            }),
             Kind::GoalMetadata {
                 goal,
                 previous,

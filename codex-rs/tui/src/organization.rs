@@ -2575,6 +2575,9 @@ impl Dashboard {
             match self.record() {
                 Some(OrganizationRecord::Control(control)) => match &control.value {
                     OrganizationControlValue::Team { applied: false, .. }
+                    | OrganizationControlValue::KnowledgeProposal {
+                        reviewed: false, ..
+                    }
                     | OrganizationControlValue::RoleDraft { applied: false, .. }
                     | OrganizationControlValue::RoleRollback { applied: false, .. }
                     | OrganizationControlValue::WorkflowRollback { applied: false, .. }
@@ -2589,6 +2592,9 @@ impl Dashboard {
                             | OrganizationControlValue::WorkflowImprovement { applied, .. }
                             | OrganizationControlValue::Improvement { applied, .. } => {
                                 *applied = true
+                            }
+                            OrganizationControlValue::KnowledgeProposal { reviewed, .. } => {
+                                *reviewed = true
                             }
                             _ => {}
                         }
@@ -2731,6 +2737,141 @@ impl Dashboard {
     }
     fn open_form(&mut self, key: char) {
         let kind = match key {
+            'κ' => {
+                use codex_protocol::organization_coordination::OrganizationNoteReference;
+                use codex_protocol::organization_coordination::OrganizationNoteScope;
+                use sha2::Digest;
+                let previous = self.control("library");
+                let mut projects: BTreeMap<String, String> = self
+                    .snapshot
+                    .records
+                    .iter()
+                    .filter_map(|r| match r {
+                        OrganizationRecord::Project(p) => Some((p.id.clone(), p.name.clone())),
+                        _ => None,
+                    })
+                    .take(32)
+                    .collect();
+                let notes = self
+                    .snapshot
+                    .records
+                    .iter()
+                    .filter_map(|r| match r {
+                        OrganizationRecord::Note(n) => Some(n),
+                        _ => None,
+                    })
+                    .chain(
+                        self.memory_result
+                            .as_ref()
+                            .and_then(|result| result.as_ref().ok())
+                            .into_iter()
+                            .flat_map(|r| r.notes.iter()),
+                    );
+                let mut sources: BTreeMap<String, (OrganizationNoteReference, String)> = notes
+                    .filter(|n| n.scope == OrganizationNoteScope::Project && n.owner_reviewed)
+                    .map(|n| {
+                        (
+                            n.id.clone(),
+                            (
+                                OrganizationNoteReference {
+                                    note_id: n.id.clone(),
+                                    body_sha256: format!(
+                                        "{:x}",
+                                        sha2::Sha256::digest(n.body.as_bytes())
+                                    ),
+                                },
+                                format!(
+                                    "{} · {} · {}",
+                                    n.project_id,
+                                    n.id,
+                                    n.body.chars().take(80).collect::<String>()
+                                ),
+                            ),
+                        )
+                    })
+                    .take(64)
+                    .collect();
+                if let Some(OrganizationControl {
+                    value:
+                        OrganizationControlValue::WorkspaceLibrary {
+                            projects: stored_projects,
+                            sources: stored,
+                            ..
+                        },
+                    ..
+                }) = &previous
+                {
+                    for id in stored_projects {
+                        projects.entry(id.clone()).or_insert_with(|| {
+                            format!("{id} (stored project; definition not loaded)")
+                        });
+                    }
+                    for reference in stored {
+                        sources.entry(reference.note_id.clone()).or_insert_with(|| {
+                            (
+                                reference.clone(),
+                                format!(
+                                    "{} (stored source; current body not loaded)",
+                                    reference.note_id
+                                ),
+                            )
+                        });
+                    }
+                }
+                form::Kind::WorkspaceLibrary {
+                    previous,
+                    projects: projects.into_iter().collect(),
+                    sources: sources.into_values().collect(),
+                }
+            }
+            'ι' => {
+                let source = (|| -> anyhow::Result<_> {
+                    let view = self
+                        .detail
+                        .as_ref()
+                        .filter(|v| Some(&v.task.id) == self.selected.as_ref())
+                        .context(
+                            "Select an accepted discussion conclusion and load its evidence",
+                        )?;
+                    let result = view
+                        .result
+                        .as_ref()
+                        .filter(|r| r.accepted && view.task.state == "accepted")
+                        .context("Meeting follow-up requires the exact accepted conclusion")?;
+                    let artifact = result
+                        .artifacts
+                        .iter()
+                        .find(|a| {
+                            a.path == "discussion/discussion-conclusion.json"
+                                && a.bytes <= 16 * 1024
+                        })
+                        .context("Accepted conclusion artifact of at most 16 KiB required")?;
+                    let workspace = view
+                        .attempts
+                        .iter()
+                        .find(|a| a.id == result.attempt_id)
+                        .and_then(|a| a.workspace.as_ref())
+                        .context("Meeting workspace unavailable")?;
+                    let preview = Preview::new(
+                        self.path.parent().context("Owner home unavailable")?,
+                        Path::new(workspace),
+                        &artifact.path,
+                        Some(artifact),
+                    )?;
+                    Ok(form::Kind::MeetingFollowUp {
+                        source: view.task.clone(),
+                        result_digest: result.digest.clone(),
+                        source_body: std::fs::read_to_string(preview.path())?,
+                    })
+                })();
+                match source {
+                    Ok(kind) => kind,
+                    Err(error) => {
+                        self.message = error.to_string();
+                        return;
+                    }
+                }
+            }
             'θ' => {
                 let project_id = match self.record() {
                     Some(OrganizationRecord::Project(p)) => Some(p.id.as_str()),
@@ -4091,6 +4232,8 @@ impl Dashboard {
             KeyCode::F(45) => self.open_form('ζ'),
             KeyCode::F(46) => self.open_form('η'),
             KeyCode::F(47) => self.open_form('θ'),
+            KeyCode::F(49) => self.open_form('ι'),
+            KeyCode::F(50) => self.open_form('κ'),
             KeyCode::F(48) => {
                 let Some(text) = self.agent_readiness_text() else {
                     self.message = "Select an agent for stored readiness evidence".into();
