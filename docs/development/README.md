@@ -1,9 +1,19 @@
 # Codex CLI fork development
 
-Current approved work: [hierarchy presentation and deeper local autonomy](hierarchy-autonomy-batch.md).
-Read its checkpoint and status before the completed prior-batch evidence below.
+Latest delivery: **all twenty bounded hierarchy/autonomy tasks are implemented
+and qualified** on application source `970ba69195`, with **806 selected automated
+checks** and actual CLI/TUI/official-Neovim/background/10,005-node/crash/restore
+evidence. Read [current status](status.md), [batch scope](hierarchy-autonomy-batch.md),
+[native qualification](hierarchy-native-qualification.md) and
+[final tests](testing.md#hierarchyautonomy-batch-final-qualification).
+Screenshots: `/workspace/artifacts/cli-hierarchy-autonomy/cli-hierarchy-autonomy-screenshots.zip`.
+Existing authority/acceptance/Apply and the default-two/max-four active limit remain.
+External integrations and new paid inference remain deferred. The prior approved
+host logout/reboot task needs a suitable real host. Earlier delivery below is historical.
 
-Latest delivery: **tasks 2–20 of the approved [twenty-task batch](next-twenty.md)
+## Historical operations delivery
+
+Prior delivery: **tasks 2–20 of the approved [twenty-task batch](next-twenty.md)
 are implemented and qualified**, with **790 selected automated checks** and
 actual CLI/TUI/official-Neovim coding, document, background, crash and fresh full
 restore checks. Task 1 needs a real systemd user-manager/logout/reboot-capable host;

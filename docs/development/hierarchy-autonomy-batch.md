@@ -6,6 +6,31 @@ logical local commits, maintained docs, meaningful automated checks and actual
 CLI/TUI/official-Neovim interaction. The supplied Operations concept is the
 visual target, adapted to terminal cells and arbitrary organization shapes.
 
+## Final qualification
+
+**All twenty tasks below are implemented and qualified within the bounded local
+scope.** Final application source `970ba69195`; later commits are documentation
+only. [Native qualification](hierarchy-native-qualification.md) records each
+capability, passing receipts, retained failures, commands and operational limits.
+**806 distinct selected automated checks**, production Clippy/build/package,
+formatting and generated contracts pass. One unrelated optional formatter-driver
+test retains its confirmed baseline mismatch; no assertion was disabled.
+
+Final preview5 package and installed five-asset checks match. Actual CLI/TUI and
+official Neovim qualify branching mouse/keyboard navigation, 36 layout switches
+at three sizes, finite owner controls, two native tabs/undo, a 117.075-second
+background run, 10,005 stored definitions, unknown-effect no-replay, full fresh
+restore and completed-Apply refusal. The dashboard ceiling is 20,000 node/goal
+definitions; active execution stays default two/max four. CPU/RSS measure the
+serving process, not individual agents. Assignment advice remains lexical;
+improvement evidence is representative owner-selected non-regression, not general
+model quality. No new paid inference, dependency, service or integration occurred.
+
+All owned services are stopped. Original native home is quarantined; never restart
+it or replay fixture mutations/acceptance/Apply. Preserve 36 admitted/35 reported
+requests, 525 synthetic tokens and the one charged unknown. See current status for
+package hashes, screenshot archive, Git bundle and exact resumption rules.
+
 | Task | Authorized scope and acceptance |
 | --- | --- |
 | 1 | Branching hierarchy diagram: parent/child cards, connector lines, side-by-side siblings; no fixed roles or mandatory root. |
@@ -41,7 +66,7 @@ qualification homes and preserve all failures/accounting/receipts.
 Real-host systemd/logout/reboot qualification stays approved but blocked on a
 suitable owner-designated host; it must not block independent work here.
 
-## Current checkpoint
+## Historical first checkpoint
 
 Tasks 1–10 pass their first native UI/diagnostics checkpoint: 74 affected TUI/
 official-Neovim, full state311/protocol374, serving-process sampler1, schema4
@@ -188,5 +213,7 @@ agent definitions without any model call or grant. With five existing definition
 10,005 crossed the dashboard's old10,000-node load ceiling and correctly produced
 an explicit error. The bounded node/goal fetch is raised to20,000 (other kinds
 stay2,000); active runtime capacity is unchanged. Preserve every definition and
-rerun the native fit/pan/search viewport. Crash/full restore and final artifacts/
-process cleanup remain pending; do not declare this entire batch qualified yet.
+the subsequent final package passes native fit/pan/search and restored review.
+`scale-physical.json`, `recovery.json`, `restored-physical.json` and
+`final-cleanup.json` close these gates; the final qualification above supersedes
+all intermediate pending statements.

@@ -1,8 +1,15 @@
 # Phased roadmap
 
-Current owner-approved implementation: [next twenty tasks](next-twenty.md).
-Proceed through coherent slices with recorded automated and physical evidence;
-external integrations remain deferred.
+Latest approved delivery: all twenty bounded
+[hierarchy/autonomy tasks](hierarchy-autonomy-batch.md) are complete on application
+source `970ba69195`. See [native qualification](hierarchy-native-qualification.md)
+and [status](status.md) for the 806 selected checks, actual CLI/TUI/official-Neovim,
+117-second background, 10,005-node registry and full crash/restore evidence.
+The final checkpoint closes implementation and qualification for this batch;
+new scope requires owner direction. External integrations, distributed workers,
+increased active concurrency, new paid pilots and automatic root acceptance/Apply
+remain deferred. The previously approved real-host logout/reboot gate remains
+blocked on a suitable host. The earlier roadmap/checkpoints below are historical.
 
 The revised twelve-item [autonomy/usability batch](autonomy-batch.md) is complete:
 770 selected checks and actual CLI/TUI/official-Neovim qualification pass on

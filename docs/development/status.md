@@ -1,9 +1,68 @@
 # Current status and resumption instructions
 
-Current approved work: [hierarchy/autonomy batch](hierarchy-autonomy-batch.md),
-approved with “ok lets do this”. Tasks1–10 are committed on `47221cd410` and pass first physical UI/diagnostics qualification. Goal/dependency projection, rolling proposal/assignment advice and bounded official-Neovim multi-tab checkpoints pass77 affected checks; final packaged physical checks remain. Team proposals, narrow known-startup recovery, reviewed cross-project knowledge, finite discovery and measured instruction/workflow adoption now pass full state316/affected TUI78 and generated comparisons4. Production CLI Clippy passes; current packaging and fresh physical/background/scale/recovery checks remain. Continue task20 through completion; do not stop at this source checkpoint.
-The completed prior twenty-task batch below is protected historical evidence.
-External integrations and new paid inference remain deferred.
+## Latest delivery: hierarchy/autonomy batch complete
+
+All twenty approved [hierarchy/autonomy tasks](hierarchy-autonomy-batch.md) are
+implemented and qualified within their documented single-owner, single-host
+bounds. Final application source **`970ba69195`**; later commits are documentation
+only. Read [native qualification](hierarchy-native-qualification.md) and
+[final tests](testing.md#hierarchyautonomy-batch-final-qualification) before resuming.
+
+Delivered: branching Operations cards, two-axis navigation/search/focus/fit,
+inspector tabs, actual health/audit/server CPU/RSS, goal/task dependency diagrams,
+accepted-outcome planning proposals, transparent assignment advice, atomic
+reviewed team changes, narrow original-grant startup retries, reviewed project
+knowledge sharing, finite discovery, measured instruction/workflow adoption and
+official-Neovim multi-tab checkpoints/file navigation. Existing grants, approvals,
+immutable checks, owner acceptance and Apply remain enforced.
+
+**806 distinct selected automated checks pass**, along with production CLI Clippy
+`-D warnings`, locked/offline build/package, formatting and generated contracts.
+Actual CLI/TUI/official Neovim 0.12.6 checks include 36 rapid layout switches at
+three sizes, native coding/document checks, exactly one completed Apply, a
+**117.075-second** detached run, **10,005 stored definitions**, crash/no-replay,
+full fresh restore, corruption refusal and restored editor tabs. One extra optional
+formatter-driver test retains a confirmed pre-existing mismatch; see testing.
+
+Final package:
+`/workspace/.onboarding/qualification/hierarchy-batch/final-package/`, version
+`0.0.0-hierarchy-autonomy.preview5`, CLI SHA256
+`e7fe71374850205c3e7e4574bd61e40a2b9c1a5e980c79d1c617e344e718f9c7`.
+The final five installed assets match. Evidence root:
+`/workspace/.onboarding/qualification/hierarchy-batch/`.
+Screenshots: `/workspace/artifacts/cli-hierarchy-autonomy/cli-hierarchy-autonomy-screenshots.zip`
+(102 unmodified PNG/text pairs, 206 CRC/hash-checked entries).
+
+The native fixture retains **36 admitted/35 reported requests, 525 synthetic
+tokens and one charged unknown request**. All owned services are stopped; the
+original `autonomy-native/native-home` is stopped and quarantined. **Never restart
+that source home or replay its setup, grants, acceptance or Apply.** Read
+`autonomy-native/workspace-quarantine.json`; use only a fresh restore for further
+read-only review. The existing `restored-home` is also stopped and globally paused.
+No new paid calls ran; historical live estimate $0.3652553 remains an estimate.
+
+The default-two/max-four active envelope is unchanged. The dashboard loads at
+most 20,000 nodes/goals and 2,000 records of other kinds; stored scale does not
+prove concurrent-worker scale. No new dependency, service, editor engine or
+integration was introduced. New independent implementation needs matching owner
+scope. The previously approved real-host systemd/logout/reboot task still needs
+an owner-designated suitable host; PID 1 here is `tail`.
+
+Local commit preservation:
+`/workspace/artifacts/codex-hierarchy-autonomy-local-commits.bundle`, with
+prerequisite `59d3f1ebf3`. Cloud startup guidance is a draft; saving it does not
+apply/publish the environment or prove fresh-task restoration. Retain the snapshot,
+bundle and current package. SHA-verified temporary relocations of inactive build
+caches/older releases may not survive a fresh cloud task; do not delete protected
+fixtures or assume those caches remain available.
+
+Latest cloud startup guidance is saved and read-back verified as draft revision
+17. Only `start_skill` changed; installation, repositories, network,
+credentials and runtime requirements remain unchanged. Review/save environment
+settings and publish to activate this snapshot. Publication/fresh-task restoration
+was not performed here; `final-cloud-draft.json` records backend persistence.
+
+## Historical completed operations batch
 
 The approved [twenty-task batch](next-twenty.md) has **19 of 20 bounded tasks
 implemented and qualified: tasks 2–20**. Task 1 remains blocked on a real Linux

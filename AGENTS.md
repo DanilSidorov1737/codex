@@ -137,6 +137,24 @@ paid-provider and automatic root acceptance/Apply boundaries. Continue Ponytail,
 real testing, documentation and logical local commits; no repeated approval is
 needed for ordinary slices. Historical qualified homes stay protected/stopped.
 
+This hierarchy/autonomy batch is now complete on final application source
+`970ba69195`: all twenty bounded tasks, 806 selected automated checks and actual
+CLI/TUI/official-Neovim/background/10,005-node/crash/full-restore checks pass.
+Read [hierarchy native qualification](docs/development/hierarchy-native-qualification.md)
+and the latest status/testing before historical checkpoints. All owned services
+are stopped. Original `hierarchy-batch/autonomy-native/native-home` is quarantined;
+NEVER restart it, replay fixture grants/acceptance/Apply or reset usage. Read its
+workspace-quarantine.json and review only a fresh restore. Preserve the completed
+Application, 36 admitted/35 reported requests, 525 synthetic tokens and one charged
+unknown; the fresh restored home stays paused/stopped. Bundles exclude owner
+originals, configuration/credentials and private frontend Neovim checkpoints;
+retain those separately. Actual multi-tab checkpoints support at most eight tabs
+and 16 total windows/files. Dashboard loads at most 20,000 nodes/goals; active
+execution remains default two/max four. No independent batch implementation
+remains. New scope needs owner direction; prior real-host logout/reboot qualification
+is still approved but requires a suitable host. External integrations, distributed
+workers, new paid probes and automatic root acceptance/Apply remain separate.
+
 Then read [decisions](docs/development/decisions-and-risks.md),
 [MVP plan](docs/development/mvp.md), [testing](docs/development/testing.md) and
 [process](docs/development/process.md). Reconcile current user instructions with

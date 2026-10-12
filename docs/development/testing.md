@@ -1,5 +1,77 @@
 # Testing procedures and evidence
 
+## Hierarchy/autonomy batch final qualification
+
+All twenty approved bounded tasks pass final qualification on application source
+`970ba69195`. Read [native evidence](hierarchy-native-qualification.md) for physical
+steps, receipts, all failures, package hashes, operational limits and protected
+resumption. Evidence root `/workspace/.onboarding/qualification/hierarchy-batch/`.
+Activate `. /workspace/.onboarding/activate.sh`; Cargo cwd
+`/workspace/codex/codex-rs`, `CARGO_INCREMENTAL=0 RUST_MIN_STACK=8388608`, options
+`--locked --offline --profile dev-small -j4`. Existing official Neovim 0.12.6 is
+actually launched for editor cases. Native IPC/sandbox cases use authorized native
+execution; denial assertions remain intact. No new dependencies were installed.
+
+| Selected check, common Cargo options above | Passed | Final log |
+| --- | --- | --- |
+| `cargo test -p codex-protocol --lib` | 374 | `autonomy-protocol-tests.log` |
+| `cargo test -p codex-state --lib` | 316 | `autonomy-state-final.log` |
+| `cargo test -p codex-tui --lib organization` | 79, including actual Neovim | `scale-limit-tui.log` |
+| `cargo test -p codex-app-server --lib organization_workspace` | 7 native workspace cases | `autonomy-workspace-tests-v2.log` |
+| `cargo test -p codex-app-server --lib runtime_resources` | 1 actual serving-process sample | `graph-resources-test.log` |
+| `cargo test -p codex-app-server-protocol --lib schema_fixtures_tests -- --skip write_schema_fixtures_from_env` | 4 contract comparisons | `autonomy-schema-*-v2.log` |
+| SDK `.venv` `python -m pytest tests/test_contract_generation.py tests/test_public_api_signatures.py` | 25 | `autonomy-sdk-contracts-final.log` |
+
+**806 distinct selected checks pass.** Stable/experimental raw schema writers each
+run separately and are excluded from this count; generated JSON/TypeScript/
+precomputed contracts and SDK types match. SDK generation uses the existing venv
+and `scripts/update_sdk_artifacts.py generate-types --schema-dir
+../../codex-rs/app-server-protocol/schema/json` (`autonomy-sdk-generation-v2.log`).
+Four extra wheel checks pass offline with the existing writable UV cache.
+
+Production `cargo clippy -p codex-cli --bin codex -- -D warnings` and
+`cargo build -p codex-cli --bin codex` pass in `scale-limit-cli-{clippy,build}.log`.
+Final complete staging passes `final-package-build.log` and five-asset hashes.
+`cargo fmt --all -- --check` and `git diff --check` pass; nightly-only import-setting
+warnings under stable rustfmt are retained in `final-format-check.log`.
+Only inactive rebuildable compiler variants were pruned/relocated with hash/byte
+receipts after checks; new Cargo work may require a cold rebuild.
+
+Coverage includes clipped geometry/real counts/10k-depth/ancestry search, scoped
+audit/no payload leaks, goal evidence/owner choice, atomic team stale/cycle/replay
+rollback, bounded original-grant recovery/backoff/occupancy/unknown refusal,
+private/stale sharing denial/source retention, identical hash-pinned representative
+comparisons and every paired workflow step. Native editor checks cover real tabs,
+shared buffers/cursors/unsaved text/native undo, old checkpoint compatibility,
+path/privacy/dirty guards and cross-layout task/file identity.
+
+Actual final receipts: `ui-native/{prepared,physical,cleanup}.json` and
+`autonomy-native/{apply-native,code-native,local-controls,workflow-recovery,scale,
+recovery,scale-physical,restored-physical,final-cleanup}.json`. Ten finite jobs finish
+after frontend exit over 117.075 seconds. 10,005 stored definitions are created via
+native owner commands, not SQL injection; final 20,000-node/goal bound passes actual
+fit/compact/two-axis pan/search. Crash keeps a charged unknown without replay;
+live/corrupt backup refusals and full fresh remapped restore/real-editor review pass.
+Exactly one completed Apply stays unchanged; no second Apply, original overwrite
+or accounting reset. All owned services stop, SQLite quick/FK checks pass.
+
+These model responses are deterministic localhost fixtures: 36 admitted/35
+reported requests, 525 synthetic tokens, one unknown, zero active/paid calls.
+No general provider quality, indefinite uptime, thousands of concurrent agents,
+host logout/reboot or billing accuracy is claimed. The separate host gate remains
+unrun because PID 1 is `tail`.
+
+One **extra optional pre-existing test fails**:
+`tests/test_artifact_workflow_and_binaries.py::test_root_format_driver_covers_all_formatter_groups`.
+It expects per-file `rustfmt`; `scripts/format.py` already uses `cargo fmt`.
+Both files are byte-identical to batch base `59d3f1ebf3`, verified in
+`additional-format-test-baseline.json`; failure retained in
+`autonomy-sdk-additional-rerun.log`. This is outside the selected passing 806 and
+was not suppressed or presented as passing. No application-format failure remains.
+Other corrected failures and the unsuccessful preview3 strip are recorded in
+the native qualification page. Screenshot archive/hash verification is in
+`final-artifact-verification.json`; the archive preserves 102 actual pairs.
+
 ## Hierarchy batch: first UI/diagnostics checkpoint
 
 Evidence root `/workspace/.onboarding/qualification/hierarchy-batch/`.
