@@ -1,5 +1,10 @@
 # Current status and resumption instructions
 
+Current approved work: all [30 adaptive-operation/usability tasks](adaptive-batch.md),
+approved with “ok lets do this”. Continue their bounded implementation, tests,
+actual CLI/TUI/official Neovim, docs and logical commits; prior delivery below
+is historical. Initial HEAD `6b8a5727ec`; prerequisite/runner work starts first.
+
 ## Latest delivery: mission/usability batch complete
 
 All **25 bounded [mission/usability tasks](mission-batch.md)** are implemented

@@ -1,5 +1,10 @@
 # Phased roadmap
 
+Current approved work: all [30 adaptive-operation/usability tasks](adaptive-batch.md),
+approved with “ok lets do this”. Continue their bounded implementation, tests,
+actual CLI/TUI/official Neovim, docs and logical commits; prior delivery below
+is historical. Initial HEAD `6b8a5727ec`; prerequisite/runner work starts first.
+
 Latest delivery: all [25 mission/usability tasks](mission-batch.md) are
 implemented and qualified on application source `8cd392eaaa`, with 836 selected
 checks and actual CLI/TUI/official-Neovim/30-minute background/crash/full-restore

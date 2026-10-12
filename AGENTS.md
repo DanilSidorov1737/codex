@@ -184,6 +184,18 @@ formatting work; changed-source checks pass. Real-host reboot/logout and externa
 integrations/paid probes/distributed workers/increased concurrency/automatic root
 acceptance or Apply remain separately scoped. No push/publication is implied.
 
+The owner approved all [30 adaptive-operation/usability tasks](docs/development/adaptive-batch.md)
+with “ok lets do this”. Implement the whole bounded list in order using Ponytail,
+logical local commits, maintained docs, meaningful tests and actual CLI/TUI/
+official-Neovim. This supersedes older local deferrals for the listed capabilities;
+no repeated approval is needed for ordinary slices or necessary verified build
+prerequisites. Preserve previous fixture/accounting/quarantine and explicit
+owner acceptance/Apply controls. No new paid inference/external integrations/
+increased concurrency/push/publication are implied. Code Mode must be qualified
+through existing host controls before enabling its models. Do not finish at a
+source-only checkpoint; complete all independent work and finite endurance
+qualification. Real-host reboot/logout still needs a suitable host.
+
 Then read [decisions](docs/development/decisions-and-risks.md),
 [MVP plan](docs/development/mvp.md), [testing](docs/development/testing.md) and
 [process](docs/development/process.md). Reconcile current user instructions with
