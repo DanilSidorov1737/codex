@@ -1,5 +1,19 @@
 # Testing procedures and evidence
 
+## Mission/usability batch in progress
+
+Approved scope: [mission batch](mission-batch.md), initial `ddb67e5f32`.
+Evidence `/workspace/.onboarding/qualification/mission-batch/`.
+The pre-existing formatter-driver mismatch is corrected in production discovery:
+`sdk/python/.venv/bin/python -m pytest
+tests/test_artifact_workflow_and_binaries.py::test_root_format_driver_covers_all_formatter_groups`
+from sdk/python passes **1 test** (`formatter-regression.log`). It verifies native
+argv including spaced paths, deleted-file filtering and Rust outside codex-rs.
+The unchanged assertion now passes; it was not replaced with a cargo-fmt expectation.
+Affected TUI/actual-Neovim tests are running; do not claim final qualification.
+The first formatting attempt failed on a generated multiline char literal; the
+literal is corrected and the failure retained in `ui-format.log`.
+
 ## Hierarchy/autonomy batch final qualification
 
 All twenty approved bounded tasks pass final qualification on application source

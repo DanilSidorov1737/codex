@@ -60,3 +60,11 @@ state/protocol/TUI/native-editor/workspace/contracts/SDK, production CLI build a
 Clippy, actual finite native workflows and 30-minute local fixture qualification.
 Optional provider pilots are not part of this batch. Keep this page, status,
 testing, roadmap and root AGENTS current at each logical checkpoint.
+
+Task 25 formatter preparation: repository Rust discovery now uses Git's NUL-safe
+tracked/untracked `.rs` listing, skips deleted files, preserves spaced filenames
+and formats Rust outside codex-rs with native rustfmt/skip_children. The original
+unchanged formatter-contract regression passes (1 test, exit 0,
+`formatter-regression.log`); its assertion was not weakened. Empty listings produce
+no stdin-reading formatter command. Tasks 1–5 have source changes under affected
+TUI/native-editor regression testing; physical package qualification remains.
