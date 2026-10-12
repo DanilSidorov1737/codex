@@ -29,6 +29,13 @@ impl OrganizationStore {
         };
         let mut tx = self.pool.begin_with("BEGIN IMMEDIATE").await?;
         let (operation, record) = match mutation {
+            prompt @ OrganizationMutation::ConversationPrompt { .. } => {
+                let conversation = super::conversation::prompt(&mut tx, prompt).await?;
+                (
+                    "conversation/prompt",
+                    Some(OrganizationRecord::Control(conversation)),
+                )
+            }
             OrganizationMutation::ProposeLesson {
                 task_id,
                 expected_revision,
@@ -197,6 +204,12 @@ impl OrganizationStore {
                 let cycle: i64 = sqlx::query_scalar("WITH RECURSIVE ancestors(id) AS (SELECT ? UNION SELECT g.parent_id FROM organization_goals g JOIN ancestors a ON g.id = a.id WHERE g.parent_id IS NOT NULL) SELECT EXISTS(SELECT 1 FROM ancestors WHERE id = ?)")
                     .bind(&parent_id).bind(&id).fetch_one(&mut *tx).await?;
                 ensure!(cycle == 0, "goal hierarchy cycle rejected");
+                if let Some(parent) = &parent_id {
+                    ensure!(
+                        !super::goal::required_path(&mut tx, &id, parent).await?,
+                        "goal dependency/hierarchy cycle rejected"
+                    );
+                }
                 let record = OrganizationRecord::Goal(OrganizationGoal {
                     id: id.clone(),
                     parent_id: parent_id.clone(),
@@ -246,75 +259,8 @@ impl OrganizationStore {
                     .bind(project_id).bind(goal_id).bind(owner_id).bind(revision).bind(serde_json::to_string(&record)?).execute(&mut *tx).await?;
                 ("project/link", Some(record))
             }
-            OrganizationMutation::PutTask {
-                id,
-                expected_revision,
-                project_id,
-                goal_id,
-                owner_id,
-                instructions,
-                criteria,
-                prerequisites,
-            } => {
-                text(&instructions, 64 * 1024)?;
-                validate_criteria(&criteria)?;
-                super::controls::check_project_edit(&mut tx, &project_id).await?;
-                ensure!(prerequisites.len() <= 256, "too many task prerequisites");
-                require_agent(&mut tx, &owner_id).await?;
-                let (id, revision) = next_revision(
-                    &mut tx,
-                    OrganizationRecordKind::Tasks,
-                    id,
-                    expected_revision,
-                )
-                .await?;
-                let existing: Option<(String, String)> =
-                    sqlx::query_as("SELECT state, project_id FROM organization_tasks WHERE id = ?")
-                        .bind(&id)
-                        .fetch_optional(&mut *tx)
-                        .await?;
-                ensure!(
-                    existing.as_ref().is_none_or(
-                        |(state, project)| state == "proposed" && project == &project_id
-                    ),
-                    "only proposed tasks may be edited, without moving between projects"
-                );
-                for prerequisite in &prerequisites {
-                    let prerequisite_project: Option<String> = sqlx::query_scalar(
-                        "SELECT project_id FROM organization_tasks WHERE id = ?",
-                    )
-                    .bind(prerequisite)
-                    .fetch_optional(&mut *tx)
-                    .await?;
-                    ensure!(
-                        prerequisite_project.as_deref() == Some(project_id.as_str()),
-                        "prerequisite must exist in the same project"
-                    );
-                    let cycle: i64 = sqlx::query_scalar("WITH RECURSIVE ancestors(id) AS (SELECT ? UNION SELECT d.prerequisite_id FROM organization_task_dependencies d JOIN ancestors a ON d.task_id = a.id) SELECT EXISTS(SELECT 1 FROM ancestors WHERE id = ?)")
-                        .bind(prerequisite).bind(&id).fetch_one(&mut *tx).await?;
-                    ensure!(cycle == 0, "task dependency cycle rejected");
-                }
-                let record = OrganizationRecord::Task(OrganizationTask {
-                    id: id.clone(),
-                    project_id: project_id.clone(),
-                    goal_id: goal_id.clone(),
-                    owner_id: owner_id.clone(),
-                    instructions,
-                    criteria,
-                    prerequisites: prerequisites.clone(),
-                    state: "proposed".into(),
-                    revision,
-                });
-                sqlx::query("INSERT INTO organization_tasks(id,project_id,goal_id,owner_id,revision,state,data) VALUES (?,?,?,?,?,'proposed',?) ON CONFLICT(id) DO UPDATE SET project_id=excluded.project_id,goal_id=excluded.goal_id,owner_id=excluded.owner_id,revision=excluded.revision,data=excluded.data")
-                    .bind(&id).bind(project_id).bind(goal_id).bind(owner_id).bind(revision).bind(serde_json::to_string(&record)?).execute(&mut *tx).await?;
-                sqlx::query("DELETE FROM organization_task_dependencies WHERE task_id = ?")
-                    .bind(&id)
-                    .execute(&mut *tx)
-                    .await?;
-                for prerequisite in prerequisites {
-                    sqlx::query("INSERT INTO organization_task_dependencies(task_id,prerequisite_id) VALUES (?,?)").bind(&id).bind(prerequisite).execute(&mut *tx).await?;
-                }
-                ("task/put", Some(record))
+            mutation @ OrganizationMutation::PutTask { .. } => {
+                ("task/put", Some(put_task_in(&mut tx, mutation).await?))
             }
             OrganizationMutation::SetMembership {
                 node_id,
@@ -576,4 +522,83 @@ pub(super) async fn write_node(
     sqlx::query("INSERT INTO organization_nodes(id,parent_id,kind,role_version_id,revision,data) VALUES (?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET parent_id=excluded.parent_id,role_version_id=excluded.role_version_id,revision=excluded.revision,data=excluded.data")
         .bind(&node.id).bind(&node.parent_id).bind(kind).bind(&node.role_version_id).bind(node.revision).bind(serde_json::to_string(&record)?).execute(&mut **tx).await?;
     Ok(())
+}
+
+pub(super) async fn put_task_in(
+    tx: &mut Transaction<'_, Sqlite>,
+    mutation: OrganizationMutation,
+) -> Result<OrganizationRecord> {
+    let OrganizationMutation::PutTask {
+        id,
+        expected_revision,
+        project_id,
+        goal_id,
+        owner_id,
+        instructions,
+        criteria,
+        prerequisites,
+    } = mutation
+    else {
+        anyhow::bail!("not a task draft")
+    };
+
+    text(&instructions, 64 * 1024)?;
+    validate_criteria(&criteria)?;
+    super::controls::check_project_edit(tx, &project_id).await?;
+    ensure!(prerequisites.len() <= 256, "too many task prerequisites");
+    require_agent(tx, &owner_id).await?;
+    let (id, revision) =
+        next_revision(tx, OrganizationRecordKind::Tasks, id, expected_revision).await?;
+    let existing: Option<(String, String)> =
+        sqlx::query_as("SELECT state, project_id FROM organization_tasks WHERE id = ?")
+            .bind(&id)
+            .fetch_optional(&mut **tx)
+            .await?;
+    ensure!(
+        existing
+            .as_ref()
+            .is_none_or(|(state, project)| state == "proposed" && project == &project_id),
+        "only proposed tasks may be edited, without moving between projects"
+    );
+    for prerequisite in &prerequisites {
+        let prerequisite_project: Option<String> =
+            sqlx::query_scalar("SELECT project_id FROM organization_tasks WHERE id = ?")
+                .bind(prerequisite)
+                .fetch_optional(&mut **tx)
+                .await?;
+        ensure!(
+            prerequisite_project.as_deref() == Some(project_id.as_str()),
+            "prerequisite must exist in the same project"
+        );
+        let cycle: i64 = sqlx::query_scalar("WITH RECURSIVE ancestors(id) AS (SELECT ? UNION SELECT d.prerequisite_id FROM organization_task_dependencies d JOIN ancestors a ON d.task_id = a.id) SELECT EXISTS(SELECT 1 FROM ancestors WHERE id = ?)")
+                        .bind(prerequisite).bind(&id).fetch_one(&mut **tx).await?;
+        ensure!(cycle == 0, "task dependency cycle rejected");
+    }
+    let record = OrganizationRecord::Task(OrganizationTask {
+        id: id.clone(),
+        project_id: project_id.clone(),
+        goal_id: goal_id.clone(),
+        owner_id: owner_id.clone(),
+        instructions,
+        criteria,
+        prerequisites: prerequisites.clone(),
+        state: "proposed".into(),
+        revision,
+    });
+    sqlx::query("INSERT INTO organization_tasks(id,project_id,goal_id,owner_id,revision,state,data) VALUES (?,?,?,?,?,'proposed',?) ON CONFLICT(id) DO UPDATE SET project_id=excluded.project_id,goal_id=excluded.goal_id,owner_id=excluded.owner_id,revision=excluded.revision,data=excluded.data")
+                    .bind(&id).bind(project_id).bind(goal_id).bind(owner_id).bind(revision).bind(serde_json::to_string(&record)?).execute(&mut **tx).await?;
+    sqlx::query("DELETE FROM organization_task_dependencies WHERE task_id = ?")
+        .bind(&id)
+        .execute(&mut **tx)
+        .await?;
+    for prerequisite in prerequisites {
+        sqlx::query(
+            "INSERT INTO organization_task_dependencies(task_id,prerequisite_id) VALUES (?,?)",
+        )
+        .bind(&id)
+        .bind(prerequisite)
+        .execute(&mut **tx)
+        .await?;
+    }
+    Ok(record)
 }

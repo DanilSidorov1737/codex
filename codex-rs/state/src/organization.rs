@@ -33,6 +33,12 @@ const MARKER: &str = "initialized";
 #[path = "organization_definitions.rs"]
 mod definitions;
 
+#[path = "organization_conversation.rs"]
+mod conversation;
+
+#[path = "organization_goal.rs"]
+mod goal;
+
 #[path = "organization_presets.rs"]
 mod presets;
 

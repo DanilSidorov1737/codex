@@ -175,3 +175,58 @@ including actual official-Neovim cases. Seven runner subprocess tests pass.
 This is a source/test checkpoint for tasks1–8; complete native CLI/TUI workflows,
 contract regeneration, production lint/package and task30 endurance remain pending.
 Tasks9–30 remain approved and unfinished. No historical services were restarted.
+
+## Conversation and goal checkpoint (qualification continues)
+
+Task9 now persists a conversation for one exact project, stable agent and topic.
+An owner prompt atomically creates a proposed planning task without a grant;
+each turn needs separately reviewed execution authority. Only the host-attributed
+live task can append its reply. The caller cannot choose a different agent,
+project, conversation or task. Replies are untrusted model content, not approval.
+The transcript and history survive restart. At most16 turns are stored and only
+the last four bounded pairs enter subsequent planning context. Direct owner
+control setters cannot forge a transcript. Commands opens/continues the form and
+reads the canonical transcript and task state.
+
+Task10 reuses the existing planning artifact/workflow path: a natural-language
+request creates a proposed task for a selected project. Its bounded `plan.json`
+is reviewed, imported with W into an editable workflow, then separately scoped.
+This avoids a second workflow engine. Tasks11–14 add responsibility metadata for
+arbitrarily nested goals, configured agents or teams, exact acyclic prerequisites,
+and business due dates. Existing goal/task forms retain arbitrary hierarchy.
+Accepted descendant results can support parent criteria, but every criterion
+and parent completion still need explicit owner review; unfinished descendants
+prevent completion. Cross-project prerequisites require explicit metadata approval
+and grant no data or tool access. Changed prerequisites/completion evidence park
+new dispatch without rewriting existing grants, reservations or accounting.
+Goal reparenting also checks the combined hierarchy/dependency graph.
+
+Business dates pin the current target revision when edited. RFC3339 editing keeps
+an explicit local timezone offset and canonical UTC timestamp; the inspector
+shows the date/overdue status. This supports fixed offsets, not IANA timezone/DST
+rules. Grant expiry and scheduling clocks are unchanged. Clearing a business
+date is an independent metadata update, never grant renewal.
+
+State selected checks:330 passed (`conversation-state-v2.log` and
+`goals-state-initial.log`), then332 passed (`goals-state-v2.log`), all exit0.
+The latter includes cross-project approval/cycle/stale-completion admission and
+business-date/grant invariance. The descendant criterion test was subsequently
+extended and passed in the final332-test state run (`planning-state-v3.log`,
+exit0). TUI tests for conversation, project planning, local-date roundtrip and
+closed-versus-overdue display passed in the98-test selection
+(`planning-tui-v3.log`, exit0), including actual official-Neovim cases.
+An initial TUI formatter found a
+misplaced render insertion; its corrected parse passes. The first compile found
+another misplaced date-render block, corrected before the rerun. Preserve
+`goals-tui-format.log` and `goals-tui-initial.log`. A prematurely queued duplicate
+Cargo check was stopped while waiting on the artifact lock; no competing build
+selection was allowed to run. Full root formatting passed (exit0,
+`planning-full-format.log`); selected document formatting and `git diff --check`
+also pass. Ponytail/correctness review reuses the existing task mutation,
+control/history writer, SQLite graph checks, Chrono and planning/workflow path;
+no dependency or second workflow engine was added. Schema/SDK regeneration,
+production lint/build/package, physical CLI/TUI and complete finite endurance
+are pending.
+No paid calls, external integrations, historical fixture mutations or GPT Dot
+integration have occurred. Continue the approved batch; these are source/test
+checkpoints, not delivery completion.

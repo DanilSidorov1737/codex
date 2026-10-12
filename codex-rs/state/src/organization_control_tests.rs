@@ -279,12 +279,27 @@ async fn goal_completion_and_private_lessons_pin_current_accepted_evidence() -> 
     else {
         panic!("goal")
     };
+    let Some(OrganizationRecord::Goal(child)) = store
+        .mutate_owner(
+            OrganizationMutation::PutGoal {
+                id: None,
+                expected_revision: None,
+                parent_id: Some(goal.id.clone()),
+                objective: "Child milestone".into(),
+                criteria: vec!["Oracle passed".into()],
+            },
+            None,
+        )
+        .await?
+    else {
+        panic!("child goal")
+    };
     store
         .mutate_owner(
             OrganizationMutation::LinkProject {
                 project_id: project_id.clone(),
                 expected_revision: Some(1),
-                goal_id: Some(goal.id.clone()),
+                goal_id: Some(child.id.clone()),
                 owner_id: Some(agent.id.clone()),
                 criteria: vec!["Oracle passed".into()],
             },

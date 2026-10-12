@@ -71,5 +71,14 @@ versioned profiles. State329/TUI93 selections pass, including actual official
 Neovim cases. See [checkpoint evidence](adaptive-qualification.md) for failures,
 cache/storage recovery, limitations and remaining physical/contract checks.
 These checkpoints are not final feature qualification or completion of this batch.
-Continue tasks9–30 and all remaining native CLI/TUI/endurance checks; no new
+Conversation, natural-language project planning, arbitrary nested-goal
+responsibility, parent criterion evidence, versioned prerequisites and local
+business dates now have source/test checkpoints. State332/TUI98 selections pass,
+including the extended descendant criterion test. Full root formatting passes.
+Task10 uses the existing `plan.json` review/editable-workflow path; task11 uses
+existing nested-goal/task forms plus reviewed responsibility metadata. There is
+no second workflow engine or automatic parent completion. See the same evidence
+document for precise bounds and pending native qualification.
+
+Continue tasks15–30 and all remaining native CLI/TUI/endurance checks; no new
 approval is needed. All historical fixture/accounting/quarantine rules remain.

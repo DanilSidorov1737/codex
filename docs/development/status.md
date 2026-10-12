@@ -3,8 +3,8 @@
 Current approved work: all [30 adaptive-operation/usability tasks](adaptive-batch.md),
 approved with “ok lets do this”. Continue their bounded implementation, tests,
 actual CLI/TUI/official Neovim, docs and logical commits; prior delivery below
-is historical. Tasks1–8 now have source/test checkpoints (state329/TUI93/runner7);
-see [adaptive evidence](adaptive-qualification.md). Tasks9–30 and complete native
+is historical. Tasks1–14 now have source/test checkpoints (state332/TUI98/runner7);
+see [adaptive evidence](adaptive-qualification.md). Tasks15–30 and complete native
 qualification remain unfinished; continue without requesting new approval.
 
 ## Latest delivery: mission/usability batch complete

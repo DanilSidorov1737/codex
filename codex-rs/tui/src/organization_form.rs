@@ -6,6 +6,21 @@ use crossterm::event::KeyModifiers;
 use ratatui::layout::Margin;
 
 pub(super) enum Kind {
+    GoalMetadata {
+        goal: OrganizationGoal,
+        previous: Option<OrganizationControl>,
+        candidates: Vec<OrganizationGoalDependency>,
+    },
+    Deadline {
+        kind: OrganizationDeadlineKind,
+        target_id: String,
+        target_revision: i64,
+        previous: Option<OrganizationControl>,
+    },
+    Conversation {
+        previous: Option<OrganizationControl>,
+        agent_id: Option<String>,
+    },
     Setup,
     ResourcePressure(Option<OrganizationControl>),
     ExecutionProfile(Option<OrganizationControl>),
@@ -71,6 +86,7 @@ pub(super) enum Kind {
     Project,
     Task,
     GoalPlan(OrganizationGoal),
+    ProjectPlanning(OrganizationProjectPlan),
     Discovery(OrganizationProjectPlan),
     WorkflowImprovement {
         template: OrganizationWorkflowTemplate,
@@ -148,6 +164,141 @@ pub(super) struct HunkFile {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn project_planning_request_creates_reviewable_work_without_execution_authority() {
+        let project = OrganizationProjectPlan {
+            id: "p".into(),
+            name: "Handbook".into(),
+            roots: vec![],
+            goal_id: None,
+            owner_id: Some("a".into()),
+            criteria: vec![],
+            revision: 3,
+        };
+        let agent:OrganizationRecord=serde_json::from_value(serde_json::json!({"type":"node","data":{"id":"a","parentId":null,"kind":"agent","label":"Planner","roleVersionId":null,"model":"fixture","enabled":true,"revision":1}})).unwrap();
+        let records = vec![OrganizationRecord::Project(project.clone()), agent];
+        let mut form = Form::new(
+            Kind::ProjectPlanning(project),
+            &records,
+            Some(&records[0]),
+            "fixture",
+        );
+        assert!(form.command().is_err());
+        set(
+            &mut form,
+            3,
+            "Create a handbook plan with two reviewed milestones",
+        );
+        let Command::Definition(OrganizationMutation::PutTask {
+            id: None,
+            project_id,
+            instructions,
+            ..
+        }) = form.command().unwrap()
+        else {
+            panic!("proposal only")
+        };
+        assert_eq!(project_id, "p");
+        assert!(
+            instructions.contains("plan.json")
+                && instructions.contains("handbook plan")
+                && instructions.contains("revision 3")
+                && instructions.contains("separately authorizes")
+        );
+    }
+
+    #[test]
+    fn local_business_date_roundtrips_offset_and_pins_target_without_a_grant() {
+        let mut form = Form::new(
+            Kind::Deadline {
+                kind: OrganizationDeadlineKind::Task,
+                target_id: "task".into(),
+                target_revision: 9,
+                previous: None,
+            },
+            &[],
+            None,
+            "fixture",
+        );
+        set(&mut form, 0, "2026-10-20T17:00:00-04:00");
+        let Command::Definition(OrganizationMutation::SetControl {
+            value,
+            expected_revision: None,
+        }) = form.command().unwrap()
+        else {
+            panic!("date metadata only")
+        };
+        assert!(
+            matches!(&value,OrganizationControlValue::Deadline {kind:OrganizationDeadlineKind::Task,target_id,target_revision:9,due_at:Some(_),display_offset_minutes:-240} if target_id=="task")
+        );
+        let previous = OrganizationControl {
+            id: "deadline:task:task".into(),
+            revision: 1,
+            value,
+        };
+        let restored = Form::new(
+            Kind::Deadline {
+                kind: OrganizationDeadlineKind::Task,
+                target_id: "task".into(),
+                target_revision: 10,
+                previous: Some(previous),
+            },
+            &[],
+            None,
+            "fixture",
+        );
+        assert_eq!(restored.fields[0].value(), "2026-10-20T17:00:00-04:00");
+        set(&mut form, 0, "2026-10-20T17:00:00");
+        assert!(form.command().is_err(), "local date needs explicit offset");
+        set(&mut form, 0, "");
+        assert!(matches!(
+            form.command().unwrap(),
+            Command::Definition(OrganizationMutation::SetControl {
+                value: OrganizationControlValue::Deadline { due_at: None, .. },
+                ..
+            })
+        ));
+    }
+
+    #[test]
+    fn conversation_form_keeps_stable_identity_and_creates_only_a_draft() {
+        let project = OrganizationRecord::Project(OrganizationProjectPlan {
+            id: "p".into(),
+            name: "Local".into(),
+            roots: vec![],
+            goal_id: None,
+            owner_id: Some("a".into()),
+            criteria: vec![],
+            revision: 1,
+        });
+        let agent:OrganizationRecord=serde_json::from_value(serde_json::json!({"type":"node","data":{"id":"a","parentId":null,"kind":"agent","label":"CEO","roleVersionId":null,"model":"fixture","enabled":true,"revision":1}})).unwrap();
+        let previous = OrganizationControl {
+            id: "conversation:c".into(),
+            revision: 4,
+            value: OrganizationControlValue::Conversation {
+                id: "c".into(),
+                project_id: "p".into(),
+                agent_id: "a".into(),
+                topic: "Planning".into(),
+                entries: vec![],
+            },
+        };
+        let mut form = Form::new(
+            Kind::Conversation {
+                previous: Some(previous),
+                agent_id: None,
+            },
+            &[project, agent],
+            None,
+            "fixture",
+        );
+        assert!(form.command().is_err());
+        set(&mut form, 3, "Propose the next bounded project milestone");
+        assert!(
+            matches!(form.command().unwrap(),Command::Definition(OrganizationMutation::ConversationPrompt {id:Some(id),expected_revision:Some(4),project_id,agent_id,topic,..}) if id=="c" && project_id=="p" && agent_id=="a" && topic=="Planning")
+        );
+    }
 
     #[test]
     fn setup_requires_explicit_fields_and_only_builds_paused_configuration() {
@@ -1703,6 +1854,27 @@ impl Form {
             .or_else(|| project.and_then(|p| p.goal_id.as_deref()));
         let owner = project.and_then(|p| p.owner_id.as_deref());
         let mut fields = match &kind {
+            Kind::GoalMetadata {previous,..} => {
+                let (project,responsible,prerequisites)=match previous.as_ref().map(|c|&c.value) {
+                    Some(OrganizationControlValue::GoalMetadata {project_id,responsible_node_id,prerequisites,..})=>(Some(project_id.as_str()),Some(responsible_node_id.as_str()),prerequisites.as_slice()),
+                    _=>(project.map(|p|p.id.as_str()),owner,&[][..]),
+                };
+                vec![Field::select("Owning project", records.iter().filter_map(|r| match r {OrganizationRecord::Project(p)=>Some((p.id.clone(),p.name.clone())),_=>None}).collect(),project),Field::select("Responsible agent / team",nodes,responsible),Field::text("Prerequisite goal IDs","One per line; exact current versions captured; bind foreign goals to projects first",&prerequisites.iter().map(|p|p.goal.id.clone()).collect::<Vec<_>>().join("\n")),Field::select("Approve selected cross-project references",vec![("false".into(),"No cross-project approval".into()),("true".into(),"Approve metadata references only; no data or execution authority".into())],Some(if prerequisites.iter().any(|p|p.cross_project_approved){"true"}else{"false"}))]
+            }
+            Kind::Deadline {previous,..} => {
+                let due=match previous.as_ref().map(|c|&c.value) {
+                    Some(OrganizationControlValue::Deadline {due_at:Some(due),display_offset_minutes,..})=>chrono::DateTime::from_timestamp(*due,0).zip(chrono::FixedOffset::east_opt(display_offset_minutes*60)).map(|(date,offset)|date.with_timezone(&offset).to_rfc3339()).unwrap_or_default(),
+                    _=>String::new(),
+                };
+                vec![Field::text("Business due date","RFC3339 local date with explicit timezone offset, e.g. 2026-10-20T17:00:00-04:00; blank clears. Does not extend grants",&due)]
+            }
+            Kind::Conversation {previous,agent_id} => {
+                let (project,agent,topic)=match previous.as_ref().map(|c|&c.value) {
+                    Some(OrganizationControlValue::Conversation {project_id,agent_id,topic,..})=>(Some(project_id.as_str()),Some(agent_id.as_str()),topic.as_str()),
+                    _=>(None,agent_id.as_deref(),""),
+                };
+                vec![Field::select("Project",records.iter().filter_map(|r|match r {OrganizationRecord::Project(p)=>Some((p.id.clone(),p.name.clone())),_=>None}).collect(),project),Field::select("Selected agent",agents,agent),Field::text("Conversation topic", "Stable topic; previous conversation identity stays fixed",topic),Field::text("Message", "Creates a planning draft only. Authorize its exact model/tool/budget scope separately", "")]
+            }
             Kind::RoleRollback {current,versions}=>vec![Field::text("Reason","Creates a new immutable version; E assigns it separately; running captures remain", ""),Field::select("Restore role version",versions.iter().filter(|v|v.role_id==current.role_id && v.version<current.version).map(|v|(v.id.clone(),format!("{} v{} · {}",v.name,v.version,v.id))).collect(),None)],
             Kind::WorkflowRollback {current,runs}=>vec![Field::text("Reason","Restore a version captured in a prior run; exact proposal then % applies; running captures remain", ""),Field::select("Captured earlier workflow",runs.iter().filter(|r|r.preview.template.id==current.id && r.preview.template.revision<current.revision).map(|r|(r.id.clone(),format!("{} v{} · run {}",r.preview.template.label,r.preview.template.revision,r.id))).collect(),None)],
             Kind::ArtifactLibrary(_) => vec![Field::text("Artifact query","Literal substring of captured path/task/project/owner/version/check status; empty browses a bounded catalog", "")],
@@ -1941,13 +2113,13 @@ impl Form {
                 for item in items {fields.extend(Self::step_fields(item,&agents));}
                 fields
             },
-            Kind::Task | Kind::GoalPlan(_) | Kind::Discovery(_) | Kind::Selection {..} => vec![
+            Kind::Task | Kind::GoalPlan(_) | Kind::ProjectPlanning(_) | Kind::Discovery(_) | Kind::Selection {..} => vec![
                 Field::select(
                     "Project",
                     records
                         .iter()
                         .filter_map(|r| match r {
-                            OrganizationRecord::Project(p) if !matches!(&kind,Kind::Selection {project_id,..} if project_id!=&p.id) && !matches!(&kind,Kind::Discovery(project) if project.id!=p.id) => Some((p.id.clone(), p.name.clone())),
+                            OrganizationRecord::Project(p) if !matches!(&kind,Kind::Selection {project_id,..} if project_id!=&p.id) && !matches!(&kind,Kind::Discovery(project)|Kind::ProjectPlanning(project) if project.id!=p.id) => Some((p.id.clone(), p.name.clone())),
                             _ => None,
                         })
                         .collect(),
@@ -2125,6 +2297,14 @@ impl Form {
                 None,
             ));
         }
+        if let Kind::ProjectPlanning(_) = &kind {
+            fields[3] = Field::text(
+                "Planning request",
+                "Describe the outcome in your own words. Produces a reviewable plan; separately authorize this planning turn",
+                "",
+            );
+            fields[4].input.set_text_clearing_elements("plan.json is a bounded acyclic proposal with configured owners, dependencies and measurable criteria\nNo proposed work was executed");
+        }
         if let Kind::GoalPlan(goal) = &kind {
             fields.push(Field::text(
                 "Remaining goal criteria",
@@ -2192,6 +2372,11 @@ impl Form {
     }
     pub(super) fn title(&self) -> &'static str {
         match self.kind {
+            Kind::GoalMetadata { .. } => "Goal responsibility / exact prerequisites",
+            Kind::Deadline { .. } => "Business due date / explicit local timezone",
+            Kind::Conversation { .. } => {
+                "Talk to selected agent · persistent planning · separate authorization"
+            }
             Kind::Setup => "First launch · review configuration · execution stays paused",
             Kind::ResourcePressure(_) => "Resource pressure · actual disk / available memory",
             Kind::ExecutionProfile(_) => "Save versioned execution profile · no execution",
@@ -2224,6 +2409,7 @@ impl Form {
             Kind::Project => "New project",
             Kind::Task => "New task",
             Kind::GoalPlan(_) => "Propose goal planner · starts no execution",
+            Kind::ProjectPlanning(_) => "Plan a project from an owner request · proposal only",
             Kind::Discovery(_) => "Propose finite local discovery · separate authorization",
             Kind::WorkflowImprovement { .. } => {
                 "Compare evaluated workflow versions · owner recommendation"
@@ -2255,7 +2441,11 @@ impl Form {
     ) {
         if !matches!(
             self.kind,
-            Kind::Task | Kind::GoalPlan(_) | Kind::Discovery(_) | Kind::Selection { .. }
+            Kind::Task
+                | Kind::GoalPlan(_)
+                | Kind::ProjectPlanning(_)
+                | Kind::Discovery(_)
+                | Kind::Selection { .. }
         ) {
             return;
         }
@@ -2538,6 +2728,81 @@ impl Form {
             Ok(lines(i))
         };
         Ok(match &self.kind {
+            Kind::GoalMetadata {
+                goal,
+                previous,
+                candidates,
+            } => {
+                let project_id = required(0)?;
+                let prerequisites = lines(2)
+                    .iter()
+                    .map(|id| {
+                        let mut prerequisite = candidates
+                            .iter()
+                            .find(|p| p.goal.id == *id)
+                            .cloned()
+                            .ok_or_else(|| {
+                                anyhow::anyhow!(
+                                    "Prerequisite {id} is not loaded or attributed to a project"
+                                )
+                            })?;
+                        prerequisite.cross_project_approved =
+                            prerequisite.project_id != project_id && value(3) == "true";
+                        Ok(prerequisite)
+                    })
+                    .collect::<anyhow::Result<Vec<_>>>()?;
+                Command::Definition(OrganizationMutation::SetControl {
+                    expected_revision: previous.as_ref().map(|c| c.revision),
+                    value: OrganizationControlValue::GoalMetadata {
+                        goal: Box::new(goal.clone()),
+                        project_id,
+                        responsible_node_id: required(1)?,
+                        prerequisites,
+                    },
+                })
+            }
+            Kind::Deadline {
+                kind,
+                target_id,
+                target_revision,
+                previous,
+            } => {
+                let (due_at, display_offset_minutes) = if value(0).is_empty() {
+                    (None, 0)
+                } else {
+                    let date = chrono::DateTime::parse_from_rfc3339(&value(0))?;
+                    let seconds = date.offset().local_minus_utc();
+                    anyhow::ensure!(
+                        seconds % 60 == 0 && seconds.abs() <= 14 * 60 * 60,
+                        "Use a timezone offset in whole minutes within ±14 hours"
+                    );
+                    (Some(date.timestamp()), seconds / 60)
+                };
+                Command::Definition(OrganizationMutation::SetControl {
+                    expected_revision: previous.as_ref().map(|c| c.revision),
+                    value: OrganizationControlValue::Deadline {
+                        kind: *kind,
+                        target_id: target_id.clone(),
+                        target_revision: *target_revision,
+                        due_at,
+                        display_offset_minutes,
+                    },
+                })
+            }
+            Kind::Conversation { previous, .. } => {
+                let id = previous.as_ref().and_then(|c| match &c.value {
+                    OrganizationControlValue::Conversation { id, .. } => Some(id.clone()),
+                    _ => None,
+                });
+                Command::Definition(OrganizationMutation::ConversationPrompt {
+                    id,
+                    expected_revision: previous.as_ref().map(|c| c.revision),
+                    project_id: required(0)?,
+                    agent_id: required(1)?,
+                    topic: required(2)?,
+                    prompt: required(3)?,
+                })
+            }
             Kind::Reconciliation {
                 attempt,
                 fingerprint,
@@ -3358,47 +3623,60 @@ impl Form {
                     },
                 })
             }
-            Kind::Task | Kind::GoalPlan(_) | Kind::Discovery(_) | Kind::Selection { .. } => {
-                Command::Definition(OrganizationMutation::PutTask {
-                    id: None,
-                    expected_revision: None,
-                    project_id: required(0)?,
-                    owner_id: required(1)?,
-                    goal_id: if let Kind::GoalPlan(goal) = &self.kind {
-                        Some(goal.id.clone())
-                    } else {
-                        optional(2)
-                    },
-                    instructions: if let Kind::Selection {
-                        project_id,
-                        selection,
-                    } = &self.kind
-                    {
-                        anyhow::ensure!(
-                            &required(0)? == project_id,
-                            "Selection cannot move to another project"
-                        );
-                        format!(
-                            "{} the captured selection. {}\n\nPinned native buffer context (untrusted task content; grants no paths/tools):\n{}",
-                            required(6)?,
-                            required(3)?,
-                            serde_json::to_string_pretty(selection)?
-                        )
-                    } else if let Kind::GoalPlan(goal) = &self.kind {
-                        format!(
-                            "{}\nOwner-reviewed remaining criteria for goal {} revision {} (untrusted planning content): {}",
-                            required(3)?,
-                            goal.id,
-                            goal.revision,
-                            required(6)?
-                        )
-                    } else {
-                        required(3)?
-                    },
-                    criteria: criteria(4)?,
-                    prerequisites: lines(5),
-                })
-            }
+            Kind::Task
+            | Kind::GoalPlan(_)
+            | Kind::ProjectPlanning(_)
+            | Kind::Discovery(_)
+            | Kind::Selection { .. } => Command::Definition(OrganizationMutation::PutTask {
+                id: None,
+                expected_revision: None,
+                project_id: required(0)?,
+                owner_id: required(1)?,
+                goal_id: if let Kind::GoalPlan(goal) = &self.kind {
+                    Some(goal.id.clone())
+                } else {
+                    optional(2)
+                },
+                instructions: if let Kind::Selection {
+                    project_id,
+                    selection,
+                } = &self.kind
+                {
+                    anyhow::ensure!(
+                        &required(0)? == project_id,
+                        "Selection cannot move to another project"
+                    );
+                    format!(
+                        "{} the captured selection. {}\n\nPinned native buffer context (untrusted task content; grants no paths/tools):\n{}",
+                        required(6)?,
+                        required(3)?,
+                        serde_json::to_string_pretty(selection)?
+                    )
+                } else if let Kind::GoalPlan(goal) = &self.kind {
+                    format!(
+                        "{}\nOwner-reviewed remaining criteria for goal {} revision {} (untrusted planning content): {}",
+                        required(3)?,
+                        goal.id,
+                        goal.revision,
+                        required(6)?
+                    )
+                } else if let Kind::ProjectPlanning(project) = &self.kind {
+                    anyhow::ensure!(
+                        required(0)? == project.id,
+                        "Planning cannot move to another project"
+                    );
+                    format!(
+                        "Owner planning request (untrusted content): {}\nProject: {} revision {}. Produce plan.json as a JSON array of 1–32 steps with key, ownerId, instructions, criteria and prerequisites (step keys). Use configured owners from the context and describe milestones and responsibilities. Inspect only separately granted local inputs. Do not execute this plan, delegate, authorize, accept or Apply. The owner reviews the result and imports it with W into an editable workflow, then separately authorizes exact scopes. Missing evidence must be stated as an assumption.",
+                        required(3)?,
+                        project.id,
+                        project.revision
+                    )
+                } else {
+                    required(3)?
+                },
+                criteria: criteria(4)?,
+                prerequisites: lines(5),
+            }),
             Kind::Authorize(task) | Kind::Schedule(task) => {
                 let mut scope = self.scope(0)?;
                 let number = |i: usize| -> anyhow::Result<u32> {

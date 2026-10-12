@@ -986,9 +986,19 @@ fn goal_tree(
         })
         .collect();
     let mut progress: BTreeMap<&str, (usize, usize)> = BTreeMap::new();
+    let projects: BTreeMap<_, _> = records
+        .iter()
+        .filter_map(|r| match r {
+            OrganizationRecord::Project(p) => Some((p.id.as_str(), p.goal_id.as_deref())),
+            _ => None,
+        })
+        .collect();
     for record in records {
         if let OrganizationRecord::Task(task) = record {
-            let mut parent = task.goal_id.as_deref();
+            let mut parent = task
+                .goal_id
+                .as_deref()
+                .or_else(|| projects.get(task.project_id.as_str()).copied().flatten());
             let mut visited = BTreeSet::new();
             while let Some(goal) = parent.and_then(|id| goals.get(id)) {
                 if !visited.insert(goal.id.as_str()) {
@@ -1142,6 +1152,54 @@ impl Drop for Dashboard {
 }
 
 impl Dashboard {
+    fn conversation_transcript(&self, id: &str) -> Option<String> {
+        let control = self.snapshot.records.iter().find_map(|r| match r {
+            OrganizationRecord::Control(c) if c.id == id => Some(c),
+            _ => None,
+        })?;
+        let OrganizationControlValue::Conversation {
+            topic,
+            agent_id,
+            project_id,
+            entries,
+            ..
+        } = &control.value
+        else {
+            return None;
+        };
+        let agent = self
+            .snapshot
+            .records
+            .iter()
+            .find_map(|r| match r {
+                OrganizationRecord::Node(n) if n.id == *agent_id => Some(n.label.as_str()),
+                _ => None,
+            })
+            .unwrap_or(agent_id);
+        let mut text = format!(
+            "{topic}\nAgent: {agent}\nProject: {project_id}\nEach message uses a separately authorized planning task. Replies are model content; review proposed work before granting execution.\n"
+        );
+        for entry in entries {
+            let state = self
+                .snapshot
+                .records
+                .iter()
+                .find_map(|r| match r {
+                    OrganizationRecord::Task(t) if t.id == entry.task_id => Some(t.state.as_str()),
+                    _ => None,
+                })
+                .unwrap_or("state not loaded");
+            text.push_str(&format!(
+                "\nOwner\n{}\n\n{agent} · {state}\n{}\nTask: {}\n",
+                entry.prompt,
+                entry.reply.as_deref().unwrap_or(
+                    "No recorded reply; inspect/authorize the planning draft separately"
+                ),
+                entry.task_id
+            ));
+        }
+        Some(clean(&text))
+    }
     fn project_roots(&self) -> Vec<PathBuf> {
         self.snapshot
             .records
@@ -2470,6 +2528,112 @@ impl Dashboard {
     }
     fn open_form(&mut self, key: char) {
         let kind = match key {
+            'θ' => {
+                let project_id = match self.record() {
+                    Some(OrganizationRecord::Project(p)) => Some(p.id.as_str()),
+                    Some(OrganizationRecord::Task(t)) => Some(t.project_id.as_str()),
+                    _ => None,
+                };
+                let Some(project) = self.snapshot.records.iter().find_map(|r| match r {
+                    OrganizationRecord::Project(p) if Some(p.id.as_str()) == project_id => {
+                        Some(p.clone())
+                    }
+                    _ => None,
+                }) else {
+                    self.message = "Select a project for a planning request".into();
+                    return;
+                };
+                form::Kind::ProjectPlanning(project)
+            }
+            'ζ' => {
+                let Some(OrganizationRecord::Goal(goal)) = self.record() else {
+                    self.message =
+                        "Select a goal to assign responsibility and prerequisites".into();
+                    return;
+                };
+                let candidates = self
+                    .snapshot
+                    .records
+                    .iter()
+                    .filter_map(|r| {
+                        let OrganizationRecord::Goal(g) = r else {
+                            return None;
+                        };
+                        let project_id = match self
+                            .control(&format!("goal-meta:{}", g.id))
+                            .map(|c| c.value)
+                        {
+                            Some(OrganizationControlValue::GoalMetadata { project_id, .. }) => {
+                                Some(project_id)
+                            }
+                            _ => self.snapshot.records.iter().find_map(|r| match r {
+                                OrganizationRecord::Project(p)
+                                    if p.goal_id.as_ref() == Some(&g.id) =>
+                                {
+                                    Some(p.id.clone())
+                                }
+                                _ => None,
+                            }),
+                        }?;
+                        Some(OrganizationGoalDependency {
+                            goal: Box::new(g.clone()),
+                            project_id,
+                            cross_project_approved: false,
+                        })
+                    })
+                    .collect();
+                form::Kind::GoalMetadata {
+                    goal: goal.clone(),
+                    previous: self.control(&format!("goal-meta:{}", goal.id)),
+                    candidates,
+                }
+            }
+            'η' => {
+                let (kind, target_id, target_revision) = match self.record() {
+                    Some(OrganizationRecord::Goal(g)) => {
+                        (OrganizationDeadlineKind::Goal, g.id.clone(), g.revision)
+                    }
+                    Some(OrganizationRecord::Project(p)) => {
+                        (OrganizationDeadlineKind::Project, p.id.clone(), p.revision)
+                    }
+                    Some(OrganizationRecord::Task(t)) => {
+                        (OrganizationDeadlineKind::Task, t.id.clone(), t.revision)
+                    }
+                    _ => {
+                        self.message =
+                            "Select a goal, project or task for a business due date".into();
+                        return;
+                    }
+                };
+                let name = match kind {
+                    OrganizationDeadlineKind::Goal => "goal",
+                    OrganizationDeadlineKind::Project => "project",
+                    OrganizationDeadlineKind::Task => "task",
+                };
+                form::Kind::Deadline {
+                    kind,
+                    target_revision,
+                    previous: self.control(&format!("deadline:{name}:{target_id}")),
+                    target_id,
+                }
+            }
+            'δ' => form::Kind::Conversation {
+                previous: match self.record() {
+                    Some(OrganizationRecord::Control(c))
+                        if matches!(c.value, OrganizationControlValue::Conversation { .. }) =>
+                    {
+                        Some(c.clone())
+                    }
+                    _ => None,
+                },
+                agent_id: match self.record() {
+                    Some(OrganizationRecord::Node(n)) if n.kind == OrganizationNodeKind::Agent => {
+                        Some(n.id.clone())
+                    }
+                    Some(OrganizationRecord::Task(t)) => Some(t.owner_id.clone()),
+                    _ => None,
+                },
+            },
             'χ' => {
                 let Some(view) = self
                     .detail
@@ -3720,6 +3884,24 @@ impl Dashboard {
             KeyCode::F(40) => self.open_form('χ'),
             KeyCode::F(41) => self.open_form('φ'),
             KeyCode::F(42) => self.open_form('ψ'),
+            KeyCode::F(43) => self.open_form('δ'),
+            KeyCode::F(45) => self.open_form('ζ'),
+            KeyCode::F(46) => self.open_form('η'),
+            KeyCode::F(47) => self.open_form('θ'),
+            KeyCode::F(44) => {
+                let Some(OrganizationRecord::Control(control)) = self.record() else {
+                    self.message = "Select a saved agent conversation".into();
+                    return;
+                };
+                let id = control.id.clone();
+                let Some(transcript) = self.conversation_transcript(&id) else {
+                    self.message = "Select a conversation in owner controls".into();
+                    return;
+                };
+                self.report_text = Some(transcript);
+                self.report_request = Some(id);
+                self.scroll = 0;
+            }
             KeyCode::F(31) => {
                 if let Some(project) = self.selected_project().cloned() {
                     self.form = Some(form::Form::new(
@@ -4048,6 +4230,9 @@ impl Dashboard {
                         }
                     }
                     if changed {self.rebuild();}
+                    if self.report_text.is_some() && let Some(id)=self.report_request.as_ref().filter(|id|id.starts_with("conversation:")) {
+                        self.report_text=self.conversation_transcript(id);
+                    }
                     self.detail_text = clean(&self.details());
                     if self.confirmation.is_none()
                         && self.memory_request.is_none()
@@ -4443,7 +4628,20 @@ impl Dashboard {
                         g.id,
                         g.objective,
                         g.criteria.join("\n")
-                    )
+                    );
+                    if let Some(control) = self.control(&format!("goal-meta:{}", g.id)) {
+                        text.push_str(&format!(
+                            "\nResponsibility / exact prerequisites:\n{}\n",
+                            serde_json::to_string_pretty(&control.value).unwrap_or_default()
+                        ));
+                    }
+                    if let Some(control) = self.control(&format!("goal:{}", g.id)) {
+                        text.push_str(&format!(
+                            "\nOwner criterion evidence:\n{}\n",
+                            serde_json::to_string_pretty(&control.value).unwrap_or_default()
+                        ));
+                    }
+                    text.push_str("\nAccepted child outcomes can support parent criteria; completion is always an explicit owner review.\n");
                 }
                 OrganizationRecord::Task(t) => {
                     text = format!(
@@ -4468,6 +4666,40 @@ impl Dashboard {
                     });
                 }
                 _ => {}
+            }
+            let date_target = match record {
+                OrganizationRecord::Goal(g) => Some(("goal", g.id.as_str())),
+                OrganizationRecord::Project(p) => Some(("project", p.id.as_str())),
+                OrganizationRecord::Task(t) => Some(("task", t.id.as_str())),
+                _ => None,
+            };
+            if let Some((kind, id)) = date_target
+                && let Some(OrganizationControl {
+                    value:
+                        OrganizationControlValue::Deadline {
+                            due_at: Some(due),
+                            display_offset_minutes,
+                            ..
+                        },
+                    ..
+                }) = self.control(&format!("deadline:{kind}:{id}"))
+                && let Some((date, offset)) = chrono::DateTime::from_timestamp(due, 0)
+                    .zip(chrono::FixedOffset::east_opt(display_offset_minutes * 60))
+            {
+                let closed=match record {
+                    OrganizationRecord::Task(t)=>matches!(t.state.as_str(),"accepted"|"cancelled"),
+                    OrganizationRecord::Project(p)=>self.control(&format!("project:{}",p.id)).is_some_and(|c|matches!(c.value,OrganizationControlValue::Project {state:OrganizationProjectState::Completed|OrganizationProjectState::Archived,..})),
+                    OrganizationRecord::Goal(g)=>self.control(&format!("goal:{}",g.id)).is_some_and(|c|matches!(c.value,OrganizationControlValue::GoalReview {goal,completed:true,..} if *goal==*g)),
+                    _=>false,
+                };
+                let status = if closed {
+                    "work closed"
+                } else if due < chrono::Utc::now().timestamp() {
+                    "overdue"
+                } else {
+                    "upcoming"
+                };
+                text.push_str(&format!("\nBusiness due: {} · {status}\nExecution expiry is independently fixed by its grant.\n",date.with_timezone(&offset).to_rfc3339()));
             }
             let related: Vec<_> = self
                 .snapshot

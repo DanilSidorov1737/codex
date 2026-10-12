@@ -605,6 +605,66 @@ fn task(id: &str) -> OrganizationTask {
     }
 }
 
+#[tokio::test]
+async fn persistent_transcript_reports_canonical_task_state_without_granting_execution() {
+    let mut d = dashboard();
+    d.snapshot
+        .records
+        .push(OrganizationRecord::Control(OrganizationControl {
+            id: "conversation:c".into(),
+            revision: 2,
+            value: OrganizationControlValue::Conversation {
+                id: "c".into(),
+                project_id: "project".into(),
+                agent_id: "owner".into(),
+                topic: "Planning".into(),
+                entries: vec![OrganizationConversationEntry {
+                    task_id: "one".into(),
+                    prompt: "Draft the next project".into(),
+                    reply: Some("Review the evidence first".into()),
+                    reply_attempt_id: Some("attempt".into()),
+                }],
+            },
+        }));
+    let transcript = d.conversation_transcript("conversation:c").unwrap();
+    assert!(
+        transcript.contains("Draft the next project")
+            && transcript.contains("Review the evidence first")
+    );
+    assert!(transcript.contains("separately authorized"));
+    d.selected = Some("conversation:c".into());
+    d.key(KeyCode::F(44).into());
+    assert!(d.report_text.is_some());
+    assert!(d.confirmation.is_none());
+}
+
+#[tokio::test]
+async fn business_date_inspector_distinguishes_overdue_from_closed_work() {
+    let mut d = dashboard();
+    d.selected = Some("one".into());
+    d.snapshot
+        .records
+        .push(OrganizationRecord::Control(OrganizationControl {
+            id: "deadline:task:one".into(),
+            revision: 1,
+            value: OrganizationControlValue::Deadline {
+                kind: OrganizationDeadlineKind::Task,
+                target_id: "one".into(),
+                target_revision: 4,
+                due_at: Some(1),
+                display_offset_minutes: -240,
+            },
+        }));
+    assert!(d.details().contains("overdue"));
+    let OrganizationRecord::Task(task) = &mut d.snapshot.records[1] else {
+        panic!("task")
+    };
+    task.state = "accepted".into();
+    let closed = d.details();
+    assert!(closed.contains("work closed") && !closed.contains("overdue"));
+    assert!(closed.contains("-04:00") && closed.contains("independently fixed"));
+}
+
 fn view(id: &str) -> OrganizationExecutionView {
     OrganizationExecutionView {
         token_reservations: vec![],

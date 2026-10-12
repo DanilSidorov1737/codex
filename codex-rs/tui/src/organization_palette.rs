@@ -63,6 +63,36 @@ const ACTIONS: &[Action] = &[
         context: "owner proposal",
     },
     Action {
+        title: "Goal responsibility / versioned prerequisites",
+        shortcut: "Commands",
+        code: KeyCode::F(45),
+        context: "select goal; arbitrary agent/team owner; cross-project metadata grants no access",
+    },
+    Action {
+        title: "Set business due date / local timezone",
+        shortcut: "Commands",
+        code: KeyCode::F(46),
+        context: "select goal, project or task; explicit timezone offset; no grant expiry extension",
+    },
+    Action {
+        title: "Plan project from a natural-language request",
+        shortcut: "Commands",
+        code: KeyCode::F(47),
+        context: "select project; reviewable plan.json; planning and follow-up each need separate grants",
+    },
+    Action {
+        title: "Talk to selected agent / continue conversation",
+        shortcut: "Commands",
+        code: KeyCode::F(43),
+        context: "select agent or saved conversation; draft planning turn, separately authorize exact execution",
+    },
+    Action {
+        title: "Read persistent agent conversation",
+        shortcut: "Commands",
+        code: KeyCode::F(44),
+        context: "select conversation in owner controls; owner prompts and host-attributed replies",
+    },
+    Action {
         title: "Inspect exact uncertain request/effects",
         shortcut: "Commands",
         code: KeyCode::F(40),

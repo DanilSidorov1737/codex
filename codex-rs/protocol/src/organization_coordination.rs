@@ -77,6 +77,10 @@ pub struct OrganizationMessage {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
 #[serde(tag = "type", rename_all = "camelCase", deny_unknown_fields)]
 pub enum OrganizationCoordinationCall {
+    /// Reply only to this exact live task's conversation; no selected identity.
+    ConversationReply {
+        body: String,
+    },
     /// Only ready proposals inside this original grant's approved worker roster.
     ReadyDelegates {},
     /// Bounded scoped memory selection; caller identity comes from the host fence.
@@ -124,6 +128,25 @@ pub enum OrganizationCoordinationCall {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn conversation_reply_cannot_choose_identity_or_execution_authority() {
+        let reply = serde_json::json!({"type":"conversationReply","body":"Planning reply"});
+        assert!(serde_json::from_value::<OrganizationCoordinationCall>(reply.clone()).is_ok());
+        for key in [
+            "agentId",
+            "projectId",
+            "conversationId",
+            "taskId",
+            "attemptId",
+            "scope",
+            "approved",
+        ] {
+            let mut spoofed = reply.clone();
+            spoofed[key] = "spoofed".into();
+            assert!(serde_json::from_value::<OrganizationCoordinationCall>(spoofed).is_err());
+        }
+    }
 
     #[test]
     fn checkpoints_cannot_select_identity_files_or_grants() {

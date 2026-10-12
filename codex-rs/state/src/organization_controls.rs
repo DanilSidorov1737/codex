@@ -39,6 +39,13 @@ pub(super) async fn set(
     value: OrganizationControlValue,
 ) -> Result<OrganizationControl> {
     let id = match &value {
+        OrganizationControlValue::GoalMetadata { goal, .. } => format!("goal-meta:{}", goal.id),
+        OrganizationControlValue::Deadline {
+            kind, target_id, ..
+        } => format!("deadline:{}:{target_id}", super::goal::deadline_kind(*kind)),
+        OrganizationControlValue::Conversation { .. } => {
+            anyhow::bail!("conversation transcripts require the prompt or live reply API")
+        }
         OrganizationControlValue::Reconciliation { id, .. } => format!("reconciliation:{id}"),
         OrganizationControlValue::ExecutionProfile { id, .. } => format!("profile:{id}"),
         OrganizationControlValue::ResourcePressure { .. } => "pressure".into(),
@@ -68,6 +75,41 @@ pub(super) async fn set(
         "control revision conflict"
     );
     match &value {
+        OrganizationControlValue::GoalMetadata {
+            goal,
+            project_id,
+            responsible_node_id,
+            prerequisites,
+        } => {
+            super::goal::validate_metadata(
+                tx,
+                goal,
+                project_id,
+                responsible_node_id,
+                prerequisites,
+            )
+            .await?;
+        }
+        OrganizationControlValue::Deadline {
+            kind,
+            target_id,
+            target_revision,
+            due_at,
+            display_offset_minutes,
+        } => {
+            super::goal::validate_deadline(
+                tx,
+                *kind,
+                target_id,
+                *target_revision,
+                *due_at,
+                *display_offset_minutes,
+            )
+            .await?;
+        }
+        OrganizationControlValue::Conversation { .. } => {
+            unreachable!("conversation content uses its scoped API")
+        }
         OrganizationControlValue::ExecutionProfile {
             id,
             label,
@@ -254,8 +296,13 @@ pub(super) async fn set(
                     comparison_evidence(tx, &proof.task_id, &proof.result_digest).await?;
                 let project = read_project(tx, &task.project_id).await?;
                 ensure!(
-                    task.goal_id.as_deref().or(project.goal_id.as_deref()) == Some(&goal.id),
-                    "goal evidence belongs to another goal"
+                    super::goal::descendant(
+                        tx,
+                        task.goal_id.as_deref().or(project.goal_id.as_deref()),
+                        &goal.id
+                    )
+                    .await?,
+                    "goal evidence belongs to another goal tree"
                 );
                 ensure!(
                     !result.checks.is_empty()
@@ -268,7 +315,7 @@ pub(super) async fn set(
                     !goal.criteria.is_empty() && covered.len() == goal.criteria.len(),
                     "every goal criterion needs exact reviewed evidence"
                 );
-                let unfinished:i64=sqlx::query_scalar("SELECT count(*) FROM organization_tasks t JOIN organization_projects p ON p.id=t.project_id WHERE COALESCE(json_extract(t.data,'$.data.goalId'),json_extract(p.data,'$.data.goalId'))=? AND t.state NOT IN ('accepted','cancelled')").bind(&goal.id).fetch_one(&mut **tx).await?;
+                let unfinished:i64=sqlx::query_scalar("WITH RECURSIVE descendants(id) AS (SELECT ? UNION SELECT g.id FROM organization_goals g JOIN descendants d ON g.parent_id=d.id) SELECT count(*) FROM organization_tasks t JOIN organization_projects p ON p.id=t.project_id WHERE COALESCE(json_extract(t.data,'$.data.goalId'),json_extract(p.data,'$.data.goalId')) IN descendants AND t.state NOT IN ('accepted','cancelled')").bind(&goal.id).fetch_one(&mut **tx).await?;
                 ensure!(
                     unfinished == 0,
                     "goal has unfinished work; resolve or cancel it first"
@@ -840,6 +887,19 @@ pub(super) async fn set(
             }
         }
     }
+    persist(tx, previous, id, value).await
+}
+
+pub(super) async fn persist(
+    tx: &mut Transaction<'_, Sqlite>,
+    previous: Option<OrganizationControl>,
+    id: String,
+    value: OrganizationControlValue,
+) -> Result<OrganizationControl> {
+    ensure!(
+        serde_json::to_vec(&value)?.len() <= 128 * 1024,
+        "control content exceeds 128 KiB"
+    );
     let control = OrganizationControl {
         id,
         revision: previous
@@ -1021,6 +1081,7 @@ pub(super) async fn check_goal_open(
         let OrganizationRecord::Goal(current) = serde_json::from_str(&data)? else {
             anyhow::bail!("invalid goal record")
         };
+        super::goal::check_prerequisites(tx, &current).await?;
         if let Some(control) = read(tx, &format!("goal:{id}")).await? {
             ensure!(
                 !matches!(control.value,OrganizationControlValue::GoalReview{goal,completed:true,..} if *goal==current),

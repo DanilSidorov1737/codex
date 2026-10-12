@@ -179,6 +179,9 @@ impl OrganizationStore {
         );
         let progress:i64=sqlx::query_scalar("SELECT (SELECT count(*) FROM organization_actions WHERE attempt_id=?)+(SELECT count(*) FROM organization_checkpoints WHERE attempt_id=?)").bind(attempt_id).bind(attempt_id).fetch_one(&mut *tx).await?;
         let result = match call {
+            OrganizationCoordinationCall::ConversationReply { body } => serde_json::to_value(
+                super::conversation::reply(&mut tx, &task, &attempt, &body).await?,
+            )?,
             OrganizationCoordinationCall::ReadyDelegates {} => {
                 let data:Vec<String>=sqlx::query_scalar("SELECT data FROM organization_tasks WHERE proposed_root_id=? AND project_id=? AND state='proposed' ORDER BY id LIMIT 32").bind(root).bind(&task.project_id).fetch_all(&mut *tx).await?;
                 let mut ready = Vec::new();

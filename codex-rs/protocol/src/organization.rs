@@ -50,6 +50,22 @@ pub struct OrganizationGoal {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct OrganizationGoalDependency {
+    pub goal: Box<OrganizationGoal>,
+    pub project_id: String,
+    pub cross_project_approved: bool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
+#[serde(rename_all = "camelCase")]
+pub enum OrganizationDeadlineKind {
+    Goal,
+    Project,
+    Task,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct OrganizationProjectPlan {
     pub id: String,
@@ -157,6 +173,32 @@ impl OrganizationReplanItem {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
 #[serde(tag = "type", rename_all = "camelCase", deny_unknown_fields)]
 pub enum OrganizationControlValue {
+    #[serde(rename_all = "camelCase")]
+    GoalMetadata {
+        goal: Box<OrganizationGoal>,
+        project_id: String,
+        responsible_node_id: String,
+        prerequisites: Vec<OrganizationGoalDependency>,
+    },
+    /// Business metadata only; changing this never extends a fixed execution grant.
+    #[serde(rename_all = "camelCase")]
+    Deadline {
+        kind: OrganizationDeadlineKind,
+        target_id: String,
+        #[ts(type = "number")]
+        target_revision: i64,
+        #[ts(type = "number | null")]
+        due_at: Option<i64>,
+        display_offset_minutes: i32,
+    },
+    #[serde(rename_all = "camelCase")]
+    Conversation {
+        id: String,
+        project_id: String,
+        agent_id: String,
+        topic: String,
+        entries: Vec<OrganizationConversationEntry>,
+    },
     /// An exact owner's inspection record; never clears usage/effect uncertainty.
     #[serde(rename_all = "camelCase")]
     Reconciliation {
@@ -333,6 +375,16 @@ pub struct OrganizationControlHistory {
     pub control: OrganizationControl,
 }
 
+/// Owner prompts and host-attributed agent replies; model text is not acceptance.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct OrganizationConversationEntry {
+    pub task_id: String,
+    pub prompt: String,
+    pub reply: Option<String>,
+    pub reply_attempt_id: Option<String>,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
 #[serde(rename_all = "camelCase")]
 pub enum OrganizationRecordKind {
@@ -366,6 +418,16 @@ pub enum OrganizationRecord {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
 #[serde(tag = "type", rename_all = "camelCase", deny_unknown_fields)]
 pub enum OrganizationMutation {
+    #[serde(rename_all = "camelCase")]
+    ConversationPrompt {
+        id: Option<String>,
+        #[ts(type = "number | null")]
+        expected_revision: Option<i64>,
+        project_id: String,
+        agent_id: String,
+        topic: String,
+        prompt: String,
+    },
     #[serde(rename_all = "camelCase")]
     ProposeLesson {
         task_id: String,

@@ -1,5 +1,40 @@
 # Operations and workflow owner controls
 
+## Adaptive conversation, planning and goal controls (qualification in progress)
+
+The approved adaptive batch adds the following searchable Commands actions.
+They use the existing local owner RPCs and F6 / y exact confirmation. See
+[current checkpoint evidence](adaptive-qualification.md); source availability
+does not yet establish full native workflow qualification.
+
+- **Talk to selected agent / continue conversation** creates a proposed planning
+  task for one project, stable agent and topic. Authorize that turn separately.
+  Select its saved control with F11 and **Read persistent agent conversation**
+  to see the durable prompts, host-attributed replies and canonical task state.
+  Replies are model content. Changing a conversation's project/agent/topic
+  requires a new conversation. Finish or cancel the previous draft first.
+- **Plan project from a natural-language request** takes an owner request and
+  creates a planning draft for the selected project. Grant its local inputs,
+  `plan.json` artifact and finite limits separately. Review the result; W imports
+  a bounded proposal into the existing editable workflow. Follow-up execution
+  has separate reviewed scopes.
+- **Goal responsibility / versioned prerequisites** binds an existing goal to a
+  project and any configured responsible agent or team. G / E retain arbitrary
+  nested goals and their criteria; tasks can point to those goals. Enter loaded
+  prerequisite goal IDs, with explicit cross-project metadata approval when
+  needed. This shares no files, memory or execution authority. Changing a captured
+  prerequisite or its owner completion evidence pauses dispatch until reviewed.
+- **Set business due date / local timezone** accepts RFC3339 with an explicit
+  offset, for example `2026-10-20T17:00:00-04:00`. Blank clears the date. The
+  inspector distinguishes upcoming, overdue and closed work. Fixed offsets are
+  retained; IANA zone/DST rules are not supported. Execution grant expiry remains
+  independent and immutable.
+
+Owner criterion review accepts verified descendant results as evidence for a
+parent's criteria. This never infers completion: the owner maps exact accepted
+results to every criterion, and unfinished descendants prevent closing a goal.
+Goal hierarchy edits and explicit dependencies share combined cycle checks.
+
 Expanded-batch items 5–6 reuse existing guarded owner RPCs and native forms.
 Qualified on `55af0a0b5b`; see status.md and testing.md for evidence.
 
