@@ -1,5 +1,15 @@
 # Current status and resumption instructions
 
+## Current approved work: mission/usability batch
+
+The owner approved all [25 mission/usability tasks](mission-batch.md) with
+“ok lets implement. ponytail, commit periodically, document, test”. Initial source
+`ddb67e5f32`; clean worktree. Inspection/implementation is in progress. Continue
+the full bounded batch with Ponytail, logical commits, documentation and actual
+application/editor testing. No new paid inference or external integration is in
+scope. Existing qualified homes/accounting/packages/Apply receipts stay protected.
+The complete previous hierarchy checkpoint below is historical evidence.
+
 ## Latest delivery: hierarchy/autonomy batch complete
 
 All twenty approved [hierarchy/autonomy tasks](hierarchy-autonomy-batch.md) are

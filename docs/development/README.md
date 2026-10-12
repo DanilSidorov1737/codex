@@ -1,5 +1,9 @@
 # Codex CLI fork development
 
+Current approved work: [25 mission/usability tasks](mission-batch.md). Read its
+progress and [current status](status.md) before historical completed checkpoints.
+Use Ponytail, tests, actual CLI/TUI/official Neovim, docs and logical local commits.
+
 Latest delivery: **all twenty bounded hierarchy/autonomy tasks are implemented
 and qualified** on application source `970ba69195`, with **806 selected automated
 checks** and actual CLI/TUI/official-Neovim/background/10,005-node/crash/restore

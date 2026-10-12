@@ -1,5 +1,10 @@
 # Phased roadmap
 
+Current approved implementation: [25 mission/usability tasks](mission-batch.md),
+starting from `ddb67e5f32`. Complete bounded coherent slices and all required actual
+application/editor/background qualification; preserve historical evidence and
+external/paid/automatic Apply boundaries. Previous delivery below is historical.
+
 Latest approved delivery: all twenty bounded
 [hierarchy/autonomy tasks](hierarchy-autonomy-batch.md) are complete on application
 source `970ba69195`. See [native qualification](hierarchy-native-qualification.md)

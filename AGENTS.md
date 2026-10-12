@@ -155,6 +155,16 @@ remains. New scope needs owner direction; prior real-host logout/reboot qualific
 is still approved but requires a suitable host. External integrations, distributed
 workers, new paid probes and automatic root acceptance/Apply remain separate.
 
+The owner has now approved the entire next 25-task mission/usability batch with
+“ok lets implement. ponytail, commit periodically, document, test”. Follow
+[mission batch](docs/development/mission-batch.md) through all independent tasks,
+using existing code, Ponytail, meaningful automated/actual CLI/TUI/official-Neovim
+checks, maintained docs and logical local commits. No repeated approval is needed
+for ordinary slices. Preserve external/paid/automatic root acceptance/Apply and
+active-capacity boundaries and all protected historical fixtures. Do not mark
+this batch complete at a source-only checkpoint; its finite 30-minute local
+qualification is required. Real-host logout/reboot remains separately blocked.
+
 Then read [decisions](docs/development/decisions-and-risks.md),
 [MVP plan](docs/development/mvp.md), [testing](docs/development/testing.md) and
 [process](docs/development/process.md). Reconcile current user instructions with
