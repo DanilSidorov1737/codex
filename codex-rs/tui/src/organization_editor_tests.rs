@@ -1,6 +1,74 @@
 use super::*;
 
 #[tokio::test]
+async fn actual_neovim_project_explorer_opens_owner_files_and_preserves_dirty_buffers() {
+    let root = tempfile::tempdir().unwrap();
+    let original = root.path().join("owner.txt");
+    let other = root.path().join("outside-grant.txt");
+    std::fs::write(&original, "saved owner buffer\n").unwrap();
+    std::fs::write(
+        &other,
+        "owner project file beyond the selected task grant\n",
+    )
+    .unwrap();
+    let mut editor = Editor::start(FrameRequester::test_dummy()).unwrap();
+    editor.open(&original, false).unwrap();
+    editor.paste("unsaved owner content ").unwrap();
+    let buffer = editor.rpc("nvim_get_current_buf", vec![]).unwrap();
+    let lines = editor
+        .rpc(
+            "nvim_buf_get_lines",
+            vec![buffer.clone(), 0.into(), (-1).into(), true.into()],
+        )
+        .unwrap();
+    assert!(editor.dirty().unwrap());
+    editor.project_explorer(root.path()).unwrap();
+    assert_eq!(
+        editor
+            .rpc("nvim_eval", vec!["&filetype".into()])
+            .unwrap()
+            .as_str(),
+        Some("netrw")
+    );
+    assert_eq!(
+        editor
+            .rpc(
+                "nvim_buf_get_lines",
+                vec![buffer, 0.into(), (-1).into(), true.into()]
+            )
+            .unwrap(),
+        lines
+    );
+    editor.guarded_lua("for i,line in ipairs(vim.api.nvim_buf_get_lines(0,0,-1,false)) do if line:find('outside-grant.txt',1,true) then vim.api.nvim_win_set_cursor(0,{i,0}); return true end end; error('owner file absent from native explorer')",vec![]).unwrap();
+    editor
+        .key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE))
+        .unwrap();
+    let mut opened = false;
+    for _ in 0..100 {
+        if editor
+            .rpc("nvim_eval", vec!["expand('%:p')".into()])
+            .unwrap()
+            .as_str()
+            == other.to_str()
+        {
+            opened = true;
+            break;
+        }
+        tokio::time::sleep(Duration::from_millis(10)).await;
+    }
+    assert!(opened, "native Enter opens the owner-selected file");
+    assert!(editor.dirty().unwrap());
+    assert_eq!(
+        std::fs::read_to_string(&original).unwrap(),
+        "saved owner buffer\n"
+    );
+    assert_eq!(
+        std::fs::read_to_string(&other).unwrap(),
+        "owner project file beyond the selected task grant\n"
+    );
+}
+
+#[tokio::test]
 async fn real_three_way_review_preserves_common_base_owner_and_agent_and_refuses_dirty_buffers() {
     let project = tempfile::tempdir().unwrap();
     let base = project.path().join("base.txt");
@@ -18,6 +86,25 @@ async fn real_three_way_review_preserves_common_base_owner_and_agent_and_refuses
         .rpc("nvim_command", vec!["setlocal winbar=OwnerConfig".into()])
         .unwrap();
     editor.three_way(&base, &owner, &agent).unwrap();
+    for width in [150, 102] {
+        editor.resize(width, 28).unwrap();
+        let widths = editor
+            .rpc(
+                "nvim_eval",
+                vec!["[winwidth(1),winwidth(2),winwidth(3)]".into()],
+            )
+            .unwrap();
+        let widths: Vec<_> = widths
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|v| v.as_i64().unwrap())
+            .collect();
+        assert!(
+            widths.iter().max().unwrap() - widths.iter().min().unwrap() <= 1,
+            "native review columns stay balanced: {widths:?}"
+        );
+    }
     for (index, (path, label)) in [
         (base.clone(), "Base · captured original"),
         (owner.clone(), "Owner · at review capture"),
@@ -92,6 +179,29 @@ async fn real_three_way_review_preserves_common_base_owner_and_agent_and_refuses
     );
     assert_eq!(std::fs::read_to_string(&base).unwrap(), "common base\n");
     assert_eq!(std::fs::read_to_string(&agent).unwrap(), "agent change\n");
+    editor.diff(&base, &agent).unwrap();
+    editor.resize(120, 24).unwrap();
+    for (index, path) in [&base, &agent].iter().enumerate() {
+        editor
+            .command("wincmd", vec![format!("{}w", index + 1).into()])
+            .unwrap();
+        assert_eq!(
+            editor
+                .rpc("nvim_eval", vec!["expand('%:p')".into()])
+                .unwrap()
+                .as_str(),
+            path.to_str()
+        );
+    }
+    let widths = editor
+        .rpc("nvim_eval", vec!["[winwidth(1),winwidth(2)]".into()])
+        .unwrap();
+    assert!(
+        (widths.as_array().unwrap()[0].as_i64().unwrap()
+            - widths.as_array().unwrap()[1].as_i64().unwrap())
+        .abs()
+            <= 1
+    );
 }
 
 #[tokio::test]

@@ -174,6 +174,31 @@ impl OrganizationReplanItem {
 #[serde(tag = "type", rename_all = "camelCase", deny_unknown_fields)]
 pub enum OrganizationControlValue {
     #[serde(rename_all = "camelCase")]
+    ResearchEvidence {
+        id: String,
+        project_id: String,
+        source_task_id: String,
+        source_attempt_id: String,
+        source_owner_id: String,
+        citations: Vec<crate::organization_coordination::OrganizationResearchCitation>,
+        findings: Vec<String>,
+        assumptions: Vec<String>,
+    },
+    /// Owner-approved immutable accepted output; recipients receive no source authority.
+    #[serde(rename_all = "camelCase")]
+    ArtifactShare {
+        id: String,
+        source_task_id: String,
+        #[ts(type = "number")]
+        source_revision: i64,
+        result_digest: String,
+        source_project_id: String,
+        source_owner_id: String,
+        artifact: crate::organization_execution::OrganizationArtifactEvidence,
+        body: Option<String>,
+        destinations: Vec<String>,
+    },
+    #[serde(rename_all = "camelCase")]
     KnowledgeProposal {
         id: String,
         project_id: String,

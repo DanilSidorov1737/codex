@@ -173,6 +173,51 @@ pub(crate) struct TaskWorkspace {
 }
 
 impl TaskWorkspace {
+    /// Validate declared local sources under the same native tool lock as writes.
+    pub(crate) fn validate_research(
+        &self,
+        scope: &OrganizationExecutionScope,
+        citations: &[codex_protocol::organization_coordination::OrganizationResearchCitation],
+    ) -> Result<()> {
+        ensure!(
+            (1..=16).contains(&citations.len()),
+            "research needs 1–16 citations"
+        );
+        let mut total = 0;
+        for citation in citations {
+            ensure!(
+                scope.input_files.contains(&citation.path)
+                    || scope.artifacts.contains(&citation.path),
+                "research source outside declared local files"
+            );
+            ensure!(
+                citation.start_line > 0
+                    && citation.start_line <= citation.end_line
+                    && citation.end_line - citation.start_line < 64,
+                "citation range must contain 1–64 lines"
+            );
+            let bytes = read_relative(self.root.as_path(), &citation.path)?;
+            ensure!(
+                format!("{:x}", Sha256::digest(&bytes)) == citation.sha256,
+                "research source hash changed"
+            );
+            let body =
+                std::str::from_utf8(&bytes).context("research citations require UTF-8 text")?;
+            let lines: Vec<_> = body
+                .lines()
+                .skip(citation.start_line as usize - 1)
+                .take((citation.end_line - citation.start_line + 1) as usize)
+                .collect();
+            ensure!(
+                lines.len() == (citation.end_line - citation.start_line + 1) as usize,
+                "citation range exceeds local source"
+            );
+            total += lines.iter().map(|line| line.len() + 1).sum::<usize>();
+            ensure!(total <= 16 * 1024, "cited local text exceeds 16 KiB");
+        }
+        Ok(())
+    }
+
     /// Snapshot only granted inputs and existing outputs. The model never supplies
     /// file names or hashes; this runs under the host's native-tool lock.
     pub(crate) fn checkpoint_files(
@@ -941,6 +986,84 @@ fn current_uid() -> u32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn research_citations_check_real_declared_bytes_ranges_and_symlinks() -> Result<()> {
+        use codex_protocol::organization_coordination::OrganizationResearchCitation;
+        let home = tempfile::tempdir()?;
+        let body = "first line\nObserved result\nassumption follows\n";
+        std::fs::write(home.path().join("source.txt"), body)?;
+        let workspace = TaskWorkspace {
+            root: AbsolutePathBuf::try_from(home.path().to_path_buf())?,
+            profile: PermissionProfile::default(),
+            artifact_bases: vec![],
+        };
+        let mut scope = OrganizationExecutionScope {
+            input_files: vec!["source.txt".into()],
+            immutable_files: vec![],
+            artifacts: vec![],
+            checks: vec![],
+            model: "fixture".into(),
+            max_tokens: 100,
+            max_seconds: 30,
+            max_model_requests: 1,
+            max_attempts: 1,
+            require_tool_approval: true,
+            delegates: vec![],
+            max_children: 0,
+            auto_accept_children: false,
+            not_before: None,
+        };
+        let citation = OrganizationResearchCitation {
+            path: "source.txt".into(),
+            sha256: format!("{:x}", Sha256::digest(body.as_bytes())),
+            start_line: 2,
+            end_line: 3,
+        };
+        workspace.validate_research(&scope, std::slice::from_ref(&citation))?;
+        for changed in [
+            OrganizationResearchCitation {
+                start_line: 0,
+                ..citation.clone()
+            },
+            OrganizationResearchCitation {
+                end_line: 4,
+                ..citation.clone()
+            },
+            OrganizationResearchCitation {
+                path: "../source.txt".into(),
+                ..citation.clone()
+            },
+            OrganizationResearchCitation {
+                sha256: "0".repeat(64),
+                ..citation.clone()
+            },
+        ] {
+            assert!(workspace.validate_research(&scope, &[changed]).is_err());
+        }
+        #[cfg(unix)]
+        {
+            std::os::unix::fs::symlink(
+                home.path().join("source.txt"),
+                home.path().join("alias.txt"),
+            )?;
+            scope.input_files.push("alias.txt".into());
+            assert!(
+                workspace
+                    .validate_research(
+                        &scope,
+                        &[OrganizationResearchCitation {
+                            path: "alias.txt".into(),
+                            ..citation.clone()
+                        }]
+                    )
+                    .is_err()
+            );
+        }
+        std::fs::write(home.path().join("source.txt"), "modified after capture")?;
+        assert!(workspace.validate_research(&scope, &[citation]).is_err());
+        Ok(())
+    }
     #[test]
     fn captured_common_base_is_private_reused_verified_and_never_overwrites_corruption()
     -> Result<()> {

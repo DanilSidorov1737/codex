@@ -99,6 +99,30 @@ const ACTIONS: &[Action] = &[
         context: "selected projects; search owner-reviewed PROJECT notes first; exact sources only; no execution authority",
     },
     Action {
+        title: "Publish / revoke exact accepted artifact",
+        shortcut: "Commands",
+        code: KeyCode::F(51),
+        context: "selected accepted result/file or saved share; exact source provenance; explicit destination approval",
+    },
+    Action {
+        title: "Move supported panes / cycle placement",
+        shortcut: "Commands",
+        code: KeyCode::F(52),
+        context: "six sidebar/main/inspector placements; saved per layout; existing resize/hide controls preserve native buffers",
+    },
+    Action {
+        title: "Browse full owner project in Neovim",
+        shortcut: "Commands",
+        code: KeyCode::F(53),
+        context: "select project/task; choose owner root; official bundled browser; preserves dirty splits; no agent scope changes",
+    },
+    Action {
+        title: "Follow agent's recently changed permitted file",
+        shortcut: "Commands",
+        code: KeyCode::F(54),
+        context: "select prepared task; declared files only; verified private previews; independent/dirty editing stays protected",
+    },
+    Action {
         title: "Talk to selected agent / continue conversation",
         shortcut: "Commands",
         code: KeyCode::F(43),

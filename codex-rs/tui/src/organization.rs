@@ -35,6 +35,7 @@ use serde::Serialize;
 use tokio::sync::mpsc;
 
 use crate::organization_editor::Editor;
+use crate::organization_preview::FollowFiles;
 use crate::organization_preview::Preview;
 use crate::tui::FrameRequester;
 use crate::tui::Tui;
@@ -85,6 +86,14 @@ impl Preset {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+enum Pane {
+    Sidebar,
+    Main,
+    Inspector,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 struct PaneSettings {
@@ -95,6 +104,7 @@ struct PaneSettings {
     sidebar: bool,
     sidebar_width: u16,
     actions: bool,
+    order: [Pane; 3],
 }
 impl Default for PaneSettings {
     fn default() -> Self {
@@ -106,7 +116,35 @@ impl Default for PaneSettings {
             sidebar: true,
             sidebar_width: 24,
             actions: true,
+            order: [Pane::Sidebar, Pane::Main, Pane::Inspector],
         }
+    }
+}
+
+impl PaneSettings {
+    fn regions(&self, area: Rect) -> Vec<(Pane, Rect)> {
+        let visible: Vec<_> = self
+            .order
+            .into_iter()
+            .filter(|pane| match pane {
+                Pane::Sidebar => self.sidebar && area.width >= 110,
+                Pane::Inspector => self.inspector,
+                Pane::Main => true,
+            })
+            .collect();
+        let regions = Layout::default()
+            .direction(if area.width < 80 {
+                Direction::Vertical
+            } else {
+                Direction::Horizontal
+            })
+            .constraints(visible.iter().map(|pane| match pane {
+                Pane::Sidebar => Constraint::Length(self.sidebar_width),
+                Pane::Main => Constraint::Fill(self.width),
+                Pane::Inspector => Constraint::Fill(100 - self.width),
+            }))
+            .split(area);
+        visible.into_iter().zip(regions.iter().copied()).collect()
     }
 }
 
@@ -186,6 +224,14 @@ impl Preferences {
             .iter_mut()
             .chain(prefs.views.iter_mut().flat_map(|v| v.panes.iter_mut()))
         {
+            if ![Pane::Sidebar, Pane::Main, Pane::Inspector]
+                .iter()
+                .all(|p| pane.order.contains(p))
+            {
+                return Err(std::io::Error::other(
+                    "pane placement must contain each supported pane exactly once",
+                ));
+            }
             pane.width = pane.width.clamp(25, 75);
             pane.sidebar_width = pane.sidebar_width.clamp(16, 40);
         }
@@ -236,6 +282,7 @@ enum Command {
         query: String,
     },
     NativeTerminal(PathBuf),
+    ProjectExplorer(PathBuf),
     NamedView {
         name: String,
         action: String,
@@ -644,6 +691,7 @@ async fn worker(
                 Command::RestoreEditor(..)
                 | Command::BufferProposal(..)
                 | Command::NativeTerminal(..)
+                | Command::ProjectExplorer(..)
                 | Command::NamedView { .. } => {
                     anyhow::bail!("native editor actions must stay on the frontend")
                 }
@@ -1115,6 +1163,7 @@ pub(crate) struct Dashboard {
     worker: tokio::task::JoinHandle<()>,
     editor: Option<Editor>,
     preview: Option<Preview>,
+    follow_files: Option<FollowFiles>,
     review_previews: Vec<Preview>,
     editor_area: Rect,
     editor_file: usize,
@@ -1846,6 +1895,7 @@ impl Dashboard {
             worker,
             editor: None,
             preview: None,
+            follow_files: None,
             review_previews: Vec::new(),
             editor_area: Rect::default(),
             editor_file: 0,
@@ -1866,6 +1916,27 @@ impl Dashboard {
     }
     fn send(&mut self, command: Command) {
         let command = match command {
+            Command::ProjectExplorer(root) => {
+                let result = (|| -> anyhow::Result<()> {
+                    anyhow::ensure!(!self.applying, "Application outcome pending");
+                    if self.editor.is_none() {
+                        self.editor = Some(Editor::start(self.frame.clone())?);
+                    }
+                    self.editor
+                        .as_mut()
+                        .context("editor unavailable")?
+                        .project_explorer(&root)?;
+                    self.preferences.preset = Preset::Workspace;
+                    self.report_request = None;
+                    self.report_text = None;
+                    self.following = false;
+                    self.save();
+                    Ok(())
+                })();
+                self.message_is_error = result.is_err();
+                self.message=match result {Ok(())=>"Native owner project explorer · open files with Neovim · agent scopes unchanged · Ctrl-G host focus".into(),Err(e)=>e.to_string()};
+                return;
+            }
             Command::NativeTerminal(root) => {
                 let result = (|| -> anyhow::Result<()> {
                     anyhow::ensure!(!self.applying, "Application outcome pending");
@@ -2425,7 +2496,117 @@ impl Dashboard {
             }
         }
     }
+    fn follow_recent_file(&mut self) {
+        let captured = (|| -> anyhow::Result<_> {
+            let view = self
+                .detail
+                .as_ref()
+                .filter(|v| Some(&v.task.id) == self.selected.as_ref())
+                .context("Select a prepared task and load its details")?;
+            let grant = view
+                .authorization
+                .as_ref()
+                .context("Task has no declared files")?;
+            let root = view
+                .attempts
+                .first()
+                .and_then(|a| a.workspace.as_ref())
+                .context("Task workspace is not prepared")?;
+            let files: Vec<_> = grant
+                .scope
+                .artifacts
+                .iter()
+                .chain(&grant.scope.input_files)
+                .cloned()
+                .collect();
+            let tracker = FollowFiles::new(
+                root.into(),
+                files.clone(),
+                view.result
+                    .as_ref()
+                    .map(|r| r.artifacts.clone())
+                    .unwrap_or_default(),
+            )?;
+            let relative = tracker
+                .latest()
+                .context("No permitted file is present yet")?;
+            let index = files
+                .iter()
+                .position(|path| path == relative)
+                .context("Recent file is not declared")?;
+            Ok((tracker, index))
+        })();
+        match captured {
+            Ok((tracker, index)) => {
+                self.editor_file = index;
+                if self.editor_open(KeyCode::Char('t')) {
+                    self.follow_files = Some(tracker);
+                    if let Some(editor) = &mut self.editor {
+                        editor.focused = false;
+                    }
+                    self.preferences.preset = Preset::Workspace;
+                    self.report_request = None;
+                    self.report_text = None;
+                    self.save();
+                }
+            }
+            Err(error) => {
+                self.message = error.to_string();
+                self.message_is_error = true;
+            }
+        }
+    }
+    fn refresh_follow(&mut self) -> anyhow::Result<()> {
+        if !self.following || self.applying {
+            return Ok(());
+        }
+        let Some(editor) = &mut self.editor else {
+            return Ok(());
+        };
+        if editor.focused {
+            return Ok(());
+        }
+        let current = self
+            .preview
+            .as_ref()
+            .context("Follow preview unavailable")?
+            .path();
+        if !editor.is_follow_preview(&current)? {
+            self.following = false;
+            self.follow_files = None;
+            self.message =
+                "Follow stopped because the native editor is showing an independent buffer".into();
+            return Ok(());
+        }
+        if editor.dirty()? {
+            return Ok(());
+        }
+        if let Some(tracker) = &mut self.follow_files
+            && let Some(relative) = tracker.changed()?
+        {
+            let expected = tracker.expected.iter().find(|a| a.path == relative);
+            let preview = Preview::new(
+                self.path.parent().context("Owner home unavailable")?,
+                &tracker.root,
+                &relative,
+                expected,
+            )?;
+            editor.open(&preview.path(), true)?;
+            editor.focused = false;
+            self.preview = Some(preview);
+            self.message = format!(
+                "Follow recently changed permitted file: {relative} · read-only verified preview"
+            );
+        }
+        if let Some(preview) = &mut self.preview
+            && preview.refresh()?
+        {
+            editor.reload_follow()?;
+        }
+        Ok(())
+    }
     fn editor_open(&mut self, key: KeyCode) -> bool {
+        self.follow_files = None;
         if self.applying {
             self.message = "Application outcome pending; editor inputs remain frozen".into();
             return false;
@@ -2500,15 +2681,17 @@ impl Dashboard {
                 }
                 Ok(())
             };
-            confined(
-                Path::new(
-                    project
-                        .roots
-                        .first()
-                        .ok_or_else(|| anyhow::anyhow!("project root missing"))?,
-                ),
-                &base,
-            )?;
+            if matches!(key, KeyCode::Char('o' | 'd')) {
+                confined(
+                    Path::new(
+                        project
+                            .roots
+                            .first()
+                            .ok_or_else(|| anyhow::anyhow!("project root missing"))?,
+                    ),
+                    &base,
+                )?;
+            }
             let editor = self
                 .editor
                 .as_mut()
@@ -2822,6 +3005,128 @@ impl Dashboard {
                     previous,
                     projects: projects.into_iter().collect(),
                     sources: sources.into_values().collect(),
+                }
+            }
+            'ξ' => {
+                let project_id = match self.record() {
+                    Some(OrganizationRecord::Project(p)) => Some(p.id.as_str()),
+                    Some(OrganizationRecord::Task(t)) => Some(t.project_id.as_str()),
+                    _ => None,
+                };
+                let roots = self
+                    .snapshot
+                    .records
+                    .iter()
+                    .find_map(|r| match r {
+                        OrganizationRecord::Project(p) if Some(p.id.as_str()) == project_id => {
+                            Some(p.roots.clone())
+                        }
+                        _ => None,
+                    })
+                    .unwrap_or_default();
+                if roots.is_empty() {
+                    self.message =
+                        "Select a loaded project or its task with owner project roots".into();
+                    return;
+                }
+                form::Kind::ProjectExplorer { roots }
+            }
+            'ν' => {
+                let source = (|| -> anyhow::Result<_> {
+                    let (previous, value) = if let Some(OrganizationRecord::Control(c)) =
+                        self.record().filter(|r| {
+                            matches!(
+                                r,
+                                OrganizationRecord::Control(OrganizationControl {
+                                    value: OrganizationControlValue::ArtifactShare { .. },
+                                    ..
+                                })
+                            )
+                        }) {
+                        (Some(c.clone()), c.value.clone())
+                    } else {
+                        let view = self
+                            .detail
+                            .as_ref()
+                            .filter(|v| Some(&v.task.id) == self.selected.as_ref())
+                            .context("Select an accepted result and load its evidence")?;
+                        let result = view
+                            .result
+                            .as_ref()
+                            .filter(|r| r.accepted && view.task.state == "accepted")
+                            .context("Only exact accepted outputs can be shared")?;
+                        let artifact = result
+                            .artifacts
+                            .get(self.review_file % result.artifacts.len().max(1))
+                            .context("No captured artifact")?;
+                        let attempt = view
+                            .attempts
+                            .iter()
+                            .find(|a| a.id == result.attempt_id)
+                            .context("Captured source attempt unavailable")?;
+                        let preview = Preview::new(
+                            self.path.parent().context("Owner home unavailable")?,
+                            Path::new(
+                                attempt
+                                    .workspace
+                                    .as_deref()
+                                    .context("Source workspace unavailable")?,
+                            ),
+                            &artifact.path,
+                            Some(artifact),
+                        )?;
+                        let body = if artifact.bytes <= 32 * 1024 {
+                            String::from_utf8(std::fs::read(preview.path())?).ok()
+                        } else {
+                            None
+                        };
+                        (
+                            None,
+                            OrganizationControlValue::ArtifactShare {
+                                id: uuid::Uuid::now_v7().to_string(),
+                                source_task_id: view.task.id.clone(),
+                                source_revision: view.task.revision,
+                                result_digest: result.digest.clone(),
+                                source_project_id: view.task.project_id.clone(),
+                                source_owner_id: attempt
+                                    .owner_id
+                                    .clone()
+                                    .context("Captured author unavailable (legacy)")?,
+                                artifact: artifact.clone(),
+                                body,
+                                destinations: vec![],
+                            },
+                        )
+                    };
+                    let mut projects: BTreeMap<String, String> = self
+                        .snapshot
+                        .records
+                        .iter()
+                        .filter_map(|r| match r {
+                            OrganizationRecord::Project(p) => Some((p.id.clone(), p.name.clone())),
+                            _ => None,
+                        })
+                        .take(32)
+                        .collect();
+                    if let OrganizationControlValue::ArtifactShare { destinations, .. } = &value {
+                        for id in destinations {
+                            projects.entry(id.clone()).or_insert_with(|| {
+                                format!("{id} (stored project; definition not loaded)")
+                            });
+                        }
+                    }
+                    Ok(form::Kind::ArtifactShare {
+                        previous,
+                        value,
+                        projects: projects.into_iter().collect(),
+                    })
+                })();
+                match source {
+                    Ok(kind) => kind,
+                    Err(error) => {
+                        self.message = error.to_string();
+                        return;
+                    }
                 }
             }
             'ι' => {
@@ -3834,7 +4139,11 @@ impl Dashboard {
                         self.selection_task();
                         return;
                     }
-                    KeyCode::Char('e' | 'o' | 't' | 'd') => {
+                    KeyCode::Char('t') => {
+                        self.follow_recent_file();
+                        return;
+                    }
+                    KeyCode::Char('e' | 'o' | 'd') => {
                         self.editor_open(key.code);
                         return;
                     }
@@ -3936,7 +4245,12 @@ impl Dashboard {
                         return;
                     }
                     if let Some(c) = self.confirmation.take() {
-                        if matches!(c, Command::NamedView { .. } | Command::NativeTerminal(..)) {
+                        if matches!(
+                            c,
+                            Command::NamedView { .. }
+                                | Command::NativeTerminal(..)
+                                | Command::ProjectExplorer(..)
+                        ) {
                             self.form = None;
                             self.send(c);
                             return;
@@ -4234,6 +4548,31 @@ impl Dashboard {
             KeyCode::F(47) => self.open_form('θ'),
             KeyCode::F(49) => self.open_form('ι'),
             KeyCode::F(50) => self.open_form('κ'),
+            KeyCode::F(51) => self.open_form('ν'),
+            KeyCode::F(53) => self.open_form('ξ'),
+            KeyCode::F(54) => self.follow_recent_file(),
+            KeyCode::F(52) => {
+                use Pane::*;
+                let placements = [
+                    [Sidebar, Main, Inspector],
+                    [Sidebar, Inspector, Main],
+                    [Main, Sidebar, Inspector],
+                    [Main, Inspector, Sidebar],
+                    [Inspector, Sidebar, Main],
+                    [Inspector, Main, Sidebar],
+                ];
+                let pane = self.pane();
+                let index = placements
+                    .iter()
+                    .position(|order| *order == pane.order)
+                    .unwrap_or(0);
+                pane.order = placements[(index + 1) % placements.len()];
+                self.message = format!(
+                    "Pane placement: {:?} · existing resize/hide controls remain available",
+                    pane.order
+                );
+                self.save();
+            }
             KeyCode::F(48) => {
                 let Some(text) = self.agent_readiness_text() else {
                     self.message = "Select an agent for stored readiness evidence".into();
@@ -5242,6 +5581,9 @@ impl Dashboard {
                 Command::NativeTerminal(root) => serde_json::to_string_pretty(
                     &serde_json::json!({"action":"Open actual Neovim terminal","cwd":root,"authority":"Owner shell; commands entered here have owner permissions, separately from agent sandbox/grants","checkpoint":"Close terminal windows before saving project-file checkpoints"}),
                 ),
+                Command::ProjectExplorer(root) => serde_json::to_string_pretty(
+                    &serde_json::json!({"action":"Open official Neovim bundled project explorer","root":root,"authority":"Owner-selected files; agent grants remain unchanged","buffers":"Open a native split and retain existing dirty buffers"}),
+                ),
                 Command::RestoreEditor(session, recover) => serde_json::to_string_pretty(
                     &serde_json::json!({"nativeSession":session,"recoverUnsaved":recover,"writesOriginalFiles":false}),
                 ),
@@ -5485,20 +5827,13 @@ impl Dashboard {
                     if let Err(e) = editor.resize(self.editor_area.width, self.editor_area.height) {
                         self.message = e.to_string();
                     }
-                    if self.following && !editor.focused {
-                        let refresh = (|| -> anyhow::Result<()> {
-                            if !editor.dirty()?
-                                && let Some(preview) = &mut self.preview
-                                && preview.refresh()?
-                            {
-                                editor.reload_follow()?;
-                            }
-                            Ok(())
-                        })();
-                        if let Err(e) = refresh {
-                            self.message = e.to_string();
-                        }
-                    }
+                }
+                if self.preferences.preset == Preset::Workspace
+                    && let Err(e) = self.refresh_follow()
+                {
+                    self.message = format!("Follow paused: {e}");
+                    self.following = false;
+                    self.follow_files = None;
                 }
             }
             TuiEvent::Mouse(mouse)

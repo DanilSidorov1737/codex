@@ -78,6 +78,13 @@ implicitly replace an open editor file. Host-selected files reject traversal and
 symlink redirection; native commands entered by the human retain human authority.
 Mode changes reject dirty buffers instead of discarding changes.
 
+The approved adaptive checkpoint extends `t` to follow the most recently changed
+permitted file; `n` selects a single declared file explicitly. Commands also opens
+official bundled netrw for an owner-selected project root, preserving dirty native
+splits and leaving agent grants unchanged. Six pane placements are saved per
+layout. Native two/three-way comparisons preserve labels/order and balance widths
+on open/resize. See [precise limits and pending qualification](adaptive-qualification.md#native-pane-placement-explorer-recent-following-and-balanced-comparisons).
+
 ## Application contract
 
 Owner-only Apply captures the exact accepted task revision/digest and optional

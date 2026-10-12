@@ -196,10 +196,10 @@ through existing host controls before enabling its models. Do not finish at a
 source-only checkpoint; complete all independent work and finite endurance
 qualification. Real-host reboot/logout still needs a suitable host.
 
-Adaptive tasks1–22 now have source/test checkpoints; see
-[adaptive evidence](docs/development/adaptive-qualification.md). Selected state337,
-protocol377, TUI102 (including official Neovim) and runner7 checks pass.
-Continue tasks23–30 and all remaining schema/SDK, production lint/package and
+Adaptive tasks1–28 now have source/test checkpoints; see
+[adaptive evidence](docs/development/adaptive-qualification.md). Selected state339,
+protocol377, app-server16, TUI106 (including official Neovim) and runner7 checks pass.
+Continue tasks29–30 and all remaining schema/SDK, production lint/package and
 actual CLI/TUI/endurance qualification. Do not mistake this checkpoint for a
 completed approved batch. The last fully qualified application package remains
 `8cd392eaaa` until the new complete native qualification passes.

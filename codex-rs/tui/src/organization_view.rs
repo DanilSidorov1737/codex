@@ -548,30 +548,19 @@ impl Dashboard {
         )
         .render(regions[0], buffer);
         let pane = &self.preferences.panes[self.preferences.preset.index()];
-        let body = if pane.sidebar && area.width >= 110 {
-            let columns =
-                Layout::horizontal([Constraint::Length(pane.sidebar_width), Constraint::Min(1)])
-                    .split(regions[1]);
-            self.sidebar(columns[0], buffer);
-            columns[1]
+        let mut areas = [regions[1]; 2];
+        for (part, region) in pane.regions(regions[1]) {
+            match part {
+                Pane::Sidebar => self.sidebar(region, buffer),
+                Pane::Main => areas[0] = region,
+                Pane::Inspector => areas[1] = region,
+            }
+        }
+        let body = if pane.inspector {
+            areas[0].union(areas[1])
         } else {
-            regions[1]
+            areas[0]
         };
-        let areas = Layout::default()
-            .direction(if body.width < 80 {
-                Direction::Vertical
-            } else {
-                Direction::Horizontal
-            })
-            .constraints(if pane.inspector {
-                vec![
-                    Constraint::Percentage(pane.width),
-                    Constraint::Percentage(100 - pane.width),
-                ]
-            } else {
-                vec![Constraint::Percentage(100)]
-            })
-            .split(body);
         let mut cursor = None;
         if let Some(palette) = &self.palette {
             let actions = palette.actions();

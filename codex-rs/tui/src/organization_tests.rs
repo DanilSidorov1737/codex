@@ -448,6 +448,7 @@ fn preferences_roundtrip_all_presets_and_reject_aliases() {
     prefs.panes[Preset::Operations.index()].sidebar_width = 38;
     prefs.panes[Preset::Workspace.index()].sidebar = false;
     prefs.panes[Preset::Projects.index()].actions = false;
+    prefs.panes[Preset::Operations.index()].order = [Pane::Inspector, Pane::Sidebar, Pane::Main];
     prefs.save(&path).unwrap();
     let restored = Preferences::load(&path).unwrap();
     assert_eq!(restored.preset, Preset::Review);
@@ -458,6 +459,21 @@ fn preferences_roundtrip_all_presets_and_reject_aliases() {
     assert_eq!(restored.panes[3].sidebar_width, 38);
     assert!(!restored.panes[1].sidebar);
     assert!(!restored.panes[2].actions);
+    assert_eq!(
+        restored.panes[3].order,
+        [Pane::Inspector, Pane::Sidebar, Pane::Main]
+    );
+    let rectangles = restored.panes[3].regions(Rect::new(0, 0, 160, 40));
+    assert_eq!(
+        rectangles.iter().map(|(pane, _)| *pane).collect::<Vec<_>>(),
+        vec![Pane::Inspector, Pane::Sidebar, Pane::Main]
+    );
+    assert!(
+        rectangles
+            .windows(2)
+            .all(|pair| pair[0].1.right() <= pair[1].1.x)
+    );
+    assert_eq!(rectangles[1].1.width, 38);
     #[cfg(unix)]
     {
         let alias = home.path().join("alias");
@@ -933,6 +949,7 @@ fn dashboard() -> Dashboard {
         worker: tokio::spawn(std::future::pending()),
         editor: None,
         preview: None,
+        follow_files: None,
         review_previews: Vec::new(),
         editor_area: Rect::default(),
         editor_file: 0,
@@ -1310,6 +1327,113 @@ async fn pane_controls_are_persisted_per_layout_and_reset_only_the_selected_layo
     assert_eq!(d.pane().sidebar_width, 24);
     assert!(d.pane().actions);
     assert!(!d.preferences.panes[Preset::Projects.index()].sidebar);
+}
+
+#[tokio::test]
+async fn recent_follow_uses_protected_native_previews_and_preserves_dirty_or_independent_editing() {
+    let home = tempfile::tempdir().unwrap();
+    let source = tempfile::tempdir().unwrap();
+    std::fs::write(source.path().join("first.txt"), "first permitted output\n").unwrap();
+    let owner = home.path().join("owner.txt");
+    std::fs::write(&owner, "independent saved owner text\n").unwrap();
+    let mut d = dashboard();
+    d.path = home.path().join("layouts.json");
+    let preview = Preview::new(home.path(), source.path(), "first.txt", None).unwrap();
+    let mut editor = Editor::start(FrameRequester::test_dummy()).unwrap();
+    editor.open(&preview.path(), true).unwrap();
+    editor.focused = false;
+    d.editor = Some(editor);
+    d.preview = Some(preview);
+    d.following = true;
+    d.follow_files = Some(
+        FollowFiles::new(
+            source.path().into(),
+            ["first.txt".into(), "second.txt".into()],
+            vec![],
+        )
+        .unwrap(),
+    );
+    std::fs::write(source.path().join("second.txt"), "new permitted output\n").unwrap();
+    tokio::time::sleep(Duration::from_millis(1100)).await;
+    d.refresh_follow().unwrap();
+    let editor = d.editor.as_mut().unwrap();
+    assert_eq!(
+        editor
+            .rpc("nvim_eval", vec!["getline(1)".into()])
+            .unwrap()
+            .as_str(),
+        Some("new permitted output")
+    );
+    assert!(
+        editor
+            .rpc("nvim_eval", vec!["expand('%:p')".into()])
+            .unwrap()
+            .as_str()
+            .unwrap()
+            .starts_with(home.path().to_str().unwrap())
+    );
+    editor
+        .rpc(
+            "nvim_command",
+            vec!["setlocal modifiable noreadonly".into()],
+        )
+        .unwrap();
+    editor.paste("unsaved owner change ").unwrap();
+    editor.focused = false;
+    let dirty = editor
+        .rpc(
+            "nvim_buf_get_lines",
+            vec![0.into(), 0.into(), (-1).into(), true.into()],
+        )
+        .unwrap();
+    std::fs::write(
+        source.path().join("first.txt"),
+        "a more recent permitted change\n",
+    )
+    .unwrap();
+    for preset in [
+        Preset::Console,
+        Preset::Workspace,
+        Preset::Projects,
+        Preset::Operations,
+        Preset::Review,
+    ] {
+        d.switch(preset);
+        d.key(KeyEvent::new(
+            KeyCode::F(52),
+            crossterm::event::KeyModifiers::NONE,
+        ));
+    }
+    d.refresh_follow().unwrap();
+    assert_eq!(
+        d.editor
+            .as_mut()
+            .unwrap()
+            .rpc(
+                "nvim_buf_get_lines",
+                vec![0.into(), 0.into(), (-1).into(), true.into()]
+            )
+            .unwrap(),
+        dirty
+    );
+    let editor = d.editor.as_mut().unwrap();
+    editor.rpc("nvim_exec_lua",vec!["local path=...; vim.api.nvim_cmd({cmd='edit',bang=true,args={path}},{}); return true".into(),rmpv::Value::Array(vec![owner.to_str().unwrap().into()])]).unwrap();
+    editor.focused = false;
+    d.refresh_follow().unwrap();
+    assert!(!d.following);
+    assert_eq!(
+        d.editor
+            .as_mut()
+            .unwrap()
+            .rpc("nvim_eval", vec!["expand('%:p')".into()])
+            .unwrap()
+            .as_str(),
+        owner.to_str()
+    );
+    assert_eq!(
+        std::fs::read_to_string(&owner).unwrap(),
+        "independent saved owner text\n"
+    );
 }
 
 #[tokio::test]

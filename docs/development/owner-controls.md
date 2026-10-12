@@ -2,6 +2,16 @@
 
 ## Adaptive conversation, planning and goal controls (qualification in progress)
 
+Recent Commands additions: **Publish / revoke exact accepted artifact** captures
+the selected reviewed output and explicit recipient projects (32-KiB UTF-8 copies
+or immutable references); it never copies grants. **Move supported panes / cycle
+placement** saves one of six placements per layout; existing resize/hide keys
+remain. **Browse full owner project in Neovim** chooses a project root and opens
+the official bundled browser alongside existing dirty buffers. **Follow agent's
+recently changed permitted file** / Workspace `t` uses verified private snapshots
+of declared files only; independent editing stops Follow. These source/test
+checkpoints still require the complete native workflow/package qualification.
+
 The approved adaptive batch adds the following searchable Commands actions.
 They use the existing local owner RPCs and F6 / y exact confirmation. See
 [current checkpoint evidence](adaptive-qualification.md); source availability

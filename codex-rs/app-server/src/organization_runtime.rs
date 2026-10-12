@@ -642,6 +642,15 @@ impl<'call> ToolExecutor<ToolCall<'call>> for OrganizationTools {
             if self.guard.stop.is_cancelled() || self.guard.failed.is_cancelled() {
                 return Err(FunctionCallError::Fatal("managed task stopped".into()));
             }
+            if let OrganizationCoordinationCall::RecordResearch { citations, .. } = &command {
+                self.workspace
+                    .validate_research(&self.guard.scope, citations)
+                    .map_err(|error| {
+                        FunctionCallError::RespondToModel(format!(
+                            "local research citation denied: {error:#}"
+                        ))
+                    })?;
+            }
             let result = if let OrganizationCoordinationCall::Checkpoint { content } = command {
                 let files =
                     self.workspace

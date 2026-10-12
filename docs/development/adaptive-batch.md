@@ -91,5 +91,12 @@ TUI102 selections pass, including official Neovim; full root formatting passes.
 Private sources cannot be published and withdrawal stops future library retrieval.
 Full contracts, production lint/package and physical/endurance checks remain.
 
-Continue tasks23–30 and all remaining native CLI/TUI/endurance checks; no new
+Exact artifact publications and validated declared-local-source citations now
+have state339/protocol377/app-server16 source/test evidence. Saved six-position
+panes, official bundled netrw, guarded recent-file following and balanced native
+comparisons have TUI106 evidence, including actual editor input/dirty-buffer tests.
+Full root formatting passes. Source/test checkpoints are not final release
+qualification; see the same evidence document for retained failures and limits.
+
+Continue tasks29–30 and all remaining native CLI/TUI/endurance checks; no new
 approval is needed. All historical fixture/accounting/quarantine rules remain.

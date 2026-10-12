@@ -6,6 +6,14 @@ use crossterm::event::KeyModifiers;
 use ratatui::layout::Margin;
 
 pub(super) enum Kind {
+    ProjectExplorer {
+        roots: Vec<String>,
+    },
+    ArtifactShare {
+        previous: Option<OrganizationControl>,
+        value: OrganizationControlValue,
+        projects: Vec<(String, String)>,
+    },
     WorkspaceLibrary {
         previous: Option<OrganizationControl>,
         projects: Vec<(String, String)>,
@@ -247,6 +255,51 @@ mod tests {
         assert!(
             matches!(form.command().unwrap(),Command::Definition(OrganizationMutation::MeetingFollowUp {source_task_id,expected_source_revision,result_digest,source_body,..}) if source_task_id==source.id && expected_source_revision==source.revision && result_digest=="exact-result" && source_body==body)
         );
+    }
+
+    #[test]
+    fn artifact_share_form_preserves_exact_output_and_defaults_to_no_recipients() {
+        let share = OrganizationControlValue::ArtifactShare {
+            id: "share".into(),
+            source_task_id: "source".into(),
+            source_revision: 7,
+            result_digest: "accepted-result".into(),
+            source_project_id: "p".into(),
+            source_owner_id: "captured-owner".into(),
+            artifact: OrganizationArtifactEvidence {
+                path: "report.txt".into(),
+                sha256: "hash".into(),
+                bytes: 4,
+            },
+            body: Some("text".into()),
+            destinations: vec![],
+        };
+        let mut form = Form::new(
+            Kind::ArtifactShare {
+                previous: None,
+                value: share.clone(),
+                projects: vec![("destination".into(), "Reviewed recipient".into())],
+            },
+            &[],
+            None,
+            "fixture",
+        );
+        assert!(
+            matches!(form.command().unwrap(),Command::Definition(OrganizationMutation::SetControl {value:OrganizationControlValue::ArtifactShare {destinations,..},..}) if destinations.is_empty())
+        );
+        form.fields[0].choice = 1;
+        let Command::Definition(OrganizationMutation::SetControl {
+            value: mut published,
+            ..
+        }) = form.command().unwrap()
+        else {
+            panic!("publication")
+        };
+        if let OrganizationControlValue::ArtifactShare { destinations, .. } = &mut published {
+            assert_eq!(destinations, &vec!["destination".to_string()]);
+            destinations.clear();
+        }
+        assert_eq!(published, share);
     }
 
     #[test]
@@ -2003,6 +2056,9 @@ impl Form {
             .or_else(|| project.and_then(|p| p.goal_id.as_deref()));
         let owner = project.and_then(|p| p.owner_id.as_deref());
         let mut fields = match &kind {
+            Kind::ProjectExplorer {roots} => vec![Field::select("Owner project root",roots.iter().map(|root|(root.clone(),root.clone())).collect(),None)],
+            Kind::ArtifactShare {value:OrganizationControlValue::ArtifactShare {destinations,..},projects,..} => projects.iter().map(|(id,label)|Field::select(format!("Share access: {label}"),vec![(String::new(),"No access".into()),(id.clone(),"Explicitly approve this exact output".into())],destinations.contains(id).then_some(id.as_str()))).collect(),
+            Kind::ArtifactShare {..} => unreachable!("artifact form requires captured share"),
             Kind::WorkspaceLibrary {previous,projects,sources}=>{
                 let (selected_projects,selected_sources)=match previous.as_ref().map(|c|&c.value) {Some(OrganizationControlValue::WorkspaceLibrary {projects,sources})=>(projects.as_slice(),sources.as_slice()),_=>(&[][..],&[][..])};
                 let mut fields=Vec::new();
@@ -2546,6 +2602,10 @@ impl Form {
     }
     pub(super) fn title(&self) -> &'static str {
         match self.kind {
+            Kind::ProjectExplorer { .. } => "Browse owner-selected project root · actual Neovim",
+            Kind::ArtifactShare { .. } => {
+                "Publish / revoke exact accepted artifact · no copied grants"
+            }
             Kind::WorkspaceLibrary { .. } => {
                 "Owner opt-in library / selected projects and exact public sources"
             }
@@ -2980,6 +3040,35 @@ impl Form {
             Ok(lines(i))
         };
         Ok(match &self.kind {
+            Kind::ProjectExplorer { roots } => {
+                let root = required(0)?;
+                anyhow::ensure!(
+                    roots.contains(&root),
+                    "project root was not captured in this owner form"
+                );
+                Command::ProjectExplorer(root.into())
+            }
+            Kind::ArtifactShare {
+                previous,
+                value: captured,
+                projects,
+            } => {
+                let mut share = captured.clone();
+                let OrganizationControlValue::ArtifactShare { destinations, .. } = &mut share
+                else {
+                    anyhow::bail!("invalid captured artifact")
+                };
+                *destinations = projects
+                    .iter()
+                    .enumerate()
+                    .filter(|(index, _)| !value(*index).is_empty())
+                    .map(|(_, p)| p.0.clone())
+                    .collect();
+                Command::Definition(OrganizationMutation::SetControl {
+                    expected_revision: previous.as_ref().map(|c| c.revision),
+                    value: share,
+                })
+            }
             Kind::WorkspaceLibrary {
                 previous,
                 projects,

@@ -171,7 +171,8 @@ impl OrganizationStore {
         );
         let read_only = matches!(
             &call,
-            OrganizationCoordinationCall::ReadyDelegates {}
+            OrganizationCoordinationCall::ReadSharedArtifact { .. }
+                | OrganizationCoordinationCall::ReadyDelegates {}
                 | OrganizationCoordinationCall::Context { .. }
                 | OrganizationCoordinationCall::ReadNotes { .. }
                 | OrganizationCoordinationCall::SearchNotes { .. }
@@ -179,6 +180,58 @@ impl OrganizationStore {
         );
         let progress:i64=sqlx::query_scalar("SELECT (SELECT count(*) FROM organization_actions WHERE attempt_id=?)+(SELECT count(*) FROM organization_checkpoints WHERE attempt_id=?)").bind(attempt_id).bind(attempt_id).fetch_one(&mut *tx).await?;
         let result = match call {
+            OrganizationCoordinationCall::RecordResearch {
+                citations,
+                findings,
+                assumptions,
+            } => {
+                ensure!(
+                    (1..=16).contains(&citations.len())
+                        && findings.len() <= 8
+                        && assumptions.len() <= 8,
+                    "research supports 1–16 citations and at most eight findings/assumptions each"
+                );
+                for citation in &citations {
+                    ensure!(
+                        authorization.scope.input_files.contains(&citation.path)
+                            || authorization.scope.artifacts.contains(&citation.path),
+                        "research source outside declared grant"
+                    );
+                    ensure!(
+                        citation.sha256.len() == 64
+                            && citation.sha256.bytes().all(|c| c.is_ascii_hexdigit())
+                            && citation.start_line > 0
+                            && citation.start_line <= citation.end_line
+                            && citation.end_line - citation.start_line < 64,
+                        "invalid research hash/line range"
+                    );
+                }
+                for claim in findings.iter().chain(&assumptions) {
+                    text(claim, 1024)?;
+                }
+                let id = Uuid::now_v7().to_string();
+                let evidence = super::controls::persist(
+                    &mut tx,
+                    None,
+                    format!("research:{id}"),
+                    OrganizationControlValue::ResearchEvidence {
+                        id,
+                        project_id: task.project_id.clone(),
+                        source_task_id: task.id.clone(),
+                        source_attempt_id: attempt.id.clone(),
+                        source_owner_id: task.owner_id.clone(),
+                        citations,
+                        findings,
+                        assumptions,
+                    },
+                )
+                .await?;
+                event(&mut tx, "research/recorded", &evidence.id).await?;
+                serde_json::json!({"evidence":evidence,"contentTrust":"Validated local file citations; findings and assumptions remain untrusted claims, not proof of truth"})
+            }
+            OrganizationCoordinationCall::ReadSharedArtifact { share_id } => {
+                super::knowledge::read_artifact_share(&mut tx, &task.project_id, &share_id).await?
+            }
             OrganizationCoordinationCall::ProposeKnowledge {
                 sources,
                 body,

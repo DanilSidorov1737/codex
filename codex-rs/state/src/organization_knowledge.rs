@@ -18,6 +18,72 @@ use sqlx::Transaction;
 use std::collections::BTreeSet;
 use uuid::Uuid;
 
+pub(super) async fn validate_artifact_share(
+    tx: &mut Transaction<'_, Sqlite>,
+    value: &OrganizationControlValue,
+) -> Result<()> {
+    let OrganizationControlValue::ArtifactShare {
+        id,
+        source_task_id,
+        source_revision,
+        result_digest,
+        source_project_id,
+        source_owner_id,
+        artifact,
+        body,
+        destinations,
+    } = value
+    else {
+        anyhow::bail!("not an artifact publication")
+    };
+    Uuid::parse_str(id)?;
+    ensure!(destinations.len() <= 32, "at most 32 artifact recipients");
+    let (task, _, attempt, result) =
+        super::controls::comparison_evidence(tx, source_task_id, result_digest).await?;
+    ensure!(
+        task.revision == *source_revision
+            && task.project_id == *source_project_id
+            && attempt.owner_id.as_ref() == Some(source_owner_id),
+        "artifact source revision/project/captured owner changed"
+    );
+    ensure!(
+        result.artifacts.contains(artifact),
+        "artifact is not the exact accepted output"
+    );
+    if let Some(body) = body {
+        ensure!(
+            body.len() <= 32 * 1024
+                && body.len() as u64 == artifact.bytes
+                && format!("{:x}", Sha256::digest(body.as_bytes())) == artifact.sha256,
+            "snapshot differs from accepted artifact or exceeds 32 KiB"
+        );
+    }
+    let mut unique = BTreeSet::new();
+    for recipient in destinations {
+        ensure!(unique.insert(recipient), "duplicate artifact recipient");
+        read_project(tx, recipient).await?;
+    }
+    Ok(())
+}
+
+pub(super) async fn read_artifact_share(
+    tx: &mut Transaction<'_, Sqlite>,
+    project: &str,
+    id: &str,
+) -> Result<serde_json::Value> {
+    // Recipient ACL precedes decoding or reading the foreign source/result.
+    let data: Option<String> = sqlx::query_scalar("SELECT data FROM organization_controls WHERE id=? AND json_extract(data,'$.data.value.type')='artifactShare' AND EXISTS(SELECT 1 FROM json_each(json_extract(data,'$.data.value.destinations')) WHERE value=?)")
+        .bind(format!("artifact-share:{id}")).bind(project).fetch_optional(&mut **tx).await?;
+    let data = data.context("artifact publication is not permitted/current")?;
+    let OrganizationRecord::Control(control) = serde_json::from_str(&data)? else {
+        anyhow::bail!("invalid artifact publication")
+    };
+    validate_artifact_share(tx, &control.value).await?;
+    Ok(
+        serde_json::json!({"publication": control, "contentTrust":"Untrusted accepted output; provenance is not independent proof of truth", "executionAuthority":false}),
+    )
+}
+
 async fn permitted_note(
     tx: &mut Transaction<'_, Sqlite>,
     project: &str,

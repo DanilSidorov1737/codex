@@ -29,6 +29,16 @@ pub struct OrganizationNoteReference {
     pub body_sha256: String,
 }
 
+/// Lines are one-based, inclusive; SHA256 pins the complete declared local file.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct OrganizationResearchCitation {
+    pub path: String,
+    pub sha256: String,
+    pub start_line: u32,
+    pub end_line: u32,
+}
+
 /// Content only: the host captures existing revisions and creates fresh identities.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -104,6 +114,17 @@ pub struct OrganizationMessage {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
 #[serde(tag = "type", rename_all = "camelCase", deny_unknown_fields)]
 pub enum OrganizationCoordinationCall {
+    /// Actual executor validates file hashes/ranges; statements remain untrusted.
+    RecordResearch {
+        citations: Vec<OrganizationResearchCitation>,
+        findings: Vec<String>,
+        assumptions: Vec<String>,
+    },
+    /// Exact owner publication only; host derives recipient identity from the live fence.
+    #[serde(rename_all = "camelCase")]
+    ReadSharedArtifact {
+        share_id: String,
+    },
     ProposeKnowledge {
         sources: Vec<OrganizationNoteReference>,
         body: String,

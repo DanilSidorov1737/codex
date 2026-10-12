@@ -1,6 +1,171 @@
 use super::*;
 
 #[tokio::test]
+async fn research_receipts_keep_findings_assumptions_and_live_scope_separate() -> Result<()> {
+    use codex_protocol::organization_coordination::*;
+    let home = Fixture::new();
+    let store = OrganizationStore::open(&home.0).await?;
+    let (worker, attempt) = authorized_attempt(&store, false).await?;
+    let make = |path: &str| OrganizationCoordinationCall::RecordResearch {
+        citations: vec![OrganizationResearchCitation {
+            path: path.into(),
+            sha256: "a".repeat(64),
+            start_line: 1,
+            end_line: 2,
+        }],
+        findings: vec!["The declared local source reports a failure".into()],
+        assumptions: vec!["The larger workload may behave similarly; unverified".into()],
+    };
+    assert!(
+        store
+            .coordinate(
+                &attempt.id,
+                &worker,
+                "foreign-research",
+                make("outside.txt"),
+                1001
+            )
+            .await
+            .is_err()
+    );
+    let receipt = store
+        .coordinate(&attempt.id, &worker, "research", make("report.txt"), 1001)
+        .await?;
+    let evidence: OrganizationControl = serde_json::from_value(receipt["evidence"].clone())?;
+    let OrganizationControlValue::ResearchEvidence {
+        findings,
+        assumptions,
+        source_owner_id,
+        ..
+    } = &evidence.value
+    else {
+        panic!("research")
+    };
+    assert_ne!(findings, assumptions);
+    assert_eq!(attempt.owner_id.as_ref(), Some(source_owner_id));
+    assert!(
+        set_control(&store, Some(evidence.revision), evidence.value.clone())
+            .await
+            .is_err(),
+        "owner cannot rewrite host citation evidence"
+    );
+    assert_eq!(
+        store
+            .coordinate(&attempt.id, &worker, "research", make("report.txt"), 1001)
+            .await?,
+        receipt
+    );
+    store.close().await;
+    Ok(())
+}
+
+#[tokio::test]
+async fn artifact_publication_pins_accepted_bytes_and_recipients_without_copying_authority()
+-> Result<()> {
+    use codex_protocol::organization_coordination::*;
+    use sha2::Digest;
+    let home = Fixture::new();
+    let store = OrganizationStore::open(&home.0).await?;
+    let (worker, attempt) = authorized_attempt(&store, false).await?;
+    let body = "Exact accepted output, with an unverified claim";
+    let artifact = OrganizationArtifactEvidence {
+        path: "report.txt".into(),
+        sha256: format!("{:x}", sha2::Sha256::digest(body.as_bytes())),
+        bytes: body.len() as u64,
+    };
+    let result = store
+        .record_result(
+            &attempt.id,
+            &worker,
+            vec![artifact.clone()],
+            vec![OrganizationCheckEvidence {
+                immutable_inputs: None,
+                argv: execution_scope().checks[0].clone(),
+                exit_code: Some(0),
+                output: "oracle passed".into(),
+                truncated: false,
+            }],
+            1001,
+        )
+        .await?;
+    let pending = store.execution_view(&attempt.task_id).await?;
+    store
+        .accept_result(&attempt.task_id, pending.task.revision, &result.digest)
+        .await?;
+    store.release_attempt_capacity(&attempt.id, &worker).await?;
+    let source = store.execution_view(&attempt.task_id).await?;
+    let (reader_worker, reader) = authorized_attempt(&store, false).await?;
+    let recipient = store.execution_view(&reader.task_id).await?;
+    let id = Uuid::now_v7().to_string();
+    let share = OrganizationControlValue::ArtifactShare {
+        id: id.clone(),
+        source_task_id: source.task.id.clone(),
+        source_revision: source.task.revision,
+        result_digest: result.digest.clone(),
+        source_project_id: source.task.project_id.clone(),
+        source_owner_id: attempt.owner_id.clone().unwrap(),
+        artifact,
+        body: Some(body.into()),
+        destinations: vec![recipient.task.project_id.clone()],
+    };
+    let read = OrganizationCoordinationCall::ReadSharedArtifact {
+        share_id: id.clone(),
+    };
+    assert!(
+        store
+            .coordinate(
+                &reader.id,
+                &reader_worker,
+                "unpublished",
+                read.clone(),
+                1002
+            )
+            .await
+            .is_err()
+    );
+    let mut forged = share.clone();
+    if let OrganizationControlValue::ArtifactShare { body, .. } = &mut forged {
+        *body = Some("Replacement claim".into());
+    }
+    assert!(set_control(&store, None, forged).await.is_err());
+    let published = set_control(&store, None, share.clone()).await?;
+    let received = store
+        .coordinate(&reader.id, &reader_worker, "approved", read.clone(), 1002)
+        .await?;
+    assert_eq!(received["publication"]["value"]["body"], body);
+    assert_eq!(
+        received["publication"]["value"]["sourceProjectId"],
+        source.task.project_id
+    );
+    assert_eq!(received["executionAuthority"], false);
+    let (other_worker, other) = authorized_attempt(&store, false).await?;
+    assert!(
+        store
+            .coordinate(&other.id, &other_worker, "unapproved", read.clone(), 1002)
+            .await
+            .is_err()
+    );
+    let mut revoked = share.clone();
+    if let OrganizationControlValue::ArtifactShare { destinations, .. } = &mut revoked {
+        destinations.clear();
+    }
+    set_control(&store, Some(published.revision), revoked).await?;
+    assert!(
+        store
+            .coordinate(&reader.id, &reader_worker, "revoked", read, 1002)
+            .await
+            .is_err()
+    );
+    assert_eq!(source, store.execution_view(&source.task.id).await?);
+    assert_eq!(
+        recipient.authorization,
+        store.execution_view(&reader.task_id).await?.authorization
+    );
+    store.close().await;
+    Ok(())
+}
+
+#[tokio::test]
 async fn knowledge_synthesis_rechecks_sources_and_never_replaces_or_promotes_them() -> Result<()> {
     use codex_protocol::organization_coordination::*;
     use sha2::Digest;

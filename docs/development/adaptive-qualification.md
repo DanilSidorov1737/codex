@@ -323,3 +323,86 @@ Full formatting, contract regeneration, production lint/build/package and actual
 CLI/TUI/endurance qualification continue. No external integration, paid inference
 or protected historical fixture mutation occurred. Tasks23–30 remain unfinished;
 do not stop at this source/test checkpoint.
+
+## Accepted artifact publications and declared local research
+
+Task23 adds exact owner publications with captured task revision, result digest,
+artifact hash/length, original project and actual attempt owner. Only accepted
+outputs qualify. UTF-8 snapshots are limited to32 KiB; other outputs retain an
+immutable metadata reference without exposing another workspace. The owner
+explicitly chooses up to32 destination projects. Recipient ACLs precede foreign
+record decoding/result selection. Reading revalidates current accepted evidence;
+publication never copies grants or writes either original project. Source records
+are immutable; a versioned recipient update can withdraw access even if the
+source has become stale. Already received copies/receipts cannot be erased.
+Commands can publish the selected captured artifact or edit a saved publication;
+actual Preview verifies source bytes before the frontend offers a publication.
+
+Task24 adds `recordResearch`:1–16 citations to declared local UTF-8 files, full-file
+SHA256 and inclusive one-based ranges of1–64 lines (at most16 KiB cited text).
+The actual executor checks files with existing bounded no-follow reads under the
+native tool lock before the fenced state call stores immutable provenance.
+State validates scope/range/hash shape; its API is the trusted executor seam,
+not an independent filesystem proof. Findings and assumptions are separate,
+bounded untrusted statements. Owner mutations cannot forge/edit research records.
+No browsing, external research or new dependency was added.
+
+State339/protocol377 checks pass, exit0, `evidence-state-protocol-v4.log`.
+The initial compile found the missing immutable research-control match arm.
+The artifact fixture then exhausted capacity because it omitted the runtime's
+normal release after finishing its source attempt. Corrected fixture cleanup
+preserves the default-two ceiling; failures remain in `evidence-state-protocol-v1`,
+`v2` and `v3` logs. Native unit/TUI checks now pass:16 app-server and106 TUI checks,
+including official Neovim (`editor-native-unit-v4.log`, exit0). Their first
+offline selection stopped on an absent locked `test-case` archive; the selected
+online retry restored only three locked test-case packages with normal Cargo
+verification. No lockfile changed. Generated compiler-cache relocation is
+hash-checked in `evidence-compiler-relocation.json`; no historical fixture was moved.
+The combined native build filled temporary storage and the linker received
+SIGBUS. Failed generated outputs were hashed/removed and generated compiler data
+relocated with verified receipts (`evidence-build-space-recovery.json`); a serialized
+build succeeded. An artifact form dispatch key collided with an existing lesson
+form; it now has a distinct dispatch key. The first broad TUI selection caught a
+test using text entry for a select field; the corrected test selects the captured
+choice. Failures and limited initial filters remain in the `evidence-native-unit`
+logs. No application assertions or permissions were weakened.
+
+## Native pane placement, explorer, recent following and balanced comparisons
+
+Tasks25–28 reuse the current editor process, private previews and terminal shell.
+Each of five layouts saves one of six supported sidebar/main/inspector placements
+(Commands: Move supported panes). Existing resize/hide controls remain. The
+default order matches the supplied concept art; malformed duplicate placements
+are rejected. Native dirty buffers survive placement/layout changes.
+
+The owner chooses a loaded project's root in Commands: Browse full owner project.
+Official Neovim loads its bundled netrw browser in a native split. Native Enter
+opens files outside the selected task's declarations with owner authority,
+preserving existing dirty buffers. Agent scopes are never expanded. The bundled
+runtime probe passes (`netrw-probe.json`); no editor dependency/plugin was added.
+
+`t` / Commands: Follow agent's recently changed permitted file tracks only captured
+declared inputs/artifacts, observing metadata at most once/second. A selected file
+still passes bounded no-follow reading and exact recorded-artifact checks before
+opening a private readonly snapshot. Undeclared files cannot become candidates;
+unsafe replacements pause following. Timestamp/size observations are a heuristic,
+not a complete change journal; writes restoring both values may be missed until
+explicit refresh. Native editor focus/other dirty buffers pause following;
+switching to an independent or editable buffer stops it. Manual `n` remains a
+selected-file follow mode. New nested output directories need not already exist
+in the owner project to view a protected task snapshot.
+
+Native two-way comparisons label owner project file / verified agent copy;
+three-way comparisons retain captured base / owner at capture / verified agent
+copies. Native equalization on open/resize preserves order/labels and leaves
+independent editable window layouts alone. No original file is changed by review.
+
+The106-test TUI selection includes actual netrw Enter with an unsaved buffer,
+native comparison balance/order across sizes, recent permitted-file selection,
+symlink refusal, dirty-buffer/layout preservation and independent-mode protection.
+`editor-native-unit-v2.log` exposed a hidden dirty-buffer mode-tracking issue;
+`v3` then caught the shared guarded-Lua bridge converting false into nil. The
+shared helper now preserves boolean false, and all106 affected checks pass in
+`v4`. Full actual CLI/TUI workflow/endurance qualification remains unfinished.
+Continue task29, contracts/lint/build/package and task30; do not finish at this
+source/test checkpoint.

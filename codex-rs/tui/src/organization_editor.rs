@@ -112,7 +112,7 @@ impl Editor {
         // Expected path/revision refusals leave the actual editor usable.
         // Transport/decoding/timeouts still use rpc's fatal uncertainty fence.
         let wrapped = format!(
-            "local ok,r=pcall(function(...) {script}\nend,...); return {{ok=ok,value=ok and r or vim.NIL,error=ok and vim.NIL or tostring(r)}}"
+            "local ok,r=pcall(function(...) {script}\nend,...); if not ok then return {{ok=false,value=vim.NIL,error=tostring(r)}} end; return {{ok=true,value=r==nil and vim.NIL or r,error=vim.NIL}}"
         );
         let value = self.rpc("nvim_exec_lua", vec![wrapped.into(), Value::Array(args)])?;
         ensure!(
@@ -528,6 +528,9 @@ end})
         if size != self.size {
             self.rpc("nvim_ui_try_resize", vec![size.0.into(), size.1.into()])?;
             self.size = size;
+            if self.frozen.is_none() {
+                self.balance_review()?;
+            }
         }
         Ok(())
     }
@@ -729,26 +732,36 @@ return vim.json.encode(r)
             "modified Neovim buffers block changing diff mode"
         );
         self.command("only", vec![])?;
+        let original_winbar =
+            self.guarded_lua("return vim.w.codex_review_winbar or vim.wo.winbar", vec![])?;
         self.open(base, true)?;
         self.command("diffthis", vec![])?;
-        self.command(
-            "vsplit",
-            vec![artifact.to_str().context("non-UTF8 artifact")?.into()],
-        )?;
+        self.review_label("Owner · project file", &original_winbar)?;
+        self.guarded_lua("local path=...; vim.api.nvim_cmd({cmd='vsplit',mods={split='rightbelow'},args={path}},{}); return true",vec![artifact.to_str().context("non-UTF8 artifact")?.into()])?;
         self.command("diffthis", vec![])?;
-        for option in ["readonly", "modifiable"] {
-            self.rpc(
-                "nvim_set_option_value",
-                vec![
-                    option.into(),
-                    (option == "readonly").into(),
-                    Value::Map(vec![("buf".into(), 0.into())]),
-                ],
-            )?;
-        }
+        self.review_label("Agent · verified artifact", &original_winbar)?;
+        self.balance_review()?;
         self.focused = true;
         Ok(())
     }
+    fn review_label(&mut self, label: &str, previous: &Value) -> Result<()> {
+        self.guarded_lua("local previous,label=...; vim.w.codex_review_winbar=previous; vim.wo.winbar=label; vim.bo.readonly=true; vim.bo.modifiable=false; return true",vec![previous.clone(),label.into()])?;
+        Ok(())
+    }
+    fn balance_review(&mut self) -> Result<()> {
+        // Native equality keeps order/labels. Independent or editable windows keep their layout.
+        self.guarded_lua("local wins=vim.api.nvim_tabpage_list_wins(0); for _,w in ipairs(wins) do local b=vim.api.nvim_win_get_buf(w); if vim.w[w].codex_review_winbar==nil or not vim.wo[w].diff or not vim.bo[b].readonly or vim.bo[b].modifiable then return false end end; if #wins>=2 then vim.cmd('wincmd =') end; return true",vec![])?;
+        Ok(())
+    }
+    /// Browse with official bundled netrw in a native split, retaining dirty buffers.
+    pub(crate) fn project_explorer(&mut self, root: &Path) -> Result<()> {
+        let root = std::fs::canonicalize(root)?;
+        ensure!(root.is_dir(), "project explorer root must be a directory");
+        self.guarded_lua("local root=...; if vim.fn.exists(':Vexplore')==0 then vim.cmd('runtime plugin/netrwPlugin.vim') end; if vim.fn.exists(':Vexplore')==0 then error('official Neovim bundled netrw is unavailable') end; if vim.g.netrw_liststyle==nil then vim.g.netrw_liststyle=3 end; vim.api.nvim_cmd({cmd='Vexplore',mods={split='topleft'},args={root}},{}); vim.api.nvim_win_set_width(0,28); vim.wo.diff=false; return true",vec![root.to_str().context("non-UTF8 project root")?.into()])?;
+        self.focused = true;
+        Ok(())
+    }
+
     /// Owner shell in actual Neovim's native terminal, alongside current buffers.
     pub(crate) fn terminal(&mut self, root: &Path) -> Result<()> {
         let root = std::fs::canonicalize(root)?;
@@ -785,14 +798,16 @@ return vim.json.encode(r)
                 )?;
             }
             self.command("diffthis", vec![])?;
-            self.rpc(
-                "nvim_exec_lua",
-                vec![
-                    "local previous,label=...; vim.w.codex_review_winbar=previous; vim.wo.winbar=label; vim.bo.readonly=true; vim.bo.modifiable=false; return true".into(),
-                    Value::Array(vec![original_winbar.clone(), ["Base · captured original", "Owner · at review capture", "Agent · verified artifact"][index].into()]),
-                ],
+            self.review_label(
+                [
+                    "Base · captured original",
+                    "Owner · at review capture",
+                    "Agent · verified artifact",
+                ][index],
+                &original_winbar,
             )?;
         }
+        self.balance_review()?;
         self.focused = true;
         Ok(())
     }
@@ -809,6 +824,12 @@ return vim.json.encode(r)
             ],
         )?;
         Ok(())
+    }
+    pub(crate) fn is_follow_preview(&mut self, path: &Path) -> Result<bool> {
+        let result=self.guarded_lua("local path=...; return vim.api.nvim_buf_get_name(0)==path and vim.bo.readonly and not vim.bo.modifiable and not vim.bo.modified",vec![path.to_str().context("non-UTF8 preview path")?.into()])?;
+        result
+            .as_bool()
+            .context("invalid native follow-mode response")
     }
     pub(crate) fn render(&self, area: Rect, buffer: &mut Buffer) -> Option<(u16, u16)> {
         for y in 0..area.height.min(self.visible.height) {

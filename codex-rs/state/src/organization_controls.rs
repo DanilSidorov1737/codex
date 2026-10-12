@@ -39,6 +39,10 @@ pub(super) async fn set(
     value: OrganizationControlValue,
 ) -> Result<OrganizationControl> {
     let id = match &value {
+        OrganizationControlValue::ResearchEvidence { .. } => anyhow::bail!(
+            "research evidence requires the live executor; owner edits cannot forge citations"
+        ),
+        OrganizationControlValue::ArtifactShare { id, .. } => format!("artifact-share:{id}"),
         OrganizationControlValue::KnowledgeProposal { id, .. } => {
             format!("knowledge-proposal:{id}")
         }
@@ -80,6 +84,35 @@ pub(super) async fn set(
         "control revision conflict"
     );
     match &value {
+        OrganizationControlValue::ResearchEvidence { .. } => {
+            anyhow::bail!("research evidence is immutable executor output")
+        }
+        OrganizationControlValue::ArtifactShare { .. } => {
+            if let Some(old) = &previous {
+                let mut unchanged = value.clone();
+                let OrganizationControlValue::ArtifactShare {
+                    destinations: old_destinations,
+                    ..
+                } = &old.value
+                else {
+                    anyhow::bail!("invalid stored artifact share")
+                };
+                if let OrganizationControlValue::ArtifactShare { destinations, .. } = &mut unchanged
+                {
+                    *destinations = old_destinations.clone();
+                }
+                ensure!(
+                    unchanged == old.value,
+                    "shared source is immutable; create a new publication for another output"
+                );
+            }
+            // Withdrawal remains possible even when the pinned source has gone stale.
+            if previous.is_none()
+                || !matches!(&value, OrganizationControlValue::ArtifactShare { destinations, .. } if destinations.is_empty())
+            {
+                super::knowledge::validate_artifact_share(tx, &value).await?;
+            }
+        }
         OrganizationControlValue::KnowledgeProposal { reviewed, .. } => {
             ensure!(
                 *reviewed,
