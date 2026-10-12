@@ -700,6 +700,10 @@ return vim.json.encode(r)
             "edit",
             vec![path.to_str().context("non-UTF8 file path")?.into()],
         )?;
+        self.guarded_lua(
+            "if vim.w.codex_review_winbar~=nil then vim.wo.winbar=vim.w.codex_review_winbar; vim.w.codex_review_winbar=nil end; return true",
+            vec![],
+        )?;
         self.rpc(
             "nvim_set_option_value",
             vec![
@@ -770,12 +774,13 @@ return vim.json.encode(r)
             "save or checkpoint modified Neovim buffers before changing review mode"
         );
         self.command("only", vec![])?;
+        let original_winbar =
+            self.guarded_lua("return vim.w.codex_review_winbar or vim.wo.winbar", vec![])?;
+        self.open(base, true)?;
         for (index, path) in [base, owner, agent].iter().enumerate() {
-            if index == 0 {
-                self.open(path, true)?;
-            } else {
-                self.command(
-                    "vsplit",
+            if index > 0 {
+                self.guarded_lua(
+                    "local path=...; vim.api.nvim_cmd({cmd='vsplit',mods={split='rightbelow'},args={path}},{}); return true",
                     vec![path.to_str().context("non-UTF8 review path")?.into()],
                 )?;
             }
@@ -783,8 +788,8 @@ return vim.json.encode(r)
             self.rpc(
                 "nvim_exec_lua",
                 vec![
-                    "vim.bo.readonly=true; vim.bo.modifiable=false; return true".into(),
-                    Value::Array(vec![]),
+                    "local previous,label=...; vim.w.codex_review_winbar=previous; vim.wo.winbar=label; vim.bo.readonly=true; vim.bo.modifiable=false; return true".into(),
+                    Value::Array(vec![original_winbar.clone(), ["Base · captured original", "Owner · at review capture", "Agent · verified artifact"][index].into()]),
                 ],
             )?;
         }

@@ -287,3 +287,25 @@ attempts and node role assignments remain unchanged. Production CLI Clippy
 Earlier "running/prepared" entries above are chronological checkpoints; current
 remaining gates are native terminal/three-way/one-Apply, crash/fresh full restore,
 corrected final package and documentation/artifact closure.
+
+Actual Apply/recovery checkpoint: `native-workflow/apply-evidence.json` passes
+actual Neovim manual resolution/save, unsaved-buffer refusal, original-base drift
+refusal, explicit native base restoration and exactly one owner-confirmed completed
+Application. Installed signed-addition oracle passes; repeat Apply refuses.
+`recovery-evidence.json` passes one owned-daemon crash, the charged unknown/no
+replay fence even with safe recovery enabled, live-backup refusal, stopped full
+bundle/fresh remapped restore, and corrupt/omitted required-base refusal before
+creation. Original source home is now stopped/quarantined: **NEVER restart
+`/tmp/mission-native-home` or replay its grants/acceptance/Apply**. Read
+`native-workflow/workspace-quarantine.json` (14 workspaces). Fresh restore
+`/tmp/mission-restored-home` is globally paused/stopped. Final accounting:
+38 admitted/37 reported requests, 555 synthetic tokens, one unknown, zero paid.
+
+The actual three-way screenshot exposed reverse pane order/unlabeled temporary
+files. Native rightward splits plus Base/Owner/Agent window bars fix it, preserving
+the prior window-local setting when returning to an original file. The first new
+regression found that Neovim resets options during edit; capturing the setting
+before edit fixes it. `final-ui-runtime-tests-v6.log` passes runtime15 + TUI92,
+including all three actual ordered/readonly/diff panes and owner-config restoration.
+Remaining closure: final source/package/installed hashes, corrected restored
+native panes and no-replay UI, artifacts/docs/cloud draft/local commit bundle.

@@ -2949,3 +2949,16 @@ mismatches. This batch's 29 changed Rust files were formatted and checked with
 the production driver arguments; no unrelated files were rewritten or tools
 installed. Stable Rust warns that nightly `imports_granularity` is unsupported;
 that warning is not a successful whole-repository formatting claim.
+
+The native pane regression first failed owner-config restoration because edit
+resets native options; the corrected capture before edit passes in
+`final-ui-runtime-tests-v6.log` (runtime15 + UI92). `apply-evidence.json` and
+`recovery-evidence.json` pass actual native dirty/base refusal, manual save,
+one exact completed Apply, daemon crash/charged unknown/no replay, stopped full
+fresh remapped restore and required-base corruption/omission refusal. Source home
+is quarantined; use only fresh restores. Current total: 38 admitted/37 reported,
+555 synthetic tokens, one charged unknown and zero paid. Original workspace data,
+configuration and private frontend state are deliberately retained separately.
+Native failed drivers also record transient-toast/command-delivery assumptions and
+an extra terminal newline from native paste; corrected continuations preserved
+already saved edits, existing accepted results and the one-Application boundary.

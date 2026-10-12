@@ -14,7 +14,36 @@ async fn real_three_way_review_preserves_common_base_owner_and_agent_and_refuses
     editor.paste("unsaved owner change").unwrap();
     assert!(editor.three_way(&base, &owner, &agent).is_err());
     editor.rpc("nvim_command", vec!["edit!".into()]).unwrap();
+    editor
+        .rpc("nvim_command", vec!["setlocal winbar=OwnerConfig".into()])
+        .unwrap();
     editor.three_way(&base, &owner, &agent).unwrap();
+    for (index, (path, label)) in [
+        (base.clone(), "Base · captured original"),
+        (owner.clone(), "Owner · at review capture"),
+        (agent.clone(), "Agent · verified artifact"),
+    ]
+    .iter()
+    .enumerate()
+    {
+        editor
+            .command("wincmd", vec![format!("{}w", index + 1).into()])
+            .unwrap();
+        assert_eq!(
+            editor
+                .rpc("nvim_eval", vec!["expand('%:p')".into()])
+                .unwrap()
+                .as_str(),
+            path.to_str()
+        );
+        assert_eq!(
+            editor
+                .rpc("nvim_eval", vec!["&winbar".into()])
+                .unwrap()
+                .as_str(),
+            Some(*label)
+        );
+    }
     assert_eq!(
         editor
             .rpc("nvim_eval", vec!["winnr('$')".into()])
@@ -37,6 +66,13 @@ async fn real_three_way_review_preserves_common_base_owner_and_agent_and_refuses
     }
     assert_eq!(std::fs::read_to_string(&owner).unwrap(), "owner change\n");
     editor.open(&owner, false).unwrap();
+    assert_eq!(
+        editor
+            .rpc("nvim_eval", vec!["&winbar".into()])
+            .unwrap()
+            .as_str(),
+        Some("OwnerConfig")
+    );
     editor
         .rpc(
             "nvim_buf_set_lines",
