@@ -3,7 +3,8 @@ use super::*;
 use ratatui::layout::Margin;
 use ratatui::style::Modifier;
 use ratatui::text::Span;
-use ratatui::widgets::{BorderType, Gauge};
+use ratatui::widgets::BorderType;
+use ratatui::widgets::Gauge;
 
 const BACKGROUND: (u8, u8, u8) = (8, 15, 23);
 const PANEL: (u8, u8, u8) = (11, 20, 29);

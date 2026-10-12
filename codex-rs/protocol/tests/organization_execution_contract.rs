@@ -26,6 +26,7 @@ fn execution_mutation_schema_matches_owner_wire_fields_and_rejects_unknown_grant
         json!({"type":"requestChanges","taskId":"task","expectedRevision":1,"instructions":"Revise citations"}),
         json!({"type":"apply","taskId":"task","expectedRevision":1,"digest":"checked"}),
         json!({"type":"apply","taskId":"task","expectedRevision":1,"digest":"checked","paths":["report.txt"]}),
+        json!({"type":"apply","taskId":"task","expectedRevision":1,"digest":"checked","paths":["report.txt"],"hunks":[{"path":"report.txt","patchSha256":"patch","indices":[0],"outputSha256":"output"}]}),
     ] {
         let mutation: OrganizationExecutionMutation = serde_json::from_value(example).unwrap();
         assert_eq!(mutation.task_id(), "task");
@@ -62,15 +63,21 @@ fn execution_mutation_schema_matches_owner_wire_fields_and_rejects_unknown_grant
             required.is_subset(&present),
             "wire omits a required schema field"
         );
-        if wire["type"] != "apply" || wire.get("paths").is_some() {
-            assert_eq!(allowed, present);
+        let omitted = if wire["type"] == "apply" {
+            for optional in ["hunks", "paths"] {
+                assert!(!required.contains(optional));
+            }
+            ["hunks", "paths"]
+                .into_iter()
+                .filter(|field| wire.get(*field).is_none())
+                .collect::<Vec<_>>()
         } else {
-            assert_eq!(
-                allowed.difference(&present).copied().collect::<Vec<_>>(),
-                ["paths"]
-            );
-            assert!(!required.contains("paths"));
-        }
+            Vec::new()
+        };
+        assert_eq!(
+            allowed.difference(&present).copied().collect::<Vec<_>>(),
+            omitted
+        );
     }
     let mut expanded = authorization.clone();
     expanded["scope"]["administrator"] = json!(true);
@@ -84,6 +91,8 @@ fn execution_mutation_schema_matches_owner_wire_fields_and_rejects_unknown_grant
 fn coordination_wire_matches_schema_without_agent_authority_fields() {
     let schema = serde_json::to_value(schemars::schema_for!(OrganizationCoordinationCall)).unwrap();
     for example in [
+        json!({"type":"readyDelegates"}),
+        json!({"type":"context","query":"permitted source"}),
         json!({"type":"checkpoint","content":{"completedSteps":["Prepared"],"remainingSteps":["Check"],"blocker":"Owner decision"}}),
         json!({"type":"wait","taskIds":["child"]}),
         json!({"type":"proposePlan","items":[{"key":"one","ownerId":"named-agent","instructions":"Check","criteria":["Checked"],"prerequisites":[]}]}),

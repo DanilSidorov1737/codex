@@ -10,19 +10,48 @@ application/editor testing. No new paid inference or external integration is in
 scope. Existing qualified homes/accounting/packages/Apply receipts stay protected.
 The complete previous hierarchy checkpoint below is historical evidence.
 
-Current checkpoint: formatter regression passes; tasks 1–5 source changes pass
-83 affected TUI/actual official-Neovim tests (`mission-batch/ui-tests-v6.log`).
-Mission/coordination source changes pass all 322 state tests; reviewed rollback and common-base bundle tests also pass. The corrected UI slice passes 92 affected tests, including real native terminal
-commands, captured tests, three-way diffs/dirty refusal/owner resolution and
-preview/advice bounds. Required-versus-legacy base-snapshot backup/restore refusal now passes the full
-322-test state suite. Final protocol/contracts/runtime/production and physical
-qualification remain. The first native named-view confirmation failed; its
-local routing fix and real-key regression need a corrected package walkthrough.
-The remaining workflow/knowledge/editor/resource items and full qualification
-are pending. Continue all 25; this is not final qualification. A fresh paused
-definition-only copy is prepared at `/tmp/mission-ui-home` for new physical checks;
-its historical source stays stopped/untouched. Never replay its forthcoming
-mutations once passing receipts exist. No new inference or installations occurred.
+Current source checkpoints: `def0cdfa77` mission/evidence/coordination,
+`3d4374ebe9` workflow/artifact/editor/advice UI and `c29de75575` required-base
+recovery/generated contracts. All 25 items have bounded source implementations;
+final physical qualification is still in progress. Full state322/protocol375/
+schema4/SDK25 and formatter1 checks pass. The final affected suite passed
+15 app-server + 92 TUI/actual-Neovim tests; production CLI Clippy now passes
+`-D warnings` after removing redundant clones/match/nested-if lint findings.
+A rerun of the affected suite covers those lint-only changes.
+
+Actual corrected package source `c29de75575`, version
+`0.0.0-mission.preview1.c29de75575`, CLI SHA256
+`96f3b09c1791c4655c8ea2b2b5776720e46b8161ce8348110e30a033e8a3b325`.
+All five assets are hashed. Fresh UI qualification passes one guided agent
+proposal/exact application, a saved/restored named view and 36 rapid layout
+switches at three sizes, normal CLI exit0 and zero model usage. Its historical
+source remains unchanged. Never rerun the passing UI driver.
+
+Fresh mission qualification passes actual coding plus independent review with
+separate action approvals/owner acceptance, scoped private lesson/context,
+ready/delegate/wait under the original shared grant, repeated-read blocker,
+assistance resolution without replay, immutable role/template rollback and exact
+owner goal evidence. The **1846.319-second detached run passes**: seven bounded
+scheduled documents each completed an actual immutable check while the TUI was
+closed. Current total: 37 localhost requests/555 synthetic tokens/zero paid,
+zero unknown requests. Root acceptance and Apply remain owner-only.
+
+Next: finish actual native terminal/library/three-way/dirty/base/one-Apply checks,
+crash/no-replay and fresh full restore, final corrected package verification,
+wire-contract/formatting checks, screenshot archive, docs and logical commits.
+Evidence root: `/workspace/.onboarding/qualification/mission-batch/`.
+Only fresh `/tmp/mission-ui-home` and `/tmp/mission-native-home` services are
+owned by this batch. Preserve all receipts/counters; never replay completed
+setup/grants/acceptance/Apply. `terminal.py` launches official Neovim on import.
+
+Retained failures are distinct from passing checks: generated build variants
+exhausted available disk; obsolete fixture CLI aliases/cwd/tool calls and native
+selection/confirmation helpers failed. Corrections used canonical saved state
+and did not replay mutations. Only generated owned cache artifacts were pruned;
+qualified packages, fixture homes, protected state and user files stay retained.
+`generated-cache-rebuild-reset.json` records path/size inventory hashes, not
+content hashes. Some reused failure screenshot names overwrote earlier captures;
+remaining failure captures are preserved. No paid calls or installations ran.
 
 ## Latest delivery: hierarchy/autonomy batch complete
 
@@ -80,8 +109,7 @@ bundle and current package. SHA-verified temporary relocations of inactive build
 caches/older releases may not survive a fresh cloud task; do not delete protected
 fixtures or assume those caches remain available.
 
-Latest cloud startup guidance is saved and read-back verified as draft revision
-17. Only `start_skill` changed; installation, repositories, network,
+Latest cloud startup guidance is saved and read-back verified as draft revision 17. Only `start_skill` changed; installation, repositories, network,
 credentials and runtime requirements remain unchanged. Review/save environment
 settings and publish to activate this snapshot. Publication/fresh-task restoration
 was not performed here; `final-cloud-draft.json` records backend persistence.
@@ -549,14 +577,15 @@ with visible `matchedCount`. No dependency/migration/embeddings/automatic promot
 
 **691 distinct automated tests passed**: protocol 370, state 260, schema comparisons
 4, Python contracts 25, native API 5, native TUI/actual-Neovim 26 and owner-origin
+
 1. Production library/CLI Clippy with warnings denied, affected formatting and the
-complete CLI/package passed. Actual packaged CLI/TUI created two custom agents,
-two projects and four bounded tasks. The writer explicitly stored shared/private
-notes, passed its immutable report check and exact native approval, and was accepted.
-After real daemon stop/start, three new tasks retrieved shared/private notes only
-within their own scopes. Correct source IDs survived; other-agent private and
-other-project notes were excluded. All four independent report oracles passed.
-Remote TCP WebSocket owner searches were denied for both scopes.
+   complete CLI/package passed. Actual packaged CLI/TUI created two custom agents,
+   two projects and four bounded tasks. The writer explicitly stored shared/private
+   notes, passed its immutable report check and exact native approval, and was accepted.
+   After real daemon stop/start, three new tasks retrieved shared/private notes only
+   within their own scopes. Correct source IDs survived; other-agent private and
+   other-project notes were excluded. All four independent report oracles passed.
+   Remote TCP WebSocket owner searches were denied for both scopes.
 
 Physical Unicode search, empty browse, no-match, query cancel/refresh, real Neovim
 host-focus guards and **36 rapid layout switches at 120×36, 50×20 and 160×48**

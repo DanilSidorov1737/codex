@@ -704,7 +704,8 @@ fn read_bounded_file(file: File) -> Result<Vec<u8>> {
 // between validation and host copying. Reuse libc; no filesystem framework.
 #[cfg(unix)]
 fn relative_parent(root: &Path, relative: &str, create: bool) -> Result<(File, std::ffi::CString)> {
-    use std::os::fd::{AsRawFd, FromRawFd};
+    use std::os::fd::AsRawFd;
+    use std::os::fd::FromRawFd;
     use std::os::unix::ffi::OsStrExt;
     use std::os::unix::fs::OpenOptionsExt;
     let mut parts = Path::new(relative).components().peekable();
@@ -762,7 +763,8 @@ fn read_relative(root: &Path, relative: &str) -> Result<Vec<u8>> {
 
 #[cfg(unix)]
 fn file_at(parent: &File, name: &std::ffi::CStr) -> Result<File> {
-    use std::os::fd::{AsRawFd, FromRawFd};
+    use std::os::fd::AsRawFd;
+    use std::os::fd::FromRawFd;
     // SAFETY: descriptors and CString are live; returned descriptor is owned.
     let fd = unsafe {
         libc::openat(
@@ -790,7 +792,8 @@ fn write_relative_checked(
     bytes: &[u8],
     expected: Option<Option<&str>>,
 ) -> Result<()> {
-    use std::os::fd::{AsRawFd, FromRawFd};
+    use std::os::fd::AsRawFd;
+    use std::os::fd::FromRawFd;
     let (parent, name) = relative_parent(root, relative, true)?;
     let base_at = || -> Result<Option<(String, std::fs::Permissions)>> {
         match file_at(&parent, &name) {

@@ -1,11 +1,14 @@
 //! Owner-side snapshot for Neovim: never give the editor an agent-writable path.
-use anyhow::{Context, Result, ensure};
+use anyhow::Context;
+use anyhow::Result;
+use anyhow::ensure;
 use codex_app_server_protocol::OrganizationArtifactEvidence;
-use sha2::{Digest, Sha256};
-use std::{
-    io::{Read, Write},
-    path::{Path, PathBuf},
-};
+use sha2::Digest;
+use sha2::Sha256;
+use std::io::Read;
+use std::io::Write;
+use std::path::Path;
+use std::path::PathBuf;
 
 pub(crate) struct Preview {
     directory: tempfile::TempDir,

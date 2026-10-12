@@ -1,15 +1,20 @@
 //! Transactional, fenced agent coordination. No agent-provided grant fields.
 
 use super::OrganizationStore;
-use super::definitions::{text, validate_criteria};
+use super::definitions::text;
+use super::definitions::validate_criteria;
 use super::execution::*;
-use anyhow::{Context, Result, ensure};
+use anyhow::Context;
+use anyhow::Result;
+use anyhow::ensure;
 use codex_protocol::organization::*;
 use codex_protocol::organization_coordination::*;
 use codex_protocol::organization_execution::*;
 use serde_json::Value;
-use sqlx::{Sqlite, Transaction};
-use std::collections::{BTreeMap, HashSet};
+use sqlx::Sqlite;
+use sqlx::Transaction;
+use std::collections::BTreeMap;
+use std::collections::HashSet;
 use uuid::Uuid;
 
 /// Host treats repeated identical reads as a blocker, preserving verified files

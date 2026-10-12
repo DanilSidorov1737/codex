@@ -3,25 +3,42 @@
 
 use anyhow::Context;
 use std::borrow::Cow;
-use std::collections::{BTreeMap, BTreeSet};
-use std::io::{Read, Write};
-use std::path::{Path, PathBuf};
+use std::collections::BTreeMap;
+use std::collections::BTreeSet;
+use std::io::Read;
+use std::io::Write;
+use std::path::Path;
+use std::path::PathBuf;
 use std::time::Duration;
 
 use codex_app_server_client::AppServerRequestHandle;
 use codex_app_server_protocol::*;
-use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
+use crossterm::event::KeyCode;
+use crossterm::event::KeyEvent;
+use crossterm::event::KeyEventKind;
 use ratatui::buffer::Buffer;
-use ratatui::layout::{Constraint, Direction, Layout, Rect};
-use ratatui::style::{Color, Style};
+use ratatui::layout::Constraint;
+use ratatui::layout::Direction;
+use ratatui::layout::Layout;
+use ratatui::layout::Rect;
+use ratatui::style::Color;
+use ratatui::style::Style;
 use ratatui::text::Line;
-use ratatui::widgets::{Block, Borders, Clear, Paragraph, Widget, Wrap};
-use serde::{Deserialize, Serialize};
+use ratatui::widgets::Block;
+use ratatui::widgets::Borders;
+use ratatui::widgets::Clear;
+use ratatui::widgets::Paragraph;
+use ratatui::widgets::Widget;
+use ratatui::widgets::Wrap;
+use serde::Deserialize;
+use serde::Serialize;
 use tokio::sync::mpsc;
 
 use crate::organization_editor::Editor;
 use crate::organization_preview::Preview;
-use crate::tui::{FrameRequester, Tui, TuiEvent};
+use crate::tui::FrameRequester;
+use crate::tui::Tui;
+use crate::tui::TuiEvent;
 
 #[path = "organization_artifacts.rs"]
 mod artifacts;
@@ -347,9 +364,36 @@ async fn load(
             )
         {
             if let Some(cached) = cache.as_ref() {
-                records.extend(cached.records.iter().filter(|r|match (kind,r) {
-                    (OrganizationRecordKind::Nodes,OrganizationRecord::Node(_))|(OrganizationRecordKind::Roles,OrganizationRecord::Role(_))|(OrganizationRecordKind::Goals,OrganizationRecord::Goal(_))|(OrganizationRecordKind::Projects,OrganizationRecord::Project(_))|(OrganizationRecordKind::Memberships,OrganizationRecord::Membership(_))|(OrganizationRecordKind::Presets,OrganizationRecord::Preset(_))|(OrganizationRecordKind::Controls,OrganizationRecord::Control(_))=>true,_=>false,
-                }).cloned());
+                records.extend(
+                    cached
+                        .records
+                        .iter()
+                        .filter(|r| {
+                            matches!(
+                                (kind, r),
+                                (OrganizationRecordKind::Nodes, OrganizationRecord::Node(_))
+                                    | (OrganizationRecordKind::Roles, OrganizationRecord::Role(_))
+                                    | (OrganizationRecordKind::Goals, OrganizationRecord::Goal(_))
+                                    | (
+                                        OrganizationRecordKind::Projects,
+                                        OrganizationRecord::Project(_)
+                                    )
+                                    | (
+                                        OrganizationRecordKind::Memberships,
+                                        OrganizationRecord::Membership(_)
+                                    )
+                                    | (
+                                        OrganizationRecordKind::Presets,
+                                        OrganizationRecord::Preset(_)
+                                    )
+                                    | (
+                                        OrganizationRecordKind::Controls,
+                                        OrganizationRecord::Control(_)
+                                    )
+                            )
+                        })
+                        .cloned(),
+                );
             }
             continue;
         }
@@ -1177,7 +1221,8 @@ impl Dashboard {
                 !self.applying,
                 "Application outcome pending; editor actions wait for reconciliation"
             );
-            use sha2::{Digest, Sha256};
+            use sha2::Digest;
+            use sha2::Sha256;
             let view = self
                 .detail
                 .as_ref()
@@ -1270,7 +1315,8 @@ impl Dashboard {
                 !self.applying,
                 "Application outcome pending; editor actions wait for reconciliation"
             );
-            use sha2::{Digest, Sha256};
+            use sha2::Digest;
+            use sha2::Sha256;
             let view = self
                 .detail
                 .as_ref()
@@ -4643,7 +4689,8 @@ impl Dashboard {
                     && self.input.is_none()
                     && self.report_text.is_none() =>
             {
-                use crossterm::event::{MouseButton, MouseEventKind};
+                use crossterm::event::MouseButton;
+                use crossterm::event::MouseEventKind;
                 match mouse.kind {
                     MouseEventKind::Down(MouseButton::Left) => {
                         let position = ratatui::layout::Position::new(mouse.column, mouse.row);

@@ -1675,7 +1675,8 @@ async fn stall_health_exempts_approval_waits_and_fences_uncertain_effects_withou
 #[tokio::test]
 async fn full_bundle_restores_evidence_runtime_paths_and_uncertain_accounting_without_credentials()
 -> Result<()> {
-    use sha2::{Digest, Sha256};
+    use sha2::Digest;
+    use sha2::Sha256;
     let home = Fixture::new();
     let bundle = Fixture::new();
     let destination = Fixture::new();

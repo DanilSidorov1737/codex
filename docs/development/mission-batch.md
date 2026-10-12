@@ -6,33 +6,33 @@ Use Ponytail implementation/review, logical local commits, continuous docs,
 meaningful automated tests and actual CLI/TUI/official Neovim interactions.
 Complete every independent item; source checkpoints do not close qualification.
 
-| Task | Bounded implementation and acceptance |
-| --- | --- |
-| 1 | Readable Operations cards: responsive widths, full selected names, clearer states; keyboard/mouse and small terminals still work. |
-| 2 | Guided team forms: create/move/rename/retire through fields using the existing exact atomic proposal/application transaction; no JSON required for ordinary edits. |
-| 3 | Cross-team relationships: expose configured memberships alongside the primary tree without granting authority or imposing hierarchy levels. |
-| 4 | Named views: privately save bounded named layout/pane/filter/focus/selection settings; restore validates current identities and starts no work. |
-| 5 | Incremental loading: reuse unchanged definition snapshots, show finite pagination explicitly, refresh changed records and fetch additional pages on demand; no silent completeness claims. |
-| 6 | Workspace mission: owner-versioned purpose/priorities/constraints persist; narrative context never replaces existing enforced grants or protected controls. |
-| 7 | Optional playbooks: editable research/coding/audit/knowledge workflows using existing templates and arbitrary configured owners; no mandatory roles or automatic runs. |
-| 8 | Guided planning flow: connect accepted-outcome proposals, editable workflow review, exact scopes/run and result evidence with existing handlers. |
-| 9 | Bounded supervisor delegation: select ready proposed work/approved workers within original root paths, delegates, deadline and aggregate budget; existing actual tool approvals and unknown fences remain. |
-| 10 | Goal evidence: exact accepted result references per criterion, owner explanation and reviewed completion; stale/unchecked/missing criteria refuse completion. |
-| 11 | Independent reviewer playbook: separate configured owner/steps and permitted artifacts/checks, dissent retained; reviewers cannot accept roots or expand authority. |
-| 12 | Blocker escalation: durable responsible-agent/human requests with exact task/reason/requested action; resolution does not authorize/replay execution. |
-| 13 | Duplicate-work advice: surface exact existing/accepted overlaps before proposal/run; owner decides, no semantic or completeness guarantees. |
-| 14 | Waste prevention: detect repeated identical calls without new evidence, preserve checkpoints and stop/escalate within existing host fences; unknown effects never retry. |
-| 15 | Lessons: accepted results seed scoped evidence-linked knowledge proposals for explicit review, no automatic private promotion. |
-| 16 | Freshness advice: scoped stale/duplicate/conflicting-note review suggestions preserve originals/history; no automatic retirement or disclosure. |
-| 17 | Context selection: bounded permitted note/artifact references with provenance, no extra paths/permissions; existing lexical search before new dependencies. |
-| 18 | Artifact library: browse/search captured outputs by task/project/owner/version/check status; trusted paths only. |
-| 19 | Text/data previews: bounded safe Markdown/plain-text/CSV preview with captured evidence; official Neovim remains the editor. |
-| 20 | Native terminal/test panel: reuse actual Neovim terminal/PTY and existing captured test output; owner commands separate from agent sandbox authority. |
-| 21 | Three-way review: base/owner/agent versions visible with original/dirty guards, owner resolves in real Neovim; no silent merge/overwrite or automatic Apply. |
-| 22 | Configuration rollback: exact reviewed prior role/template version, new immutable history, running captures preserved; no counter or grant reset. |
-| 23 | Model recommendations: configured compatible model/captured-evidence advice only; missing quality/cost unavailable, no silent provider/model fallback. |
-| 24 | Resource preview: finite proposed request/time/token demand, shared remaining limits and labeled trusted quote estimates before authorization; no invoice or monetary hard-cap claim. |
-| 25 | Qualification: fix the known formatter mismatch, affected suites/build/contracts/Clippy, actual CLI/TUI/official-Neovim and fresh finite 30-minute background/crash/restore/denial checks. Retain failures/accounting/originals/screenshots and evidence. |
+| Task | Bounded implementation and acceptance                                                                                                                                                                                                                     |
+| ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1    | Readable Operations cards: responsive widths, full selected names, clearer states; keyboard/mouse and small terminals still work.                                                                                                                         |
+| 2    | Guided team forms: create/move/rename/retire through fields using the existing exact atomic proposal/application transaction; no JSON required for ordinary edits.                                                                                        |
+| 3    | Cross-team relationships: expose configured memberships alongside the primary tree without granting authority or imposing hierarchy levels.                                                                                                               |
+| 4    | Named views: privately save bounded named layout/pane/filter/focus/selection settings; restore validates current identities and starts no work.                                                                                                           |
+| 5    | Incremental loading: reuse unchanged definition snapshots, show finite pagination explicitly, refresh changed records and fetch additional pages on demand; no silent completeness claims.                                                                |
+| 6    | Workspace mission: owner-versioned purpose/priorities/constraints persist; narrative context never replaces existing enforced grants or protected controls.                                                                                               |
+| 7    | Optional playbooks: editable research/coding/audit/knowledge workflows using existing templates and arbitrary configured owners; no mandatory roles or automatic runs.                                                                                    |
+| 8    | Guided planning flow: connect accepted-outcome proposals, editable workflow review, exact scopes/run and result evidence with existing handlers.                                                                                                          |
+| 9    | Bounded supervisor delegation: select ready proposed work/approved workers within original root paths, delegates, deadline and aggregate budget; existing actual tool approvals and unknown fences remain.                                                |
+| 10   | Goal evidence: exact accepted result references per criterion, owner explanation and reviewed completion; stale/unchecked/missing criteria refuse completion.                                                                                             |
+| 11   | Independent reviewer playbook: separate configured owner/steps and permitted artifacts/checks, dissent retained; reviewers cannot accept roots or expand authority.                                                                                       |
+| 12   | Blocker escalation: durable responsible-agent/human requests with exact task/reason/requested action; resolution does not authorize/replay execution.                                                                                                     |
+| 13   | Duplicate-work advice: surface exact existing/accepted overlaps before proposal/run; owner decides, no semantic or completeness guarantees.                                                                                                               |
+| 14   | Waste prevention: detect repeated identical calls without new evidence, preserve checkpoints and stop/escalate within existing host fences; unknown effects never retry.                                                                                  |
+| 15   | Lessons: accepted results seed scoped evidence-linked knowledge proposals for explicit review, no automatic private promotion.                                                                                                                            |
+| 16   | Freshness advice: scoped stale/duplicate/conflicting-note review suggestions preserve originals/history; no automatic retirement or disclosure.                                                                                                           |
+| 17   | Context selection: bounded permitted note/artifact references with provenance, no extra paths/permissions; existing lexical search before new dependencies.                                                                                               |
+| 18   | Artifact library: browse/search captured outputs by task/project/owner/version/check status; trusted paths only.                                                                                                                                          |
+| 19   | Text/data previews: bounded safe Markdown/plain-text/CSV preview with captured evidence; official Neovim remains the editor.                                                                                                                              |
+| 20   | Native terminal/test panel: reuse actual Neovim terminal/PTY and existing captured test output; owner commands separate from agent sandbox authority.                                                                                                     |
+| 21   | Three-way review: base/owner/agent versions visible with original/dirty guards, owner resolves in real Neovim; no silent merge/overwrite or automatic Apply.                                                                                              |
+| 22   | Configuration rollback: exact reviewed prior role/template version, new immutable history, running captures preserved; no counter or grant reset.                                                                                                         |
+| 23   | Model recommendations: configured compatible model/captured-evidence advice only; missing quality/cost unavailable, no silent provider/model fallback.                                                                                                    |
+| 24   | Resource preview: finite proposed request/time/token demand, shared remaining limits and labeled trusted quote estimates before authorization; no invoice or monetary hard-cap claim.                                                                     |
+| 25   | Qualification: fix the known formatter mismatch, affected suites/build/contracts/Clippy, actual CLI/TUI/official-Neovim and fresh finite 30-minute background/crash/restore/denial checks. Retain failures/accounting/originals/screenshots and evidence. |
 
 ## Boundaries and reuse
 
@@ -206,3 +206,84 @@ Full state rerun passes (`final-state-tests.log`); protocol receipt is
 `final-sdk-contracts.log`. Production build/Clippy and final UI/runtime/native
 workflow qualification remain. Prepared localhost/native/background helpers have
 not started any service, fresh execution home, grant or inference.
+
+Production packaging remains in progress. The first CLI link failed with LLVM
+Bus error while only ~400 MiB remained; it is not a successful build. With no
+compiler active, an exact linker receipt identified 868 current CLI archives.
+SHA/byte receipts record pruning only unused generated archive variants, retaining
+every CLI link dependency plus qualified packages/state/source. The bounded retry
+(`final-cli-build-v2.log`) follows. Do not count staged-fixture preparation as
+physical qualification. The native helpers remain unexecuted.
+
+Actual package checkpoint: production CLI build retry and corrected packaging
+pass. Preview1 source `c29de75575`; all five assets hashed in
+`final-package-hashes.json`, CLI SHA256
+`96f3b09c1791c4655c8ea2b2b5776720e46b8161ce8348110e30a033e8a3b325`.
+The first packaging command used the wrong helper subdirectory and refused before
+staging; corrected actual paths pass. No downloads or new paid calls occurred.
+
+Actual fresh CLI/TUI pilot passes (`native-workflow/pilot.json`): guided editable
+playbook, distinct producer/reviewer, exact action approvals, actual signed-addition
+and review/dissent native oracles, separate owner acceptance, verified text
+preview and actual-Neovim captured-test panel, normal CLI exit0. Four localhost
+responses/60 synthetic tokens, zero paid; no Application yet. Retained failed
+drivers used obsolete CLI aliases, assumed a dependency state before dispatch,
+then omitted a palette helper and tried selecting accepted tasks in the action
+inbox. Continuations verified existing states and reused saved templates/runs/
+results, with no grant/approval/acceptance replay. Some repeated failure screenshot
+filenames overwrote earlier failure captures; latest remaining captures are saved.
+
+Actual corrected first-five UI walkthrough passes (`ui-native/physical.json`):
+eight-view support exercised through one saved/restored named view, one guided
+agent proposal/exact application, 36 rapid layout switches at120x36/50x20/280x80,
+normal CLI exit0, zero usage and unchanged historical source database hash. The
+new 37-node copy and its proposal/view are retained; never replay its mutation
+driver. Private accepted-result lesson retrieval/project exclusion also passes
+(`lesson-private-evidence.json`), without promotion or new execution.
+
+The finite 30-minute background series is now running in the separate fresh
+mission home; initial occurrences pass actual checks with no unknown requests.
+Full test linking twice exhausted build cache variants. Only owned compilation
+was stopped/reset: `generated-cache-rebuild-reset.json` records a path/size
+inventory hash (not content hashes) for the generated cache. All packages, homes,
+state, snapshots, counters and evidence remain intact; the current unified
+TUI/app-server suite rebuilds with `-j4` (`final-ui-runtime-tests-v3.log`). No
+passing suite is claimed for either failed build. Remaining native controls,
+background completion, production lint and crash/full-restore gates remain.
+
+Final affected runtime/UI rerun passes **15 app-server + 92 TUI/actual-Neovim
+tests** (`final-ui-runtime-tests-v3.log`). These include exact-action/Code Mode/
+active-limit/heartbeat fences, all protected workspace/base/checkpoint/hunk paths,
+provider redaction, owner network denial and serving-process resource evidence.
+
+Additional actual native evidence passes: `delegate-qualification.json` records
+ready-discovery/delegate/wait, one checked accepted child under the original root
+pool (7 shared requests/105 synthetic tokens), with root acceptance separate.
+`loop-qualification.json` records the ninth identical inbox read creating a verified
+blocker checkpoint and stopping, retaining 9 reported/charged requests/135 tokens.
+`native-assistance-evidence.json` resolves exact durable team assistance without
+changing task/grant/checkpoint/accounting or restarting it. Scoped context uses
+the actual organization tool and a native oracle (`context-qualification.json`);
+private source lookup succeeds only for its author, while public/other-agent
+searches remain empty. Three additional responses/45 synthetic tokens, zero paid.
+The owned fixture provider restarted only while no model request was active,
+retaining its prior ordinal counter/log and 40-request ceiling.
+
+The finite background series remains active; no unknown requests have been
+created. The first status-read helper was obsolete but series creation succeeded
+once; continuation recovered its canonical series and never replayed creation.
+Normal daemon version reads now supply evidence. Role/template rollback and exact
+owner goal completion are being qualified through the actual CLI; remaining
+Neovim/Apply/crash/restore/production-lint gates are still pending.
+
+Latest qualification update: `background-complete.json` passes seven distinct
+scheduled document checks over **1846.319 seconds** without the TUI. Global
+accounting is 37 admitted/reported localhost requests, 555 synthetic tokens and
+zero unknowns/paid calls. `owner-controls-evidence.json` passes exact role rollback
+into a fresh version3, exact captured-run template rollback into revision4, and
+reviewed goal completion with two exact accepted criterion results; prior runs,
+attempts and node role assignments remain unchanged. Production CLI Clippy
+`final-cli-clippy-v4.log` passes `-D warnings` after lint-only corrections.
+Earlier "running/prepared" entries above are chronological checkpoints; current
+remaining gates are native terminal/three-way/one-Apply, crash/fresh full restore,
+corrected final package and documentation/artifact closure.

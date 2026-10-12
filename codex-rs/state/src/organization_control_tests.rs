@@ -1,7 +1,7 @@
 use super::*;
-use codex_protocol::organization_coordination::{
-    OrganizationCoordinationCall, OrganizationNoteScope, OrganizationPlanItem,
-};
+use codex_protocol::organization_coordination::OrganizationCoordinationCall;
+use codex_protocol::organization_coordination::OrganizationNoteScope;
+use codex_protocol::organization_coordination::OrganizationPlanItem;
 use codex_protocol::organization_workflow::OrganizationSharedCeilings;
 
 async fn set(

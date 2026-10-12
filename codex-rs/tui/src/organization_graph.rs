@@ -1,7 +1,9 @@
 //! A terminal viewport over the existing owner-defined forest; no execution authority.
 use super::*;
 use crossterm::event::KeyModifiers;
-use view::{foreground, panel, state_color};
+use view::foreground;
+use view::panel;
+use view::state_color;
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]

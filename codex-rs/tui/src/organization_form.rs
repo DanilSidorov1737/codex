@@ -1,6 +1,7 @@
 //! Fixed owner forms reuse the existing textarea and typed administration contracts.
 use super::*;
-use crate::bottom_pane::{TextArea, TextAreaState};
+use crate::bottom_pane::TextArea;
+use crate::bottom_pane::TextAreaState;
 use crossterm::event::KeyModifiers;
 use ratatui::layout::Margin;
 
@@ -378,7 +379,8 @@ mod tests {
         assert_eq!(task_id, "original-task");
         assert_eq!(digest, "pinned-result");
         assert_eq!(hunks[0].indices, vec![0]);
-        use sha2::{Digest, Sha256};
+        use sha2::Digest;
+        use sha2::Sha256;
         assert_eq!(
             hunks[0].output_sha256,
             format!(
@@ -2611,7 +2613,8 @@ impl Form {
                 result,
                 files,
             } => {
-                use sha2::{Digest, Sha256};
+                use sha2::Digest;
+                use sha2::Sha256;
                 anyhow::ensure!(result.accepted, "Accept the exact result first");
                 let mut offset = 0;
                 let mut selections = Vec::new();
@@ -3097,9 +3100,9 @@ impl Form {
                 node.role_version_id = if value(4) == "keep" {
                     original.role_version_id.clone()
                 } else {
-                    (!value(4).is_empty()).then(|| value(4).to_owned())
+                    (!value(4).is_empty()).then(|| value(4))
                 };
-                node.model = (!value(5).is_empty()).then(|| value(5).to_owned());
+                node.model = (!value(5).is_empty()).then(|| value(5));
                 Command::Definition(OrganizationMutation::SetControl {
                     expected_revision: None,
                     value: OrganizationControlValue::Team {

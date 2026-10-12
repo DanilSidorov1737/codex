@@ -2,30 +2,40 @@
 //! Deliberately one child/one grid, with bounded transport and no project config.
 
 use crate::tui::FrameRequester;
-use anyhow::{Context, Result, bail, ensure};
-use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseEvent, MouseEventKind};
-use ratatui::{
-    buffer::Buffer,
-    layout::Rect,
-    style::{Color, Modifier, Style},
-};
+use anyhow::Context;
+use anyhow::Result;
+use anyhow::bail;
+use anyhow::ensure;
+use crossterm::event::KeyCode;
+use crossterm::event::KeyEvent;
+use crossterm::event::KeyModifiers;
+use crossterm::event::MouseEvent;
+use crossterm::event::MouseEventKind;
+use ratatui::buffer::Buffer;
+use ratatui::layout::Rect;
+use ratatui::style::Color;
+use ratatui::style::Modifier;
+use ratatui::style::Style;
 use rmpv::Value;
-use std::{
-    collections::BTreeMap,
-    io::{Read, Write},
-    path::Path,
-    process::{Child, Command, Stdio},
-    sync::mpsc,
-    thread,
-    time::{Duration, Instant},
-};
+use std::collections::BTreeMap;
+use std::io::Read;
+use std::io::Write;
+use std::path::Path;
+use std::process::Child;
+use std::process::Command;
+use std::process::Stdio;
+use std::sync::mpsc;
+use std::thread;
+use std::time::Duration;
+use std::time::Instant;
 
 const MAX_MESSAGE: usize = 16 * 1024 * 1024;
 const MAX_COLUMNS: u16 = 512;
 const MAX_ROWS: u16 = 256;
 
 mod session;
-pub(crate) use session::{BufferProposal, Session};
+pub(crate) use session::BufferProposal;
+pub(crate) use session::Session;
 #[cfg(test)]
 #[path = "organization_editor/session_tests.rs"]
 mod session_tests;
@@ -623,7 +633,8 @@ return vim.json.encode(r)
             bail!("{error}");
         }
         let mut selection: Selection = serde_json::from_value(json)?;
-        use sha2::{Digest, Sha256};
+        use sha2::Digest;
+        use sha2::Sha256;
         selection.sha256 = format!("{:x}", Sha256::digest(selection.text.as_bytes()));
         Ok(selection)
     }

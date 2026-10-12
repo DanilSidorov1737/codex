@@ -20,7 +20,6 @@ The first screenshot filename was reused by the second failed driver; that first
 capture is unavailable. No physical UI pass is claimed. Updated contracts,
 production checks, actual workflow and 30-minute finite qualification remain.
 
-
 ## Mission/usability batch in progress
 
 Approved scope: [mission batch](mission-batch.md), initial `ddb67e5f32`.
@@ -47,15 +46,15 @@ Activate `. /workspace/.onboarding/activate.sh`; Cargo cwd
 actually launched for editor cases. Native IPC/sandbox cases use authorized native
 execution; denial assertions remain intact. No new dependencies were installed.
 
-| Selected check, common Cargo options above | Passed | Final log |
-| --- | --- | --- |
-| `cargo test -p codex-protocol --lib` | 374 | `autonomy-protocol-tests.log` |
-| `cargo test -p codex-state --lib` | 316 | `autonomy-state-final.log` |
-| `cargo test -p codex-tui --lib organization` | 79, including actual Neovim | `scale-limit-tui.log` |
-| `cargo test -p codex-app-server --lib organization_workspace` | 7 native workspace cases | `autonomy-workspace-tests-v2.log` |
-| `cargo test -p codex-app-server --lib runtime_resources` | 1 actual serving-process sample | `graph-resources-test.log` |
-| `cargo test -p codex-app-server-protocol --lib schema_fixtures_tests -- --skip write_schema_fixtures_from_env` | 4 contract comparisons | `autonomy-schema-*-v2.log` |
-| SDK `.venv` `python -m pytest tests/test_contract_generation.py tests/test_public_api_signatures.py` | 25 | `autonomy-sdk-contracts-final.log` |
+| Selected check, common Cargo options above                                                                     | Passed                          | Final log                          |
+| -------------------------------------------------------------------------------------------------------------- | ------------------------------- | ---------------------------------- |
+| `cargo test -p codex-protocol --lib`                                                                           | 374                             | `autonomy-protocol-tests.log`      |
+| `cargo test -p codex-state --lib`                                                                              | 316                             | `autonomy-state-final.log`         |
+| `cargo test -p codex-tui --lib organization`                                                                   | 79, including actual Neovim     | `scale-limit-tui.log`              |
+| `cargo test -p codex-app-server --lib organization_workspace`                                                  | 7 native workspace cases        | `autonomy-workspace-tests-v2.log`  |
+| `cargo test -p codex-app-server --lib runtime_resources`                                                       | 1 actual serving-process sample | `graph-resources-test.log`         |
+| `cargo test -p codex-app-server-protocol --lib schema_fixtures_tests -- --skip write_schema_fixtures_from_env` | 4 contract comparisons          | `autonomy-schema-*-v2.log`         |
+| SDK `.venv` `python -m pytest tests/test_contract_generation.py tests/test_public_api_signatures.py`           | 25                              | `autonomy-sdk-contracts-final.log` |
 
 **806 distinct selected checks pass.** Stable/experimental raw schema writers each
 run separately and are excluded from this count; generated JSON/TypeScript/
@@ -170,14 +169,14 @@ From `/workspace/codex/codex-rs`, activate
 Native IPC/editor/sandbox cases run with authorized native execution because the
 outer cloud sandbox masks protected sockets; denied behavior stays asserted.
 
-| Selected command (common Cargo options above) | Passed | Log |
-| --- | --- | --- |
-| `cargo test -p codex-state --lib` | 310, full state suite | `editor-full-state-v2.log` |
-| `cargo test -p codex-protocol --lib` | 374, full protocol suite | `editor-full-protocol-v2.log` |
-| `cargo test -p codex-tui --lib organization` | 70, including actual official Neovim | `editor-tui-refusal-tests-v2.log` |
-| `cargo test -p codex-app-server --lib organization_workspace` | 7 real workspace cases | `editor-workspace-tests.log` |
-| `cargo test -p codex-app-server-protocol --lib schema_fixtures_tests -- --skip write_schema_fixtures_from_env` | 4 comparisons | `editor-schema-comparisons.log` |
-| SDK `.venv` `python -m pytest tests/test_contract_generation.py tests/test_public_api_signatures.py` | 25 | `editor-sdk-contracts.log` |
+| Selected command (common Cargo options above)                                                                  | Passed                               | Log                               |
+| -------------------------------------------------------------------------------------------------------------- | ------------------------------------ | --------------------------------- |
+| `cargo test -p codex-state --lib`                                                                              | 310, full state suite                | `editor-full-state-v2.log`        |
+| `cargo test -p codex-protocol --lib`                                                                           | 374, full protocol suite             | `editor-full-protocol-v2.log`     |
+| `cargo test -p codex-tui --lib organization`                                                                   | 70, including actual official Neovim | `editor-tui-refusal-tests-v2.log` |
+| `cargo test -p codex-app-server --lib organization_workspace`                                                  | 7 real workspace cases               | `editor-workspace-tests.log`      |
+| `cargo test -p codex-app-server-protocol --lib schema_fixtures_tests -- --skip write_schema_fixtures_from_env` | 4 comparisons                        | `editor-schema-comparisons.log`   |
+| SDK `.venv` `python -m pytest tests/test_contract_generation.py tests/test_public_api_signatures.py`           | 25                                   | `editor-sdk-contracts.log`        |
 
 **790 distinct selected automated checks, zero failures/ignored cases.** Raw
 stable/experimental writers run separately and are excluded from that count;
@@ -273,12 +272,12 @@ Logs:
 After `. /workspace/.onboarding/activate.sh`, from `codex-rs`, with
 `CARGO_INCREMENTAL=0 RUST_MIN_STACK=8388608`:
 
-| Check | Result | Log |
-| --- | --- | --- |
-| `cargo test --locked --offline --profile dev-small -j4 -p codex-tui --lib organization` | 59 passed, 0 failed/ignored; actual official Neovim checks included; native IPC execution outside outer sandbox | `ui-tests-final.log` |
-| `cargo clippy --locked --offline --profile dev-small -j4 -p codex-cli --bin codex -- -D warnings` | passed | `ui-clippy-final.log` |
-| `cargo build --locked --offline --profile dev-small -j4 -p codex-cli --bin codex` | passed | `ui-build-final.log` |
-| `cargo fmt --all`, `git diff --check` | passed | `ui-format-final.log` / terminal result |
+| Check                                                                                             | Result                                                                                                          | Log                                     |
+| ------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
+| `cargo test --locked --offline --profile dev-small -j4 -p codex-tui --lib organization`           | 59 passed, 0 failed/ignored; actual official Neovim checks included; native IPC execution outside outer sandbox | `ui-tests-final.log`                    |
+| `cargo clippy --locked --offline --profile dev-small -j4 -p codex-cli --bin codex -- -D warnings` | passed                                                                                                          | `ui-clippy-final.log`                   |
+| `cargo build --locked --offline --profile dev-small -j4 -p codex-cli --bin codex`                 | passed                                                                                                          | `ui-build-final.log`                    |
+| `cargo fmt --all`, `git diff --check`                                                             | passed                                                                                                          | `ui-format-final.log` / terminal result |
 
 Meaningful new checks cover Unicode-bounded palette navigation/search/paste,
 cancel without dispatch, existing-handler routing, finite interval/accepted
@@ -328,16 +327,16 @@ Cargo commands run from `/workspace/codex/codex-rs` with
 `--locked --offline --profile dev-small -j4`. Evidence logs are in
 `/workspace/.onboarding/qualification/`.
 
-| Selected command (common Cargo options above) | Passed | Log |
-| --- | --- | --- |
-| `cargo test -p codex-protocol -p codex-state --lib` | 373 + 293 | `autonomy-final-libs.log` |
-| `cargo test -p codex-protocol --test organization_execution_contract` | 2 | `autonomy-final-wire.log` |
-| `cargo test -p codex-app-server-protocol --lib schema_fixtures_tests -- --skip write_schema_fixtures_from_env` | 4 | `autonomy-final-schema-check.log` |
-| `cargo test -p codex-tui --lib organization` | 52, including actual official Neovim | `autonomy-final-ui.log` |
-| `cargo test -p codex-app-server --lib organization` | 12 | `autonomy-final-runtime.log` |
-| `cargo test -p codex-app-server --test all suite::v2::organization` | 8 actual native API cases | `autonomy-final-native-api.log` |
-| `cargo test -p codex-cli --bin codex organization_service` | 1 | `autonomy-final-service-tests.log` |
-| SDK `python -m pytest tests/test_contract_generation.py tests/test_public_api_signatures.py -q` | 25 | `autonomy-final-sdk-tests.log` |
+| Selected command (common Cargo options above)                                                                  | Passed                               | Log                                |
+| -------------------------------------------------------------------------------------------------------------- | ------------------------------------ | ---------------------------------- |
+| `cargo test -p codex-protocol -p codex-state --lib`                                                            | 373 + 293                            | `autonomy-final-libs.log`          |
+| `cargo test -p codex-protocol --test organization_execution_contract`                                          | 2                                    | `autonomy-final-wire.log`          |
+| `cargo test -p codex-app-server-protocol --lib schema_fixtures_tests -- --skip write_schema_fixtures_from_env` | 4                                    | `autonomy-final-schema-check.log`  |
+| `cargo test -p codex-tui --lib organization`                                                                   | 52, including actual official Neovim | `autonomy-final-ui.log`            |
+| `cargo test -p codex-app-server --lib organization`                                                            | 12                                   | `autonomy-final-runtime.log`       |
+| `cargo test -p codex-app-server --test all suite::v2::organization`                                            | 8 actual native API cases            | `autonomy-final-native-api.log`    |
+| `cargo test -p codex-cli --bin codex organization_service`                                                     | 1                                    | `autonomy-final-service-tests.log` |
+| SDK `python -m pytest tests/test_contract_generation.py tests/test_public_api_signatures.py -q`                | 25                                   | `autonomy-final-sdk-tests.log`     |
 
 **770 distinct selected checks; zero failures.** Repetitions and schema writers
 are excluded. Complete state suite includes 65 organization cases: concurrency,
@@ -363,16 +362,16 @@ generation uses its existing activated venv so ruff is on PATH.
 Physical evidence root: `/workspace/.onboarding/qualification/autonomy-batch/`.
 These scripts are completed evidence, **not commands to rerun**:
 
-| Receipt | Actual interaction and independent outcome |
-| --- | --- |
-| `physical-v3.json`, `restart-controls.json` | Whole-run pause/refused paused approval/same-grant and attempt continuation/cancellation, shared limits, accepted prerequisites, immutable native checks, actual Neovim diff and one explicit Apply; 36 switches at three sizes and restart retain usage. |
-| `planning-final-readonly.json` | Goal creates only proposed planner work; accepted plan opens editable idle workflow; pane preferences survive restart; actual owner config/matchit/Rust LSP diagnostics/definition/native completion/fix/save/config SHA and normal exit 0. |
-| `mixed-models/{receipt,accounting}.json` | Four real OpenAI Responses requests: GPT-5.4 Mini + GPT-5.5, actual checks/acceptance, one Apply. New estimate $0.0198223; historical combined $0.3652553, below conservative $1 ceiling. |
-| `final/physical-resume-v2.json` | Five immutable checked/accepted tasks; two chained exact accepted-result follow-ups with newer prerequisite bytes; owner team promotion/correction, stale denial, live outsider membership grant/revocation; two finite recurring invocations/pause/resume/cancel; 25 skipped missed/overlapping intervals; actual silent keepalive stall; 36 switches at 120×36 / 50×20 / 160×48; exit 0. |
-| `final/unit-verify.json` | `systemd-analyze verify` exits 0 for the printed unit. Actual foreground command stays independent of the TUI and clients attach. This host has no running user manager: no logout/reboot/automatic systemd restart claim. |
-| `final/recovery-resume.json` | Actual owned foreground SIGKILL/restart retains unknown request/grant/attempt and fences replay; live backup refuses; 30-file/2,005,973-byte full bundle restores all canonical tables/reports (except generatedAt), runtime JSONLs and seven workspaces to a fresh home; original workspace paths quarantined; corrupted restore refuses before destination creation. |
-| `final/restored-review-finish.json` | Prior driver's actual official-Neovim relocated diff and exact two-file Apply retained; immutable owner-original oracle passes; frontend/backend duplicate refusal; corrected normal exit 0; another full bundle/fresh restore preserves the completed application and refuses replay without another intent/response. |
-| `final/cleanup.json` | Owned native daemons/providers are stopped; all homes, grants, usage, artifacts, bundles and failures retained. |
+| Receipt                                     | Actual interaction and independent outcome                                                                                                                                                                                                                                                                                                                                                 |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `physical-v3.json`, `restart-controls.json` | Whole-run pause/refused paused approval/same-grant and attempt continuation/cancellation, shared limits, accepted prerequisites, immutable native checks, actual Neovim diff and one explicit Apply; 36 switches at three sizes and restart retain usage.                                                                                                                                  |
+| `planning-final-readonly.json`              | Goal creates only proposed planner work; accepted plan opens editable idle workflow; pane preferences survive restart; actual owner config/matchit/Rust LSP diagnostics/definition/native completion/fix/save/config SHA and normal exit 0.                                                                                                                                                |
+| `mixed-models/{receipt,accounting}.json`    | Four real OpenAI Responses requests: GPT-5.4 Mini + GPT-5.5, actual checks/acceptance, one Apply. New estimate $0.0198223; historical combined $0.3652553, below conservative $1 ceiling.                                                                                                                                                                                                  |
+| `final/physical-resume-v2.json`             | Five immutable checked/accepted tasks; two chained exact accepted-result follow-ups with newer prerequisite bytes; owner team promotion/correction, stale denial, live outsider membership grant/revocation; two finite recurring invocations/pause/resume/cancel; 25 skipped missed/overlapping intervals; actual silent keepalive stall; 36 switches at 120×36 / 50×20 / 160×48; exit 0. |
+| `final/unit-verify.json`                    | `systemd-analyze verify` exits 0 for the printed unit. Actual foreground command stays independent of the TUI and clients attach. This host has no running user manager: no logout/reboot/automatic systemd restart claim.                                                                                                                                                                 |
+| `final/recovery-resume.json`                | Actual owned foreground SIGKILL/restart retains unknown request/grant/attempt and fences replay; live backup refuses; 30-file/2,005,973-byte full bundle restores all canonical tables/reports (except generatedAt), runtime JSONLs and seven workspaces to a fresh home; original workspace paths quarantined; corrupted restore refuses before destination creation.                     |
+| `final/restored-review-finish.json`         | Prior driver's actual official-Neovim relocated diff and exact two-file Apply retained; immutable owner-original oracle passes; frontend/backend duplicate refusal; corrected normal exit 0; another full bundle/fresh restore preserves the completed application and refuses replay without another intent/response.                                                                     |
+| `final/cleanup.json`                        | Owned native daemons/providers are stopped; all homes, grants, usage, artifacts, bundles and failures retained.                                                                                                                                                                                                                                                                            |
 
 Final deterministic provider accounting: **15 admitted / 195 reported fixture
 tokens / zero paid requests**, unchanged across crash/restores/Apply. Corrected
@@ -434,15 +433,15 @@ Activate `. /workspace/.onboarding/activate.sh`. Cargo commands run from
 `/workspace/codex/codex-rs`, with `CARGO_INCREMENTAL=0 RUST_MIN_STACK=8388608`
 and `--locked --offline --profile dev-small -j4`.
 
-| Selected check | Passed | Evidence log |
-| --- | --- | --- |
-| `cargo test -p codex-protocol -p codex-state --lib` | 373 + 277, plus one separately added workflow-descendant case = 278 state | `matrix-protocol-state.log`, `workflow-report-attribution-corrected.log` |
-| `cargo test -p codex-app-server --lib organization` | 12 | `matrix-runtime-inventory.log` |
-| `cargo test -p codex-app-server --test all suite::v2::organization` | 8 | `matrix-native-api.log` |
-| `cargo test -p codex-tui --lib organization` | 46, including actual official Neovim | `matrix-tui-neovim.log` |
-| `cargo test -p codex-app-server-protocol --lib schema_fixtures_tests -- --skip write_schema_fixtures_from_env` | 4 | `matrix-schema-comparisons.log` |
-| `cargo test -p codex-protocol --test organization_execution_contract` | 2 | `matrix-wire-contract.log` |
-| SDK `pytest tests/test_contract_generation.py tests/test_public_api_signatures.py -q` | 25 | `matrix-resume-sdk-contract.log` |
+| Selected check                                                                                                 | Passed                                                                    | Evidence log                                                             |
+| -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| `cargo test -p codex-protocol -p codex-state --lib`                                                            | 373 + 277, plus one separately added workflow-descendant case = 278 state | `matrix-protocol-state.log`, `workflow-report-attribution-corrected.log` |
+| `cargo test -p codex-app-server --lib organization`                                                            | 12                                                                        | `matrix-runtime-inventory.log`                                           |
+| `cargo test -p codex-app-server --test all suite::v2::organization`                                            | 8                                                                         | `matrix-native-api.log`                                                  |
+| `cargo test -p codex-tui --lib organization`                                                                   | 46, including actual official Neovim                                      | `matrix-tui-neovim.log`                                                  |
+| `cargo test -p codex-app-server-protocol --lib schema_fixtures_tests -- --skip write_schema_fixtures_from_env` | 4                                                                         | `matrix-schema-comparisons.log`                                          |
+| `cargo test -p codex-protocol --test organization_execution_contract`                                          | 2                                                                         | `matrix-wire-contract.log`                                               |
+| SDK `pytest tests/test_contract_generation.py tests/test_public_api_signatures.py -q`                          | 25                                                                        | `matrix-resume-sdk-contract.log`                                         |
 
 **748 distinct checks pass**; repetitions and the two explicit ignored schema
 writers are not counted. Production `cargo clippy -p codex-cli --bin codex -- -D
@@ -547,16 +546,16 @@ Logs are in
 `CARGO_INCREMENTAL=0 RUST_MIN_STACK=8388608` and
 `--locked --offline --profile dev-small -j4`.
 
-| Check | Passed | Log |
-| --- | --- | --- |
-| `cargo test -p codex-protocol -p codex-state --lib` | 373 protocol + 273 state | `handoff-state-protocol-final.log` |
-| `cargo test -p codex-state --lib organization::tests::handoff` | 5; one added recurring/workflow case plus four repeats | `handoff-state-accounting-tests.log` |
-| `cargo test -p codex-app-server --lib organization` | 11 runtime/workspace/owner-origin | `handoff-runtime-tests.log` |
-| `cargo test -p codex-app-server --test all suite::v2::organization` | 8 actual native API/sandbox | `handoff-native-api-tests.log` |
-| `cargo test -p codex-tui --lib organization` | 34 TUI/actual official-Neovim | `handoff-tui-tests.log` |
-| `cargo test -p codex-app-server-protocol --lib schema_fixtures_tests -- --skip write_schema_fixtures_from_env` | 4 contract comparisons | `handoff-schema-comparisons-current.log` |
-| `cargo test -p codex-protocol --test organization_execution_contract` | 2 wire contracts | `handoff-wire-tests-current.log` |
-| Python SDK generation/public signatures | 25 | `handoff-python-tests.log` |
+| Check                                                                                                          | Passed                                                 | Log                                      |
+| -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ | ---------------------------------------- |
+| `cargo test -p codex-protocol -p codex-state --lib`                                                            | 373 protocol + 273 state                               | `handoff-state-protocol-final.log`       |
+| `cargo test -p codex-state --lib organization::tests::handoff`                                                 | 5; one added recurring/workflow case plus four repeats | `handoff-state-accounting-tests.log`     |
+| `cargo test -p codex-app-server --lib organization`                                                            | 11 runtime/workspace/owner-origin                      | `handoff-runtime-tests.log`              |
+| `cargo test -p codex-app-server --test all suite::v2::organization`                                            | 8 actual native API/sandbox                            | `handoff-native-api-tests.log`           |
+| `cargo test -p codex-tui --lib organization`                                                                   | 34 TUI/actual official-Neovim                          | `handoff-tui-tests.log`                  |
+| `cargo test -p codex-app-server-protocol --lib schema_fixtures_tests -- --skip write_schema_fixtures_from_env` | 4 contract comparisons                                 | `handoff-schema-comparisons-current.log` |
+| `cargo test -p codex-protocol --test organization_execution_contract`                                          | 2 wire contracts                                       | `handoff-wire-tests-current.log`         |
+| Python SDK generation/public signatures                                                                        | 25                                                     | `handoff-python-tests.log`               |
 
 **731 distinct automated tests passed**; repeated cases and explicit ignored schema
 writers are not added to that total. This is the selected organization qualification
@@ -695,19 +694,19 @@ From `/workspace/codex/codex-rs`, `. /workspace/.onboarding/activate.sh`, with
 `--locked --offline --profile dev-small -j4`. Logs are in
 `/workspace/.onboarding/qualification/workflows-n3/`.
 
-| Command/target | Result | Log |
-| --- | --- | --- |
-| `cargo test -p codex-protocol -p codex-state --lib` | 372 protocol + 269 state; 0 failed/ignored | `state-protocol-tests.log` |
-| `cargo test -p codex-state --lib organization::tests::workflow` | 4 repeated scenarios with added overlapping-producer assertion; 0 failed/ignored | `state-workflow-final.log` |
-| `cargo test -p codex-app-server-protocol --lib schema_fixtures_tests -- --skip write_schema_fixtures_from_env` | 4 comparisons | `schema-comparisons.log` |
-| `cargo test -p codex-app-server --test all suite::v2::organization` | 7 native API, rerun after base fix | `native-api-tests-current.log` |
-| `cargo test -p codex-tui --lib organization` | 30 native TUI/actual official-Neovim, rerun after base fix | `native-tui-tests-current.log` |
-| `cargo test -p codex-app-server --lib request_processors::organization` | 1 owner-origin | `owner-origin-test.log` |
-| `cargo test -p codex-app-server --lib organization_workspace` | 4 native workspace, including accepted-byte/base regression | `workspace-tests-current.log` |
-| `cargo clippy -p codex-protocol -p codex-state -p codex-app-server-protocol -p codex-app-server -p codex-tui --lib -- -D warnings` | Exit 0 | `clippy-final.log` |
-| `cargo clippy -p codex-cli --bin codex -- -D warnings` | Exit 0 | `cli-clippy-current.log` |
-| `cargo fmt --check -p codex-protocol -p codex-state -p codex-app-server-protocol -p codex-app-server -p codex-tui -p codex-cli` | Exit 0; known stable-toolchain nightly imports warning | `format-check.log` |
-| `cargo build -p codex-cli --bin codex` | Complete final CLI, exit 0 | `cli-build-current.log` |
+| Command/target                                                                                                                     | Result                                                                           | Log                            |
+| ---------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- | ------------------------------ |
+| `cargo test -p codex-protocol -p codex-state --lib`                                                                                | 372 protocol + 269 state; 0 failed/ignored                                       | `state-protocol-tests.log`     |
+| `cargo test -p codex-state --lib organization::tests::workflow`                                                                    | 4 repeated scenarios with added overlapping-producer assertion; 0 failed/ignored | `state-workflow-final.log`     |
+| `cargo test -p codex-app-server-protocol --lib schema_fixtures_tests -- --skip write_schema_fixtures_from_env`                     | 4 comparisons                                                                    | `schema-comparisons.log`       |
+| `cargo test -p codex-app-server --test all suite::v2::organization`                                                                | 7 native API, rerun after base fix                                               | `native-api-tests-current.log` |
+| `cargo test -p codex-tui --lib organization`                                                                                       | 30 native TUI/actual official-Neovim, rerun after base fix                       | `native-tui-tests-current.log` |
+| `cargo test -p codex-app-server --lib request_processors::organization`                                                            | 1 owner-origin                                                                   | `owner-origin-test.log`        |
+| `cargo test -p codex-app-server --lib organization_workspace`                                                                      | 4 native workspace, including accepted-byte/base regression                      | `workspace-tests-current.log`  |
+| `cargo clippy -p codex-protocol -p codex-state -p codex-app-server-protocol -p codex-app-server -p codex-tui --lib -- -D warnings` | Exit 0                                                                           | `clippy-final.log`             |
+| `cargo clippy -p codex-cli --bin codex -- -D warnings`                                                                             | Exit 0                                                                           | `cli-clippy-current.log`       |
+| `cargo fmt --check -p codex-protocol -p codex-state -p codex-app-server-protocol -p codex-app-server -p codex-tui -p codex-cli`    | Exit 0; known stable-toolchain nightly imports warning                           | `format-check.log`             |
+| `cargo build -p codex-cli --bin codex`                                                                                             | Complete final CLI, exit 0                                                       | `cli-build-current.log`        |
 
 Python from `/workspace/codex/sdk/python`, `. .venv/bin/activate`:
 `python -m pytest tests/test_contract_generation.py tests/test_public_api_signatures.py -q`
@@ -761,17 +760,17 @@ not instructions to recreate/replay invocations**. Native Neovim terminal channe
 physically entered keys; captures render actual external-UI cells/colors. Every
 successful physical session has a native `on_exit` code 0 receipt.
 
-| Actual stage | Evidence |
-| --- | --- |
-| `launch-provider.py`, `setup.py`, `preflight.py`, `coding-start.py` | Actual CLI creates two arbitrary agents/project, saves template with zero calls, previews and atomically authorizes three fresh fixed grants; closed frontend first waits for exact approval; dependents queued |
-| `physical.py inspect`, `implement`, `verify` | Exact native approval, actual immutable checks, actual Neovim Follow; owner accepts first two to release next steps; accepted plan/math imported privately; final stays needsReview; original math remains subtraction |
-| `lifecycle.py` then `lifecycle-resume.py` | Actual stop/start preserves canonical state/no extra calls; second future-gated invocation has distinct IDs; edits do not retarget first run; duplicate/cycle/stale/reset denied; existing fresh tasks cancelled correctly |
-| `physical.py save-ui`, `run-ui` | Physically save prerequisite closure, Unicode template label, explicit common scopes, canonical read-only F6 preview and exact y confirmation; templates/runs visible; hierarchy remains Operations default |
-| `physical.py ui-first`, `ui-second` | Real approved document commands and immutable checks; second stays queued until first accepted; imports first report privately; actual Neovim diff |
-| `physical.py ui-apply`, then `ui-apply-final` | Owner accepts final result; Apply of the actual carried original base rejects a controlled edit made between steps before an intent; preserves edit; records restoration of this owned fixture; inspect canonical no-intent state and reconnect the conservatively frozen frontend, then new exact confirmation applies report once |
-| `physical.py navigation` | 36 switches across 120×36, 50×20 and 160×48; actual narrow scrolling; no duplicate request IDs/timeouts; exit 0 |
-| `remote-denial.py` | Real TCP WebSocket denies workflow list/preview/mutation before owner data/authority |
-| `verify.py`, `cleanup.py` | Independent immutable checks/hashes, SQLite quick/FK, eight unique task/grant links, fixed counters, canonical states and all package files; stop only owned services, remove PID record, preserve state |
+| Actual stage                                                        | Evidence                                                                                                                                                                                                                                                                                                                            |
+| ------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `launch-provider.py`, `setup.py`, `preflight.py`, `coding-start.py` | Actual CLI creates two arbitrary agents/project, saves template with zero calls, previews and atomically authorizes three fresh fixed grants; closed frontend first waits for exact approval; dependents queued                                                                                                                     |
+| `physical.py inspect`, `implement`, `verify`                        | Exact native approval, actual immutable checks, actual Neovim Follow; owner accepts first two to release next steps; accepted plan/math imported privately; final stays needsReview; original math remains subtraction                                                                                                              |
+| `lifecycle.py` then `lifecycle-resume.py`                           | Actual stop/start preserves canonical state/no extra calls; second future-gated invocation has distinct IDs; edits do not retarget first run; duplicate/cycle/stale/reset denied; existing fresh tasks cancelled correctly                                                                                                          |
+| `physical.py save-ui`, `run-ui`                                     | Physically save prerequisite closure, Unicode template label, explicit common scopes, canonical read-only F6 preview and exact y confirmation; templates/runs visible; hierarchy remains Operations default                                                                                                                         |
+| `physical.py ui-first`, `ui-second`                                 | Real approved document commands and immutable checks; second stays queued until first accepted; imports first report privately; actual Neovim diff                                                                                                                                                                                  |
+| `physical.py ui-apply`, then `ui-apply-final`                       | Owner accepts final result; Apply of the actual carried original base rejects a controlled edit made between steps before an intent; preserves edit; records restoration of this owned fixture; inspect canonical no-intent state and reconnect the conservatively frozen frontend, then new exact confirmation applies report once |
+| `physical.py navigation`                                            | 36 switches across 120×36, 50×20 and 160×48; actual narrow scrolling; no duplicate request IDs/timeouts; exit 0                                                                                                                                                                                                                     |
+| `remote-denial.py`                                                  | Real TCP WebSocket denies workflow list/preview/mutation before owner data/authority                                                                                                                                                                                                                                                |
+| `verify.py`, `cleanup.py`                                           | Independent immutable checks/hashes, SQLite quick/FK, eight unique task/grant links, fixed counters, canonical states and all package files; stop only owned services, remove PID record, preserve state                                                                                                                            |
 
 `verification.json` proves three runs/eight tasks: coding accepted/accepted/needsReview
 (no Apply), UI accepted/accepted with one Completed `paths=["report.txt"]` receipt,
@@ -852,17 +851,17 @@ From `/workspace/codex/codex-rs`, `. /workspace/.onboarding/activate.sh`, with
 `CARGO_INCREMENTAL=0 RUST_MIN_STACK=8388608` and test/Clippy/build flags
 `--locked --offline --profile dev-small -j4`:
 
-| Command/target | Completed result | Log in `recurring-schedules-n2/testlogs/` |
-| --- | --- | --- |
-| `cargo test -p codex-protocol -p codex-state --lib` | 371 protocol + 265 state; 0 failed/ignored | `recurring-state-protocol-current.log` |
-| `cargo test -p codex-app-server-protocol --lib schema_fixtures_tests -- --skip write_schema_fixtures_from_env` | 4 comparisons; 0 failed/ignored | `recurring-schema-comparisons.log` |
-| `cargo test -p codex-app-server --test all suite::v2::organization -- --nocapture` | 6 native API; 0 failed/ignored | `recurring-native-api.log` |
-| `cargo test -p codex-tui --lib organization -- --nocapture` | 28 native TUI/official-Neovim; 0 failed/ignored | `recurring-native-tui-current.log` |
-| `cargo test -p codex-app-server --lib request_processors::organization` | 1 owner-origin; 0 failed/ignored | `recurring-owner-origin.log` |
-| `cargo clippy -p codex-protocol -p codex-state -p codex-app-server-protocol -p codex-app-server -p codex-tui --lib -- -D warnings` | Exit 0 | `recurring-clippy-current.log` |
-| `cargo clippy -p codex-cli --bin codex -- -D warnings` | Exit 0 | `recurring-cli-clippy.log` |
-| `cargo fmt --check -p codex-protocol -p codex-state -p codex-app-server-protocol -p codex-app-server -p codex-tui -p codex-cli` | Exit 0 | `recurring-format-check.log` |
-| `cargo build -p codex-cli --bin codex` | Complete CLI, exit 0 | `recurring-cli-build.log` |
+| Command/target                                                                                                                     | Completed result                                | Log in `recurring-schedules-n2/testlogs/` |
+| ---------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- | ----------------------------------------- |
+| `cargo test -p codex-protocol -p codex-state --lib`                                                                                | 371 protocol + 265 state; 0 failed/ignored      | `recurring-state-protocol-current.log`    |
+| `cargo test -p codex-app-server-protocol --lib schema_fixtures_tests -- --skip write_schema_fixtures_from_env`                     | 4 comparisons; 0 failed/ignored                 | `recurring-schema-comparisons.log`        |
+| `cargo test -p codex-app-server --test all suite::v2::organization -- --nocapture`                                                 | 6 native API; 0 failed/ignored                  | `recurring-native-api.log`                |
+| `cargo test -p codex-tui --lib organization -- --nocapture`                                                                        | 28 native TUI/official-Neovim; 0 failed/ignored | `recurring-native-tui-current.log`        |
+| `cargo test -p codex-app-server --lib request_processors::organization`                                                            | 1 owner-origin; 0 failed/ignored                | `recurring-owner-origin.log`              |
+| `cargo clippy -p codex-protocol -p codex-state -p codex-app-server-protocol -p codex-app-server -p codex-tui --lib -- -D warnings` | Exit 0                                          | `recurring-clippy-current.log`            |
+| `cargo clippy -p codex-cli --bin codex -- -D warnings`                                                                             | Exit 0                                          | `recurring-cli-clippy.log`                |
+| `cargo fmt --check -p codex-protocol -p codex-state -p codex-app-server-protocol -p codex-app-server -p codex-tui -p codex-cli`    | Exit 0                                          | `recurring-format-check.log`              |
+| `cargo build -p codex-cli --bin codex`                                                                                             | Complete CLI, exit 0                            | `recurring-cli-build.log`                 |
 
 Python from `/workspace/codex/sdk/python`, `. .venv/bin/activate`:
 `python -m pytest tests/test_contract_generation.py tests/test_public_api_signatures.py -q`
@@ -922,23 +921,23 @@ Commands below ran with `. /workspace/.onboarding/activate.sh` from the evidence
 directory using native execution, with logs redirected to the matching files.
 **They are single-use evidence, not instructions to replay the fixtures.**
 
-| Actual command | Outcome / receipt |
-| --- | --- |
-| `python3 launch-provider.py`; `python3 setup.py`; `python3 preflight.py` | Owned provider/complete daemon and proposed source only; zero inference before creation; five installed hashes match |
-| `python3 physical.py create` | Physically entered 20 fields, F6, paged exact scope/aggregate confirmation, y; first start +150 seconds, interval 60, maxRuns 2; default Operations tree/upcoming panel; exit 0 |
-| `python3 lifecycle.py background-first` | Frontend closed; first task waitingApproval; next due time skipped, one response and no report before native approval |
-| `python3 physical.py approve-first-pause` | Exact command approval, native oracle exit 0, needsReview; p/y paused the series; exit 0 |
-| `python3 lifecycle.py restart-paused` | Waited past a due time while paused; actual stop/start changed PID and preserved the complete schedule view/identities/counters |
-| `python3 physical.py resume`; `python3 lifecycle.py background-second` | u/y skipped overdue time, future start only; exit 0 then fresh second task with frontend closed; issuance cap reached |
-| `python3 physical.py approve-second-review` | Exact second approval and native oracle passed; later Follow harness assertion failed after layout switch selected the source instead of the occurrence; failed receipt retained |
-| `python3 physical.py review-existing` | Explicit Workspace selection of the already-completed occurrence, actual official Neovim Follow/Ctrl-G, 36 rapid switches at 120×36/50×20/160×48, actual PageDown to counters; exit 0; provider count unchanged at 4 |
-| `python3 lifecycle.py create-cancel`; `python3 physical.py cancel` | Fresh pending native action, x/y cancelled task/series, revoked grant and superseded approval before dispatch; exit 0 |
-| `python3 lifecycle.py create-budget` | One aggregate request allowed despite per-run ceiling 4; actual preauthorized local command completed, follow-up inference denied, failed task and completed series, no extra occurrence |
-| `python3 lifecycle.py create-restart` | Graceful stop failed current task/superseded approval; helper incorrectly expected forced-crash reconciliation and failed; one distinct fresh future occurrence issued; owner cancelled it with freshly read revision |
-| `python3 crash-recovery.py` | Verified owned daemon PID/identity/start time, actual SIGKILL, new PID, blocked series/needsReconciliation; helper then incorrectly expected pending approval to be superseded immediately; failed log retained |
-| `python3 finish-crash-check.py` | Existing crashed state only: inactive runtime/zero lease, exact late approval denied (RPC -32602), no new occurrence/request over another interval; owner cancel finally revoked/superseded; corrected exit 0 |
-| `python3 remote-denial.py` | Real TCP WebSocket schedule list/mutate both denied -32600 before returning owner data/authority; own remote server stopped |
-| `python3 verify.py`; `python3 cleanup.py` | Independent read-only verification passed, actual owned daemon/provider stopped, PID record removed, state/evidence preserved |
+| Actual command                                                           | Outcome / receipt                                                                                                                                                                                                     |
+| ------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `python3 launch-provider.py`; `python3 setup.py`; `python3 preflight.py` | Owned provider/complete daemon and proposed source only; zero inference before creation; five installed hashes match                                                                                                  |
+| `python3 physical.py create`                                             | Physically entered 20 fields, F6, paged exact scope/aggregate confirmation, y; first start +150 seconds, interval 60, maxRuns 2; default Operations tree/upcoming panel; exit 0                                       |
+| `python3 lifecycle.py background-first`                                  | Frontend closed; first task waitingApproval; next due time skipped, one response and no report before native approval                                                                                                 |
+| `python3 physical.py approve-first-pause`                                | Exact command approval, native oracle exit 0, needsReview; p/y paused the series; exit 0                                                                                                                              |
+| `python3 lifecycle.py restart-paused`                                    | Waited past a due time while paused; actual stop/start changed PID and preserved the complete schedule view/identities/counters                                                                                       |
+| `python3 physical.py resume`; `python3 lifecycle.py background-second`   | u/y skipped overdue time, future start only; exit 0 then fresh second task with frontend closed; issuance cap reached                                                                                                 |
+| `python3 physical.py approve-second-review`                              | Exact second approval and native oracle passed; later Follow harness assertion failed after layout switch selected the source instead of the occurrence; failed receipt retained                                      |
+| `python3 physical.py review-existing`                                    | Explicit Workspace selection of the already-completed occurrence, actual official Neovim Follow/Ctrl-G, 36 rapid switches at 120×36/50×20/160×48, actual PageDown to counters; exit 0; provider count unchanged at 4  |
+| `python3 lifecycle.py create-cancel`; `python3 physical.py cancel`       | Fresh pending native action, x/y cancelled task/series, revoked grant and superseded approval before dispatch; exit 0                                                                                                 |
+| `python3 lifecycle.py create-budget`                                     | One aggregate request allowed despite per-run ceiling 4; actual preauthorized local command completed, follow-up inference denied, failed task and completed series, no extra occurrence                              |
+| `python3 lifecycle.py create-restart`                                    | Graceful stop failed current task/superseded approval; helper incorrectly expected forced-crash reconciliation and failed; one distinct fresh future occurrence issued; owner cancelled it with freshly read revision |
+| `python3 crash-recovery.py`                                              | Verified owned daemon PID/identity/start time, actual SIGKILL, new PID, blocked series/needsReconciliation; helper then incorrectly expected pending approval to be superseded immediately; failed log retained       |
+| `python3 finish-crash-check.py`                                          | Existing crashed state only: inactive runtime/zero lease, exact late approval denied (RPC -32602), no new occurrence/request over another interval; owner cancel finally revoked/superseded; corrected exit 0         |
+| `python3 remote-denial.py`                                               | Real TCP WebSocket schedule list/mutate both denied -32600 before returning owner data/authority; own remote server stopped                                                                                           |
+| `python3 verify.py`; `python3 cleanup.py`                                | Independent read-only verification passed, actual owned daemon/provider stopped, PID record removed, state/evidence preserved                                                                                         |
 
 `verification.json` confirms five series/seven unique occurrences, two distinct
 primary tasks still needsReview with native and independent immutable oracle exits
@@ -1002,17 +1001,17 @@ From `/workspace/codex/codex-rs`, `. /workspace/.onboarding/activate.sh`, with
 `CARGO_INCREMENTAL=0 RUST_MIN_STACK=8388608` and Cargo test/Clippy/build flags
 `--locked --offline --profile dev-small -j4`:
 
-| Command/target | Result | Evidence log |
-| --- | --- | --- |
-| `cargo test -p codex-protocol -p codex-state --lib` | 370 protocol + 260 state passed, 0 failed/ignored | `state-protocol-tests.log` |
-| `cargo test -p codex-app-server-protocol --lib schema_fixtures_tests -- --skip write_schema_fixtures_from_env` | 4 fixture comparisons passed | `schema-comparisons.log` |
-| `cargo test -p codex-app-server --test all suite::v2::organization -- --nocapture` | 5 native API tests passed | `native-api-tests-corrected.log` |
-| `cargo test -p codex-tui --lib organization -- --nocapture` | 26 tests passed, including actual official Neovim | `native-tui-tests-final.log` |
-| `cargo test -p codex-app-server --lib request_processors::organization -- --nocapture` | 1 owner-origin test passed | `owner-origin-unit.log` |
-| `cargo clippy -p codex-protocol -p codex-state -p codex-app-server-protocol -p codex-app-server -p codex-tui --lib -- -D warnings` | Exit 0 | `production-clippy-final.log` |
-| `cargo clippy -p codex-cli --bin codex -- -D warnings` | Exit 0 | `cli-clippy.log` |
-| `cargo fmt -p codex-protocol -p codex-state -p codex-app-server-protocol -p codex-app-server -p codex-tui -p codex-cli -- --check` | Exit 0 | `format-check.log` |
-| `cargo build -p codex-cli --bin codex` | Complete CLI, exit 0 | `cli-build.log` |
+| Command/target                                                                                                                     | Result                                            | Evidence log                     |
+| ---------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- | -------------------------------- |
+| `cargo test -p codex-protocol -p codex-state --lib`                                                                                | 370 protocol + 260 state passed, 0 failed/ignored | `state-protocol-tests.log`       |
+| `cargo test -p codex-app-server-protocol --lib schema_fixtures_tests -- --skip write_schema_fixtures_from_env`                     | 4 fixture comparisons passed                      | `schema-comparisons.log`         |
+| `cargo test -p codex-app-server --test all suite::v2::organization -- --nocapture`                                                 | 5 native API tests passed                         | `native-api-tests-corrected.log` |
+| `cargo test -p codex-tui --lib organization -- --nocapture`                                                                        | 26 tests passed, including actual official Neovim | `native-tui-tests-final.log`     |
+| `cargo test -p codex-app-server --lib request_processors::organization -- --nocapture`                                             | 1 owner-origin test passed                        | `owner-origin-unit.log`          |
+| `cargo clippy -p codex-protocol -p codex-state -p codex-app-server-protocol -p codex-app-server -p codex-tui --lib -- -D warnings` | Exit 0                                            | `production-clippy-final.log`    |
+| `cargo clippy -p codex-cli --bin codex -- -D warnings`                                                                             | Exit 0                                            | `cli-clippy.log`                 |
+| `cargo fmt -p codex-protocol -p codex-state -p codex-app-server-protocol -p codex-app-server -p codex-tui -p codex-cli -- --check` | Exit 0                                            | `format-check.log`               |
+| `cargo build -p codex-cli --bin codex`                                                                                             | Complete CLI, exit 0                              | `cli-build.log`                  |
 
 Python, from `/workspace/codex/sdk/python`, `. .venv/bin/activate`:
 `python -m pytest tests/test_contract_generation.py tests/test_public_api_signatures.py -q`
@@ -1069,7 +1068,6 @@ records actual native `on_exit` status. Safe owner-read/exit recovery passed wit
 exit 0 and no task reauthorization or additional model calls. Initial logs,
 `physical-write-initial.json` and `failure-write` capture remain. Final logs:
 `physical-write-final.log` and `daemon-restart.log`; actual restart preserved notes.
-
 
 ### Physical memory workflow and independent verification
 
@@ -1158,17 +1156,17 @@ From `/workspace/codex/codex-rs`, `. /workspace/.onboarding/activate.sh`, with
 `CARGO_INCREMENTAL=0 RUST_MIN_STACK=8388608` and Cargo flags
 `--locked --offline --profile dev-small -j4`:
 
-| Command/target | Result | Evidence log |
-| --- | --- | --- |
-| `cargo test -p codex-state --lib` | 259 passed, 0 failed/ignored | `state-tests.log` |
-| `cargo test -p codex-protocol --lib application_tests` | 1 passed; old JSON omission and exact selection validation | `protocol-tests-final.log` |
-| `cargo test -p codex-app-server-protocol --lib schema_fixtures_tests -- --skip write_schema_fixtures_from_env` | 4 passed; stable TS/JSON and both compressed exports | `schema-comparisons.log` |
-| `cargo test -p codex-app-server --test all suite::v2::organization -- --nocapture` | 5 passed, 0 failed/ignored | `native-api-tests.log` |
-| `cargo test -p codex-tui --lib organization -- --nocapture` | 25 passed, 0 failed/ignored, final refresh regression included | `tui-tests-refresh-fix.log` |
-| `cargo clippy -p codex-protocol -p codex-state -p codex-app-server --lib -- -D warnings` | Exit 0 | `backend-clippy.log` |
-| `cargo clippy -p codex-tui --lib -- -D warnings` | Exit 0 | `tui-clippy-refresh-fix.log` |
-| `cargo fmt -p codex-protocol -p codex-state -p codex-app-server -p codex-tui -- --check` | Exit 0 | `format-final.log` |
-| `cargo build -p codex-cli --bin codex` | Exit 0, final complete CLI | `cli-build-refresh-fix.log` |
+| Command/target                                                                                                 | Result                                                         | Evidence log                 |
+| -------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- | ---------------------------- |
+| `cargo test -p codex-state --lib`                                                                              | 259 passed, 0 failed/ignored                                   | `state-tests.log`            |
+| `cargo test -p codex-protocol --lib application_tests`                                                         | 1 passed; old JSON omission and exact selection validation     | `protocol-tests-final.log`   |
+| `cargo test -p codex-app-server-protocol --lib schema_fixtures_tests -- --skip write_schema_fixtures_from_env` | 4 passed; stable TS/JSON and both compressed exports           | `schema-comparisons.log`     |
+| `cargo test -p codex-app-server --test all suite::v2::organization -- --nocapture`                             | 5 passed, 0 failed/ignored                                     | `native-api-tests.log`       |
+| `cargo test -p codex-tui --lib organization -- --nocapture`                                                    | 25 passed, 0 failed/ignored, final refresh regression included | `tui-tests-refresh-fix.log`  |
+| `cargo clippy -p codex-protocol -p codex-state -p codex-app-server --lib -- -D warnings`                       | Exit 0                                                         | `backend-clippy.log`         |
+| `cargo clippy -p codex-tui --lib -- -D warnings`                                                               | Exit 0                                                         | `tui-clippy-refresh-fix.log` |
+| `cargo fmt -p codex-protocol -p codex-state -p codex-app-server -p codex-tui -- --check`                       | Exit 0                                                         | `format-final.log`           |
+| `cargo build -p codex-cli --bin codex`                                                                         | Exit 0, final complete CLI                                     | `cli-build-refresh-fix.log`  |
 
 Native API/TUI checks ran in authorized native execution: the outer sandbox masks
 owner IPC/process paths. Existing security assertions were retained. State checks
@@ -1468,11 +1466,11 @@ budget/usage parity and all five package hashes.
 
 ### Final live results
 
-| Pilot | Requests/reported tokens in successful grant | Evidence |
-| --- | --- | --- |
-| Single coding | 4 / 8,015 | Positive/zero/negative/fractional addition and explanation oracle passed; two exact native tool approvals physically confirmed; approval survived actual /quit and reconnect |
-| One-child coding | 11 / 25,101 | Arbitrary configured delegate proposed/started through organization tool, child immutable checks passed and artifacts imported; root/child shared usage agrees; further model requests occurred after actual /quit |
-| Local-fact document | 4 / 8,019 | Exact supplied facts/bullets, heading and bounded length passed immutable provenance oracle |
+| Pilot               | Requests/reported tokens in successful grant | Evidence                                                                                                                                                                                                           |
+| ------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Single coding       | 4 / 8,015                                    | Positive/zero/negative/fractional addition and explanation oracle passed; two exact native tool approvals physically confirmed; approval survived actual /quit and reconnect                                       |
+| One-child coding    | 11 / 25,101                                  | Arbitrary configured delegate proposed/started through organization tool, child immutable checks passed and artifacts imported; root/child shared usage agrees; further model requests occurred after actual /quit |
+| Local-fact document | 4 / 8,019                                    | Exact supplied facts/bullets, heading and bounded length passed immutable provenance oracle                                                                                                                        |
 
 Every pilot physically switched to Workspace, opened actual official Neovim readonly
 native diff, accepted exact current evidence with v/y, proved original unchanged,
@@ -2170,7 +2168,6 @@ was changed or disabled.
 
 Final intermediate logs: `mvp-b5-schema-final-comparisons.log`, `mvp-b5-shared-reader-tests.log`, `mvp-b5-preview-final-unit-tests.log`, `mvp-b5-state-full-tests.log`, `mvp-b5-sdk-generation.log` and `mvp-b5-sdk-contracts.log`. Four schema comparisons passed; the generator helper remains intentionally ignored in the comparison command and was run explicitly for both bundles. The complete CLI build and physical/native API gates remain pending.
 
-
 ## B5 physical qualification and final corrections
 
 Actual packaged CLI/daemon with checksum-verified official Neovim v0.12.6 passed
@@ -2211,7 +2208,6 @@ B6 actual pilot, scale, concurrency, idle and restore evidence is recorded in
 [release qualification](release-qualification.md). Current final source checks
 remain pending; do not claim the full live-provider release gate passed.
 
-
 Current B6 source passed production Clippy with warnings denied, affected-package
 formatting and the combined library command: **7 app-server, 31 state and 15
 TUI/editor/preview/pricing** tests, no failures/ignored. Logs:
@@ -2221,7 +2217,6 @@ CodeModeOnly before native execution, validate exact quote provenance and reject
 negative usage, mismatched provider/model, unsafe price files/aliases/rates.
 These are not yet proof of actual four-active/zero-request admission in the updated
 packaged daemon. The final native API and full CLI stages remain underway.
-
 
 Final native organization API rerun passed **four tests**, zero failed/ignored,
 including exact Apply and both conflict/duplicate rejection paths plus native
@@ -2619,7 +2614,6 @@ Final documentation verification: 111 local links across 22 development/root
 Markdown files resolve; evidence JSON is readable; qualified source hashes are
 unchanged; `git diff --check` is clean. `final-documentation-check.json`.
 
-
 ## Operations and workflow controls qualification
 
 Source `55af0a0b5b`, official Neovim 0.12.6, Rust 1.95, native Linux package.
@@ -2697,6 +2691,7 @@ Package: `operations-batch/preset-package/bin/codex`, SHA256
 Nine actual PNG/text pairs archived at
 `/workspace/artifacts/cli-organization-presets/cli-organization-presets-screenshots.zip`.
 Preserve all fixtures and never rerun setup/physical mutations or reset counters.
+
 # Operations controls qualification (next-twenty items 6–9)
 
 Application source `753464cd53`; immutable package version
@@ -2791,7 +2786,7 @@ correction (`editor-cli-clippy-v6.log`); final production checks/package follow.
 under concurrent test load. These are Rust projection measurements, not stored
 native registry, active-agent capacity, hardware telemetry or provider pilots.
 Only inactive rebuildable target metadata/test executables were removed for disk
-headroom, with hashes/bytes in editor-derived-*.json. No qualified asset, native
+headroom, with hashes/bytes in editor-derived-\*.json. No qualified asset, native
 state, grant, result, bundle, counter or receipt was removed.
 
 Backend workspace checks pass 7/7 (`editor-workspace-tests.log`), including
@@ -2920,3 +2915,37 @@ Crash/no-replay/full remapped restore/corruption refusal pass in `recovery.json`
 36 admissions/35reported responses/525synthetic tokens/1unknown/0paid, even with
 safe recovery enabled on the unknown task. Original source is stopped/quarantined;
 future read-only frontend work targets only the fresh restored home.
+
+## Mission batch qualification checkpoint
+
+Source checkpoints `def0cdfa77`, `3d4374ebe9`, `c29de75575` implement the 25
+bounded capabilities; final qualification continues. Evidence directory:
+`/workspace/.onboarding/qualification/mission-batch/`.
+
+Full state322/protocol375/schema4/SDK25 and formatter-driver1 checks pass. The
+lint-only corrected affected run `final-ui-runtime-tests-v4.log` passes runtime15
+and TUI/actual-Neovim92. `final-cli-clippy-v4.log` passes production `-D warnings`.
+Wire-contract2 passes in `final-wire-contracts-v2.log`: the old assertion omitted
+existing optional `hunks`; updated explicit omitted/present examples retain exact
+schema-field and unknown-authority checks, including readyDelegates/context.
+No assertion or protection was disabled.
+
+Actual fresh pilot and first-five UI receipts pass; see status/mission-batch.
+`native-workflow/background-complete.json` records seven checked bounded scheduled
+documents over 1846.319 seconds detached from the TUI. Total at this checkpoint:
+37 localhost requests/555 synthetic tokens/zero paid. Actual owner terminal and
+artifact catalog pass without changing task/grant/accounting.
+
+Failures are retained: repeated generated build variants exhausted disk, some
+copied helper commands/confirmation assumptions were obsolete, and typing a long
+Neovim inspection command was read before delivery completed. Continue pending
+steps from canonical state; never replay successful mutations. Actual three-way
+view shows reversed unlabeled native panes, so order/labels are being corrected
+before final physical qualification. No Apply has run in this fresh mission home.
+
+Full root formatter check `final-format-check-v2.log` fails because installed
+`just`/`dotslash` are absent and untouched legacy Rust files have ordering
+mismatches. This batch's 29 changed Rust files were formatted and checked with
+the production driver arguments; no unrelated files were rewritten or tools
+installed. Stable Rust warns that nightly `imports_granularity` is unsupported;
+that warning is not a successful whole-repository formatting claim.

@@ -2,7 +2,8 @@ use super::*;
 
 #[tokio::test]
 async fn background_requests_survive_startup_overlap_and_cancelled_dashboard() {
-    use futures::{SinkExt, StreamExt};
+    use futures::SinkExt;
+    use futures::StreamExt;
     use serde_json::json;
 
     tokio::time::timeout(Duration::from_secs(10), async {
@@ -631,7 +632,8 @@ fn view(id: &str) -> OrganizationExecutionView {
 
 #[test]
 fn artifact_data_preview_rechecks_hash_and_declared_origin_and_refuses_binary_and_oversize() {
-    use sha2::{Digest, Sha256};
+    use sha2::Digest;
+    use sha2::Sha256;
     let home = tempfile::tempdir().unwrap();
     let workspace = tempfile::tempdir().unwrap();
     let file = workspace.path().join("data.csv");
@@ -1945,7 +1947,8 @@ async fn all_dashboard_presets_render_narrow_empty_and_untrusted_content_safely(
 
 #[tokio::test]
 async fn inline_review_diff_uses_verified_artifact_and_cannot_enable_acceptance() {
-    use sha2::{Digest, Sha256};
+    use sha2::Digest;
+    use sha2::Sha256;
     let home = tempfile::tempdir().unwrap();
     let original = tempfile::tempdir().unwrap();
     let attempt = tempfile::tempdir().unwrap();
@@ -2402,7 +2405,8 @@ pub(super) fn empty_report() -> OrganizationReport {
 
 #[tokio::test]
 async fn report_pagination_refuses_mixed_canonical_revisions() {
-    use futures::{SinkExt, StreamExt};
+    use futures::SinkExt;
+    use futures::StreamExt;
     use serde_json::json;
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let endpoint =

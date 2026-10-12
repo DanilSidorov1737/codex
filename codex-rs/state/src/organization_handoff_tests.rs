@@ -1,7 +1,7 @@
 use super::*;
-use codex_protocol::organization_coordination::{
-    OrganizationCheckpointContent, OrganizationCoordinationCall, OrganizationNoteScope,
-};
+use codex_protocol::organization_coordination::OrganizationCheckpointContent;
+use codex_protocol::organization_coordination::OrganizationCoordinationCall;
+use codex_protocol::organization_coordination::OrganizationNoteScope;
 
 async fn fixture(
     store: &OrganizationStore,

@@ -2,14 +2,16 @@
 use super::definitions::text;
 use super::execution::*;
 use super::resource::validate_shared_ceilings;
-use anyhow::{Context, Result, ensure};
+use anyhow::Context;
+use anyhow::Result;
+use anyhow::ensure;
 use codex_protocol::organization::*;
 use codex_protocol::organization_execution::OrganizationTaskAuthorization;
-use codex_protocol::organization_workflow::{
-    OrganizationWorkflowSeries, OrganizationWorkflowState,
-};
+use codex_protocol::organization_workflow::OrganizationWorkflowSeries;
+use codex_protocol::organization_workflow::OrganizationWorkflowState;
 use sha2::Digest;
-use sqlx::{Sqlite, Transaction};
+use sqlx::Sqlite;
+use sqlx::Transaction;
 use std::collections::BTreeSet;
 use uuid::Uuid;
 
