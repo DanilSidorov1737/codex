@@ -645,6 +645,7 @@ pub(super) async fn authorize_task_in(
         "task cannot be authorized in its current state"
     );
     let (node, project) = scope_definitions(tx, &task, &scope).await?;
+    super::controls::check_goal_open(tx, &task, &project).await?;
     let old: Option<String> =
         sqlx::query_scalar("SELECT authorization_id FROM organization_tasks WHERE id = ?")
             .bind(task_id)

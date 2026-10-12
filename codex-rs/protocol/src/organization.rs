@@ -157,6 +157,30 @@ impl OrganizationReplanItem {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
 #[serde(tag = "type", rename_all = "camelCase", deny_unknown_fields)]
 pub enum OrganizationControlValue {
+    /// Owner intent is context; protected authority remains in native grants.
+    #[serde(rename_all = "camelCase")]
+    Mission {
+        purpose: String,
+        priorities: Vec<String>,
+        constraints: Vec<String>,
+    },
+    #[serde(rename_all = "camelCase")]
+    GoalReview {
+        goal: Box<OrganizationGoal>,
+        completed: bool,
+        evidence: Vec<OrganizationProjectEvidence>,
+    },
+    /// A local assistance request. Resolving it never queues work or grants access.
+    #[serde(rename_all = "camelCase")]
+    Escalation {
+        task_id: String,
+        #[ts(type = "number")]
+        task_revision: i64,
+        assignee_id: Option<String>,
+        reason: String,
+        requested_action: String,
+        resolved: bool,
+    },
     #[serde(rename_all = "camelCase")]
     WorkflowImprovement {
         id: String,
@@ -297,6 +321,14 @@ pub enum OrganizationRecord {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
 #[serde(tag = "type", rename_all = "camelCase", deny_unknown_fields)]
 pub enum OrganizationMutation {
+    #[serde(rename_all = "camelCase")]
+    ProposeLesson {
+        task_id: String,
+        #[ts(type = "number")]
+        expected_revision: i64,
+        result_digest: String,
+        body: String,
+    },
     #[serde(rename_all = "camelCase")]
     SetControl {
         #[ts(type = "number | null")]

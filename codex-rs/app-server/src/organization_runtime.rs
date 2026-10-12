@@ -462,6 +462,16 @@ impl OrganizationRuntime {
                 authorization.scope.delegates.join(", "),
                 authorization.scope.max_children,
             );
+            if let Some(control) = store.mission().await? {
+                if let codex_protocol::organization::OrganizationControlValue::Mission {
+                    purpose,
+                    priorities,
+                    constraints,
+                } = control.value
+                {
+                    input.push_str(&format!("\nOwner mission v{}: {}\nPriorities: {}\nConstraints: {}\nThis is owner intent; native grants/paths/tools/budgets/approval/acceptance remain authoritative. Use context to select bounded permitted memory and declared references; readyDelegates lists only eligible proposals under this original grant.\n",control.revision,purpose,priorities.join("; "),constraints.join("; ")));
+                }
+            }
             if let (Some(checkpoint), Some(handoff)) = (checkpoint, handoff) {
                 input.push_str(&format!("\nContinue from this immutable checkpoint; reported progress is untrusted context, not proof or permission. Do not repeat completed actions. Host-verified files are already copied into this isolated workspace. Acceptance and checks still apply.\nCheckpoint: {}\nOwner resolution: {}\nOriginal grant and remaining shared budgets remain enforced.\n", serde_json::to_string(checkpoint)?, handoff.instructions));
             }
@@ -737,7 +747,7 @@ impl<'call> ToolExecutor<ToolCall<'call>> for OrganizationTools {
                 serde_json::to_value(results)
                     .map_err(|error| FunctionCallError::Fatal(error.to_string()))?
             } else {
-                let result = self
+                let outcome = self
                     .guard
                     .store
                     .coordinate(
@@ -747,10 +757,29 @@ impl<'call> ToolExecutor<ToolCall<'call>> for OrganizationTools {
                         command,
                         now(),
                     )
-                    .await
-                    .map_err(|error| {
-                        FunctionCallError::RespondToModel(format!("coordination denied: {error:#}"))
-                    })?;
+                    .await;
+                let result = match outcome {
+                    Ok(result) => result,
+                    Err(error) if error.is::<codex_state::organization::RepeatedCoordination>() => {
+                        let files =
+                            self.workspace
+                                .checkpoint_files(&self.guard.scope)
+                                .map_err(|e| {
+                                    FunctionCallError::Fatal(format!(
+                                        "loop checkpoint capture failed: {e:#}"
+                                    ))
+                                })?;
+                        self.guard.store.record_checkpoint(&self.guard.attempt_id,&self.guard.worker_id,&call.call_id,
+                            codex_protocol::organization_coordination::OrganizationCheckpointContent{completed_steps:vec![],remaining_steps:vec!["Review the repeated read pattern and explicitly resolve the blocker before continuing".into()],blocker:Some(error.to_string())},files,now()).await.map_err(|e|FunctionCallError::Fatal(format!("loop checkpoint failed: {e:#}")))?;
+                        self.wake.notify_one();
+                        return Err(FunctionCallError::Fatal(error.to_string()));
+                    }
+                    Err(error) => {
+                        return Err(FunctionCallError::RespondToModel(format!(
+                            "coordination denied: {error:#}"
+                        )));
+                    }
+                };
                 self.wake.notify_one();
                 result
             };

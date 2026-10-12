@@ -1,6 +1,6 @@
 use super::*;
 use codex_protocol::organization_coordination::{
-    OrganizationCoordinationCall, OrganizationPlanItem,
+    OrganizationCoordinationCall, OrganizationNoteScope, OrganizationPlanItem,
 };
 use codex_protocol::organization_workflow::OrganizationSharedCeilings;
 
@@ -35,6 +35,82 @@ fn global(paused: bool, requests: u32, tokens: i64, active: u32) -> Organization
     }
 }
 
+#[tokio::test]
+async fn mission_versions_and_incomplete_goal_evidence_never_create_authority() -> Result<()> {
+    let home = Fixture::new();
+    let store = OrganizationStore::open(&home.0).await?;
+    let mission = OrganizationControlValue::Mission {
+        purpose: "Useful verified local work".into(),
+        priorities: vec!["Finish declared outputs".into()],
+        constraints: vec!["Native grants remain authoritative".into()],
+    };
+    let first = set(&store, None, mission.clone()).await?;
+    assert_eq!(store.mission().await?.unwrap(), first);
+    assert!(set(&store, None, mission.clone()).await.is_err());
+    let next = set(&store, Some(first.revision), mission).await?;
+    assert_eq!(next.revision, first.revision + 1);
+    let Some(OrganizationRecord::Goal(goal)) = store
+        .mutate_owner(
+            OrganizationMutation::PutGoal {
+                id: None,
+                expected_revision: None,
+                parent_id: None,
+                objective: "Verified result".into(),
+                criteria: vec!["Actual oracle passes".into()],
+            },
+            None,
+        )
+        .await?
+    else {
+        panic!("goal")
+    };
+    assert!(
+        set(
+            &store,
+            None,
+            OrganizationControlValue::GoalReview {
+                goal: Box::new(goal.clone()),
+                completed: true,
+                evidence: vec![]
+            }
+        )
+        .await
+        .is_err()
+    );
+    let mut stale = goal.clone();
+    stale.revision += 1;
+    assert!(
+        set(
+            &store,
+            None,
+            OrganizationControlValue::GoalReview {
+                goal: Box::new(stale),
+                completed: false,
+                evidence: vec![]
+            }
+        )
+        .await
+        .is_err()
+    );
+    set(
+        &store,
+        None,
+        OrganizationControlValue::GoalReview {
+            goal: Box::new(goal),
+            completed: false,
+            evidence: vec![],
+        },
+    )
+    .await?;
+    assert_eq!(
+        sqlx::query_scalar::<_, i64>("SELECT count(*) FROM organization_authorizations")
+            .fetch_one(&store.pool)
+            .await?,
+        0
+    );
+    Ok(())
+}
+
 fn project(
     id: &str,
     state: OrganizationProjectState,
@@ -46,6 +122,277 @@ fn project(
         state,
         evidence,
     }
+}
+
+#[tokio::test]
+async fn goal_completion_and_private_lessons_pin_current_accepted_evidence() -> Result<()> {
+    let home = Fixture::new();
+    let store = OrganizationStore::open(&home.0).await?;
+    let agent = node_from(
+        store
+            .mutate_owner(
+                node_mutation("Goal worker", None, OrganizationNodeKind::Agent),
+                None,
+            )
+            .await?,
+    );
+    let project_id = execution_project(&store, &agent.id).await?;
+    let Some(OrganizationRecord::Goal(goal)) = store
+        .mutate_owner(
+            OrganizationMutation::PutGoal {
+                id: None,
+                expected_revision: None,
+                parent_id: None,
+                objective: "Verified outcome".into(),
+                criteria: vec!["Oracle passed".into()],
+            },
+            None,
+        )
+        .await?
+    else {
+        panic!("goal")
+    };
+    store
+        .mutate_owner(
+            OrganizationMutation::LinkProject {
+                project_id: project_id.clone(),
+                expected_revision: Some(1),
+                goal_id: Some(goal.id.clone()),
+                owner_id: Some(agent.id.clone()),
+                criteria: vec!["Oracle passed".into()],
+            },
+            Some(("Fixture".into(), vec!["/tmp/fixture-project".into()])),
+        )
+        .await?;
+    let task = execution_task(&store, &agent.id, &project_id).await?;
+    let mut scope = execution_scope();
+    scope.require_tool_approval = false;
+    store
+        .authorize_task(&task.id, task.revision, scope, 1000)
+        .await?;
+    let worker = Uuid::now_v7().to_string();
+    let attempt = store
+        .claim_task(&worker, &Uuid::now_v7().to_string(), 1000, 2)
+        .await?
+        .unwrap();
+    let view = store.execution_view(&attempt.task_id).await?;
+    store
+        .admit_model_request(&attempt.id, &worker, 1001)
+        .await?;
+    store.checkpoint_usage(&attempt.id, &worker, 1, 9).await?;
+    let result = store
+        .record_result(
+            &attempt.id,
+            &worker,
+            vec![OrganizationArtifactEvidence {
+                path: "report.txt".into(),
+                sha256: "a".repeat(64),
+                bytes: 3,
+            }],
+            vec![OrganizationCheckEvidence {
+                immutable_inputs: None,
+                argv: execution_scope().checks[0].clone(),
+                exit_code: Some(0),
+                output: "native oracle evidence".into(),
+                truncated: false,
+            }],
+            1002,
+        )
+        .await?;
+    let current = store.execution_view(&attempt.task_id).await?;
+    let proof = OrganizationProjectEvidence {
+        criterion: 0,
+        task_id: current.task.id.clone(),
+        result_digest: result.digest.clone(),
+        explanation: "Owner inspected oracle and output".into(),
+    };
+    let review = |evidence| OrganizationControlValue::GoalReview {
+        goal: Box::new(goal.clone()),
+        completed: true,
+        evidence,
+    };
+    assert!(
+        set(&store, None, review(vec![proof.clone()]))
+            .await
+            .is_err(),
+        "review alone is not acceptance"
+    );
+    store
+        .accept_result(&current.task.id, current.task.revision, &result.digest)
+        .await?;
+    assert!(
+        set(&store, None, review(vec![proof.clone(), proof.clone()]))
+            .await
+            .is_err(),
+        "duplicate criteria refuse"
+    );
+    assert!(
+        set(
+            &store,
+            None,
+            review(vec![OrganizationProjectEvidence {
+                result_digest: "stale".into(),
+                ..proof.clone()
+            }])
+        )
+        .await
+        .is_err()
+    );
+    let pending = execution_task(&store, &view.task.owner_id, &view.task.project_id).await?;
+    assert!(
+        set(&store, None, review(vec![proof.clone()]))
+            .await
+            .is_err(),
+        "unfinished linked work prevents completion"
+    );
+    store
+        .authorize_task(&pending.id, pending.revision, execution_scope(), 1003)
+        .await?;
+    let pending = store.execution_view(&pending.id).await?.task;
+    store.stop_task(&pending.id, pending.revision, true).await?;
+    let completed = set(&store, None, review(vec![proof.clone()])).await?;
+    let another = execution_task(&store, &view.task.owner_id, &view.task.project_id).await?;
+    assert!(
+        store
+            .authorize_task(&another.id, another.revision, execution_scope(), 1003)
+            .await
+            .is_err(),
+        "completed goal fences new execution"
+    );
+    let current = store.execution_view(&view.task.id).await?;
+    let lesson = |revision, digest: String| OrganizationMutation::ProposeLesson {
+        task_id: current.task.id.clone(),
+        expected_revision: revision,
+        result_digest: digest,
+        body: "Use a meaningful native oracle before acceptance".into(),
+    };
+    assert!(
+        store
+            .mutate_owner(
+                lesson(current.task.revision - 1, result.digest.clone()),
+                None
+            )
+            .await
+            .is_err()
+    );
+    assert!(
+        store
+            .mutate_owner(lesson(current.task.revision, "stale".into()), None)
+            .await
+            .is_err()
+    );
+    let Some(OrganizationRecord::Note(note)) = store
+        .mutate_owner(lesson(current.task.revision, result.digest.clone()), None)
+        .await?
+    else {
+        panic!("lesson")
+    };
+    assert_eq!(note.author_id, view.task.owner_id);
+    assert!(!note.owner_reviewed);
+    assert_eq!(note.scope, OrganizationNoteScope::Agent);
+    assert!(note.body.contains(&result.digest));
+    assert_eq!(
+        store
+            .search_memory(
+                &note.project_id,
+                OrganizationNoteScope::Project,
+                None,
+                "oracle"
+            )
+            .await?
+            .matched_count,
+        0
+    );
+    assert_eq!(
+        store
+            .search_memory(
+                &note.project_id,
+                OrganizationNoteScope::Agent,
+                Some(&note.author_id),
+                "oracle"
+            )
+            .await?
+            .notes,
+        vec![note]
+    );
+    set(
+        &store,
+        Some(completed.revision),
+        OrganizationControlValue::GoalReview {
+            goal: Box::new(goal),
+            completed: false,
+            evidence: vec![proof],
+        },
+    )
+    .await?;
+    store
+        .authorize_task(&another.id, another.revision, execution_scope(), 1003)
+        .await?;
+    let original = store.execution_view(&view.task.id).await?;
+    assert_eq!(
+        (
+            original.authorization_model_requests,
+            original.authorization_used_tokens
+        ),
+        (1, 9)
+    );
+    Ok(())
+}
+
+#[tokio::test]
+async fn resolving_assistance_neither_changes_task_nor_replays_an_attempt() -> Result<()> {
+    let home = Fixture::new();
+    let store = OrganizationStore::open(&home.0).await?;
+    let (worker, attempt) = authorized_attempt(&store, false).await?;
+    let before = store.execution_view(&attempt.task_id).await?;
+    let request = |task: &OrganizationTask| OrganizationControlValue::Escalation {
+        task_id: task.id.clone(),
+        task_revision: task.revision,
+        assignee_id: None,
+        reason: "Owner assistance required".into(),
+        requested_action: "Inspect captured evidence".into(),
+        resolved: false,
+    };
+    assert!(
+        set(&store, None, request(&before.task)).await.is_err(),
+        "ordinary running work is not a blocker"
+    );
+    store.fail_attempt(&attempt.id, &worker).await?;
+    store.release_attempt_capacity(&attempt.id, &worker).await?;
+    let blocked = store.execution_view(&attempt.task_id).await?;
+    assert!(
+        set(&store, None, request(&before.task)).await.is_err(),
+        "stale task refuses"
+    );
+    let pending = set(&store, None, request(&blocked.task)).await?;
+    let mut resolved = pending.value.clone();
+    if let OrganizationControlValue::Escalation { resolved, .. } = &mut resolved {
+        *resolved = true;
+    }
+    let mut changed = resolved.clone();
+    if let OrganizationControlValue::Escalation {
+        requested_action, ..
+    } = &mut changed
+    {
+        *requested_action = "Authorize more work".into();
+    }
+    assert!(
+        set(&store, Some(pending.revision), changed).await.is_err(),
+        "resolution pins the exact request"
+    );
+    let done = set(&store, Some(pending.revision), resolved.clone()).await?;
+    assert!(
+        set(&store, Some(done.revision), resolved).await.is_err(),
+        "resolved requests retain immutable history"
+    );
+    assert_eq!(store.execution_view(&attempt.task_id).await?, blocked);
+    assert!(
+        store
+            .claim_task(&worker, &Uuid::now_v7().to_string(), 1003, 4)
+            .await?
+            .is_none()
+    );
+    Ok(())
 }
 
 async fn queued(

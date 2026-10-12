@@ -50,6 +50,7 @@ mod actions;
 
 #[path = "organization_coordination.rs"]
 mod coordination;
+pub use coordination::RepeatedCoordination;
 
 #[path = "organization_schedule.rs"]
 mod schedule;
@@ -91,6 +92,13 @@ impl std::fmt::Display for WorkflowPaused {
 impl std::error::Error for WorkflowPaused {}
 
 impl OrganizationStore {
+    /// Host/owner read of versioned intent. No agent administration surface.
+    pub async fn mission(
+        &self,
+    ) -> Result<Option<codex_protocol::organization::OrganizationControl>> {
+        let mut tx = self.pool.begin().await?;
+        controls::read(&mut tx, "mission").await
+    }
     /// One execution owner per canonical store, including embedded app-servers
     /// using different Codex homes. Definitions remain ordinary transactional writes.
     /// Keep this file open for the service lifetime; never unlink a live lock.

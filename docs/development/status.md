@@ -12,8 +12,11 @@ The complete previous hierarchy checkpoint below is historical evidence.
 
 Current checkpoint: formatter regression passes; tasks 1–5 source changes pass
 83 affected TUI/actual official-Neovim tests (`mission-batch/ui-tests-v6.log`).
-Real packaged UI checks and the remaining mission/workflow/knowledge/editor/resource
-items are pending. Continue all 25; this is not final qualification. A fresh paused
+Mission/coordination source changes pass all 320 state tests; new TUI/runtime
+qualification is ongoing. The first native named-view confirmation failed; its
+local routing fix and real-key regression need a corrected package walkthrough.
+The remaining workflow/knowledge/editor/resource items and full qualification
+are pending. Continue all 25; this is not final qualification. A fresh paused
 definition-only copy is prepared at `/tmp/mission-ui-home` for new physical checks;
 its historical source stays stopped/untouched. Never replay its forthcoming
 mutations once passing receipts exist. No new inference or installations occurred.

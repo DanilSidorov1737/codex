@@ -476,6 +476,10 @@ async fn recurring_migration_validation_and_pagination_preserve_existing_state()
     sqlx::query("DROP TABLE organization_schedules")
         .execute(&store.pool)
         .await?;
+    // Reconstruct the actual legacy schema before replaying later migrations.
+    sqlx::query("ALTER TABLE organization_coordination_calls DROP COLUMN progress_generation")
+        .execute(&store.pool)
+        .await?;
     sqlx::query("DELETE FROM _sqlx_migrations WHERE version>=7")
         .execute(&store.pool)
         .await?;

@@ -29,6 +29,22 @@ impl OrganizationStore {
         };
         let mut tx = self.pool.begin_with("BEGIN IMMEDIATE").await?;
         let (operation, record) = match mutation {
+            OrganizationMutation::ProposeLesson {
+                task_id,
+                expected_revision,
+                result_digest,
+                body,
+            } => {
+                let note = super::coordination::propose_lesson(
+                    &mut tx,
+                    &task_id,
+                    expected_revision,
+                    &result_digest,
+                    &body,
+                )
+                .await?;
+                ("note/lessonProposed", Some(OrganizationRecord::Note(note)))
+            }
             OrganizationMutation::SetControl {
                 expected_revision,
                 value,

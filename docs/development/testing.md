@@ -1,5 +1,26 @@
 # Testing procedures and evidence
 
+## Mission batch backend checkpoint (in progress)
+
+Approved batch source checkpoints are not final qualification. Evidence root:
+`/workspace/.onboarding/qualification/mission-batch/`. Full state suite:
+`CARGO_INCREMENTAL=0 RUST_MIN_STACK=8388608 cargo test --locked --offline
+--profile dev-small -p codex-state --lib -j4`, codex-rs, exit 0, **320 passed**
+(`state-tests-v4.log`). New coverage includes mission revisions, exact goal
+evidence/completion/reopen, private accepted-result lessons, immutable assistance
+resolution, scoped context/ready discovery and repeated-read/idempotency fences.
+Failed compiler/legacy-schema/fixture/boundary runs are retained. An actual
+completed-goal authorization gap was corrected before this passing suite.
+
+The first actual packaged UI named-view confirmation failed; corrected routing
+and a real-key regression are under UI testing. Its owned paused daemon is now
+stopped (`ui-native/daemon-stop-after-failure.json`), execution tables remain empty,
+and remaining captures are archived (`failed-ui-walkthroughs/archive-receipt.json`).
+The first screenshot filename was reused by the second failed driver; that first
+capture is unavailable. No physical UI pass is claimed. Updated contracts,
+production checks, actual workflow and 30-minute finite qualification remain.
+
+
 ## Mission/usability batch in progress
 
 Approved scope: [mission batch](mission-batch.md), initial `ddb67e5f32`.

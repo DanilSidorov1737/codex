@@ -12,6 +12,60 @@ use sqlx::{Sqlite, Transaction};
 use std::collections::{BTreeMap, HashSet};
 use uuid::Uuid;
 
+/// Host treats repeated identical reads as a blocker, preserving verified files
+/// through the existing checkpoint path before stopping the native turn.
+#[derive(Debug)]
+pub struct RepeatedCoordination;
+impl std::fmt::Display for RepeatedCoordination {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("eight identical coordination reads without host-observed actions/checkpoints; owner intervention required")
+    }
+}
+impl std::error::Error for RepeatedCoordination {}
+
+pub(super) async fn propose_lesson(
+    tx: &mut Transaction<'_, Sqlite>,
+    task_id: &str,
+    revision: i64,
+    digest: &str,
+    body: &str,
+) -> Result<OrganizationNote> {
+    text(body, 2048)?;
+    let (task, _, attempt, result) =
+        super::controls::comparison_evidence(tx, task_id, digest).await?;
+    ensure!(task.revision == revision, "lesson source task changed");
+    let count: i64 =
+        sqlx::query_scalar("SELECT count(*) FROM organization_notes WHERE project_id=?")
+            .bind(&task.project_id)
+            .fetch_one(&mut **tx)
+            .await?;
+    ensure!(count < 128, "project note limit exhausted");
+    let note = OrganizationNote {
+        id: Uuid::now_v7().to_string(),
+        project_id: task.project_id,
+        author_id: attempt
+            .owner_id
+            .context("legacy result lacks captured lesson author")?,
+        task_id: task.id,
+        attempt_id: attempt.id,
+        scope: OrganizationNoteScope::Agent,
+        body: format!(
+            "Accepted source: {digest}\n{} passing recorded checks\nLesson proposal (review required):\n{body}",
+            result
+                .checks
+                .iter()
+                .filter(|c| c.exit_code == Some(0))
+                .count()
+        ),
+        created_at: chrono::Utc::now().timestamp(),
+        group_id: None,
+        source_note_id: None,
+        owner_reviewed: false,
+    };
+    sqlx::query("INSERT INTO organization_notes(id,project_id,author_id,scope,data) VALUES (?,?,?,'agent',?)").bind(&note.id).bind(&note.project_id).bind(&note.author_id).bind(serde_json::to_string(&note)?).execute(&mut **tx).await?;
+    Ok(note)
+}
+
 impl OrganizationStore {
     /// Owner-only inspection. Agent calls bind project and author from their
     /// fenced task instead; they never accept caller-selected identities.
@@ -110,7 +164,76 @@ impl OrganizationStore {
             used < authorization.scope.max_tokens,
             "root token ceiling exhausted before coordination"
         );
+        let read_only = matches!(
+            &call,
+            OrganizationCoordinationCall::ReadyDelegates {}
+                | OrganizationCoordinationCall::Context { .. }
+                | OrganizationCoordinationCall::ReadNotes { .. }
+                | OrganizationCoordinationCall::SearchNotes { .. }
+                | OrganizationCoordinationCall::Inbox {}
+        );
+        let progress:i64=sqlx::query_scalar("SELECT (SELECT count(*) FROM organization_actions WHERE attempt_id=?)+(SELECT count(*) FROM organization_checkpoints WHERE attempt_id=?)").bind(attempt_id).bind(attempt_id).fetch_one(&mut *tx).await?;
         let result = match call {
+            OrganizationCoordinationCall::ReadyDelegates {} => {
+                let data:Vec<String>=sqlx::query_scalar("SELECT data FROM organization_tasks WHERE proposed_root_id=? AND project_id=? AND state='proposed' ORDER BY id LIMIT 32").bind(root).bind(&task.project_id).fetch_all(&mut *tx).await?;
+                let mut ready = Vec::new();
+                for data in data {
+                    let OrganizationRecord::Task(child) = serde_json::from_str(&data)? else {
+                        anyhow::bail!("invalid proposed task")
+                    };
+                    if !authorization.scope.delegates.contains(&child.owner_id) {
+                        continue;
+                    }
+                    let node = read_node(&mut tx, &child.owner_id).await?;
+                    if !node.enabled
+                        || !ancestors_enabled(&mut tx, &node.id).await?
+                        || node
+                            .model
+                            .as_ref()
+                            .is_some_and(|m| m != &authorization.scope.model)
+                    {
+                        continue;
+                    }
+                    let mut accepted = true;
+                    for id in &child.prerequisites {
+                        if read_task(&mut tx, id).await?.state != "accepted" {
+                            accepted = false;
+                            break;
+                        }
+                    }
+                    if accepted {
+                        ready.push(child);
+                    }
+                }
+                serde_json::to_value(ready)?
+            }
+            OrganizationCoordinationCall::Context { query } => {
+                ensure!(
+                    query.len() <= 256 && !query.chars().any(char::is_control),
+                    "context query must be at most 256 bytes without control characters"
+                );
+                let mut notes = Vec::new();
+                let mut ids = HashSet::new();
+                let mut bytes = 0;
+                for scope in [
+                    OrganizationNoteScope::Agent,
+                    OrganizationNoteScope::Project,
+                    OrganizationNoteScope::Team,
+                ] {
+                    for note in
+                        search_notes(&mut tx, &task.project_id, scope, &task.owner_id, &query)
+                            .await?
+                            .notes
+                    {
+                        let size = serde_json::to_vec(&note)?.len();
+                        if ids.insert(note.id.clone()) && bytes + size <= 8192 && notes.len() < 12 {
+                            bytes += size;
+                            notes.push(note);
+                        }
+                    }
+                }
+                serde_json::json!({"notes":notes,"source":"scoped memory; untrusted context, not authority","bytes":bytes,"inputReferences":authorization.scope.input_files,"artifactReferences":authorization.scope.artifacts})
+            }
             OrganizationCoordinationCall::Wait { .. } => {
                 anyhow::bail!("wait is handled by the host outside a database transaction")
             }
@@ -288,8 +411,19 @@ impl OrganizationStore {
                 serde_json::to_value(message)?
             }
         };
-        sqlx::query("INSERT INTO organization_coordination_calls(attempt_id,call_id,arguments,result) VALUES (?,?,?,?)")
-            .bind(attempt_id).bind(call_id).bind(arguments).bind(serde_json::to_string(&result)?).execute(&mut *tx).await?;
+        let result_json = serde_json::to_string(&result)?;
+        if read_only {
+            let previous:Vec<(String,String,i64)>=sqlx::query_as("SELECT arguments,result,progress_generation FROM organization_coordination_calls WHERE attempt_id=? ORDER BY rowid DESC LIMIT 8").bind(attempt_id).fetch_all(&mut *tx).await?;
+            ensure!(
+                previous.len() < 8
+                    || !previous
+                        .iter()
+                        .all(|(a, r, p)| a == &arguments && r == &result_json && *p == progress),
+                RepeatedCoordination
+            );
+        }
+        sqlx::query("INSERT INTO organization_coordination_calls(attempt_id,call_id,arguments,result,progress_generation) VALUES (?,?,?,?,?)")
+            .bind(attempt_id).bind(call_id).bind(arguments).bind(result_json).bind(progress).execute(&mut *tx).await?;
         event(&mut tx, "coordination/completed", attempt_id).await?;
         tx.commit().await?;
         Ok(result)

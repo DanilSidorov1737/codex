@@ -88,3 +88,43 @@ failed; corrected code retains the assertions and all prior shortcuts. One build
 session disappeared with no final receipt (`ui-tests-v5.log`); confirmed no live
 duplicate build/OOM kill, then the rerun passed. Physical CLI packaging and new UI
 qualification follow; tasks 6–24 and final task 25 are not complete.
+
+Mission source work in progress: owner-versioned mission, exact goal criterion
+evidence/completion, durable blocker requests, optional editable playbooks with
+independent reviewer steps, eligible delegate discovery, scoped bounded context,
+private accepted-result lesson proposals and identical-read loop fencing are added.
+All **318 state tests pass** (`state-tests-v3.log`). Two earlier runs failed: a
+captured legacy author is optional (now refused rather than invented), and three
+legacy-schema reconstruction fixtures retained the new column (now reconstruct
+the actual older schema before migrations). Existing assertions remain. TUI and
+runtime compilation/qualification of this slice is ongoing.
+
+The first packaged actual-Neovim UI walkthrough failed at named-view confirmation:
+the generic confirmation handler sent a frontend-only command to the backend.
+The corrected handler routes it locally and a regression covers the real key path
+with no backend receiver. Physical qualification must use a corrected rebuilt
+package. The two failed drivers and screenshots remain evidence; the second
+driver reused its first screenshot filename, so that original first capture was
+overwritten. No view/team/task/model mutation succeeded, and the fresh copied
+home stays paused. This failure is not a passing physical test.
+
+Backend checkpoint: **320 state tests pass** (`state-tests-v4.log`), including
+exact accepted goal evidence, duplicate/stale refusal, unfinished-work completion
+fence, completion/reopen admissions, private lesson retrieval and assistance
+resolution without task/grant/runtime changes. A meaningful new assertion exposed
+that completed goals only fenced dispatch; authorization now checks the same goal
+chain before modifying any ledger. Earlier boundary runs retained missing-import
+and incorrect fixture transitions (project revision changed after claim, then
+trying to cancel an unauthorized proposal); the fixture now uses actual supported
+transitions. No production safety check or assertion was removed.
+
+Goal evidence currently attaches to the explicitly linked goal, not inferred
+parent-goal satisfaction. Completion fences that goal and descendants at admission
+and dispatch. Identical-read prevention is intentionally narrow: the ninth new
+identical coordination read with unchanged result and no host action/checkpoint
+stops through the existing verified blocker-checkpoint path. Reusing the same call
+identity returns its receipt. Actual runtime qualification remains pending.
+
+Knowledge freshness advice and artifact/text/native-terminal/three-way UI source
+are now in progress, with new affected UI/editor testing underway. Updated
+generated contracts, final Clippy/build and all physical gates remain pending.

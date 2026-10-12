@@ -1,6 +1,128 @@
 use super::*;
 
 #[tokio::test]
+async fn bounded_context_preserves_scope_and_repeated_reads_keep_original_accounting() -> Result<()>
+{
+    let home = Fixture::new();
+    let store = OrganizationStore::open(&home.0).await?;
+    let (worker, attempt) = authorized_attempt(&store, false).await?;
+    let original = store.execution_view(&attempt.task_id).await?;
+    let source: OrganizationNote = serde_json::from_value(
+        store
+            .coordinate(
+                &attempt.id,
+                &worker,
+                "private-context-source",
+                OrganizationCoordinationCall::WriteNote {
+                    scope: OrganizationNoteScope::Agent,
+                    body: "Relevant parser evidence".into(),
+                },
+                1001,
+            )
+            .await?,
+    )?;
+    let result = store
+        .coordinate(
+            &attempt.id,
+            &worker,
+            "selected-context",
+            OrganizationCoordinationCall::Context {
+                query: "parser".into(),
+            },
+            1002,
+        )
+        .await?;
+    assert_eq!(result["notes"][0]["id"], source.id);
+    assert!(result["bytes"].as_u64().unwrap() <= 8192);
+    assert!(
+        serde_json::from_value::<OrganizationCoordinationCall>(
+            serde_json::json!({"type":"context","query":"parser","agentId":"other"})
+        )
+        .is_err()
+    );
+    assert!(
+        store
+            .coordinate(
+                &attempt.id,
+                &worker,
+                "bad-query",
+                OrganizationCoordinationCall::Context {
+                    query: "x".repeat(257)
+                },
+                1002
+            )
+            .await
+            .is_err()
+    );
+    assert!(
+        store
+            .coordinate(
+                &attempt.id,
+                &worker,
+                "ready",
+                OrganizationCoordinationCall::ReadyDelegates {},
+                1002
+            )
+            .await?
+            .as_array()
+            .unwrap()
+            .is_empty()
+    );
+    for i in 0..8 {
+        store
+            .coordinate(
+                &attempt.id,
+                &worker,
+                &format!("read-{i}"),
+                OrganizationCoordinationCall::ReadNotes {
+                    scope: OrganizationNoteScope::Agent,
+                },
+                1003,
+            )
+            .await?;
+    }
+    let last = store
+        .coordinate(
+            &attempt.id,
+            &worker,
+            "read-7",
+            OrganizationCoordinationCall::ReadNotes {
+                scope: OrganizationNoteScope::Agent,
+            },
+            1003,
+        )
+        .await?;
+    assert!(
+        !last.as_array().unwrap().is_empty(),
+        "same call ID returns the committed receipt"
+    );
+    let error = store
+        .coordinate(
+            &attempt.id,
+            &worker,
+            "read-8",
+            OrganizationCoordinationCall::ReadNotes {
+                scope: OrganizationNoteScope::Agent,
+            },
+            1003,
+        )
+        .await
+        .unwrap_err();
+    assert!(error.is::<crate::organization::RepeatedCoordination>());
+    let after = store.execution_view(&attempt.task_id).await?;
+    assert_eq!(after.authorization, original.authorization);
+    assert_eq!(
+        after.authorization_model_requests,
+        original.authorization_model_requests
+    );
+    assert_eq!(
+        after.authorization_used_tokens,
+        original.authorization_used_tokens
+    );
+    Ok(())
+}
+
+#[tokio::test]
 async fn knowledge_retirement_preserves_history_and_scope_before_fresh_search() -> Result<()> {
     use sha2::Digest;
     let home = Fixture::new();

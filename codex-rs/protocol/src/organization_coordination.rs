@@ -77,6 +77,12 @@ pub struct OrganizationMessage {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
 #[serde(tag = "type", rename_all = "camelCase", deny_unknown_fields)]
 pub enum OrganizationCoordinationCall {
+    /// Only ready proposals inside this original grant's approved worker roster.
+    ReadyDelegates {},
+    /// Bounded scoped memory selection; caller identity comes from the host fence.
+    Context {
+        query: String,
+    },
     Checkpoint {
         content: OrganizationCheckpointContent,
     },

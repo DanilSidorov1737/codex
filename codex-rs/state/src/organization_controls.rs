@@ -37,6 +37,9 @@ pub(super) async fn set(
     value: OrganizationControlValue,
 ) -> Result<OrganizationControl> {
     let id = match &value {
+        OrganizationControlValue::Mission { .. } => "mission".into(),
+        OrganizationControlValue::GoalReview { goal, .. } => format!("goal:{}", goal.id),
+        OrganizationControlValue::Escalation { task_id, .. } => format!("escalation:{task_id}"),
         OrganizationControlValue::WorkflowImprovement { id, .. } => {
             format!("workflow-improvement:{id}")
         }
@@ -58,6 +61,106 @@ pub(super) async fn set(
         "control revision conflict"
     );
     match &value {
+        OrganizationControlValue::Mission {
+            purpose,
+            priorities,
+            constraints,
+        } => {
+            text(purpose, 4096)?;
+            super::definitions::validate_criteria(priorities)?;
+            super::definitions::validate_criteria(constraints)?;
+            ensure!(
+                purpose.len()
+                    + priorities.iter().map(String::len).sum::<usize>()
+                    + constraints.iter().map(String::len).sum::<usize>()
+                    <= 8192,
+                "mission context exceeds 8 KiB"
+            );
+        }
+        OrganizationControlValue::GoalReview {
+            goal,
+            completed,
+            evidence,
+        } => {
+            check_goal(tx, goal).await?;
+            let mut covered = BTreeSet::new();
+            for proof in evidence {
+                ensure!(
+                    (proof.criterion as usize) < goal.criteria.len()
+                        && covered.insert(proof.criterion),
+                    "invalid or duplicate goal criterion"
+                );
+                text(&proof.explanation, 4096)?;
+                let (task, _, _, result) =
+                    comparison_evidence(tx, &proof.task_id, &proof.result_digest).await?;
+                let project = read_project(tx, &task.project_id).await?;
+                ensure!(
+                    task.goal_id.as_deref().or(project.goal_id.as_deref()) == Some(&goal.id),
+                    "goal evidence belongs to another goal"
+                );
+                ensure!(
+                    !result.checks.is_empty()
+                        && result.checks.iter().all(|c| c.exit_code == Some(0)),
+                    "goal evidence needs actual passing checks"
+                );
+            }
+            if *completed {
+                ensure!(
+                    !goal.criteria.is_empty() && covered.len() == goal.criteria.len(),
+                    "every goal criterion needs exact reviewed evidence"
+                );
+                let unfinished:i64=sqlx::query_scalar("SELECT count(*) FROM organization_tasks t JOIN organization_projects p ON p.id=t.project_id WHERE COALESCE(json_extract(t.data,'$.data.goalId'),json_extract(p.data,'$.data.goalId'))=? AND t.state NOT IN ('accepted','cancelled')").bind(&goal.id).fetch_one(&mut **tx).await?;
+                ensure!(
+                    unfinished == 0,
+                    "goal has unfinished work; resolve or cancel it first"
+                );
+            }
+        }
+        OrganizationControlValue::Escalation {
+            task_id,
+            task_revision,
+            assignee_id,
+            reason,
+            requested_action,
+            resolved,
+        } => {
+            text(reason, 4096)?;
+            text(requested_action, 4096)?;
+            if *resolved {
+                let mut pending = value.clone();
+                if let OrganizationControlValue::Escalation { resolved, .. } = &mut pending {
+                    *resolved = false;
+                }
+                ensure!(
+                    previous.as_ref().is_some_and(|old| old.value == pending),
+                    "resolve the exact existing assistance request"
+                );
+            } else {
+                let task = read_task(tx, task_id).await?;
+                ensure!(task.revision == *task_revision, "escalation task changed");
+                ensure!(
+                    matches!(
+                        task.state.as_str(),
+                        "blocked" | "paused" | "waitingApproval" | "needsReconciliation" | "failed"
+                    ),
+                    "select work needing assistance"
+                );
+                if let Some(id) = assignee_id {
+                    let node = read_node(tx, id).await?;
+                    ensure!(
+                        node.enabled && ancestors_enabled(tx, id).await?,
+                        "responsible definition is disabled"
+                    );
+                }
+            }
+            ensure!(
+                !previous.as_ref().is_some_and(|old| matches!(
+                    old.value,
+                    OrganizationControlValue::Escalation { resolved: true, .. }
+                )),
+                "resolved assistance requests are immutable"
+            );
+        }
         OrganizationControlValue::WorkflowImprovement {
             id,
             reason,
@@ -689,6 +792,9 @@ pub(super) async fn check_dispatch(
             super::WorkflowPaused
         );
     }
+    let task = read_task(tx, &grant.task_id).await?;
+    let project = read_project(tx, &project_id).await?;
+    check_goal_open(tx, &task, &project).await?;
     let policy_data: Option<String> = sqlx::query_scalar("SELECT c.data FROM organization_controls c JOIN organization_workflow_occurrences o ON c.id='supervision:'||o.series_id JOIN organization_workflow_tasks w ON w.run_id=o.run_id WHERE w.authorization_id=? LIMIT 1")
         .bind(grant.root_authorization_id.as_ref().unwrap_or(&grant.id)).fetch_optional(&mut **tx).await?;
     if let Some(data) = policy_data {
@@ -703,6 +809,34 @@ pub(super) async fn check_dispatch(
             state == OrganizationWorkflowState::Active && check_goal(tx, &goal).await.is_ok(),
             super::WorkflowPaused
         );
+    }
+    Ok(())
+}
+
+/// Completion closes new authorizations as well as dispatch. Existing ledgers remain.
+pub(super) async fn check_goal_open(
+    tx: &mut Transaction<'_, Sqlite>,
+    task: &OrganizationTask,
+    project: &OrganizationProjectPlan,
+) -> Result<()> {
+    let mut goal_id = task.goal_id.clone().or(project.goal_id.clone());
+    let mut visited = BTreeSet::new();
+    while let Some(id) = goal_id {
+        ensure!(visited.insert(id.clone()), "invalid goal cycle");
+        let data: String = sqlx::query_scalar("SELECT data FROM organization_goals WHERE id=?")
+            .bind(&id)
+            .fetch_one(&mut **tx)
+            .await?;
+        let OrganizationRecord::Goal(current) = serde_json::from_str(&data)? else {
+            anyhow::bail!("invalid goal record")
+        };
+        if let Some(control) = read(tx, &format!("goal:{id}")).await? {
+            ensure!(
+                !matches!(control.value,OrganizationControlValue::GoalReview{goal,completed:true,..} if *goal==current),
+                super::WorkflowPaused
+            );
+        }
+        goal_id = current.parent_id;
     }
     Ok(())
 }
@@ -733,7 +867,7 @@ pub(super) async fn check_global(
         && (!capacity || active < i64::from(limits.max_active)))
 }
 
-async fn comparison_evidence(
+pub(super) async fn comparison_evidence(
     tx: &mut Transaction<'_, Sqlite>,
     task_id: &str,
     digest: &str,

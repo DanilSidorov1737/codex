@@ -2012,6 +2012,10 @@ async fn workflow_migration_from_seven_preserves_existing_tasks_and_crash_blocks
     sqlx::query("DROP TABLE organization_workflow_templates")
         .execute(&store.pool)
         .await?;
+    // Reconstruct the actual legacy schema before replaying later migrations.
+    sqlx::query("ALTER TABLE organization_coordination_calls DROP COLUMN progress_generation")
+        .execute(&store.pool)
+        .await?;
     sqlx::query("DELETE FROM _sqlx_migrations WHERE version>=8")
         .execute(&store.pool)
         .await?;

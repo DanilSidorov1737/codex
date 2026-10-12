@@ -1059,6 +1059,10 @@ async fn continuity_migration_from_eight_preserves_existing_authorizations() -> 
     sqlx::query("DROP TABLE organization_checkpoints")
         .execute(&store.pool)
         .await?;
+    // Reconstruct the actual legacy schema before replaying later migrations.
+    sqlx::query("ALTER TABLE organization_coordination_calls DROP COLUMN progress_generation")
+        .execute(&store.pool)
+        .await?;
     sqlx::query("DELETE FROM _sqlx_migrations WHERE version>=9")
         .execute(&store.pool)
         .await?;
