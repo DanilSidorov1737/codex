@@ -51,6 +51,36 @@ const ACTIONS: &[Action] = &[
         context: "owner proposal",
     },
     Action {
+        title: "Propose team creation / restructure / retirement",
+        shortcut: "@",
+        code: KeyCode::Char('@'),
+        context: "select node; atomic definitions only; % reviews exact saved delta",
+    },
+    Action {
+        title: "Draft finite local project discovery",
+        shortcut: "?",
+        code: KeyCode::Char('?'),
+        context: "select project; saving creates no grant; exact paths/budgets require separate authorization",
+    },
+    Action {
+        title: "Configure bounded safe startup recovery",
+        shortcut: "^",
+        code: KeyCode::Char('^'),
+        context: "select authorized root task; no model/tool effects; original limits",
+    },
+    Action {
+        title: "Compare instruction or workflow evaluation / propose adoption",
+        shortcut: "$",
+        code: KeyCode::Char('$'),
+        context: "select agent or candidate workflow; accepted hash-pinned evaluations; % separately adopts",
+    },
+    Action {
+        title: "Share reviewed project knowledge",
+        shortcut: "S",
+        code: KeyCode::Char('S'),
+        context: "memory search exact source; target revision/body reviewed; private/team sources refused",
+    },
+    Action {
         title: "Goal supervision policy pause / resume / revoke",
         shortcut: "*",
         code: KeyCode::Char('*'),
@@ -436,7 +466,7 @@ impl Palette {
     }
     pub fn actions(&self) -> Vec<&'static Action> {
         let query = self.query.to_lowercase();
-        ACTIONS
+        let mut actions: Vec<_> = ACTIONS
             .iter()
             .filter(|action| {
                 query.split_whitespace().all(|word| {
@@ -445,7 +475,16 @@ impl Palette {
                         .contains(word)
                 })
             })
-            .collect()
+            .collect();
+        actions.sort_by_key(|action| {
+            std::cmp::Reverse(
+                query
+                    .split_whitespace()
+                    .filter(|word| action.title.to_lowercase().contains(word))
+                    .count(),
+            )
+        });
+        actions
     }
     pub fn key(&mut self, key: KeyEvent) -> Option<KeyCode> {
         match key.code {

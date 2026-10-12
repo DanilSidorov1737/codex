@@ -158,6 +158,50 @@ impl OrganizationReplanItem {
 #[serde(tag = "type", rename_all = "camelCase", deny_unknown_fields)]
 pub enum OrganizationControlValue {
     #[serde(rename_all = "camelCase")]
+    WorkflowImprovement {
+        id: String,
+        reason: String,
+        template_id: String,
+        #[ts(type = "number")]
+        template_revision: i64,
+        baseline_run_id: String,
+        #[ts(type = "number")]
+        baseline_run_revision: i64,
+        candidate_run_id: String,
+        #[ts(type = "number")]
+        candidate_run_revision: i64,
+        applied: bool,
+    },
+    #[serde(rename_all = "camelCase")]
+    Improvement {
+        id: String,
+        reason: String,
+        node: Box<OrganizationNode>,
+        role_version_id: String,
+        baseline_task_id: String,
+        baseline_digest: String,
+        candidate_task_id: String,
+        candidate_digest: String,
+        applied: bool,
+    },
+    /// Definition-only delta. revision=0 reserves a fresh UUID; existing revisions
+    /// and parents are captured. Applying never creates or copies authority.
+    #[serde(rename_all = "camelCase")]
+    Team {
+        id: String,
+        reason: String,
+        expected_nodes: Vec<OrganizationNode>,
+        nodes: Vec<OrganizationNode>,
+        applied: bool,
+    },
+    #[serde(rename_all = "camelCase")]
+    SafeRecovery {
+        task_id: String,
+        authorization_id: String,
+        max_retries: u32,
+        enabled: bool,
+    },
+    #[serde(rename_all = "camelCase")]
     Knowledge {
         note_id: String,
         body_sha256: String,
@@ -278,6 +322,15 @@ pub enum OrganizationMutation {
     PromoteNote {
         source_id: String,
         group_id: Option<String>,
+        body: String,
+    },
+    #[serde(rename_all = "camelCase")]
+    ShareNote {
+        source_id: String,
+        source_sha256: String,
+        target_project_id: String,
+        #[ts(type = "number")]
+        expected_project_revision: i64,
         body: String,
     },
     #[serde(rename_all = "camelCase")]

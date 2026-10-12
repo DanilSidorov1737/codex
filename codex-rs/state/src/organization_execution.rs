@@ -55,6 +55,7 @@ impl OrganizationStore {
         if active >= i64::from(max_active) {
             return Ok(None);
         }
+        super::recovery::requeue_known_startup_failures(&mut tx, now).await?;
         // Bound resident root runtimes separately from active inference. Every
         // admitted root reserves room for its at-most-32 descendants; waiting
         // ancestors therefore cannot fill the runtime tracker and starve a child.

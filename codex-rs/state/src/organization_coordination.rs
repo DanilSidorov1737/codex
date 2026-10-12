@@ -485,6 +485,73 @@ pub(super) async fn promote_note(
     Ok(())
 }
 
+pub(super) async fn share_note(
+    tx: &mut Transaction<'_, Sqlite>,
+    source_id: &str,
+    source_sha256: &str,
+    target_project_id: &str,
+    expected_project_revision: i64,
+    body: String,
+) -> Result<()> {
+    use sha2::Digest;
+    text(&body, 4096)?;
+    let (data, superseded): (String, Option<String>) =
+        sqlx::query_as("SELECT data,superseded_by FROM organization_notes WHERE id=?")
+            .bind(source_id)
+            .fetch_one(&mut **tx)
+            .await?;
+    let source: OrganizationNote = serde_json::from_str(&data)?;
+    ensure!(
+        source.owner_reviewed
+            && source.scope == OrganizationNoteScope::Project
+            && superseded.is_none(),
+        "only current owner-reviewed project knowledge may cross projects; private/team notes require explicit promotion first"
+    );
+    ensure!(
+        source.project_id != target_project_id
+            && source_sha256 == format!("{:x}", sha2::Sha256::digest(source.body.as_bytes())),
+        "source changed or target is the same project"
+    );
+    ensure!(
+        !matches!(
+            super::controls::read(tx, &format!("knowledge:{source_id}"))
+                .await?
+                .map(|c| c.value),
+            Some(
+                codex_protocol::organization::OrganizationControlValue::Knowledge {
+                    retired: true,
+                    ..
+                }
+            )
+        ),
+        "retired source cannot be shared"
+    );
+    let target = read_project(tx, target_project_id).await?;
+    ensure!(
+        target.revision == expected_project_revision,
+        "target project changed"
+    );
+    super::controls::check_project_edit(tx, target_project_id).await?;
+    let count: i64 =
+        sqlx::query_scalar("SELECT count(*) FROM organization_notes WHERE project_id=?")
+            .bind(target_project_id)
+            .fetch_one(&mut **tx)
+            .await?;
+    ensure!(count < 128, "target project note/history limit exhausted");
+    let note = OrganizationNote {
+        id: Uuid::now_v7().to_string(),
+        project_id: target_project_id.into(),
+        body,
+        source_note_id: Some(source.id.clone()),
+        created_at: chrono::Utc::now().timestamp(),
+        ..source
+    };
+    sqlx::query("INSERT INTO organization_notes(id,project_id,author_id,scope,group_id,data) VALUES (?,?,?,'project',NULL,?)").bind(&note.id).bind(&note.project_id).bind(&note.author_id).bind(serde_json::to_string(&note)?).execute(&mut **tx).await?;
+    // This is an independently reviewed copy. Never supersede or expose the original private context.
+    owner_event(tx, "knowledge/shared", &note.id).await?;
+    Ok(())
+}
+
 async fn team_ids(tx: &mut Transaction<'_, Sqlite>, author_id: &str) -> Result<Vec<String>> {
     let node = read_node(tx, author_id).await?;
     if !node.enabled || !ancestors_enabled(tx, author_id).await? {

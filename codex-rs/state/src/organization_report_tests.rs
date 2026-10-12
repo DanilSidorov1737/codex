@@ -220,6 +220,7 @@ async fn report_uses_change_receipts_not_instruction_text_and_preserves_legacy_u
         .checks
         .iter()
         .map(|argv| OrganizationCheckEvidence {
+            immutable_inputs: None,
             argv: argv.clone(),
             exit_code: None,
             output: "timed out state fixture".into(),

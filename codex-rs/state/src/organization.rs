@@ -39,6 +39,9 @@ mod presets;
 #[path = "organization_controls.rs"]
 mod controls;
 
+#[path = "organization_recovery.rs"]
+mod recovery;
+
 #[path = "organization_execution.rs"]
 mod execution;
 

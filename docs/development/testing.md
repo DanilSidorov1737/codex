@@ -2768,3 +2768,29 @@ quarantined source workspaces, remapped fresh-home restore, all controls/history
 scoped notes/scorecards and corrupt/live-bundle refusals pass. The corrected
 fixture records 17 admitted/16 reported requests, 240 synthetic tokens, zero paid.
 Actual restored frontend/editor and final editor recovery remain pending.
+
+## Hierarchy/local autonomy intermediate checks
+
+The additional backend checks pass in `hierarchy-batch/autonomy-state-v4.log`:
+**316 full state tests**, including atomic team/cycle/stale/replay, original-grant
+startup backoff/occupancy/unknown refusal, cross-project private/stale denial and
+source retention, matching protected instruction evaluations and every paired
+workflow step. **78 affected TUI/actual official-Neovim tests** pass in
+`autonomy-tui-v3.log`. The new palette context collision failed in v2 and is
+fixed with stable title-match ranking; the existing assertion remains unchanged.
+Raw stable/experimental writers each pass and all four generated/precomputed
+comparisons pass (`autonomy-schema-*-v2.log`). Production Clippy/package and new
+physical qualification remain pending at this checkpoint; source-only tests do
+not qualify live-provider quality or indefinite unattended operation.
+
+SDK generation initially lacked the installed Ruff executable on PATH; activating
+the existing .venv corrects it. The intended contract/signature selection passes
+25 (`autonomy-sdk-contracts-final.log`). Extra wheel packaging checks initially
+hit the sandbox's read-only default uv cache; a writable existing cache and
+UV_OFFLINE=true make all four pass without installation. One optional existing
+formatter-driver test still expects per-file rustfmt while the driver uses cargo
+fmt. Both files are byte-identical to batch base59d3f1ebf3
+(`additional-format-test-baseline.json`); it is an unrelated confirmed baseline
+mismatch, retained as a limitation. The unlocked wrong-profile writer changed
+only ordering in Cargo.lock; that unintended ordering change was restored and
+no dependency/version was added.

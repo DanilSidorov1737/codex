@@ -868,6 +868,7 @@ async fn result(
                 bytes: 1,
             }],
             vec![OrganizationCheckEvidence {
+                immutable_inputs: None,
                 argv: vec!["python3".into(), "oracle.py".into()],
                 exit_code: Some(exit_code),
                 output: "observed check".into(),

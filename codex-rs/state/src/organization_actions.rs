@@ -390,6 +390,16 @@ impl OrganizationStore {
             task.state == attempt.state.as_str(),
             "task no longer belongs to this live attempt"
         );
+        if attempt.workspace.is_none() && attempt.model_requests == 0 {
+            let effects: i64 =
+                sqlx::query_scalar("SELECT count(*) FROM organization_actions WHERE attempt_id=?")
+                    .bind(attempt_id)
+                    .fetch_one(&mut **tx)
+                    .await?;
+            if effects == 0 {
+                attempt.stop_reason = Some("startup-before-runtime".into());
+            }
+        }
         attempt.state = OrganizationTaskState::Failed;
         attempt.lease_until = 0;
         write_attempt(tx, &attempt).await?;
@@ -736,6 +746,20 @@ impl OrganizationStore {
                 && checks.iter().all(|c| c.output.len() <= 65536),
             "result checks differ from authorization or output too large"
         );
+        for check in &checks {
+            if let Some(inputs) = &check.immutable_inputs {
+                ensure!(
+                    inputs
+                        .iter()
+                        .map(|f| &f.path)
+                        .eq(authorization.scope.immutable_files.iter())
+                        && inputs
+                            .iter()
+                            .all(|f| valid_hash(&f.sha256) && f.bytes <= 8 * 1024 * 1024),
+                    "immutable check inputs differ from the protected scope"
+                );
+            }
+        }
         let unresolved: i64 = sqlx::query_scalar("SELECT count(*) FROM organization_actions WHERE attempt_id=? AND state IN ('pending','dispatched','uncertain')").bind(attempt_id).fetch_one(&mut *tx).await?;
         ensure!(unresolved == 0, "result has unresolved actions");
         let children: i64 = sqlx::query_scalar("SELECT count(*) FROM organization_authorizations a JOIN organization_tasks t ON t.authorization_id=a.id WHERE a.parent_attempt_id=? AND t.state<>'accepted'")

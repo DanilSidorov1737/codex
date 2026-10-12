@@ -138,6 +138,7 @@ async fn atomic_replan_rolls_back_stale_delta_preserves_accepted_work_and_origin
                 bytes: 1,
             }],
             vec![OrganizationCheckEvidence {
+                immutable_inputs: None,
                 argv: execution_scope().checks[0].clone(),
                 exit_code: Some(0),
                 output: "state-only check evidence".into(),

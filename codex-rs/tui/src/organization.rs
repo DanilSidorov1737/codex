@@ -1650,6 +1650,23 @@ impl Dashboard {
         let command = if key == '%' {
             match self.record() {
                 Some(OrganizationRecord::Control(control)) => match &control.value {
+                    OrganizationControlValue::Team { applied: false, .. }
+                    | OrganizationControlValue::WorkflowImprovement { applied: false, .. }
+                    | OrganizationControlValue::Improvement { applied: false, .. } => {
+                        let mut value = control.value.clone();
+                        match &mut value {
+                            OrganizationControlValue::Team { applied, .. }
+                            | OrganizationControlValue::WorkflowImprovement { applied, .. }
+                            | OrganizationControlValue::Improvement { applied, .. } => {
+                                *applied = true
+                            }
+                            _ => {}
+                        }
+                        Some(Command::Definition(OrganizationMutation::SetControl {
+                            expected_revision: Some(control.revision),
+                            value,
+                        }))
+                    }
                     OrganizationControlValue::Replan {
                         id,
                         items,
@@ -1784,6 +1801,108 @@ impl Dashboard {
     }
     fn open_form(&mut self, key: char) {
         let kind = match key {
+            '@' => {
+                let Some(OrganizationRecord::Node(node)) = self.record() else {
+                    self.message = "Select a definition to propose team changes".into();
+                    return;
+                };
+                let expected_nodes = std::iter::once(node.clone())
+                    .chain(
+                        self.snapshot
+                            .records
+                            .iter()
+                            .filter_map(|r| match r {
+                                OrganizationRecord::Node(n) if n.id != node.id => Some(n.clone()),
+                                _ => None,
+                            })
+                            .take(63),
+                    )
+                    .collect();
+                form::Kind::Team {
+                    expected_nodes,
+                    nodes: vec![node.clone()],
+                }
+            }
+            '?' => {
+                let project_id = match self.record() {
+                    Some(OrganizationRecord::Project(p)) => Some(&p.id),
+                    Some(OrganizationRecord::Task(t)) => Some(&t.project_id),
+                    _ => None,
+                };
+                let Some(project) = self.snapshot.records.iter().find_map(|r| match r {
+                    OrganizationRecord::Project(p) if Some(&p.id) == project_id => Some(p.clone()),
+                    _ => None,
+                }) else {
+                    self.message = "Select a local project for a finite discovery proposal".into();
+                    return;
+                };
+                form::Kind::Discovery(project)
+            }
+            '^' => {
+                let Some(view) = self
+                    .detail
+                    .as_ref()
+                    .filter(|v| Some(&v.task.id) == self.selected.as_ref())
+                else {
+                    self.message = "Select a task and wait for captured grant details".into();
+                    return;
+                };
+                let Some(grant) = &view.authorization else {
+                    self.message =
+                        "Authorize a bounded task before enabling startup recovery".into();
+                    return;
+                };
+                form::Kind::Recovery {
+                    task: view.task.clone(),
+                    authorization_id: grant.id.clone(),
+                    previous: self.control(&format!("recovery:{}", view.task.id)),
+                }
+            }
+            '$' => {
+                if let Some(OrganizationWorkflowView::Template { template }) =
+                    self.selected_workflow()
+                {
+                    let runs = self
+                        .snapshot
+                        .workflows
+                        .iter()
+                        .filter_map(|v| match v {
+                            OrganizationWorkflowView::Run { run, .. }
+                                if run.preview.template.project_id == template.project_id =>
+                            {
+                                Some((**run).clone())
+                            }
+                            _ => None,
+                        })
+                        .collect();
+                    self.form = Some(form::Form::new(
+                        form::Kind::WorkflowImprovement {
+                            template: template.clone(),
+                            runs,
+                        },
+                        &self.snapshot.records,
+                        self.record(),
+                        &self.model,
+                    ));
+                    return;
+                }
+                let Some(OrganizationRecord::Node(node)) = self.record() else {
+                    self.message = "Select the target agent definition".into();
+                    return;
+                };
+                let accepted = self
+                    .snapshot
+                    .report
+                    .iter()
+                    .flat_map(|r| &r.tasks)
+                    .filter(|t| t.state == "accepted" && t.result_digest.is_some())
+                    .cloned()
+                    .collect();
+                form::Kind::Improvement {
+                    node: node.clone(),
+                    accepted,
+                }
+            }
             'P' => match self.record() {
                 Some(OrganizationRecord::Goal(goal)) => form::Kind::GoalPlan(goal.clone()),
                 Some(OrganizationRecord::Task(_)) => match self.accepted_plan_items() {
@@ -2602,6 +2721,37 @@ impl Dashboard {
         }
         if self.memory_request.is_some() {
             match key.code {
+                KeyCode::Char('S') => {
+                    if let Some(Ok(result)) = &self.memory_result
+                        && let Some(note) = result.notes.first()
+                    {
+                        let projects = self
+                            .snapshot
+                            .records
+                            .iter()
+                            .filter_map(|r| match r {
+                                OrganizationRecord::Project(p) => Some(p.clone()),
+                                _ => None,
+                            })
+                            .collect();
+                        self.form = Some(form::Form::new(
+                            form::Kind::ShareNote {
+                                note: note.clone(),
+                                projects,
+                            },
+                            &self.snapshot.records,
+                            self.record(),
+                            &self.model,
+                        ));
+                        self.memory_request = None;
+                        self.memory_result = None;
+                        self.scroll = 0;
+                    } else {
+                        self.message =
+                            "Search for the exact owner-reviewed project source before sharing"
+                                .into();
+                    }
+                }
                 KeyCode::Char('-') => {
                     if let Some(Ok(result)) = &self.memory_result
                         && let Some(note) = result.notes.first()
@@ -2929,7 +3079,7 @@ impl Dashboard {
             }
             KeyCode::Char(
                 c @ ('U' | 'G' | 'N' | 'T' | 's' | 'A' | 'R' | 'W' | 'H' | 'B' | 'E' | 'L' | 'I'
-                | 'Y' | 'D' | 'V' | '!' | 'F' | '*' | '&' | '+' | '-'),
+                | 'Y' | 'D' | 'V' | '!' | 'F' | '*' | '&' | '+' | '-' | '@' | '?' | '^' | '$'),
             ) => self.open_form(c),
             KeyCode::Char('n') if self.preferences.preset == Preset::Review => {
                 if let Some(result) = self
@@ -3160,6 +3310,59 @@ impl Dashboard {
                         control.id,
                         serde_json::to_string_pretty(&control.value).unwrap_or_default()
                     );
+                    if let OrganizationControlValue::Improvement {
+                        baseline_task_id,
+                        baseline_digest,
+                        candidate_task_id,
+                        candidate_digest,
+                        ..
+                    } = &control.value
+                    {
+                        let evidence = |id: &str, digest: &str| {
+                            self.snapshot.report.as_ref().and_then(|r| {
+                                r.tasks.iter().find(|t| {
+                                    t.task_id == id && t.result_digest.as_deref() == Some(digest)
+                                })
+                            })
+                        };
+                        if let (Some(before), Some(after)) = (
+                            evidence(baseline_task_id, baseline_digest),
+                            evidence(candidate_task_id, candidate_digest),
+                        ) {
+                            text.push_str(&format!("\nRecorded comparison: baseline {} tokens / {} admitted requests / {} passed checks; candidate {} tokens / {} admitted requests / {} passed checks.\nSame protected oracle hashes and captured instruction versions are validated by the backend. These samples establish measured non-regression, not general model quality. % reviews exact adoption; existing grants stay fenced by their original node revision.\n",before.reported_tokens,before.model_requests,before.checks_passed,after.reported_tokens,after.model_requests,after.checks_passed));
+                        } else {
+                            text.push_str("\nCaptured evaluation report is unavailable; refresh before reviewing adoption.\n");
+                        }
+                    }
+                    if matches!(control.value, OrganizationControlValue::Team { .. }) {
+                        text.push_str("\n% reviews and applies this exact saved definition delta atomically. Stale revisions/cycles refuse the whole change. No authority is copied; retirement retains history.\n");
+                    }
+                    if let OrganizationControlValue::WorkflowImprovement {
+                        baseline_run_id,
+                        candidate_run_id,
+                        ..
+                    } = &control.value
+                        && let Some(report) = &self.snapshot.report
+                    {
+                        for (label, id) in [
+                            ("Baseline", baseline_run_id),
+                            ("Candidate", candidate_run_id),
+                        ] {
+                            let tasks: Vec<_> = report
+                                .tasks
+                                .iter()
+                                .filter(|t| t.workflow_run_id.as_ref() == Some(id))
+                                .collect();
+                            if tasks.is_empty() {
+                                text.push_str(&format!(
+                                    "\n{label} captured run report unavailable; refresh.\n"
+                                ));
+                            } else {
+                                text.push_str(&format!("\n{label} captured run: {} tasks, {} reported tokens, {} admitted requests, {} passed checks.\n",tasks.len(),tasks.iter().map(|t|t.reported_tokens).sum::<i64>(),tasks.iter().map(|t|t.model_requests).sum::<i64>(),tasks.iter().map(|t|t.checks_passed).sum::<i64>()));
+                            }
+                        }
+                        text.push_str("\n% confirms durable owner recommendation of this exact tested template; scopes, future runs and Apply remain separate decisions. Representative samples do not establish general quality.\n");
+                    }
                     if let Some(u) = self
                         .snapshot
                         .report

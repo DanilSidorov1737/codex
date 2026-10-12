@@ -1,7 +1,7 @@
 # Current status and resumption instructions
 
 Current approved work: [hierarchy/autonomy batch](hierarchy-autonomy-batch.md),
-approved with “ok lets do this”. Tasks1–10 are committed on `47221cd410` and pass first physical UI/diagnostics qualification. Goal/dependency projection, rolling proposal/assignment advice and bounded official-Neovim multi-tab checkpoints pass77 affected checks; final packaged physical checks remain. Team proposals, narrow startup recovery and cross-project reviewed knowledge are in progress. Continue tasks14–20; do not stop at this intermediate checkpoint.
+approved with “ok lets do this”. Tasks1–10 are committed on `47221cd410` and pass first physical UI/diagnostics qualification. Goal/dependency projection, rolling proposal/assignment advice and bounded official-Neovim multi-tab checkpoints pass77 affected checks; final packaged physical checks remain. Team proposals, narrow known-startup recovery, reviewed cross-project knowledge, finite discovery and measured instruction/workflow adoption now pass full state316/affected TUI78 and generated comparisons4. Production CLI Clippy passes; current packaging and fresh physical/background/scale/recovery checks remain. Continue task20 through completion; do not stop at this source checkpoint.
 The completed prior twenty-task batch below is protected historical evidence.
 External integrations and new paid inference remain deferred.
 

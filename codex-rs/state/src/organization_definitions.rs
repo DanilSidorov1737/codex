@@ -70,6 +70,24 @@ impl OrganizationStore {
                 super::coordination::promote_note(&mut tx, &source_id, group_id, body).await?;
                 ("note/promote", None)
             }
+            OrganizationMutation::ShareNote {
+                source_id,
+                source_sha256,
+                target_project_id,
+                expected_project_revision,
+                body,
+            } => {
+                super::coordination::share_note(
+                    &mut tx,
+                    &source_id,
+                    &source_sha256,
+                    &target_project_id,
+                    expected_project_revision,
+                    body,
+                )
+                .await?;
+                ("note/share", None)
+            }
             OrganizationMutation::PutNode {
                 id,
                 expected_revision,
@@ -80,15 +98,6 @@ impl OrganizationStore {
                 model,
                 enabled,
             } => {
-                text(&label, 256)?;
-                ensure!(
-                    kind == OrganizationNodeKind::Agent
-                        || (role_version_id.is_none() && model.is_none()),
-                    "groups do not have execution roles/models"
-                );
-                if let Some(model) = &model {
-                    text(model, 256)?;
-                }
                 let (id, revision) = next_revision(
                     &mut tx,
                     OrganizationRecordKind::Nodes,
@@ -96,34 +105,18 @@ impl OrganizationStore {
                     expected_revision,
                 )
                 .await?;
-                let old_kind: Option<String> =
-                    sqlx::query_scalar("SELECT kind FROM organization_nodes WHERE id = ?")
-                        .bind(&id)
-                        .fetch_optional(&mut *tx)
-                        .await?;
-                let kind_name = match kind {
-                    OrganizationNodeKind::Agent => "agent",
-                    OrganizationNodeKind::Group => "group",
-                };
-                ensure!(
-                    old_kind.as_deref().is_none_or(|old| old == kind_name),
-                    "node kind is immutable"
-                );
-                let cycle: i64 = sqlx::query_scalar("WITH RECURSIVE ancestors(id) AS (SELECT ? UNION SELECT n.parent_id FROM organization_nodes n JOIN ancestors a ON n.id = a.id WHERE n.parent_id IS NOT NULL) SELECT EXISTS(SELECT 1 FROM ancestors WHERE id = ?)")
-                    .bind(&parent_id).bind(&id).fetch_one(&mut *tx).await?;
-                ensure!(cycle == 0, "organization hierarchy cycle rejected");
-                let record = OrganizationRecord::Node(OrganizationNode {
-                    id: id.clone(),
-                    parent_id: parent_id.clone(),
+                let node = OrganizationNode {
+                    id,
+                    parent_id,
                     kind,
                     label,
-                    role_version_id: role_version_id.clone(),
+                    role_version_id,
                     model,
                     enabled,
                     revision,
-                });
-                sqlx::query("INSERT INTO organization_nodes(id,parent_id,kind,role_version_id,revision,data) VALUES (?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET parent_id=excluded.parent_id,role_version_id=excluded.role_version_id,revision=excluded.revision,data=excluded.data")
-                    .bind(id).bind(parent_id).bind(kind_name).bind(role_version_id).bind(revision).bind(serde_json::to_string(&record)?).execute(&mut *tx).await?;
+                };
+                write_node(&mut tx, &node).await?;
+                let record = OrganizationRecord::Node(node);
                 ("node/put", Some(record))
             }
             OrganizationMutation::CreateRoleVersion {
@@ -533,4 +526,38 @@ async fn next_revision(
             .checked_add(1)
             .context("definition revision exhausted")?,
     ))
+}
+
+/// Shared definition validation/persistence. Caller owns exact revision and transaction checks.
+pub(super) async fn write_node(
+    tx: &mut Transaction<'_, Sqlite>,
+    node: &OrganizationNode,
+) -> Result<()> {
+    text(&node.label, 256)?;
+    ensure!(
+        node.kind == OrganizationNodeKind::Agent
+            || (node.role_version_id.is_none() && node.model.is_none()),
+        "groups do not have execution roles/models"
+    );
+    if let Some(model) = &node.model {
+        text(model, 256)?;
+    }
+    let kind = match node.kind {
+        OrganizationNodeKind::Agent => "agent",
+        OrganizationNodeKind::Group => "group",
+    };
+    let old: Option<String> = sqlx::query_scalar("SELECT kind FROM organization_nodes WHERE id=?")
+        .bind(&node.id)
+        .fetch_optional(&mut **tx)
+        .await?;
+    ensure!(
+        old.as_deref().is_none_or(|old| old == kind),
+        "node kind is immutable"
+    );
+    let cycle:i64=sqlx::query_scalar("WITH RECURSIVE ancestors(id) AS (SELECT ? UNION SELECT n.parent_id FROM organization_nodes n JOIN ancestors a ON n.id=a.id WHERE n.parent_id IS NOT NULL) SELECT EXISTS(SELECT 1 FROM ancestors WHERE id=?)").bind(&node.parent_id).bind(&node.id).fetch_one(&mut **tx).await?;
+    ensure!(cycle == 0, "organization hierarchy cycle rejected");
+    let record = OrganizationRecord::Node(node.clone());
+    sqlx::query("INSERT INTO organization_nodes(id,parent_id,kind,role_version_id,revision,data) VALUES (?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET parent_id=excluded.parent_id,role_version_id=excluded.role_version_id,revision=excluded.revision,data=excluded.data")
+        .bind(&node.id).bind(&node.parent_id).bind(kind).bind(&node.role_version_id).bind(node.revision).bind(serde_json::to_string(&record)?).execute(&mut **tx).await?;
+    Ok(())
 }

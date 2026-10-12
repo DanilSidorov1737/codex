@@ -37,6 +37,12 @@ pub(super) async fn set(
     value: OrganizationControlValue,
 ) -> Result<OrganizationControl> {
     let id = match &value {
+        OrganizationControlValue::WorkflowImprovement { id, .. } => {
+            format!("workflow-improvement:{id}")
+        }
+        OrganizationControlValue::Improvement { id, .. } => format!("improvement:{id}"),
+        OrganizationControlValue::Team { id, .. } => format!("team:{id}"),
+        OrganizationControlValue::SafeRecovery { task_id, .. } => format!("recovery:{task_id}"),
         OrganizationControlValue::Knowledge { note_id, .. } => format!("knowledge:{note_id}"),
         OrganizationControlValue::Replan { id, .. } => format!("replan:{id}"),
         OrganizationControlValue::Supervision { series_id, .. } => {
@@ -52,6 +58,254 @@ pub(super) async fn set(
         "control revision conflict"
     );
     match &value {
+        OrganizationControlValue::WorkflowImprovement {
+            id,
+            reason,
+            template_id,
+            template_revision,
+            baseline_run_id,
+            baseline_run_revision,
+            candidate_run_id,
+            candidate_run_revision,
+            applied,
+        } => {
+            Uuid::parse_str(id)?;
+            text(reason, 4096)?;
+            ensure!(
+                baseline_run_id != candidate_run_id,
+                "compare distinct workflow runs"
+            );
+            if let Some(old) = &previous {
+                ensure!(
+                    !matches!(
+                        old.value,
+                        OrganizationControlValue::WorkflowImprovement { applied: true, .. }
+                    ),
+                    "adopted workflow comparison is immutable"
+                );
+            }
+            if *applied {
+                let mut pending = value.clone();
+                if let OrganizationControlValue::WorkflowImprovement { applied, .. } = &mut pending
+                {
+                    *applied = false;
+                }
+                ensure!(
+                    previous.as_ref().is_some_and(|old| old.value == pending),
+                    "save and review exact workflow comparison first"
+                );
+            }
+            let before = comparison_run(tx, baseline_run_id, *baseline_run_revision).await?;
+            let after = comparison_run(tx, candidate_run_id, *candidate_run_revision).await?;
+            let current: String = sqlx::query_scalar(
+                "SELECT data FROM organization_workflow_templates WHERE id=? AND revision=?",
+            )
+            .bind(template_id)
+            .bind(template_revision)
+            .fetch_one(&mut **tx)
+            .await?;
+            let template: codex_protocol::organization_workflow::OrganizationWorkflowTemplate =
+                serde_json::from_str(&current)?;
+            ensure!(
+                after.preview.template == template
+                    && before.preview.template != template
+                    && before.preview.template.project_id == template.project_id
+                    && before.task_ids.keys().eq(after.task_ids.keys()),
+                "candidate must evaluate the current changed workflow with the same project and step keys"
+            );
+            for (key, task_id) in &before.task_ids {
+                let old = comparison_evidence_for_task(tx, task_id).await?;
+                let new = comparison_evidence_for_task(tx, &after.task_ids[key]).await?;
+                ensure!(
+                    old.1.scope.model == new.1.scope.model
+                        && old.2.provider.is_some()
+                        && old.2.provider == new.2.provider
+                        && old.2.role_version_id == new.2.role_version_id,
+                    "workflow evaluations changed model/provider/instructions or lack captured provenance"
+                );
+                compare_checks(&old.3, &new.3)?;
+            }
+            // Durable recommendation of this exact tested template; execution still requires fresh owner-reviewed scopes.
+        }
+        OrganizationControlValue::Improvement {
+            id,
+            reason,
+            node,
+            role_version_id,
+            baseline_task_id,
+            baseline_digest,
+            candidate_task_id,
+            candidate_digest,
+            applied,
+        } => {
+            Uuid::parse_str(id)?;
+            text(reason, 4096)?;
+            ensure!(
+                baseline_task_id != candidate_task_id
+                    && node.role_version_id.as_ref() != Some(role_version_id),
+                "compare distinct evaluations and a fresh instruction version"
+            );
+            if let Some(old) = &previous {
+                ensure!(
+                    !matches!(
+                        old.value,
+                        OrganizationControlValue::Improvement { applied: true, .. }
+                    ),
+                    "adopted improvement is immutable"
+                );
+            }
+            if *applied {
+                let mut pending = value.clone();
+                if let OrganizationControlValue::Improvement { applied, .. } = &mut pending {
+                    *applied = false;
+                }
+                ensure!(
+                    previous.as_ref().is_some_and(|old| old.value == pending),
+                    "save and review exact measured improvement first"
+                );
+            }
+            ensure!(
+                read_node(tx, &node.id).await? == **node,
+                "improvement target changed"
+            );
+            let baseline = comparison_evidence(tx, baseline_task_id, baseline_digest).await?;
+            let candidate = comparison_evidence(tx, candidate_task_id, candidate_digest).await?;
+            ensure!(
+                baseline.0.project_id == candidate.0.project_id
+                    && baseline.1.scope.model == candidate.1.scope.model
+                    && baseline.2.provider.is_some()
+                    && baseline.2.provider == candidate.2.provider,
+                "evaluation project/model/provider differ or provenance is unavailable"
+            );
+            ensure!(
+                baseline.2.role_version_id == node.role_version_id
+                    && candidate.2.role_version_id.as_ref() == Some(role_version_id),
+                "evaluate the actual captured baseline and candidate instructions"
+            );
+            compare_checks(&baseline.3, &candidate.3)?;
+            if *applied {
+                let mut updated = (**node).clone();
+                updated.role_version_id = Some(role_version_id.clone());
+                updated.revision = updated
+                    .revision
+                    .checked_add(1)
+                    .context("node revision exhausted")?;
+                super::definitions::write_node(tx, &updated).await?;
+            }
+        }
+        OrganizationControlValue::Team {
+            id,
+            reason,
+            expected_nodes,
+            nodes,
+            applied,
+        } => {
+            Uuid::parse_str(id)?;
+            text(reason, 4096)?;
+            ensure!(
+                (1..=32).contains(&nodes.len()) && expected_nodes.len() <= 64,
+                "team proposal supports 1–32 changes and 64 captured definitions"
+            );
+            if let Some(old) = &previous {
+                ensure!(
+                    !matches!(
+                        old.value,
+                        OrganizationControlValue::Team { applied: true, .. }
+                    ),
+                    "applied team proposal is immutable"
+                );
+            }
+            if *applied {
+                let mut pending = value.clone();
+                if let OrganizationControlValue::Team { applied, .. } = &mut pending {
+                    *applied = false;
+                }
+                ensure!(
+                    previous.as_ref().is_some_and(|old| old.value == pending),
+                    "save and review the exact pending team proposal first"
+                );
+            }
+            let mut bases = std::collections::BTreeMap::new();
+            for node in expected_nodes {
+                ensure!(
+                    bases.insert(&node.id, node).is_none()
+                        && read_node(tx, &node.id).await? == *node,
+                    "team captured definition changed or repeated"
+                );
+            }
+            let mut ids = BTreeSet::new();
+            for node in nodes {
+                ensure!(ids.insert(&node.id), "duplicate team target");
+                if node.revision == 0 {
+                    Uuid::parse_str(&node.id)?;
+                    let exists: i64 = sqlx::query_scalar(
+                        "SELECT EXISTS(SELECT 1 FROM (SELECT id FROM organization_nodes UNION ALL SELECT id FROM organization_goals UNION ALL SELECT id FROM organization_projects UNION ALL SELECT id FROM organization_tasks UNION ALL SELECT id FROM organization_role_versions) WHERE id=?)",
+                    )
+                    .bind(&node.id)
+                    .fetch_one(&mut **tx)
+                    .await?;
+                    ensure!(exists == 0, "fresh team identity already exists");
+                } else {
+                    ensure!(
+                        bases
+                            .get(&node.id)
+                            .is_some_and(|base| base.revision == node.revision),
+                        "capture each existing team target revision"
+                    );
+                }
+            }
+            for node in nodes {
+                if let Some(parent) = &node.parent_id {
+                    ensure!(
+                        ids.contains(parent) || bases.contains_key(parent),
+                        "capture the existing parent or include its fresh definition"
+                    );
+                }
+            }
+            if *applied {
+                // Two passes permit arbitrary reparenting without exposing intermediate trees.
+                for node in nodes {
+                    let mut detached = node.clone();
+                    detached.parent_id = None;
+                    detached.revision = detached
+                        .revision
+                        .checked_add(1)
+                        .context("node revision exhausted")?;
+                    super::definitions::write_node(tx, &detached).await?;
+                }
+                for node in nodes {
+                    let mut updated = node.clone();
+                    updated.revision = updated
+                        .revision
+                        .checked_add(1)
+                        .context("node revision exhausted")?;
+                    super::definitions::write_node(tx, &updated).await?;
+                }
+            }
+        }
+        OrganizationControlValue::SafeRecovery {
+            task_id,
+            authorization_id,
+            max_retries,
+            ..
+        } => {
+            ensure!(
+                (1..=2).contains(max_retries),
+                "safe recovery supports at most two original-grant retries"
+            );
+            let data:String=sqlx::query_scalar("SELECT a.data FROM organization_authorizations a JOIN organization_tasks t ON t.authorization_id=a.id WHERE t.id=? AND a.id=? AND a.revoked=0").bind(task_id).bind(authorization_id).fetch_one(&mut **tx).await?;
+            let grant: OrganizationTaskAuthorization = serde_json::from_str(&data)?;
+            ensure!(
+                grant.parent_attempt_id.is_none() && grant.scope.max_attempts > 1,
+                "safe recovery requires a root grant with original retry capacity"
+            );
+            if let Some(old) = &previous {
+                ensure!(
+                    matches!(&old.value,OrganizationControlValue::SafeRecovery{authorization_id:old_id,max_retries:old_max,..} if old_id==authorization_id && old_max==max_retries),
+                    "recovery grant and ceiling are immutable; disable without resetting attempts"
+                );
+            }
+        }
         OrganizationControlValue::Knowledge {
             note_id,
             body_sha256,
@@ -477,4 +731,87 @@ pub(super) async fn check_global(
         && tokens < limits.max_tokens
         && (!inference || requests < i64::from(limits.max_model_requests))
         && (!capacity || active < i64::from(limits.max_active)))
+}
+
+async fn comparison_evidence(
+    tx: &mut Transaction<'_, Sqlite>,
+    task_id: &str,
+    digest: &str,
+) -> Result<(
+    OrganizationTask,
+    OrganizationTaskAuthorization,
+    codex_protocol::organization_execution::OrganizationTaskAttempt,
+    codex_protocol::organization_execution::OrganizationTaskResult,
+)> {
+    let task = read_task(tx, task_id).await?;
+    ensure!(
+        task.state == "accepted",
+        "evaluation requires exact owner-accepted results"
+    );
+    let (grant,attempt,result):(String,String,String)=sqlx::query_as("SELECT a.data,p.data,r.data FROM organization_tasks t JOIN organization_authorizations a ON a.id=t.authorization_id JOIN organization_attempts p ON p.task_id=t.id AND p.authorization_id=a.id JOIN organization_results r ON r.attempt_id=p.id WHERE t.id=? AND p.state='accepted' AND r.digest=? AND p.generation=(SELECT max(generation) FROM organization_attempts WHERE task_id=t.id)").bind(task_id).bind(digest).fetch_one(&mut **tx).await?;
+    let result: codex_protocol::organization_execution::OrganizationTaskResult =
+        serde_json::from_str(&result)?;
+    ensure!(
+        result.accepted && result.digest == digest,
+        "evaluation result changed"
+    );
+    Ok((
+        task,
+        serde_json::from_str(&grant)?,
+        serde_json::from_str(&attempt)?,
+        result,
+    ))
+}
+
+fn compare_checks(
+    before: &codex_protocol::organization_execution::OrganizationTaskResult,
+    after: &codex_protocol::organization_execution::OrganizationTaskResult,
+) -> Result<()> {
+    ensure!(
+        !before.checks.is_empty() && before.checks.len() == after.checks.len(),
+        "representative immutable checks required"
+    );
+    for (before, after) in before.checks.iter().zip(&after.checks) {
+        ensure!(
+            before.argv == after.argv
+                && before.exit_code == Some(0)
+                && after.exit_code == Some(0)
+                && before
+                    .immutable_inputs
+                    .as_ref()
+                    .is_some_and(|files| !files.is_empty())
+                && before.immutable_inputs == after.immutable_inputs,
+            "candidate must pass the same hash-pinned immutable checks; legacy evidence cannot qualify adoption"
+        );
+    }
+    Ok(())
+}
+async fn comparison_run(
+    tx: &mut Transaction<'_, Sqlite>,
+    id: &str,
+    revision: i64,
+) -> Result<codex_protocol::organization_workflow::OrganizationWorkflowRun> {
+    let data: String = sqlx::query_scalar("SELECT data FROM organization_workflow_runs WHERE id=?")
+        .bind(id)
+        .fetch_one(&mut **tx)
+        .await?;
+    let run: codex_protocol::organization_workflow::OrganizationWorkflowRun =
+        serde_json::from_str(&data)?;
+    ensure!(
+        run.revision == revision && (1..=32).contains(&run.task_ids.len()),
+        "workflow evaluation run changed or has invalid bounds"
+    );
+    Ok(run)
+}
+async fn comparison_evidence_for_task(
+    tx: &mut Transaction<'_, Sqlite>,
+    id: &str,
+) -> Result<(
+    OrganizationTask,
+    OrganizationTaskAuthorization,
+    codex_protocol::organization_execution::OrganizationTaskAttempt,
+    codex_protocol::organization_execution::OrganizationTaskResult,
+)> {
+    let digest:String=sqlx::query_scalar("SELECT r.digest FROM organization_results r JOIN organization_attempts p ON p.id=r.attempt_id JOIN organization_tasks t ON t.id=p.task_id WHERE t.id=? AND t.authorization_id=p.authorization_id AND p.state='accepted' ORDER BY p.generation DESC LIMIT 1").bind(id).fetch_one(&mut **tx).await?;
+    comparison_evidence(tx, id, &digest).await
 }

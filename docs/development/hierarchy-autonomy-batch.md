@@ -73,3 +73,50 @@ cloud task; never remove qualified packages/fixtures or claim fresh restoration.
 No dependency installation or paid inference occurred. All intermediate missing
 report-fixture/private-test-field compilation failures remain in the logs;
 corrected checks retain safety assertions and helper privacy.
+
+## Local autonomy implementation checkpoint
+
+Tasks14–18 now reuse native owner controls, workflows and notes. Team proposals
+capture up to32 changes/64 base definitions and apply creation/reparenting/
+retirement atomically; stale revisions, changed kinds, occupied identities or
+cycles refuse the complete delta. Applying carries no grants or private memory.
+
+Explicit SafeRecovery policies permit at most two retries of an original root
+grant. Only known failures before runtime binding, zero requests/effects across
+that grant, native cleanup, unchanged authority, finite original attempt/deadline/
+shared limits and minimum10-second backoff qualify. All uncertain/model/tool or
+checkpoint failures remain owner recovery work; no budget or receipt is reset.
+
+ShareNote copies only current owner-reviewed project knowledge to a captured
+other-project revision. Private/team/retired/superseded/stale sources refuse.
+The independent reviewed copy retains source/task/attempt provenance and never
+supersedes the source. Its new body and visibility need exact owner confirmation.
+
+Finite local discovery creates an ordinary proposed task from a selected project.
+The owner separately grants exact local inputs, outputs, checks and budgets.
+Observed file/line evidence, discovery.md and a bounded plan.json remain proposals;
+an empty plan imports no workflow. Neither prompt text nor a proposed owner ID
+creates authority or an always-on scanner.
+
+Instruction and whole-workflow comparison require accepted baseline/candidate
+results, matching captured project/model/provider, identical protected test argv
+and immutable-input hashes, and an owner statement of representativeness. Native
+checks now capture those hashes; legacy checks omit the optional field, retain
+old digest serialization, and cannot qualify adoption. Instruction adoption
+updates only the captured node to the evaluated immutable role version. Workflow
+adoption is a durable recommendation of the exact tested current template;
+future runs still need fresh reviewed scopes. Counters are observed measurements,
+not proof of general model quality. New migration16 refuses older hosts rather
+than ignoring these controls.
+
+Automated checkpoint: full state316 and affected TUI/official-Neovim78 pass;
+stable/experimental raw schema writers and all four comparisons pass. The
+expanded palette initially routed contextual “authorized task” before the actual
+“Authorize task” command; title-match priority fixes the shared routing seam and
+retains the original failing test. All failed builds/Clippy/driver output remains.
+One wrong-profile queued schema Cargo was interrupted; its children are zombies,
+not active services. Corrected locked/offline/dev-small writers pass. Only inactive
+rebuildable compiler variants were pruned with hash/byte receipts, preserving
+qualified packages/homes/accounting. Final production package, physical new
+features, native broad-registry scale, longer background and recovery qualification
+are pending. Fresh drivers are prepared; no new native/model work has run yet.

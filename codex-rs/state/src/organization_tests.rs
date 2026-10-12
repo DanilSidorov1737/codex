@@ -567,6 +567,7 @@ async fn host_evidence_and_owner_digest_gate_result_acceptance() -> Result<()> {
         .checks
         .iter()
         .map(|argv| OrganizationCheckEvidence {
+            immutable_inputs: None,
             argv: argv.clone(),
             exit_code: Some(0),
             output: "actual host output".into(),
@@ -714,6 +715,7 @@ async fn host_evidence_and_owner_digest_gate_result_acceptance() -> Result<()> {
         .checks
         .iter()
         .map(|argv| OrganizationCheckEvidence {
+            immutable_inputs: None,
             argv: argv.clone(),
             exit_code: Some(1),
             output: "regression failed".into(),
@@ -1711,6 +1713,7 @@ async fn full_bundle_restores_evidence_runtime_paths_and_uncertain_accounting_wi
                 bytes: 16,
             }],
             vec![OrganizationCheckEvidence {
+                immutable_inputs: None,
                 argv: execution_scope().checks[0].clone(),
                 exit_code: Some(0),
                 output: "actual state test".into(),

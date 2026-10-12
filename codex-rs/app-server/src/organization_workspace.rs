@@ -444,6 +444,18 @@ impl TaskWorkspace {
         scope: &OrganizationExecutionScope,
         cancellation: CancellationToken,
     ) -> Result<Vec<OrganizationCheckEvidence>> {
+        let immutable_inputs: Vec<_> = scope
+            .immutable_files
+            .iter()
+            .map(|path| {
+                let bytes = read_relative(&self.root, path)?;
+                Ok(OrganizationArtifactEvidence {
+                    path: path.clone(),
+                    sha256: format!("{:x}", Sha256::digest(&bytes)),
+                    bytes: bytes.len() as u64,
+                })
+            })
+            .collect::<Result<_>>()?;
         let mut checks = Vec::new();
         for argv in &scope.checks {
             ensure!(!cancellation.is_cancelled(), "check cancelled");
@@ -487,6 +499,7 @@ impl TaskWorkspace {
                 text.truncate(boundary);
             }
             checks.push(OrganizationCheckEvidence {
+                immutable_inputs: Some(immutable_inputs.clone()),
                 argv: argv.clone(),
                 exit_code: (!output.timed_out).then_some(output.exit_code),
                 output: text,

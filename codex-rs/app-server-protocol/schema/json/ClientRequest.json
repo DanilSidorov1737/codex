@@ -2374,6 +2374,194 @@
         {
           "additionalProperties": false,
           "properties": {
+            "applied": {
+              "type": "boolean"
+            },
+            "baselineRunId": {
+              "type": "string"
+            },
+            "baselineRunRevision": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "candidateRunId": {
+              "type": "string"
+            },
+            "candidateRunRevision": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "id": {
+              "type": "string"
+            },
+            "reason": {
+              "type": "string"
+            },
+            "templateId": {
+              "type": "string"
+            },
+            "templateRevision": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": {
+              "enum": [
+                "workflowImprovement"
+              ],
+              "title": "WorkflowImprovementOrganizationControlValueType",
+              "type": "string"
+            }
+          },
+          "required": [
+            "applied",
+            "baselineRunId",
+            "baselineRunRevision",
+            "candidateRunId",
+            "candidateRunRevision",
+            "id",
+            "reason",
+            "templateId",
+            "templateRevision",
+            "type"
+          ],
+          "title": "WorkflowImprovementOrganizationControlValue",
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "applied": {
+              "type": "boolean"
+            },
+            "baselineDigest": {
+              "type": "string"
+            },
+            "baselineTaskId": {
+              "type": "string"
+            },
+            "candidateDigest": {
+              "type": "string"
+            },
+            "candidateTaskId": {
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "node": {
+              "$ref": "#/definitions/OrganizationNode"
+            },
+            "reason": {
+              "type": "string"
+            },
+            "roleVersionId": {
+              "type": "string"
+            },
+            "type": {
+              "enum": [
+                "improvement"
+              ],
+              "title": "ImprovementOrganizationControlValueType",
+              "type": "string"
+            }
+          },
+          "required": [
+            "applied",
+            "baselineDigest",
+            "baselineTaskId",
+            "candidateDigest",
+            "candidateTaskId",
+            "id",
+            "node",
+            "reason",
+            "roleVersionId",
+            "type"
+          ],
+          "title": "ImprovementOrganizationControlValue",
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Definition-only delta. revision=0 reserves a fresh UUID; existing revisions and parents are captured. Applying never creates or copies authority.",
+          "properties": {
+            "applied": {
+              "type": "boolean"
+            },
+            "expectedNodes": {
+              "items": {
+                "$ref": "#/definitions/OrganizationNode"
+              },
+              "type": "array"
+            },
+            "id": {
+              "type": "string"
+            },
+            "nodes": {
+              "items": {
+                "$ref": "#/definitions/OrganizationNode"
+              },
+              "type": "array"
+            },
+            "reason": {
+              "type": "string"
+            },
+            "type": {
+              "enum": [
+                "team"
+              ],
+              "title": "TeamOrganizationControlValueType",
+              "type": "string"
+            }
+          },
+          "required": [
+            "applied",
+            "expectedNodes",
+            "id",
+            "nodes",
+            "reason",
+            "type"
+          ],
+          "title": "TeamOrganizationControlValue",
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "authorizationId": {
+              "type": "string"
+            },
+            "enabled": {
+              "type": "boolean"
+            },
+            "maxRetries": {
+              "format": "uint32",
+              "minimum": 0.0,
+              "type": "integer"
+            },
+            "taskId": {
+              "type": "string"
+            },
+            "type": {
+              "enum": [
+                "safeRecovery"
+              ],
+              "title": "SafeRecoveryOrganizationControlValueType",
+              "type": "string"
+            }
+          },
+          "required": [
+            "authorizationId",
+            "enabled",
+            "maxRetries",
+            "taskId",
+            "type"
+          ],
+          "title": "SafeRecoveryOrganizationControlValue",
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
             "bodySha256": {
               "type": "string"
             },
@@ -3186,6 +3374,44 @@
         {
           "additionalProperties": false,
           "properties": {
+            "body": {
+              "type": "string"
+            },
+            "expectedProjectRevision": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "sourceId": {
+              "type": "string"
+            },
+            "sourceSha256": {
+              "type": "string"
+            },
+            "targetProjectId": {
+              "type": "string"
+            },
+            "type": {
+              "enum": [
+                "shareNote"
+              ],
+              "title": "ShareNoteOrganizationMutationType",
+              "type": "string"
+            }
+          },
+          "required": [
+            "body",
+            "expectedProjectRevision",
+            "sourceId",
+            "sourceSha256",
+            "targetProjectId",
+            "type"
+          ],
+          "title": "ShareNoteOrganizationMutation",
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
             "enabled": {
               "type": "boolean"
             },
@@ -3467,6 +3693,52 @@
           "type": "object"
         }
       ]
+    },
+    "OrganizationNode": {
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "id": {
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/definitions/OrganizationNodeKind"
+        },
+        "label": {
+          "type": "string"
+        },
+        "model": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "parentId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "revision": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "roleVersionId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "enabled",
+        "id",
+        "kind",
+        "label",
+        "revision"
+      ],
+      "type": "object"
     },
     "OrganizationNodeKind": {
       "enum": [

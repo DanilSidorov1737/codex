@@ -759,6 +759,7 @@ async fn accepted_trigger_waits_for_exact_acceptance_deduplicates_and_imports_on
                 bytes: 3,
             }],
             vec![OrganizationCheckEvidence {
+                immutable_inputs: None,
                 argv: execution_scope().checks[0].clone(),
                 exit_code: Some(0),
                 output: "state fixture".into(),
@@ -1879,6 +1880,7 @@ async fn workflow_runs_are_distinct_restart_durable_and_wait_for_exact_acceptanc
                 bytes: 3,
             }],
             vec![OrganizationCheckEvidence {
+                immutable_inputs: None,
                 argv: execution_scope().checks[0].clone(),
                 exit_code: Some(0),
                 output: "state fixture".into(),
@@ -2186,6 +2188,156 @@ async fn reports_link_delegated_attempts_to_the_original_workflow_run() -> Resul
     assert_eq!(
         delegated.budget.as_ref().unwrap().root_id,
         root.authorization_id
+    );
+    store.close().await;
+    Ok(())
+}
+
+#[tokio::test]
+async fn workflow_improvement_requires_all_accepted_paired_steps_and_pins_candidate_revision()
+-> Result<()> {
+    use codex_protocol::organization::OrganizationControlValue;
+    let home = Fixture::new();
+    let store = OrganizationStore::open(&home.0).await?;
+    let mut template = fixture(&store).await?;
+    let worker = Uuid::now_v7().to_string();
+    let mut runs = Vec::new();
+    for pass in 0..2 {
+        if pass == 1 {
+            let mut items = template.items.clone();
+            items[0].instructions = "Write concise cited evidence".into();
+            let OrganizationWorkflowView::Template { template: t } = store
+                .mutate_workflow(
+                    OrganizationWorkflowMutation::Put {
+                        id: template.id.clone(),
+                        expected_revision: Some(template.revision),
+                        project_id: template.project_id.clone(),
+                        label: "Measured candidate".into(),
+                        items,
+                    },
+                    1000,
+                )
+                .await?
+            else {
+                panic!("template")
+            };
+            template = t;
+        }
+        let preview = store.preview_workflow(request(&template)).await?;
+        let OrganizationWorkflowView::Run { run, .. } = store
+            .mutate_workflow(
+                OrganizationWorkflowMutation::Run {
+                    preview: Box::new(preview),
+                },
+                1000,
+            )
+            .await?
+        else {
+            panic!("run")
+        };
+        for _ in 0..2 {
+            let a = store
+                .claim_task(&worker, &Uuid::now_v7().to_string(), 1001, 2)
+                .await?
+                .unwrap();
+            store
+                .record_attempt_provider(
+                    &a.id,
+                    &worker,
+                    OrganizationProviderEvidence {
+                        id: "fixture".into(),
+                        origin: None,
+                        endpoint_sha256: "b".repeat(64),
+                    },
+                    1001,
+                )
+                .await?;
+            let r = store
+                .record_result(
+                    &a.id,
+                    &worker,
+                    vec![OrganizationArtifactEvidence {
+                        path: "report.txt".into(),
+                        sha256: "c".repeat(64),
+                        bytes: 2,
+                    }],
+                    vec![OrganizationCheckEvidence {
+                        immutable_inputs: Some(vec![OrganizationArtifactEvidence {
+                            path: "oracle.py".into(),
+                            sha256: "a".repeat(64),
+                            bytes: 3,
+                        }]),
+                        argv: execution_scope().checks[0].clone(),
+                        exit_code: Some(0),
+                        output: "State-only protected oracle".into(),
+                        truncated: false,
+                    }],
+                    1002,
+                )
+                .await?;
+            let v = store.execution_view(&a.task_id).await?;
+            store
+                .accept_result(&a.task_id, v.task.revision, &r.digest)
+                .await?;
+            store.release_attempt_capacity(&a.id, &worker).await?;
+        }
+        runs.push(run);
+    }
+    let mut p = OrganizationControlValue::WorkflowImprovement {
+        id: Uuid::now_v7().to_string(),
+        reason: "Representative checks on every immutable step".into(),
+        template_id: template.id.clone(),
+        template_revision: template.revision,
+        baseline_run_id: runs[0].id.clone(),
+        baseline_run_revision: runs[0].revision,
+        candidate_run_id: runs[1].id.clone(),
+        candidate_run_revision: runs[1].revision,
+        applied: false,
+    };
+    let Some(OrganizationRecord::Control(c)) = store
+        .mutate_owner(
+            OrganizationMutation::SetControl {
+                expected_revision: None,
+                value: p.clone(),
+            },
+            None,
+        )
+        .await?
+    else {
+        panic!("comparison")
+    };
+    if let OrganizationControlValue::WorkflowImprovement { applied, .. } = &mut p {
+        *applied = true;
+    }
+    store
+        .mutate_owner(
+            OrganizationMutation::SetControl {
+                expected_revision: Some(c.revision),
+                value: p.clone(),
+            },
+            None,
+        )
+        .await?;
+    assert!(
+        store
+            .mutate_owner(
+                OrganizationMutation::SetControl {
+                    expected_revision: Some(2),
+                    value: p
+                },
+                None
+            )
+            .await
+            .is_err()
+    );
+    assert_eq!(
+        store
+            .list_workflows(OrganizationWorkflowKind::Runs, None, None, 200)
+            .await?
+            .0
+            .len(),
+        2,
+        "adoption starts no extra run"
     );
     store.close().await;
     Ok(())

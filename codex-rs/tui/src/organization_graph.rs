@@ -87,18 +87,40 @@ impl Graph {
                 _ => None,
             })
             .collect();
-        let mut projected = Vec::new();
+        let projects: BTreeMap<_, _> = records
+            .iter()
+            .filter_map(|r| match r {
+                OrganizationRecord::Project(p) => Some((p.id.as_str(), p)),
+                _ => None,
+            })
+            .collect();
+        let mut projected: Vec<_> = records
+            .iter()
+            .filter(|r| matches!(r, OrganizationRecord::Project(_)))
+            .cloned()
+            .collect();
         for record in records {
             let (id, parent, label) = match record {
                 OrganizationRecord::Goal(g) => {
                     (g.id.clone(), g.parent_id.clone(), g.objective.clone())
                 }
                 OrganizationRecord::Task(t)
-                    if t.goal_id.as_deref().is_some_and(|id| goals.contains(id)) =>
+                    if t.goal_id
+                        .as_deref()
+                        .or_else(|| {
+                            projects
+                                .get(t.project_id.as_str())
+                                .and_then(|p| p.goal_id.as_deref())
+                        })
+                        .is_some_and(|id| goals.contains(id)) =>
                 {
                     (
                         t.id.clone(),
-                        t.goal_id.clone(),
+                        t.goal_id.clone().or_else(|| {
+                            projects
+                                .get(t.project_id.as_str())
+                                .and_then(|p| p.goal_id.clone())
+                        }),
                         format!(
                             "{} · {}",
                             t.instructions.chars().take(80).collect::<String>(),

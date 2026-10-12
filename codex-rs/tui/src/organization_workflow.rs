@@ -176,6 +176,13 @@ impl Dashboard {
             "Workflow: {}\nTemplate: {} · revision {}\nProject: {}\n\n",
             template.label, template.id, template.revision, template.project_id
         );
+        for record in &self.snapshot.records {
+            if let OrganizationRecord::Control(control) = record
+                && matches!(&control.value,OrganizationControlValue::WorkflowImprovement{template_id,template_revision,applied:true,..} if template_id==&template.id && *template_revision==template.revision)
+            {
+                text.push_str(&format!("Measured version recommended by owner: {} · control revision {}. New runs still need fresh reviewed scopes.\n",control.id,control.revision));
+            }
+        }
         if let Some((run, _)) = run {
             text.push_str(&format!(
                 "Run: {}\nState: {:?} · revision {}\np pause · u continue · x cancel (explicit confirmation)\nCreated: {}\nFixed grant ceilings: {} tokens / {} requests\n\n",

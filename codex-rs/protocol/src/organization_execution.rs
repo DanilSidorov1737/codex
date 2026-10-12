@@ -241,6 +241,10 @@ pub struct OrganizationRuntimeBinding {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct OrganizationCheckEvidence {
+    /// Host-captured hashes of the protected test inputs. Legacy evidence has
+    /// no hashes and cannot qualify automatic comparison/adoption.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub immutable_inputs: Option<Vec<OrganizationArtifactEvidence>>,
     pub argv: Vec<String>,
     pub exit_code: Option<i32>,
     pub output: String,
