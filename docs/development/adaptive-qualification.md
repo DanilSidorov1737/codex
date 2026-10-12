@@ -22,3 +22,54 @@ logs retain the stable-rustfmt warnings about nightly-only import options.
 Use one `--locked --offline --profile dev-small` Cargo selection at a time,
 `CARGO_INCREMENTAL=0 RUST_MIN_STACK=8388608`, cwd `codex-rs`. Check `df -h`
 before cold compilation. All earlier fixture homes/packages/receipts are protected.
+
+## Finite resumable runner
+
+`python3 scripts/qualify_organization.py PLAN.json PRIVATE_EVIDENCE_DIR` runs a
+finite plan without a shell or new dependency. Example plan:
+
+```json
+{
+  "repository": "/workspace/codex",
+  "inputs": ["/tmp/qualified-package/package.json"],
+  "steps": [
+    {
+      "id": "state-tests",
+      "kind": "check",
+      "cwd": "/workspace/codex/codex-rs",
+      "argv": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "--profile",
+        "dev-small",
+        "-p",
+        "codex-state",
+        "--lib",
+        "-j4"
+      ],
+      "timeoutSeconds": 1800,
+      "expectedExit": 0
+    }
+  ]
+}
+```
+
+Evidence must be private and outside the repository. The manifest pins all Git
+tracked/unignored source contents, canonical plan and declared immutable inputs.
+Each step writes/fsyncs its intent before starting, then its exact argv/cwd/exit
+and log hash. One file lock prevents simultaneous runners. Passed steps are
+skipped only while their receipt/log and manifest match. Source/plan/input drift
+requires a new evidence directory; preserve the old run. `--retry-checks` permits
+only failed/interrupted explicitly read-only checks. Failed, timed-out or
+interrupted **actions never replay**, even with that option. Inspect their actual
+state and receipts, then prepare an independently reviewed remaining plan. Do
+not relabel mutation scripts as checks. Inputs must be immutable files; mutable
+fixture state belongs in action-specific evidence, not source fingerprints.
+
+Seven real-subprocess automated tests pass (exit 0, `runner-tests-v2.log`): completed
+skip/log integrity, failure no replay, interrupted intent no replay, timeout
+uncertainty, dirty source/plan/input mismatch, read-only retry retaining old logs,
+and private/outside-source evidence enforcement. This is runner qualification,
+not qualification of unimplemented tasks 3–30.
