@@ -321,8 +321,10 @@ ORDER BY t.project_id,captured_run,captured_owner,captured_provider,captured_mod
         } else {
             None
         };
+        let resource_pressure = super::resource::pressure_observation(&mut tx, now).await?;
         tx.commit().await?;
         Ok(OrganizationReport {
+            resource_pressure,
             sequence,
             generated_at: now,
             project_id: project_id.map(str::to_owned),

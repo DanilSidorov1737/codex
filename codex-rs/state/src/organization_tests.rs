@@ -21,8 +21,16 @@ mod presets;
 #[path = "organization_control_tests.rs"]
 mod controls;
 
+#[path = "organization_retention_tests.rs"]
+mod retention;
+
+#[path = "organization_adaptive_tests.rs"]
+mod adaptive;
+
 async fn remove_controls_migration_for_legacy_fixture(store: &OrganizationStore) -> Result<()> {
     for query in [
+        "DROP TABLE organization_workspace_archives",
+        "DROP TABLE organization_token_reservations",
         "DROP VIEW organization_global_usage",
         "DROP TABLE organization_control_history",
         "DROP TABLE organization_controls",
@@ -38,6 +46,164 @@ async fn authorized_attempt(
     approval: bool,
 ) -> Result<(String, OrganizationTaskAttempt)> {
     authorized_attempt_with_limit(store, approval, 2).await
+}
+
+#[tokio::test]
+async fn nominal_token_allowance_cannot_be_reused_by_concurrent_roots() -> Result<()> {
+    let home = Fixture::new();
+    let store = OrganizationStore::open(&home.0).await?;
+    let (first_worker, first) = authorized_attempt(&store, false).await?;
+    let (second_worker, second) = authorized_attempt(&store, false).await?;
+    store
+        .mutate_owner(
+            OrganizationMutation::SetControl {
+                expected_revision: None,
+                value: OrganizationControlValue::Global {
+                    paused: false,
+                    limits: Some(
+                        codex_protocol::organization_workflow::OrganizationSharedCeilings {
+                            max_tokens: 20,
+                            max_model_requests: 10,
+                            max_active: 2,
+                        },
+                    ),
+                },
+            },
+            None,
+        )
+        .await?;
+    store
+        .admit_model_request(&first.id, &first_worker, 1001)
+        .await?;
+    let view = store.execution_view(&first.task_id).await?;
+    assert_eq!(
+        view.token_reservations
+            .iter()
+            .filter(|r| !r.released)
+            .map(|r| r.tokens)
+            .sum::<i64>(),
+        20
+    );
+    assert!(
+        store
+            .admit_model_request(&second.id, &second_worker, 1001)
+            .await
+            .is_err()
+    );
+    assert_eq!(
+        store.execution_view(&second.task_id).await?.attempts[0].model_requests,
+        0
+    );
+    store
+        .checkpoint_usage(&first.id, &first_worker, 1, 0)
+        .await?;
+    store
+        .admit_model_request(&second.id, &second_worker, 1002)
+        .await?;
+    store
+        .checkpoint_usage(&second.id, &second_worker, 1, 7)
+        .await?;
+    assert!(
+        store
+            .execution_view(&second.task_id)
+            .await?
+            .token_reservations
+            .iter()
+            .all(|r| r.released)
+    );
+    store.close().await;
+    Ok(())
+}
+
+#[tokio::test]
+async fn local_pressure_pauses_admission_without_grant_or_usage_changes() -> Result<()> {
+    let home = Fixture::new();
+    let store = OrganizationStore::open(&home.0).await?;
+    let (worker, attempt) = authorized_attempt(&store, false).await?;
+    let pressure = |minimum| OrganizationControlValue::ResourcePressure {
+        path: home.0.to_string_lossy().into(),
+        min_disk_bytes: minimum,
+        min_available_memory_bytes: 0,
+    };
+    store
+        .mutate_owner(
+            OrganizationMutation::SetControl {
+                expected_revision: None,
+                value: pressure(u64::MAX),
+            },
+            None,
+        )
+        .await?;
+    assert!(
+        !store
+            .workflow_dispatch_ready(&attempt.id, &worker, 1001, 2)
+            .await?
+    );
+    assert!(
+        store
+            .admit_model_request(&attempt.id, &worker, 1001)
+            .await
+            .is_err()
+    );
+    let report = store.operational_report(None, None, 200, 1001).await?;
+    assert!(!report.resource_pressure.unwrap().ready);
+    assert_eq!(
+        store.execution_view(&attempt.task_id).await?.attempts[0].model_requests,
+        0
+    );
+    store
+        .mutate_owner(
+            OrganizationMutation::SetControl {
+                expected_revision: Some(1),
+                value: pressure(0),
+            },
+            None,
+        )
+        .await?;
+    assert!(
+        store
+            .workflow_dispatch_ready(&attempt.id, &worker, 1002, 2)
+            .await?
+    );
+    store
+        .admit_model_request(&attempt.id, &worker, 1002)
+        .await?;
+    store.close().await;
+    Ok(())
+}
+
+#[tokio::test]
+async fn unknown_reservation_survives_restart_and_late_receipt_never_restarts_work() -> Result<()> {
+    let home = Fixture::new();
+    let store = OrganizationStore::open(&home.0).await?;
+    let (worker, attempt) = authorized_attempt(&store, false).await?;
+    store
+        .admit_model_request(&attempt.id, &worker, 1001)
+        .await?;
+    store.close().await;
+    let store = OrganizationStore::open(&home.0).await?;
+    store.reconcile_interrupted_attempts().await?;
+    assert!(
+        store
+            .execution_view(&attempt.task_id)
+            .await?
+            .token_reservations
+            .iter()
+            .any(|r| !r.released)
+    );
+    assert!(
+        store
+            .admit_model_request(&attempt.id, &worker, 1003)
+            .await
+            .is_err()
+    );
+    store.checkpoint_usage(&attempt.id, &worker, 1, 8).await?;
+    let view = store.execution_view(&attempt.task_id).await?;
+    assert!(view.token_reservations.iter().all(|r| r.released));
+    assert_eq!(view.authorization_used_tokens, 8);
+    assert_ne!(view.task.state, "running");
+    store.close().await;
+    Ok(())
 }
 
 async fn authorized_attempt_with_limit(

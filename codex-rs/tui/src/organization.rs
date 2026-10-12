@@ -223,6 +223,13 @@ struct Snapshot {
     limited: bool,
 }
 enum Command {
+    Setup {
+        params: ProjectCreateParams,
+        agent: String,
+        instructions: String,
+        model: String,
+        limits: OrganizationSharedCeilings,
+    },
     ArtifactLibrary {
         id: String,
         project_id: String,
@@ -531,6 +538,109 @@ async fn worker(
         let mut apply_rejected = false;
         let operation = async {
             match command {
+                Command::Setup {
+                    params,
+                    agent,
+                    instructions,
+                    model,
+                    limits,
+                } => {
+                    // Pause before definitions; never replay partial setup.
+                    for kind in [
+                        OrganizationRecordKind::Nodes,
+                        OrganizationRecordKind::Projects,
+                        OrganizationRecordKind::Controls,
+                    ] {
+                        let response: OrganizationListResponse = handle
+                            .request_typed(ClientRequest::OrganizationList {
+                                request_id: request_id(),
+                                params: OrganizationListParams {
+                                    kind,
+                                    cursor: None,
+                                    limit: Some(1),
+                                },
+                            })
+                            .await?;
+                        anyhow::ensure!(
+                            response.data.is_empty(),
+                            "Setup requires an empty organization; inspect saved state and use individual forms to resume partial setup"
+                        );
+                    }
+                    let _: OrganizationMutateResponse = handle
+                        .request_typed(ClientRequest::OrganizationMutate {
+                            request_id: request_id(),
+                            params: OrganizationMutateParams {
+                                mutation: OrganizationMutation::SetControl {
+                                    expected_revision: None,
+                                    value: OrganizationControlValue::Global {
+                                        paused: true,
+                                        limits: Some(limits),
+                                    },
+                                },
+                            },
+                        })
+                        .await?;
+                    let role: OrganizationMutateResponse = handle
+                        .request_typed(ClientRequest::OrganizationMutate {
+                            request_id: request_id(),
+                            params: OrganizationMutateParams {
+                                mutation: OrganizationMutation::CreateRoleVersion {
+                                    role_id: None,
+                                    expected_version: None,
+                                    name: agent.clone(),
+                                    instructions,
+                                },
+                            },
+                        })
+                        .await?;
+                    let Some(OrganizationRecord::Role(role)) = role.record else {
+                        anyhow::bail!("Setup role response missing; inspect saved state")
+                    };
+                    let node: OrganizationMutateResponse = handle
+                        .request_typed(ClientRequest::OrganizationMutate {
+                            request_id: request_id(),
+                            params: OrganizationMutateParams {
+                                mutation: OrganizationMutation::PutNode {
+                                    id: None,
+                                    expected_revision: None,
+                                    parent_id: None,
+                                    kind: OrganizationNodeKind::Agent,
+                                    label: agent,
+                                    role_version_id: Some(role.id),
+                                    model: Some(model),
+                                    enabled: true,
+                                },
+                            },
+                        })
+                        .await?;
+                    let Some(OrganizationRecord::Node(node)) = node.record else {
+                        anyhow::bail!("Setup agent response missing; inspect saved state")
+                    };
+                    let project: ProjectCreateResponse = handle
+                        .request_typed(ClientRequest::ProjectCreate {
+                            request_id: request_id(),
+                            params,
+                        })
+                        .await?;
+                    let project: OrganizationMutateResponse = handle
+                        .request_typed(ClientRequest::OrganizationMutate {
+                            request_id: request_id(),
+                            params: OrganizationMutateParams {
+                                mutation: OrganizationMutation::LinkProject {
+                                    project_id: project.project.id,
+                                    expected_revision: None,
+                                    goal_id: None,
+                                    owner_id: Some(node.id),
+                                    criteria: vec!["Owner reviews declared task results".into()],
+                                },
+                            },
+                        })
+                        .await?;
+                    if let Some(record) = project.record {
+                        updates.send(Update::Saved(record)).await?;
+                    }
+                    updates.send(Update::Changed).await?;
+                }
                 Command::RestoreEditor(..)
                 | Command::BufferProposal(..)
                 | Command::NativeTerminal(..)
@@ -1003,6 +1113,7 @@ pub(crate) struct Dashboard {
     provider: String,
     model: String,
     form: Option<form::Form>,
+    setup_offered: bool,
     palette: Option<palette::Palette>,
     prices: Option<crate::organization_pricing::Prices>,
     frame: FrameRequester,
@@ -1484,6 +1595,7 @@ impl Dashboard {
             provider: provider.into(),
             model: model.into(),
             form: None,
+            setup_offered: false,
             palette: None,
             prices: crate::organization_pricing::Prices::load(home).ok(),
             frame,
@@ -2358,6 +2470,72 @@ impl Dashboard {
     }
     fn open_form(&mut self, key: char) {
         let kind = match key {
+            'χ' => {
+                let Some(view) = self
+                    .detail
+                    .as_ref()
+                    .filter(|v| Some(&v.task.id) == self.selected.as_ref())
+                else {
+                    self.message = "Select a task and load its exact execution evidence".into();
+                    return;
+                };
+                let Some(attempt) = view.attempts.first() else {
+                    self.message = "No attempt evidence available".into();
+                    return;
+                };
+                if attempt.model_requests == attempt.reported_model_requests
+                    && !view
+                        .actions
+                        .iter()
+                        .any(|a| a.state == OrganizationActionState::Uncertain)
+                {
+                    self.message = "No unresolved usage/effects in the selected attempt".into();
+                    return;
+                }
+                form::Kind::Reconciliation {
+                    attempt: attempt.clone(),
+                    fingerprint: codex_state::organization::uncertainty_fingerprint(
+                        attempt,
+                        &view.actions,
+                    ),
+                }
+            }
+            'φ' => form::Kind::ExecutionProfile(match self.record() {
+                Some(OrganizationRecord::Control(c))
+                    if matches!(c.value, OrganizationControlValue::ExecutionProfile { .. }) =>
+                {
+                    Some(c.clone())
+                }
+                _ => None,
+            }),
+            'ψ' => {
+                let Some(OrganizationRecord::Task(task)) = self.record() else {
+                    self.message = "Select a task to authorize from a saved profile".into();
+                    return;
+                };
+                let profiles = self
+                    .snapshot
+                    .records
+                    .iter()
+                    .filter_map(|r| match r {
+                        OrganizationRecord::Control(c)
+                            if matches!(
+                                c.value,
+                                OrganizationControlValue::ExecutionProfile { .. }
+                            ) =>
+                        {
+                            Some(c.clone())
+                        }
+                        _ => None,
+                    })
+                    .collect();
+                form::Kind::AuthorizeProfile {
+                    task: task.clone(),
+                    profiles,
+                }
+            }
+            'ρ' => form::Kind::ResourcePressure(self.control("pressure")),
+            'Z' => form::Kind::Setup,
             'µ' => form::Kind::Mission(self.control("mission")),
             'π' => {
                 let id = match self.record() {
@@ -3537,6 +3715,11 @@ impl Dashboard {
             KeyCode::F(28) => self.open_form('γ'),
             KeyCode::F(29) => self.open_form('ε'),
             KeyCode::F(30) => self.open_form('λ'),
+            KeyCode::F(38) => self.open_form('Z'),
+            KeyCode::F(39) => self.open_form('ρ'),
+            KeyCode::F(40) => self.open_form('χ'),
+            KeyCode::F(41) => self.open_form('φ'),
+            KeyCode::F(42) => self.open_form('ψ'),
             KeyCode::F(31) => {
                 if let Some(project) = self.selected_project().cloned() {
                     self.form = Some(form::Form::new(
@@ -3858,6 +4041,12 @@ impl Dashboard {
                     });
                     let changed=self.snapshot.records!=snapshot.records || self.snapshot.workflows!=snapshot.workflows || self.snapshot.schedules!=snapshot.schedules;
                     self.snapshot = *snapshot;
+                    if !self.setup_offered {
+                        self.setup_offered = true;
+                        if self.snapshot.records.is_empty() && self.form.is_none() && self.confirmation.is_none() {
+                            self.open_form('Z');
+                        }
+                    }
                     if changed {self.rebuild();}
                     self.detail_text = clean(&self.details());
                     if self.confirmation.is_none()
@@ -4391,6 +4580,28 @@ impl Dashboard {
                     action.receipt.as_deref().unwrap_or("Not recorded")
                 ));
             }
+            {
+                let reserved: i64 = view
+                    .token_reservations
+                    .iter()
+                    .filter(|r| !r.released)
+                    .map(|r| r.tokens)
+                    .sum();
+                text.push_str(&format!("\nNominal token reservations: {reserved}; provider output may exceed a reservation. Unknown usage retains its allowance.\n"));
+                for reservation in &view.token_reservations {
+                    text.push_str(&format!(
+                        "Request {} · attempt {} · {} nominal tokens · {}\n",
+                        reservation.sequence,
+                        reservation.attempt_id,
+                        reservation.tokens,
+                        if reservation.released {
+                            "usage reported"
+                        } else {
+                            "held / usage unresolved"
+                        }
+                    ));
+                }
+            }
             if let Some(result) = &view.result {
                 text.push_str(&format!(
                     "\nResult: {}\nAccepted: {}\n",
@@ -4428,6 +4639,15 @@ impl Dashboard {
         }
         if let Some(command) = &self.confirmation {
             let value = match command {
+                Command::Setup {
+                    params,
+                    agent,
+                    instructions,
+                    model,
+                    limits,
+                } => serde_json::to_string_pretty(
+                    &serde_json::json!({"setup":params,"agent":agent,"instructions":instructions,"model":model,"limits":limits,"execution":"paused; create tasks and authorize exact scopes separately"}),
+                ),
                 Command::NamedView { name, action } => serde_json::to_string_pretty(
                     &serde_json::json!({"savedView":name,"operation":action}),
                 ),
@@ -4454,12 +4674,25 @@ impl Dashboard {
                 ),
                 _ => return text,
             };
-            if let Command::Execution(OrganizationExecutionMutation::Authorize {
-                scope,
-                task_id,
-                ..
-            }) = command
-            {
+            let authorization = match command {
+                Command::Execution(OrganizationExecutionMutation::Authorize {
+                    scope,
+                    task_id,
+                    ..
+                }) => Some((task_id, scope)),
+                Command::Execution(OrganizationExecutionMutation::AuthorizeProfile {
+                    profile,
+                    task_id,
+                    ..
+                }) => match &profile.value {
+                    OrganizationControlValue::ExecutionProfile { scope, .. } => {
+                        Some((task_id, scope.as_ref()))
+                    }
+                    _ => None,
+                },
+                _ => None,
+            };
+            if let Some((task_id, scope)) = authorization {
                 if let Some(project) = self.snapshot.records.iter().find_map(|r| match r {
                     OrganizationRecord::Task(t) if &t.id == task_id => Some(t.project_id.as_str()),
                     _ => None,

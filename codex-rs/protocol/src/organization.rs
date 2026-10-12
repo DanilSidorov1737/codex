@@ -157,6 +157,32 @@ impl OrganizationReplanItem {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
 #[serde(tag = "type", rename_all = "camelCase", deny_unknown_fields)]
 pub enum OrganizationControlValue {
+    /// An exact owner's inspection record; never clears usage/effect uncertainty.
+    #[serde(rename_all = "camelCase")]
+    Reconciliation {
+        id: String,
+        attempt_id: String,
+        request_sequence: u32,
+        fingerprint: String,
+        evidence: String,
+    },
+    /// Versioned content preset; authorization materializes an independent grant.
+    #[serde(rename_all = "camelCase")]
+    ExecutionProfile {
+        id: String,
+        label: String,
+        policy_version: u32,
+        scope: Box<crate::organization_execution::OrganizationExecutionScope>,
+    },
+    /// Actual local pressure pauses admission; zero disables that threshold.
+    #[serde(rename_all = "camelCase")]
+    ResourcePressure {
+        path: String,
+        #[ts(type = "number")]
+        min_disk_bytes: u64,
+        #[ts(type = "number")]
+        min_available_memory_bytes: u64,
+    },
     #[serde(rename_all = "camelCase")]
     RoleRollback {
         id: String,

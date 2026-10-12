@@ -45,10 +45,40 @@ const ACTIONS: &[Action] = &[
         context: "layout",
     },
     Action {
+        title: "Configure actual resource pressure thresholds",
+        shortcut: "Commands",
+        code: KeyCode::F(39),
+        context: "owner disk/memory admission thresholds; unknown telemetry fails closed",
+    },
+    Action {
+        title: "First-launch setup wizard",
+        shortcut: "Commands",
+        code: KeyCode::F(38),
+        context: "empty organization; configuration only, execution stays paused",
+    },
+    Action {
         title: "New project",
         shortcut: "N",
         code: KeyCode::Char('N'),
         context: "owner proposal",
+    },
+    Action {
+        title: "Inspect exact uncertain request/effects",
+        shortcut: "Commands",
+        code: KeyCode::F(40),
+        context: "select task; record evidence without clearing charges, reservations or replay fences",
+    },
+    Action {
+        title: "Save / edit execution profile",
+        shortcut: "Commands",
+        code: KeyCode::F(41),
+        context: "optional select existing profile; versioned models/paths/checks/budgets/approval policy",
+    },
+    Action {
+        title: "Authorize task from exact profile",
+        shortcut: "Commands",
+        code: KeyCode::F(42),
+        context: "select task; separate reviewed grant, stale profile refuses",
     },
     Action {
         title: "Propose team creation / restructure / retirement",

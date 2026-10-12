@@ -1035,7 +1035,10 @@ async fn continuity_migration_from_eight_preserves_existing_authorizations() -> 
         .admit_model_request(&attempt.id, &worker, 1001)
         .await?;
     store.checkpoint_usage(&attempt.id, &worker, 1, 10).await?;
-    let before = store.execution_view(&attempt.task_id).await?;
+    let mut before = store.execution_view(&attempt.task_id).await?;
+    // Version eight had no nominal reservation receipts. Existing grants,
+    // reported usage and requests must remain exact; do not invent old receipts.
+    before.token_reservations.clear();
     remove_controls_migration_for_legacy_fixture(&store).await?;
     sqlx::query("DROP TABLE organization_presets")
         .execute(&store.pool)

@@ -192,6 +192,8 @@ pub struct OrganizationUpcomingRun {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct OrganizationReport {
+    #[serde(default)]
+    pub resource_pressure: Option<OrganizationResourcePressure>,
     /// Canonical audit revision; paginated readers must not combine revisions.
     #[ts(type = "number")]
     pub sequence: i64,
@@ -219,4 +221,21 @@ pub struct OrganizationReport {
     pub usage_truncated: bool,
     pub upcoming_runs: Vec<OrganizationUpcomingRun>,
     pub next_cursor: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct OrganizationResourcePressure {
+    pub path: String,
+    #[ts(type = "number")]
+    pub measured_at: i64,
+    #[ts(type = "number | null")]
+    pub available_disk_bytes: Option<u64>,
+    #[ts(type = "number | null")]
+    pub available_memory_bytes: Option<u64>,
+    #[ts(type = "number")]
+    pub min_disk_bytes: u64,
+    #[ts(type = "number")]
+    pub min_available_memory_bytes: u64,
+    pub ready: bool,
 }

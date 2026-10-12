@@ -607,6 +607,7 @@ fn task(id: &str) -> OrganizationTask {
 
 fn view(id: &str) -> OrganizationExecutionView {
     OrganizationExecutionView {
+        token_reservations: vec![],
         task: task(id),
         authorization: None,
         authorization_used_tokens: 10,
@@ -833,6 +834,7 @@ fn dashboard() -> Dashboard {
         change_target: None,
         confirmation: None,
         confirmation_text: String::new(),
+        setup_offered: true,
         selection_confirmation: None,
         message: String::new(),
         message_is_error: false,
@@ -2387,6 +2389,7 @@ fn absent_legacy_global_usage_is_unavailable_instead_of_invented_zero() {
 
 pub(super) fn empty_report() -> OrganizationReport {
     OrganizationReport {
+        resource_pressure: None,
         sequence: 0,
         generated_at: 0,
         project_id: None,

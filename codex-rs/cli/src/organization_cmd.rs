@@ -33,6 +33,26 @@ pub(crate) struct OrganizationCommand {
 
 #[derive(Debug, clap::Subcommand)]
 enum Action {
+    /// Offline preview of effect-free, unreferenced failed workspaces; never delete results/bases.
+    RetentionPreview {
+        project_id: String,
+        #[arg(long)]
+        before: i64,
+        #[arg(long, required = true)]
+        offline: bool,
+    },
+    /// Apply an exact saved retention preview while all runtime/editor writers are stopped.
+    RetentionArchive {
+        file: PathBuf,
+        #[arg(long, required = true)]
+        offline: bool,
+    },
+    /// Inspect an interrupted archive's exact paths/hash; never repeat its rename.
+    RetentionReconcile {
+        attempt_id: String,
+        #[arg(long, required = true)]
+        offline: bool,
+    },
     /// Offline bundle of business/runtime state and isolated task workspaces.
     BundleBackup {
         #[arg(long)]
@@ -136,6 +156,47 @@ pub(crate) async fn run(
     overrides: CliConfigOverrides,
     arg0_paths: Arg0DispatchPaths,
 ) -> anyhow::Result<String> {
+    if matches!(
+        &command.command,
+        Action::RetentionPreview { .. }
+            | Action::RetentionArchive { .. }
+            | Action::RetentionReconcile { .. }
+    ) {
+        let home = codex_core::config::find_codex_home()?;
+        let socket = codex_app_server::app_server_control_socket_path(&home)?;
+        anyhow::ensure!(
+            codex_app_server_daemon::probe_app_server_version(socket.as_path())
+                .await
+                .is_err(),
+            "stop runtime/editor writers before offline retention"
+        );
+        let sqlite_home = std::env::var_os("CODEX_SQLITE_HOME")
+            .map(PathBuf::from)
+            .unwrap_or_else(|| home.to_path_buf());
+        let store = codex_state::organization::OrganizationStore::open(&sqlite_home).await?;
+        let result=async {
+            match &command.command {
+                Action::RetentionPreview {project_id,before,offline}=> {
+                    anyhow::ensure!(*offline,"offline confirmation required");
+                    Ok(serde_json::to_string_pretty(&store.retention_preview(project_id,*before).await?)?)
+                },
+                Action::RetentionArchive {file,offline}=> {
+                    anyhow::ensure!(*offline,"offline confirmation required");
+                    let plan:codex_state::organization::WorkspaceRetentionPlan=serde_json::from_slice(&read_mutation(file.clone()).await?)?;
+                    store.archive_workspaces(&plan).await?;
+                    Ok(serde_json::to_string_pretty(&serde_json::json!({"archived":plan.candidates.len(),"bytesReclaimed":0,"preserves":"canonical ledgers and cold workspace bytes; no result/base deletion"}))?)
+                },
+                Action::RetentionReconcile {attempt_id,offline}=> {
+                    anyhow::ensure!(*offline,"offline confirmation required");
+                    store.reconcile_workspace_archive(attempt_id).await?;
+                    Ok(serde_json::to_string_pretty(&serde_json::json!({"attemptId":attempt_id,"archive":"completed from verified evidence; no rename replay"}))?)
+                },
+                _=>unreachable!(),
+            }
+        }.await;
+        store.close().await;
+        return result;
+    }
     match &command.command {
         Action::BundleBackup {
             destination,
@@ -313,6 +374,9 @@ pub(crate) async fn run(
         Action::BundleBackup { .. } | Action::BundleRestore { .. } => {
             unreachable!("bundles handled offline")
         }
+        Action::RetentionPreview { .. }
+        | Action::RetentionArchive { .. }
+        | Action::RetentionReconcile { .. } => unreachable!("retention handled offline"),
     };
     let cli =
         finalize_session_archive_interactive(interactive, overrides, command.config_overrides);

@@ -53,7 +53,7 @@ fn relative(path: &str) -> Result<&Path> {
     Ok(path)
 }
 
-fn owned(path: &Path, directory: bool) -> Result<std::fs::Metadata> {
+pub(super) fn owned(path: &Path, directory: bool) -> Result<std::fs::Metadata> {
     let metadata = std::fs::symlink_metadata(path)?;
     ensure!(
         !metadata.file_type().is_symlink()
@@ -79,7 +79,7 @@ fn owned(path: &Path, directory: bool) -> Result<std::fs::Metadata> {
     Ok(metadata)
 }
 
-fn read(path: &Path) -> Result<Vec<u8>> {
+pub(super) fn read(path: &Path) -> Result<Vec<u8>> {
     let metadata = owned(path, false)?;
     ensure!(
         metadata.len() <= MAX_FILE_BYTES,

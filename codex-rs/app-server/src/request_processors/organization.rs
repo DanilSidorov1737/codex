@@ -363,6 +363,9 @@ impl OrganizationRequestProcessor {
         let mut apply_rejection = None;
         let result = async {
             match params.mutation {
+                OrganizationExecutionMutation::AuthorizeProfile {task_id,expected_revision,profile} => {
+                    store.authorize_profile(&task_id,expected_revision,&profile,crate::organization_runtime::now()).await?;
+                }
                 OrganizationExecutionMutation::ApplyReplan { task_id, id, expected_revision } => {
                     let record=store.read_definition(codex_protocol::organization::OrganizationRecordKind::Controls,&format!("replan:{id}")).await.context("replan proposal missing")?;
                     let codex_protocol::organization::OrganizationRecord::Control(policy)=record else {anyhow::bail!("not a replan policy")};

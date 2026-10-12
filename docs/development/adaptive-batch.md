@@ -63,8 +63,13 @@ new real-provider pilots need matching provider/model/spend scope.
 
 ## Progress
 
-Approval and repository/environment inspection complete. Tasks1–30 pending;
-build prerequisites and one safe qualification runner are first. Current disk:
-root~269MiB free, /tmp~5.8GiB free; dev-small cache is cold. Preserve all packages,
-homes, evidence and original files. Do not use competing Cargo selections or
-start a costly build without headroom. Read current status before old checkpoints.
+Tasks1–8 have source/test checkpoints: verified formatter tools and full initial
+root-format pass, safe runner (7 subprocess tests), paused setup wizard,
+transactional nominal token reservations, actual pressure admission gates,
+conservative offline archival, immutable uncertainty inspection and exact
+versioned profiles. State329/TUI93 selections pass, including actual official
+Neovim cases. See [checkpoint evidence](adaptive-qualification.md) for failures,
+cache/storage recovery, limitations and remaining physical/contract checks.
+These checkpoints are not final feature qualification or completion of this batch.
+Continue tasks9–30 and all remaining native CLI/TUI/endurance checks; no new
+approval is needed. All historical fixture/accounting/quarantine rules remain.

@@ -589,12 +589,27 @@ impl OrganizationStore {
         .map(|data| serde_json::from_str(&data))
         .collect::<std::result::Result<_, _>>()?;
         let (checkpoints, handoffs) = super::handoff::continuity_view(&mut tx, task_id).await?;
+        let rows: Vec<(String,i64,String,i64,bool)> = sqlx::query_as("SELECT r.attempt_id,r.sequence,r.root_id,r.tokens,r.released FROM organization_token_reservations r JOIN organization_attempts p ON p.id=r.attempt_id WHERE p.task_id=? ORDER BY p.generation DESC,r.sequence DESC LIMIT 3200")
+            .bind(task_id).fetch_all(&mut *tx).await?;
+        let token_reservations = rows
+            .into_iter()
+            .map(|(attempt_id, sequence, root_id, tokens, released)| {
+                Ok(OrganizationTokenReservation {
+                    attempt_id,
+                    sequence: u32::try_from(sequence)?,
+                    root_id,
+                    tokens,
+                    released,
+                })
+            })
+            .collect::<Result<Vec<_>>>()?;
         tx.commit().await?;
         Ok(OrganizationExecutionView {
             task,
             authorization,
             authorization_used_tokens,
             authorization_model_requests,
+            token_reservations,
             attempts,
             actions,
             approvals,
@@ -1021,4 +1036,22 @@ pub(super) async fn stop_task_in(
     )
     .await?;
     Ok(())
+}
+
+/// Pin model requests/effects without heartbeat-only changes invalidating review.
+pub fn uncertainty_fingerprint(
+    attempt: &OrganizationTaskAttempt,
+    actions: &[OrganizationActionIntent],
+) -> String {
+    use sha2::Digest;
+    let mut pinned = attempt.clone();
+    pinned.lease_until = 0;
+    pinned.last_progress_at = None;
+    pinned.runtime_active = false;
+    format!(
+        "{:x}",
+        sha2::Sha256::digest(
+            serde_json::to_vec(&(pinned, actions)).expect("serializable execution records")
+        )
+    )
 }

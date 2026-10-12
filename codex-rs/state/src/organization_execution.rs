@@ -12,6 +12,37 @@ use std::path::Path;
 use uuid::Uuid;
 
 impl OrganizationStore {
+    pub async fn authorize_profile(
+        &self,
+        task_id: &str,
+        expected_revision: i64,
+        profile: &OrganizationControl,
+        now: i64,
+    ) -> Result<OrganizationTaskAuthorization> {
+        let mut tx = self.pool.begin_with("BEGIN IMMEDIATE").await?;
+        ensure!(
+            super::controls::read(&mut tx, &profile.id).await?.as_ref() == Some(profile),
+            "execution profile changed; review its latest exact version"
+        );
+        let OrganizationControlValue::ExecutionProfile {
+            scope,
+            policy_version,
+            ..
+        } = &profile.value
+        else {
+            anyhow::bail!("not an execution profile")
+        };
+        ensure!(
+            *policy_version == ORGANIZATION_POLICY_VERSION,
+            "profile policy changed"
+        );
+        super::schedule::reject_occurrence_reauthorization(&mut tx, task_id).await?;
+        super::workflow::reject_workflow_reauthorization(&mut tx, task_id).await?;
+        let grant =
+            authorize_task_in(&mut tx, task_id, expected_revision, (**scope).clone(), now).await?;
+        tx.commit().await?;
+        Ok(grant)
+    }
     /// Only the authenticated owner service may authorize or replace scope.
     pub async fn authorize_task(
         &self,
@@ -218,6 +249,7 @@ impl OrganizationStore {
             requests < i64::from(authorization.scope.max_model_requests),
             "model request ceiling exhausted"
         );
+        Self::reserve_tokens(&mut tx, &attempt, &authorization).await?;
         attempt.model_requests += 1;
         sqlx::query(
             "UPDATE organization_authorizations SET model_requests=model_requests+1 WHERE id = ?",
@@ -301,6 +333,8 @@ impl OrganizationStore {
         }
         attempt.reported_tokens = reported_tokens;
         attempt.reported_model_requests = request_sequence;
+        sqlx::query("UPDATE organization_token_reservations SET released=1 WHERE attempt_id=? AND sequence=? AND released=0")
+            .bind(attempt_id).bind(request_sequence).execute(&mut *tx).await?;
         if matches!(
             attempt.state,
             OrganizationTaskState::WaitingApproval | OrganizationTaskState::WaitingDependency

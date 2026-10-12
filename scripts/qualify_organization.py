@@ -108,6 +108,7 @@ def run(plan_path, evidence, retry_checks=False):
             save(manifest, identity)
         for step in steps:
             receipt_path = evidence / (step["id"] + ".json")
+            history = []
             if receipt_path.exists():
                 receipt = json.loads(receipt_path.read_text())
                 if receipt["state"] == "passed":
@@ -123,7 +124,19 @@ def run(plan_path, evidence, retry_checks=False):
                         step["id"]
                         + ": incomplete/failed receipt; action replay is forbidden"
                     )
-            receipt = {"step": step, "state": "started", "startedAt": time.time()}
+                history = receipt.get("previousReceipts", []) + [
+                    {
+                        key: value
+                        for key, value in receipt.items()
+                        if key != "previousReceipts"
+                    }
+                ]
+            receipt = {
+                "step": step,
+                "state": "started",
+                "startedAt": time.time(),
+                "previousReceipts": history,
+            }
             save(receipt_path, receipt)
             # Append attempts so retrying a read-only check preserves its failures.
             log_path = evidence / (step["id"] + ".log")

@@ -124,6 +124,8 @@ class QualificationTests(unittest.TestCase):
         self.assertEqual(self.run_plan(), 1)
         self.counter.write_text("external fix")
         self.assertEqual(self.run_plan(True), 0)
+        receipt = json.loads((self.evidence / "effect.json").read_text())
+        self.assertEqual(receipt["previousReceipts"][0]["exitCode"], 1)
         self.assertEqual((self.evidence / "effect.log").read_text(), "check\ncheck\n")
 
     def test_evidence_inside_source_and_public_directory_denied(self):

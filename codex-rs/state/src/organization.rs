@@ -47,6 +47,7 @@ mod execution;
 
 #[path = "organization_actions.rs"]
 mod actions;
+pub use actions::uncertainty_fingerprint;
 
 #[path = "organization_coordination.rs"]
 mod coordination;
@@ -69,6 +70,10 @@ mod report;
 
 #[path = "organization_resource.rs"]
 mod resource;
+
+#[path = "organization_retention.rs"]
+mod retention;
+pub use retention::WorkspaceRetentionPlan;
 
 #[path = "organization_bundle.rs"]
 mod bundle;

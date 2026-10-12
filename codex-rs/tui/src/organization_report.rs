@@ -121,6 +121,9 @@ pub(super) fn text(
         utc_time(report.generated_at)
     );
     if matches!(focus, Focus::All | Focus::Project(_)) {
+        if let Some(pressure) = &report.resource_pressure {
+            text.push_str(&format!("Resource pressure at {}: {} · disk {:?} bytes / minimum {} · available memory {:?} bytes / minimum {} · measured UTC {}\n",pressure.path,if pressure.ready {"admissions ready"}else{"admissions paused"},pressure.available_disk_bytes,pressure.min_disk_bytes,pressure.available_memory_bytes,pressure.min_available_memory_bytes,pressure.measured_at));
+        }
         if let Some(u) = &report.global_usage {
             text.push_str(&format!("Whole organization: {} reported tokens · {} admitted requests · {} active · {} unresolved terminal requests\n", u.reported_tokens, u.model_requests, u.active, u.unresolved_requests));
         } else {
@@ -486,6 +489,7 @@ mod tests {
         b.task_id = "child".into();
         b.budget.as_mut().unwrap().grant_id = "child-grant".into();
         let report = OrganizationReport {
+            resource_pressure: None,
             sequence: 3,
             generated_at: 0,
             project_id: None,

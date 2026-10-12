@@ -6,6 +6,17 @@ use crossterm::event::KeyModifiers;
 use ratatui::layout::Margin;
 
 pub(super) enum Kind {
+    Setup,
+    ResourcePressure(Option<OrganizationControl>),
+    ExecutionProfile(Option<OrganizationControl>),
+    AuthorizeProfile {
+        task: OrganizationTask,
+        profiles: Vec<OrganizationControl>,
+    },
+    Reconciliation {
+        attempt: OrganizationTaskAttempt,
+        fingerprint: String,
+    },
     RoleRollback {
         current: OrganizationRoleVersion,
         versions: Vec<OrganizationRoleVersion>,
@@ -137,6 +148,43 @@ pub(super) struct HunkFile {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn setup_requires_explicit_fields_and_only_builds_paused_configuration() {
+        let directory = tempfile::tempdir().unwrap();
+        let mut form = Form::new(Kind::Setup, &[], None, "fixture");
+        assert!(form.command().is_err());
+        for (index, value) in [
+            (0, "Workspace"),
+            (1, directory.path().to_str().unwrap()),
+            (2, "My agent"),
+            (3, "Review local sources"),
+        ] {
+            set(&mut form, index, value);
+        }
+        let Command::Setup {
+            params,
+            agent,
+            model,
+            limits,
+            ..
+        } = form.command().unwrap()
+        else {
+            panic!("setup must not authorize inference")
+        };
+        assert_eq!(agent, "My agent");
+        assert_eq!(model, "fixture");
+        assert_eq!(limits.max_active, 2);
+        let Command::Setup {
+            params: repeated, ..
+        } = form.command().unwrap()
+        else {
+            unreachable!()
+        };
+        assert_eq!(params.idempotency_key, repeated.idempotency_key);
+        set(&mut form, 7, "5");
+        assert!(form.command().is_err());
+    }
 
     fn set(form: &mut Form, index: usize, value: &str) {
         form.fields[index].input.set_text_clearing_elements(value);
@@ -1729,6 +1777,21 @@ impl Form {
                 ("resume".into(), "Resume original finite authority".into()),
                 ("cancel".into(), "Revoke; preserve results and usage".into()),
             ], None)],
+            Kind::Reconciliation {..} => vec![Field::text("Observed evidence", "Record exact receipts/provider evidence; unknown usage/effects remain charged and fenced", "")],
+            Kind::AuthorizeProfile {profiles,..} => vec![Field::select("Exact execution profile",profiles.iter().filter_map(|p|match &p.value {OrganizationControlValue::ExecutionProfile {label,..}=>Some((p.id.clone(),format!("{label} · revision {}",p.revision))),_=>None}).collect(),None)],
+            Kind::ExecutionProfile(previous) => {
+                let mut fields=Self::scope_fields(model);
+                let label=previous.as_ref().and_then(|p|match &p.value {OrganizationControlValue::ExecutionProfile {label,..}=>Some(label.as_str()),_=>None}).unwrap_or("");
+                fields.push(Field::text("Profile name", "Preset only; tools follow the qualified native policy; applying requires separate exact authorization", label));
+                fields
+            }
+            Kind::ResourcePressure(previous) => {
+                let (path,disk,memory)=match previous.as_ref().map(|c|&c.value) {
+                    Some(OrganizationControlValue::ResourcePressure {path,min_disk_bytes,min_available_memory_bytes})=>(path.clone(),min_disk_bytes.to_string(),min_available_memory_bytes.to_string()),
+                    _=>(std::env::var("CODEX_HOME").unwrap_or_default(),"0".into(),"0".into()),
+                };
+                vec![Field::text("Storage path", "Existing local directory on the filesystem to monitor", &path),Field::text("Minimum available disk bytes", "0 disables; below threshold pauses new admissions", &disk),Field::text("Minimum available memory bytes", "0 disables; host/cgroup available memory; unavailable required sample pauses", &memory)]
+            }
             Kind::GlobalControl(previous) => {
                 let (paused, limits) = match previous.as_ref().map(|c| &c.value) {
                     Some(OrganizationControlValue::Global { paused, limits }) => (*paused, limits.as_ref()),
@@ -1851,6 +1914,16 @@ impl Form {
                 Field::text("Objective", "Describe the desired outcome", if let Kind::GoalEdit(goal) = &kind { &goal.objective } else { "" }),
                 Field::text("Success criteria", "One criterion per line", &if let Kind::GoalEdit(goal) = &kind { goal.criteria.join("\n") } else { String::new() }),
                 Field::select("Parent goal", optional(goals), if let Kind::GoalEdit(goal) = &kind { goal.parent_id.as_deref() } else { goal_id }),
+            ],
+            Kind::Setup => vec![
+                Field::text("Workspace / project name", "Local project metadata", ""),
+                Field::text("Project root", "Existing absolute directory", ""),
+                Field::text("First agent name", "Any user-defined name; add more agents/teams afterward", ""),
+                Field::text("Agent instructions", "Reusable role instructions; no tool authority", ""),
+                Field::text("Model", "Explicit configured provider model", model),
+                Field::text("Lifetime token ceiling", "Reported usage; in-flight reservations are retained", "10000"),
+                Field::text("Lifetime request ceiling", "Finite; unknown requests stay charged", "10"),
+                Field::text("Active ceiling", "1–4; runtime default remains two", "2"),
             ],
             Kind::Project => vec![
                 Field::text("Project name", "A local coding or document project", ""),
@@ -2098,16 +2171,32 @@ impl Form {
             );
             fields[3].input.set_text_clearing_elements(&prompt);
         }
-        Self {
+        let mut form = Self {
             kind,
             fields,
             focus: 0,
             project_key: uuid::Uuid::new_v4().to_string(),
             error: String::new(),
+        };
+        let scope = match &form.kind {
+            Kind::ExecutionProfile(Some(previous)) => match &previous.value {
+                OrganizationControlValue::ExecutionProfile { scope, .. } => Some(scope.clone()),
+                _ => None,
+            },
+            _ => None,
+        };
+        if let Some(scope) = scope {
+            form.prefill_scope(&scope);
         }
+        form
     }
     pub(super) fn title(&self) -> &'static str {
         match self.kind {
+            Kind::Setup => "First launch · review configuration · execution stays paused",
+            Kind::ResourcePressure(_) => "Resource pressure · actual disk / available memory",
+            Kind::ExecutionProfile(_) => "Save versioned execution profile · no execution",
+            Kind::AuthorizeProfile { .. } => "Review exact profile authorization · separate grant",
+            Kind::Reconciliation { .. } => "Inspect uncertainty · retain charges / no replay",
             Kind::Mission(_) => "Workspace mission / priorities / constraints",
             Kind::RoleRollback { .. } => "Review role rollback proposal",
             Kind::WorkflowRollback { .. } => "Review captured workflow rollback proposal",
@@ -2221,7 +2310,10 @@ impl Form {
     pub(super) fn prefill_scope(&mut self, scope: &OrganizationExecutionScope) {
         if !matches!(
             &self.kind,
-            Kind::Schedule(_) | Kind::WorkflowRun { .. } | Kind::WorkflowSeries { .. }
+            Kind::Schedule(_)
+                | Kind::WorkflowRun { .. }
+                | Kind::WorkflowSeries { .. }
+                | Kind::ExecutionProfile(_)
         ) {
             return;
         }
@@ -2446,6 +2538,85 @@ impl Form {
             Ok(lines(i))
         };
         Ok(match &self.kind {
+            Kind::Reconciliation {
+                attempt,
+                fingerprint,
+            } => Command::Definition(OrganizationMutation::SetControl {
+                expected_revision: None,
+                value: OrganizationControlValue::Reconciliation {
+                    id: self.project_key.clone(),
+                    attempt_id: attempt.id.clone(),
+                    request_sequence: attempt.model_requests,
+                    fingerprint: fingerprint.clone(),
+                    evidence: required(0)?,
+                },
+            }),
+            Kind::AuthorizeProfile { task, profiles } => {
+                let profile = profiles
+                    .iter()
+                    .find(|p| p.id == value(0))
+                    .context("select an execution profile")?;
+                Command::Execution(OrganizationExecutionMutation::AuthorizeProfile {
+                    task_id: task.id.clone(),
+                    expected_revision: task.revision,
+                    profile: Box::new(profile.clone()),
+                })
+            }
+            Kind::ExecutionProfile(previous) => {
+                let id = previous
+                    .as_ref()
+                    .and_then(|p| match &p.value {
+                        OrganizationControlValue::ExecutionProfile { id, .. } => Some(id.clone()),
+                        _ => None,
+                    })
+                    .unwrap_or_else(|| self.project_key.clone());
+                Command::Definition(OrganizationMutation::SetControl {
+                    expected_revision: previous.as_ref().map(|p| p.revision),
+                    value: OrganizationControlValue::ExecutionProfile {
+                        id,
+                        label: required(14)?,
+                        policy_version:
+                            codex_protocol::organization_execution::ORGANIZATION_POLICY_VERSION,
+                        scope: Box::new(self.scope(0)?),
+                    },
+                })
+            }
+            Kind::Setup => {
+                let root = required(1)?;
+                anyhow::ensure!(
+                    Path::new(&root).is_absolute(),
+                    "Project root must be absolute"
+                );
+                let root = std::fs::canonicalize(root)?;
+                anyhow::ensure!(root.is_dir(), "Project root must be an existing directory");
+                let limits = OrganizationSharedCeilings {
+                    max_tokens: required(5)?.parse()?,
+                    max_model_requests: required(6)?.parse()?,
+                    max_active: required(7)?.parse()?,
+                };
+                anyhow::ensure!(
+                    (1..=10_000_000).contains(&limits.max_tokens)
+                        && (1..=100_000).contains(&limits.max_model_requests)
+                        && (1..=4).contains(&limits.max_active),
+                    "Invalid finite setup ceilings"
+                );
+                Command::Setup {
+                    params: ProjectCreateParams {
+                        name: required(0)?,
+                        roots: vec![ProjectRoot {
+                            path: codex_utils_absolute_path::AbsolutePathBuf::from_absolute_path(
+                                root,
+                            )?,
+                        }],
+                        metadata: None,
+                        idempotency_key: self.project_key.clone(),
+                    },
+                    agent: required(2)?,
+                    instructions: required(3)?,
+                    model: required(4)?,
+                    limits,
+                }
+            }
             Kind::RoleRollback { current, versions } => {
                 let source = versions
                     .iter()
@@ -2693,6 +2864,16 @@ impl Form {
                         "resume" => OrganizationWorkflowControl::Resume,
                         "cancel" => OrganizationWorkflowControl::Cancel,
                         _ => anyhow::bail!("Invalid policy action"),
+                    },
+                })
+            }
+            Kind::ResourcePressure(previous) => {
+                Command::Definition(OrganizationMutation::SetControl {
+                    expected_revision: previous.as_ref().map(|c| c.revision),
+                    value: OrganizationControlValue::ResourcePressure {
+                        path: required(0)?,
+                        min_disk_bytes: required(1)?.parse()?,
+                        min_available_memory_bytes: required(2)?.parse()?,
                     },
                 })
             }

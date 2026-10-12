@@ -346,6 +346,9 @@ pub struct OrganizationExecutionView {
     #[ts(type = "number")]
     pub authorization_used_tokens: i64,
     pub authorization_model_requests: u32,
+    /// Nominal in-flight/unknown allowances, not provider billing guarantees.
+    #[serde(default)]
+    pub token_reservations: Vec<OrganizationTokenReservation>,
     /// Recent attempts, newest first; each authorization permits at most three.
     pub attempts: Vec<OrganizationTaskAttempt>,
     pub actions: Vec<OrganizationActionIntent>,
@@ -356,6 +359,17 @@ pub struct OrganizationExecutionView {
     pub checkpoints: Vec<OrganizationTaskCheckpoint>,
     #[serde(default)]
     pub handoffs: Vec<OrganizationTaskHandoff>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct OrganizationTokenReservation {
+    pub attempt_id: String,
+    pub sequence: u32,
+    pub root_id: String,
+    #[ts(type = "number")]
+    pub tokens: i64,
+    pub released: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
@@ -483,6 +497,13 @@ pub enum OrganizationApplicationState {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
 #[serde(tag = "type", rename_all = "camelCase", deny_unknown_fields)]
 pub enum OrganizationExecutionMutation {
+    #[serde(rename_all = "camelCase")]
+    AuthorizeProfile {
+        task_id: String,
+        #[ts(type = "number")]
+        expected_revision: i64,
+        profile: Box<crate::organization::OrganizationControl>,
+    },
     #[serde(rename_all = "camelCase")]
     ApplyReplan {
         task_id: String,
@@ -622,6 +643,7 @@ mod application_tests {
 impl OrganizationExecutionMutation {
     pub fn task_id(&self) -> &str {
         match self {
+            Self::AuthorizeProfile { task_id, .. } => task_id,
             Self::Authorize { task_id, .. }
             | Self::Stop { task_id, .. }
             | Self::DecideApproval { task_id, .. }

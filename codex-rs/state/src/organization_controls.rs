@@ -39,6 +39,9 @@ pub(super) async fn set(
     value: OrganizationControlValue,
 ) -> Result<OrganizationControl> {
     let id = match &value {
+        OrganizationControlValue::Reconciliation { id, .. } => format!("reconciliation:{id}"),
+        OrganizationControlValue::ExecutionProfile { id, .. } => format!("profile:{id}"),
+        OrganizationControlValue::ResourcePressure { .. } => "pressure".into(),
         OrganizationControlValue::RoleRollback { id, .. } => format!("rollback-role:{id}"),
         OrganizationControlValue::WorkflowRollback { id, .. } => format!("rollback-workflow:{id}"),
         OrganizationControlValue::Mission { .. } => "mission".into(),
@@ -65,6 +68,64 @@ pub(super) async fn set(
         "control revision conflict"
     );
     match &value {
+        OrganizationControlValue::ExecutionProfile {
+            id,
+            label,
+            policy_version,
+            scope,
+        } => {
+            Uuid::parse_str(id)?;
+            text(label, 256)?;
+            ensure!(
+                *policy_version
+                    == codex_protocol::organization_execution::ORGANIZATION_POLICY_VERSION,
+                "profile policy version is unsupported"
+            );
+            super::execution::validate_scope(scope)?;
+        }
+        OrganizationControlValue::Reconciliation {
+            id,
+            attempt_id,
+            request_sequence,
+            fingerprint,
+            evidence,
+        } => {
+            Uuid::parse_str(id)?;
+            Uuid::parse_str(attempt_id)?;
+            text(evidence, 16 * 1024)?;
+            ensure!(
+                previous.is_none(),
+                "inspection records are immutable; capture new evidence separately"
+            );
+            let data: String =
+                sqlx::query_scalar("SELECT data FROM organization_attempts WHERE id=?")
+                    .bind(attempt_id)
+                    .fetch_one(&mut **tx)
+                    .await?;
+            let attempt: codex_protocol::organization_execution::OrganizationTaskAttempt =
+                serde_json::from_str(&data)?;
+            let data: Vec<String> = sqlx::query_scalar(
+                "SELECT data FROM organization_actions WHERE attempt_id=? ORDER BY id LIMIT 100",
+            )
+            .bind(attempt_id)
+            .fetch_all(&mut **tx)
+            .await?;
+            let actions: Vec<codex_protocol::organization_execution::OrganizationActionIntent> =
+                data.into_iter()
+                    .map(|d| serde_json::from_str(&d))
+                    .collect::<std::result::Result<_, _>>()?;
+            ensure!(*request_sequence==attempt.model_requests && (attempt.model_requests>attempt.reported_model_requests || actions.iter().any(|a|a.state==codex_protocol::organization_execution::OrganizationActionState::Uncertain)),"select the exact unresolved request/effects");
+            ensure!(
+                *fingerprint == super::actions::uncertainty_fingerprint(&attempt, &actions),
+                "request/effect evidence changed; inspect the latest receipt"
+            );
+        }
+        OrganizationControlValue::ResourcePressure { path, .. } => {
+            ensure!(
+                std::path::Path::new(path).is_absolute() && std::fs::canonicalize(path)?.is_dir(),
+                "pressure path must be an existing absolute directory"
+            );
+        }
         OrganizationControlValue::RoleRollback {
             id,
             reason,
@@ -892,6 +953,10 @@ pub(super) async fn check_dispatch(
     tx: &mut Transaction<'_, Sqlite>,
     grant: &OrganizationTaskAuthorization,
 ) -> Result<()> {
+    ensure!(
+        super::resource::pressure_ready(tx).await?,
+        super::WorkflowPaused
+    );
     if let Some(control) = read(tx, "global").await? {
         ensure!(
             !matches!(
@@ -973,6 +1038,9 @@ pub(super) async fn check_global(
     inference: bool,
     capacity: bool,
 ) -> Result<bool> {
+    if (inference || capacity) && !super::resource::pressure_ready(tx).await? {
+        return Ok(false);
+    }
     let Some(control) = read(tx, "global").await? else {
         return Ok(true);
     };
