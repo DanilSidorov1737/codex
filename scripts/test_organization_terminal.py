@@ -18,7 +18,12 @@ class ActualTerminalTests(unittest.TestCase):
             terminal = Terminal(nvim, Path(directory) / "evidence")
             try:
                 terminal.start(
-                    [sys.executable, "-u", "-c", "print('READY');print('OBSERVED:'+input())"],
+                    [
+                        sys.executable,
+                        "-u",
+                        "-c",
+                        "print('READY');print('OBSERVED:'+input())",
+                    ],
                     directory,
                 )
                 terminal.wait_for(lambda screen: "READY" in screen)
@@ -38,10 +43,14 @@ class ActualTerminalTests(unittest.TestCase):
             evidence = Path(directory) / "evidence"
             terminal = Terminal(nvim, evidence)
             try:
-                terminal.start([sys.executable, "-u", "-c", "print('READY');input()"], directory)
+                terminal.start(
+                    [sys.executable, "-u", "-c", "print('READY');input()"], directory
+                )
                 terminal.wait_for(lambda screen: "READY" in screen)
                 with self.assertRaises(TimeoutError):
-                    terminal.wait_for(lambda screen: "missing reply" in screen, timeout=0.2)
+                    terminal.wait_for(
+                        lambda screen: "missing reply" in screen, timeout=0.2
+                    )
                 self.assertEqual(len(list(evidence.glob("timeout-*.txt"))), 1)
                 with self.assertRaises(TimeoutError):
                     terminal.wait_exit(timeout=0.2)

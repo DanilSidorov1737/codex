@@ -4,6 +4,7 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
@@ -14,6 +15,51 @@ from codex_package.targets import TARGET_SPECS
 
 
 class SourceBinariesForTargetTest(unittest.TestCase):
+    def test_source_build_preserves_the_lockfile_and_requested_target(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            spec = TARGET_SPECS["x86_64-unknown-linux-gnu"]
+            variant = PACKAGE_VARIANTS["codex"]
+            entrypoint = touch_file(root / "codex")
+            host = touch_file(root / "codex-code-mode-host")
+            bwrap = touch_file(root / "bwrap")
+            with (
+                patch(
+                    "codex_package.cargo.resolve_codex_v8_cargo_env", return_value={}
+                ),
+                patch(
+                    "codex_package.cargo.cargo_profile_output_dir", return_value=root
+                ),
+                patch("codex_package.cargo.subprocess.run") as run,
+            ):
+                outputs = build_source_binaries(
+                    spec,
+                    variant,
+                    cargo="cargo",
+                    profile="dev-small",
+                    entrypoint_bin=None,
+                    code_mode_host_bin=host,
+                    bwrap_bin=bwrap,
+                    codex_command_runner_bin=None,
+                    codex_windows_sandbox_setup_bin=None,
+                )
+            self.assertEqual(outputs.entrypoint_bin, entrypoint)
+            self.assertEqual(
+                run.call_args.args[0],
+                [
+                    "cargo",
+                    "build",
+                    "--locked",
+                    "--target",
+                    spec.target,
+                    "--profile",
+                    "dev-small",
+                    "--bin",
+                    "codex",
+                ],
+            )
+            self.assertTrue(run.call_args.kwargs["check"])
+
     def test_macos_package_with_prebuilt_entrypoint_builds_nothing(self) -> None:
         self.assertEqual(
             source_binaries_for_target(

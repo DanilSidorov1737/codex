@@ -21,7 +21,6 @@ import json
 import shutil
 import subprocess
 import sys
-import tomllib
 from pathlib import Path
 
 import pytest
@@ -54,15 +53,10 @@ def test_cli_public_commands(
     assert expected in output
 
 
-def test_cli_version_matches_release_sources(package: SmokePackage) -> None:
-    """Verify the compiled banner against the sources used to package the release."""
-    root = next(
-        parent
-        for parent in Path(__file__).resolve().parents
-        if (parent / "codex-rs/Cargo.toml").is_file()
-    )
-    manifest = tomllib.loads((root / "codex-rs/Cargo.toml").read_text())
-    version = manifest["workspace"]["package"]["version"]
+def test_cli_version_matches_package_release(package: SmokePackage) -> None:
+    """Custom package releases retain their identity even with a 0.0.0 workspace."""
+    manifest = json.loads((package.cli_root / "codex-package.json").read_text())
+    version = manifest["version"]
     assert package.run("--version").stdout == f"codex-cli {version}\n"
 
 

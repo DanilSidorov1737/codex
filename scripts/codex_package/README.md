@@ -45,7 +45,7 @@ The `--variant` flag selects the package entrypoint. Supported variants are
 ## Source-built artifacts
 
 Artifacts built from this repository are built by the package builder in one
-grouped `cargo build` command per package when they are needed and no prebuilt
+grouped `cargo build --locked` command per package when they are needed and no prebuilt
 override was provided:
 
 - all targets: the selected entrypoint, unless `--entrypoint-bin` is provided
