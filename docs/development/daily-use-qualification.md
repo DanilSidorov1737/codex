@@ -70,15 +70,93 @@ target. Packages remain protected from editing in place.
 
 `immutable-asset-preview.json` and durable per-replacement
 `immutable-asset-dedup.json` record before/after metadata, verification and
-**18,256,592,896 bytes reclaimed**. Root storage now has approximately18GiB
-available. Earlier packages and recovery archives remain byte-identical. The
-profile cache under `/tmp` still has limited headroom; inspect it before builds,
-use one locked dev-small selection and never prune while compilation runs.
+**18,256,592,896 bytes reclaimed**. Earlier packages and recovery archives remain
+byte-identical. Subsequently the generated profile cache was copied from
+`/tmp/codex-hierarchy-build/dev-small` to
+`/workspace/.onboarding/build-cache/daily-use-dev-small`, with every regular file
+hash, metadata and link target verified before switching the logical target
+symlink and removing only the original generated cache. No Cargo/rustc selection
+or cache executable was running. `generated-cache-relocation.json` retains24,208
+entries/9,891,692,076 regular-file bytes and the completed operation. Some compiler
+links still target rebuildable volatile `/dev/shm` data. Root has approximately4GiB
+free during the current build and `/tmp` approximately11GiB. Inspect before each
+selection; run one locked dev-small selection and never prune while compiling.
+
+## Current low-cost model and provider controls: tasks3/7
+
+Fresh `native-model-mini-v3` uses the verified baseline application binary and
+the new explicit local model catalog. Actual TUI readiness displays
+`GPT-5.4 Mini`, its genuine reply displays `TUI_LIVE_OK`, `/quit` exits0, daemon
+stop exits0 and no credential file is created. Native usage is10,966 input/21
+output tokens, estimated$0.008319 from the retained official rates. This adds
+to the separately recorded legacy diagnostic$0.0026165, not a reset allowance.
+The first metadata attempt omitted a required vector and the next driver looked
+for a slug rather than the display name; neither submitted a turn. Failed homes,
+captures and intents remain intact and stopped. Never replay these scripts.
+
+The catalog test also preserves existing CodeModeOnly admission. New optional
+`response_max_output_tokens` is validated, transported and serialized in native
+Responses HTTP/WebSocket requests; changed caps prohibit stale response reuse.
+An explicit cap is narrowed to the task's existing token ceiling. Existing native
+retry settings are reused, not a second retry layer. No default provider behavior
+is changed when the field is omitted. See [provider usage](low-cost-provider.md).
+
+Official protoc33.0 was installed to private onboarding tools after verifying the
+upstream release asset SHA256
+`d99c011b799e9e412064244f0be417e5d76c9b6ace13a2ac735330fa7d57ad8f`.
+No system apt configuration or permissions were changed. Native protobuf/schema
+generators pass. The initial wrong API structure insertion and private enum import
+failed compilation; both are corrected, with failed logs retained. The corrected
+locked/offline four-library run passes **641 tests** (API190/config362/provider34/
+models55), no failed or ignored checks. Log `provider-model-config-tests-v3.log`.
+The core output-limit reuse check now passes1 test; the first core compilation
+found an uninitialized guardian request and the next missed the nested test
+import. All fixes and failed logs are retained. Production CLI Clippy passes
+with warnings denied (`cli-clippy-v3.log`) and the locked build passes4m22s.
+Doctor checks pass130 tests with one pre-existing subprocess fixture ignored;
+package-builder checks pass28 and actual-terminal checks pass2. Full root format
+check passes after formatting the two earlier terminal helper files.
+
+The actual preview package's TUI displays its release and a capped fixture reply.
+CLI, managed package and passive daemon probe all match0.0.0-daily.preview1;
+doctor correctly reports the exact CLI SHA256. The walkthrough then fails because
+the generic secret redactor hides a numeric diagnostic whose label contains
+`token`. Renaming the label to `response output limit` fixes the cause without
+weakening redaction. Existing build-info supplies compiled commit/target fields;
+an unstamped Cargo executable reports `dev`, not a fabricated current Git SHA.
+The fresh second preview/native rerun now passes. The first failed home stays stopped.
+Its two localhost requests include background title generation; the retained
+provider receipt records **30 synthetic tokens**, zero paid inference.
+Do not replay that script or presume a plain TUI chat has only one
+provider request. Current-model paid smoke usage remains an observed rollout
+estimate with an uncertainty allowance for other provider activity.
+
+`native-cap-proof-v2/result.json` records normal TUI exit0, owned daemon stop0,
+matching CLI/TUI/managed-package/daemon release0.0.0-daily.preview2, exact doctor
+executable SHA256 and visible37-token output limit. The new package embeds the
+verified GPT-5.4 Mini catalog. Actual request readback records37 for the plain TUI
+and its title request; a captured30-token organization scope narrows both native
+task requests to30. The real native command creates an isolated artifact and its
+immutable Python oracle passes; owner originals remain unchanged, with no
+acceptance or Apply. Four localhost requests/60 synthetic tokens/zero paid calls.
+All services are stopped; preserve the fresh home/result/grant/receipts and do
+not rerun the script or its owner mutations. API client integration checks pass9
+tests, including legacy omission behavior. Truecolor PNGs retain actual Neovim
+terminal cells/attributes with the existing installed font; they are not an
+editor imitation. Concept-art layout comparison remains task34.
+
+After the first relocation, an idle-only second move preserves34 generated
+compiler files/6,133,637,182 bytes with exact hashes, modes, ownership and timestamps
+before replacing their generated cache paths by symlinks into `/tmp`.
+`generated-large-cache-relocation.json` records every intent and verification.
+No authoritative file or installed package is a target. Root now has approximately
+5GiB free during tests; generated `/tmp` copies remain volatile/rebuildable.
 
 ## Next work
 
-Task3 low-cost catalog qualification and task4 diagnostics, then supported
-response/retry/cost controls and current-release live coding/delegation. Tasks
+Finish current-source lint/protobuf/selected TUI checks and logical commits,
+then conservative cost admission, current-release live coding/delegation and
+the local package lifecycle. Tasks
 5–8/10–40 remain unfinished. Task13 remains gated on an actual suitable host.
 Use fresh native fixtures, retain unknown usage and the remaining $1 envelope,
 and preserve every historical quarantine. Do not rerun either diagnostic script:

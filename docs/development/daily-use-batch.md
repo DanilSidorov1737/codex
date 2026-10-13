@@ -86,5 +86,12 @@ daemon defect. Corrected actual fork TUI displays a genuine GPT-5 mini reply and
 exits0. Two actual-editor driver checks pass; all failures remain. Task9 verified
 identical-asset dedup recovered18,256,592,896 bytes without changing package bytes
 or authoritative state. Read [qualification](daily-use-qualification.md).
-Task3 supported low-cost catalog and task4 diagnostics begin; remaining tasks
-are unfinished. Record source, commands, pass/fail/unrun outcomes and resumption.
+Task3 current GPT-5.4 Mini catalog/actual-TUI smoke passes, with official metadata
+and$0.008319 native-usage estimate retained. Task7 optional output cap has641
+passing provider/configuration/model/API checks,1 core reuse check and9 API
+integration checks. Actual packaged TUI/native request caps and immutable checks
+pass. Task4/10 package identity and diagnostics pass the actual walkthrough;
+130 doctor checks and28 package-builder checks pass. Fresh-prefix preview2 is a
+qualification candidate, not the final forty-task release. Remaining tasks are
+unfinished. Record
+source, commands, pass/fail/unrun outcomes and resumption.

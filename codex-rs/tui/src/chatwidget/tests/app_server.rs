@@ -1,5 +1,6 @@
 use super::helpers::drain_insert_history_transcript;
 use super::*;
+use crate::version::CODEX_CLI_VERSION;
 use codex_app_server_protocol::AuthRecoveryNotification;
 use codex_protocol::error::CodexErr;
 use codex_protocol::error::CodexErrorDetails;

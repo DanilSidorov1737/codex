@@ -3830,6 +3830,7 @@ dependencies = [
  "codex-agent-identity",
  "codex-config",
  "codex-http-client",
+ "codex-install-context",
  "codex-keyring-store",
  "codex-model-provider-info",
  "codex-otel",

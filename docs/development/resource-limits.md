@@ -10,11 +10,22 @@ capacity to children. Corrected four-active/fifth-queued and default-two/third-q
 native qualification passed after fixing the initial heartbeat/database contention;
 see testing.md.
 
-A model catalog entry declaring `code_mode_only` is rejected before creating its
-managed thread or admitting inference. Code Mode is disabled in bounded MVP
-execution. Use a model supporting direct native tools; gpt-5.5 is qualified against
-the deterministic fixture and the real OpenAI HTTPS Responses provider through
-three bounded pilots. No automatic model routing or Code Mode bypass is implemented.
+A model catalog entry declaring `code_mode_only` requires the explicit captured
+Code Mode scope/current policy and the actual installed host before admission.
+The adaptive release qualifies these controls using localhost model responses;
+live Luna provider quality remains unqualified. Use a direct-tool model for the
+inexpensive pilots. GPT-5.5 has earlier bounded paid evidence; the current daily-use
+candidate adds verified GPT-5.4 Mini metadata and an actual paid TUI smoke.
+No automatic model substitution or Code Mode bypass is implemented. Read
+[Code Mode](code-mode.md) and [low-cost provider](low-cost-provider.md).
+
+The daily-use candidate's optional provider `response_max_output_tokens` is a
+per-response limit which includes reasoning output. An explicit limit is narrowed
+to the captured task's token ceiling; omission preserves provider defaults. Native
+HTTP/stream retries remain0 for bounded organization execution. Actual localhost
+TUI requests carry37 and native task requests30 after narrowing; unsupported
+providers fail normally rather than silently retrying without the cap. This does
+not cap input/context, all task usage or provider invoices.
 
 ## Continuation limits (qualified)
 

@@ -70,6 +70,8 @@ use http::HeaderMap;
 use http::HeaderValue;
 use http::Method;
 use serde::Serialize;
+use sha2::Digest;
+use sha2::Sha256;
 use supports_color::Stream;
 
 mod background;
@@ -607,7 +609,7 @@ async fn build_report(
         schema_version: 1,
         generated_at: generated_at(),
         overall_status,
-        codex_version: env!("CARGO_PKG_VERSION").to_string(),
+        codex_version: codex_install_context::current_version().to_string(),
         checks,
     }
 }
@@ -898,6 +900,26 @@ fn installation_check(show_details: bool) -> DoctorCheck {
     push_path_detail(&mut details, "current executable", current_exe.as_deref());
     let inherited_managed_env = inherited_managed_env_for_cargo_binary(current_exe.as_deref());
     let install_context = doctor_install_context(current_exe.as_deref());
+    let build_info = codex_build_info::BuildInfo::get();
+    details.push(format!("compiled commit: {}", build_info.build_commit()));
+    details.push(format!(
+        "compiled target: {}",
+        build_info.target().unwrap_or("unknown")
+    ));
+    details.push(format!("compiled version: {}", env!("CARGO_PKG_VERSION")));
+    details.push(format!(
+        "package version: {}",
+        install_context.package_manifest().map_or_else(
+            || "unavailable (source build or no valid package manifest)".to_string(),
+            |manifest| manifest.version.to_string(),
+        )
+    ));
+    if show_details && let Some(executable) = current_exe.as_deref() {
+        details.push(match executable_sha256(executable) {
+            Ok(digest) => format!("executable SHA256: {digest}"),
+            Err(_) => "executable SHA256: unavailable".to_string(),
+        });
+    }
     details.push(format!(
         "install context: {}",
         describe_install_context(&install_context)
@@ -964,6 +986,19 @@ fn installation_check(show_details: bool) -> DoctorCheck {
         check = check.remediation(remediation);
     }
     check
+}
+
+fn executable_sha256(executable: &Path) -> std::io::Result<String> {
+    let mut file = std::fs::File::open(executable)?;
+    let mut digest = Sha256::new();
+    let mut buffer = [0u8; 64 * 1024];
+    loop {
+        let count = file.read(&mut buffer)?;
+        if count == 0 {
+            return Ok(format!("{:x}", digest.finalize()));
+        }
+        digest.update(&buffer[..count]);
+    }
 }
 
 fn doctor_install_context(current_exe: Option<&Path>) -> InstallContext {
@@ -1112,6 +1147,25 @@ fn config_check(config: &Config) -> DoctorCheck {
         config.model.as_deref().unwrap_or("<default>")
     ));
     details.push(format!("model provider: {}", config.model_provider_id));
+    details.push(format!("wire API: {}", config.model_provider.wire_api));
+    details.push(format!(
+        "response output limit: {}",
+        config
+            .model_provider
+            .response_max_output_tokens
+            .map_or_else(
+                || "provider default (not capped by this configuration)".to_string(),
+                |limit| limit.to_string(),
+            )
+    ));
+    details.push(format!(
+        "HTTP retry limit: {}",
+        config.model_provider.request_max_retries()
+    ));
+    details.push(format!(
+        "stream retry limit: {}",
+        config.model_provider.stream_max_retries()
+    ));
     details.push(format!(
         "configured TUI mode: {}",
         if config.tui_fullscreen_transcript {

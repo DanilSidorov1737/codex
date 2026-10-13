@@ -2,14 +2,24 @@
 
 Current approved work: all40 [daily-use/self-development tasks](daily-use-batch.md).
 The owner requested GitHub push first; `4f7e0f12eb` was pushed/verified on `work`
-before tracked edits and `main` preserved. Begin actual-TUI diagnosis, readiness-
-based terminal checks and safe storage headroom. Ponytail, logical commits,
+before tracked edits and `main` preserved. Actual-TUI diagnosis, readiness-based
+terminal checks and storage headroom now have retained evidence. Ponytail, logical commits,
 continuous docs and meaningful automated/actual testing apply. Tasks1–2 diagnosis
 and terminal-driver checks now pass: actual fork TUI paid reply/normal exit0;
 earlier failures were premature readiness and paste+Enter, not a proven runtime
 defect. Task9 identical-asset dedup verified package bytes and recovered18.26GB.
 Read [daily-use qualification](daily-use-qualification.md). Task3 supported
-low-cost catalog and task4 diagnostics are next; remaining scope is unfinished.
+GPT-5.4 Mini catalog and actual-TUI reply pass ($0.008319 native usage estimate).
+Task7 output-cap transport/API and catalog checks pass641 library tests plus1
+core reuse check/9 API integration checks. The actual preview2 TUI/native task
+requests carry37/30-token caps and native immutable checks pass. Task4/10 package
+identity and diagnostics pass actual CLI/TUI/daemon readback;130 doctor and28
+package-builder checks pass. Fresh installed-preview2 remains a candidate, not
+a completed forty-task release. The first redacted-limit walkthrough failed and
+was fixed without changing secret redaction. All new owned services are stopped.
+Generated-cache relocations preserve exact bytes and leave several GiB on both
+root and `/tmp`; inspect headroom before every selection. Remaining scope is
+unfinished, including cost admission/live coding/lifecycle/Owner work.
 The adaptive release below remains the qualified application baseline.
 
 Latest delivery: **all30 bounded adaptive-operation/usability tasks are complete**

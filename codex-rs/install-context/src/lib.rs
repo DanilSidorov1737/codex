@@ -20,6 +20,20 @@ const RESOURCES_DIRNAME: &str = "codex-resources";
 const STANDALONE_PACKAGES_DIRNAME: &str = "standalone";
 static INSTALL_CONTEXT: OnceLock<InstallContext> = OnceLock::new();
 
+/// Package-declared release, or the workspace version for an unpackaged build.
+/// This is not a claim about the source revision or executable integrity.
+pub fn current_version() -> &'static str {
+    static VERSION: OnceLock<String> = OnceLock::new();
+    VERSION
+        .get_or_init(|| {
+            InstallContext::current().package_manifest().map_or_else(
+                || env!("CARGO_PKG_VERSION").to_string(),
+                |manifest| manifest.version.to_string(),
+            )
+        })
+        .as_str()
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum StandalonePlatform {
     Unix,

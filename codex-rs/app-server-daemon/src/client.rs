@@ -110,7 +110,7 @@ where
             client_info: ClientInfo {
                 name: CLIENT_NAME.to_string(),
                 title: Some("Codex App Server Daemon".to_string()),
-                version: env!("CARGO_PKG_VERSION").to_string(),
+                version: codex_install_context::current_version().to_string(),
             },
             capabilities: if experimental_api {
                 Some(InitializeCapabilities {
