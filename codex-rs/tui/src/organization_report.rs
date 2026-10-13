@@ -8,6 +8,143 @@ pub(super) enum Focus {
     Agent(String),
     Workflow(String),
 }
+
+/// Owner projection of existing canonical evidence; never creates agent authority.
+pub(super) fn owner_overview(snapshot: &Snapshot, executive: Option<&str>) -> String {
+    let mut text = String::from("OWNER OVERVIEW\n");
+    match executive {
+        None => text.push_str("Executive contact: direct owner control. Choose any enabled agent through Commands.\n"),
+        Some(id) => match snapshot.records.iter().find_map(|r| match r {
+            OrganizationRecord::Node(n) if n.id == id && n.kind == OrganizationNodeKind::Agent => Some(n),
+            _ => None,
+        }) {
+            Some(node) => text.push_str(&format!("Executive contact: {} · {} · {}\nSelect this agent in Operations to open its existing conversation.\n", node.label, id, if node.enabled { "enabled" } else { "disabled; choose another contact" })),
+            None => text.push_str(&format!("Executive contact {id}: unavailable in loaded records; refresh.\n")),
+        },
+    }
+    text.push_str("\nMISSION\n");
+    if let Some(control) = snapshot.records.iter().find_map(|r| match r {
+        OrganizationRecord::Control(c)
+            if matches!(c.value, OrganizationControlValue::Mission { .. }) =>
+        {
+            Some(c)
+        }
+        _ => None,
+    }) && let OrganizationControlValue::Mission {
+        purpose,
+        priorities,
+        constraints,
+    } = &control.value
+    {
+        text.push_str(&format!(
+            "Version {} · {}\nPriorities: {}\nConstraints: {}\n",
+            control.revision,
+            purpose,
+            priorities.join("; "),
+            constraints.join("; ")
+        ));
+    } else {
+        text.push_str("Mission not configured. Commands → edit owner mission.\n");
+    }
+    text.push_str("\nOUTCOMES / OWNER DECISIONS\n");
+    if let Some(report) = &snapshot.report {
+        text.push_str(&format!("Captured audit revision {} · UTC {} · scope {}\nCanonical task states: {:?}\nRecorded checks: {} passed / {} failed\n", report.sequence, utc_time(report.generated_at), report.project_id.as_deref().unwrap_or("whole store"), report.totals.task_states, report.totals.checks_passed, report.totals.checks_failed));
+        let decisions: Vec<_> = report.tasks.iter().filter_map(inbox_row).collect();
+        for row in decisions.iter().take(32) {
+            text.push_str(&format!("{} · {}\n", row.id, row.label));
+        }
+        text.push_str(&format!("{} decisions in loaded task evidence; first32 shown. Open Review for exact decisions.\n", decisions.len()));
+        if let Some(usage) = &report.global_usage {
+            text.push_str(&format!("Recorded usage: {} tokens / {} admitted requests / {} active / {} unresolved terminal requests.\n", usage.reported_tokens, usage.model_requests, usage.active, usage.unresolved_requests));
+        } else {
+            text.push_str("Recorded whole-store usage unavailable.\n");
+        }
+    } else {
+        text.push_str("Canonical report unavailable; refresh before reviewing outcomes.\n");
+    }
+    text.push_str("\nESCALATIONS\n");
+    let escalations: Vec<_> = snapshot
+        .records
+        .iter()
+        .filter_map(|r| match r {
+            OrganizationRecord::Control(c)
+                if matches!(
+                    c.value,
+                    OrganizationControlValue::Escalation {
+                        resolved: false,
+                        ..
+                    }
+                ) =>
+            {
+                Some(c)
+            }
+            _ => None,
+        })
+        .collect();
+    for control in escalations.iter().take(32) {
+        if let OrganizationControlValue::Escalation {
+            task_id,
+            task_revision,
+            assignee_id,
+            reason,
+            requested_action,
+            ..
+        } = &control.value
+        {
+            let current = snapshot.records.iter().any(|r| matches!(r,OrganizationRecord::Task(t) if t.id==*task_id && t.revision==*task_revision));
+            text.push_str(&format!(
+                "{} v{} · task {} v{} · responsibility {} · {}\n  {}\n  Requested: {}\n",
+                control.id,
+                control.revision,
+                task_id,
+                task_revision,
+                assignee_id.as_deref().unwrap_or("owner"),
+                if current {
+                    "matches loaded task"
+                } else {
+                    "task changed or not loaded; inspect current evidence"
+                },
+                reason,
+                requested_action
+            ));
+        }
+    }
+    text.push_str(&format!(
+        "{} unresolved escalations in loaded definitions; first32 shown.\n",
+        escalations.len()
+    ));
+    text.push_str("\nTRACE / QUEUE\n");
+    let tasks: Vec<_> = snapshot
+        .records
+        .iter()
+        .filter_map(|r| match r {
+            OrganizationRecord::Task(t) => Some(t),
+            _ => None,
+        })
+        .collect();
+    for task in tasks
+        .iter()
+        .filter(|t| t.state != "accepted" && t.state != "cancelled")
+        .take(32)
+    {
+        let unmet: Vec<_> = task
+            .prerequisites
+            .iter()
+            .filter(|id| !tasks.iter().any(|t| &t.id == *id && t.state == "accepted"))
+            .collect();
+        let evidence = snapshot
+            .report
+            .as_ref()
+            .and_then(|r| r.tasks.iter().find(|t| t.task_id == task.id));
+        let grant = evidence.and_then(|t| t.budget.as_ref());
+        text.push_str(&format!("Mission → goal {} → project {} → task {} v{} [{}]\n  Prerequisites awaiting accepted or missing evidence: {:?}\n  Grant {} · shared root {} · result {}\n  Actions/checks/review: codex organization execution-read {}\n",task.goal_id.as_deref().unwrap_or("unlinked"),task.project_id,task.id,task.revision,task.state,unmet,grant.map(|b|b.grant_id.as_str()).unwrap_or("unavailable"),grant.map(|b|b.root_id.as_str()).unwrap_or("unavailable"),evidence.and_then(|t|t.result_digest.as_deref()).unwrap_or("unavailable"),task.id));
+    }
+    text.push_str("Snapshot only; reopen after refresh. Missing evidence stays unavailable. No completion-time forecast inferred.\n");
+    if snapshot.limited {
+        text.push_str("Definition pages are partial; load more records for broader coverage.\n");
+    }
+    text
+}
 impl Focus {
     pub(super) fn project_id(&self) -> Option<&str> {
         if let Self::Project(id) = self {

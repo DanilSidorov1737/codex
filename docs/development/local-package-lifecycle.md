@@ -92,6 +92,13 @@ Every release must test its actual state/configuration formats and restore path.
 The real-host user service/logout/reboot procedure is in
 [host qualification](unattended-host-qualification.md).
 
+Actual task12 evidence now passes for preview3/53e37b68ab → preview4/811b456376:
+stopped `update --from-cli --yes`, pinned new daemon identity, unchanged canonical
+definitions, actual TUI attachment/exit0 and fresh pre-upgrade bundle rollback
+with separately retained nonsecret config and verified pause/original hashes.
+Both releases share the state format. Evidence/failures/no-replay rules:
+[daily-use qualification](daily-use-qualification.md#package-lifecycle-and-actual-editor-tasks11–121436).
+
 ## Evidence required before marking this slice complete
 
 Retain exact source/build/package hashes; fresh-prefix CLI/TUI/daemon and actual

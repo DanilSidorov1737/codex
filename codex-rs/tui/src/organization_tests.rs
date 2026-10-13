@@ -966,6 +966,97 @@ fn dashboard() -> Dashboard {
 }
 
 #[tokio::test]
+async fn executive_contact_requires_exact_confirmation_and_never_sends_authority() {
+    let home = tempfile::tempdir().unwrap();
+    let mut d = dashboard();
+    let (commands, mut receiver) = mpsc::channel(4);
+    d.commands = commands;
+    d.path = home.path().join("layouts.json");
+    d.selected = Some("owner".into());
+    let records = d.snapshot.records.clone();
+    d.key(KeyCode::F(56).into());
+    assert!(d.confirmation_text.contains("executiveContact"));
+    assert!(d.preferences.executive_contact.is_none());
+    d.key(KeyCode::Char('y').into());
+    assert_eq!(d.preferences.executive_contact.as_deref(), Some("owner"));
+    assert_eq!(
+        Preferences::load(&d.path)
+            .unwrap()
+            .executive_contact
+            .as_deref(),
+        Some("owner")
+    );
+    assert_eq!(d.snapshot.records, records);
+    assert!(receiver.try_recv().is_err());
+
+    d.key(KeyCode::Esc.into());
+    d.key(KeyCode::F(58).into());
+    assert!(
+        d.form
+            .as_ref()
+            .unwrap()
+            .title()
+            .starts_with("Talk to selected agent")
+    );
+    assert_eq!(d.selected.as_deref(), Some("owner"));
+    assert!(receiver.try_recv().is_err());
+    d.key(KeyCode::Esc.into());
+
+    d.path = home.path().join("missing-parent/layouts.json");
+    d.key(KeyCode::F(57).into());
+    d.key(KeyCode::Char('y').into());
+    assert_eq!(d.preferences.executive_contact.as_deref(), Some("owner"));
+    assert!(d.message.contains("not saved"));
+    assert!(receiver.try_recv().is_err());
+}
+
+#[tokio::test]
+async fn owner_overview_distinguishes_unavailable_and_stale_evidence_from_outcomes() {
+    let mut d = dashboard();
+    d.snapshot.limited = true;
+    d.snapshot.report = None;
+    d.snapshot
+        .records
+        .push(OrganizationRecord::Control(OrganizationControl {
+            id: "mission".into(),
+            revision: 3,
+            value: OrganizationControlValue::Mission {
+                purpose: "Keep owner objectives visible".into(),
+                priorities: vec!["Review evidence".into()],
+                constraints: vec!["Bounded execution".into()],
+            },
+        }));
+    d.snapshot
+        .records
+        .push(OrganizationRecord::Control(OrganizationControl {
+            id: "escalation:one".into(),
+            revision: 2,
+            value: OrganizationControlValue::Escalation {
+                task_id: "one".into(),
+                task_revision: 999,
+                assignee_id: None,
+                reason: "Recorded concern".into(),
+                requested_action: "Inspect exact evidence".into(),
+                resolved: false,
+            },
+        }));
+    let text = reporting::owner_overview(&d.snapshot, Some("missing"));
+    for expected in [
+        "Keep owner objectives visible",
+        "Version 3",
+        "unavailable",
+        "task changed or not loaded",
+        "escalation:one v2",
+        "codex organization execution-read one",
+        "pages are partial",
+    ] {
+        assert!(text.contains(expected), "missing {expected}");
+    }
+    assert!(!text.contains("0 passed"));
+    assert!(d.preferences.executive_contact.is_none());
+}
+
+#[tokio::test]
 async fn changed_original_refusal_survives_background_snapshot() {
     use crate::organization_editor::BufferProposal;
     use sha2::Digest;

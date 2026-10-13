@@ -260,7 +260,94 @@ its initial test assumed draft2020 `$defs` instead of the generator's draft7
 `definitions`, a retained test failure corrected by supporting both native forms.
 Current-package production qualification and a fresh bounded pilot are pending.
 
-Continue task6 with fresh authority only after this correction is tested/built,
-then package lifecycle and remaining independent tasks15–40. Task13 remains
-blocked on an actual suitable host. Preserve all diagnostic and paid fixtures,
-unknown allowances, original$1 envelope and historical quarantines.
+The correction811b456376 passes18 runtime/workspace checks and production CLI
+Clippy in53.94s; the clean stamped build passes85s. `delegation-package-proof.json`
+pins all five assets of `package-delegation-preview4`, release0.0.0-daily.delegation.
+preview4, CLI SHA256 `ab67244500b8e2f50bcb60b76f1785d582697561bcfa584b565c5ccf42847210`.
+Normal GitHub push/readback verifies work811b456376 and unchanged main8026444c98cd.
+
+Fresh `live-content-pilots-v2` passes on that package: coordinator propose/delegate/
+wait, child native multiplication oracle/internal checked acceptance, exact quote
+inheritance and root artifact import/check all pass. Root7 requests/18,038 tokens;
+document3 requests/7,256 tokens. Both root results remain needsReview, with no
+root acceptance/Apply and byte-identical owner files/oracles. Ten deduplicated
+native Responses usage records total24,692 input (15,360 cached) /602 output,
+standard estimate$0.01086, uncached$0.021228. No invalid coordination arguments.
+Daemon stop0; no TUI was attached during these jobs, qualifying background runs.
+The failed first pilot remains charged and is not restarted. The original$1
+envelope and additional unknown reserve remain; no further paid loop is planned.
+
+## Package lifecycle and actual editor: tasks11–12/14/36
+
+`native-lifecycle/continuation-v4-result.json` passes stopped managed package
+selection via existing `daemon update --from-cli --yes`, then actual preview4
+CLI/TUI/daemon attachment. Exact proposed task/agent/role/project/mission/pause
+definitions remain. Fresh rollback uses the verified pre-upgrade full bundle,
+preview3 and separately retained nonsecret config; restored global pause and
+unchanged owner original pass. Two normal TUI exits0; all services stopped,
+zero inference. This release pair has the same state format; future backward
+compatibility is not presumed. Malformed fixture control discriminator/limits,
+unsupported status/passive-version expectations and a continuation indentation
+failure remain. Successful definition/control/backup/update intents were not
+replayed, and no paused grant was resumed.
+
+`native-editor-lsp/finish-result.json` passes actual CLI project explorer and
+owner-selected Neovim config from the documented example. Official editor0.12.6
+loads bundled matchit, attaches actual installed rust-analyzer1.95 and returns a
+native definition link from the multiplication call to its line0 declaration.
+Native diagnostics empty; line numbering and omnifunc enabled. Owner Rust file
+unchanged, normal CLI exit0/daemon stop0, zero inference. Failed drivers used an
+unbound Unicode palette key, unbracketed long editor input, Console-only readiness
+on a remembered layout, and a dict expectation for Neovim's numeric-client array.
+Physical bracketed paste and the existing command palette fix those driver
+assumptions. The actual successful definition receipt was inspected rather than
+replayed. No general plugin compatibility or mocked LSP is claimed.
+
+Idle immutable-package dedup preserves SHA256/mode/ownership and retains previous
+metadata in durable receipts: paid-pilot dedup2,632,187,088 bytes/6 paths and
+lifecycle dedup3,650,854,424 bytes/56 paths reclaimed. No state/original/log/recovery
+asset is deleted. All shared immutable package assets must remain unedited in
+place. Generated cache/compiler work does not run during these operations.
+
+Continue Owner source tests/package/actual checks, embedded-editor dirty recovery
+and remaining independent tasks15–40. Task13 stays blocked on an actual suitable
+host. Preserve every diagnostic/paid/lifecycle/editor fixture, original$1
+envelope, unknown reserve and historical quarantine.
+
+`native-editor-crash/exact-recovery-result.json` now passes actual embedded-editor
+dirty recovery. Native private per-buffer swap records the original plus an
+unsaved line; the captured owned Neovim PID is killed with SIGKILL under its
+verified CLI parent. The precise preserved swap/hash recovers identical modified
+lines into a fresh actual CLI/Neovim buffer. Owner original stays byte-identical;
+recovery CLI exit0 and daemon stop0. No model calls, new edit or kill during the
+recovery continuation. `swapname(0)` initially inspected the alternate buffer;
+using the actual buffer ID fixes the driver. Another driver incorrectly expanded
+percent signs in Neovim's swap filename; `nvim_cmd` literal-file semantics recover
+the exact captured swap. Earlier unexpected pipe-exit1 was not counted as SIGKILL.
+All failures, source private swaps and the verified preserved copy remain.
+Default product noswapfile is unchanged; this selected owner configuration and
+explicit per-buffer opt-in qualify this recovery case, not automatic recovery
+of every editor session/plugin combination.
+
+Owner source now passes108 selected TUI tests (`owner-overview-tests-v6.log`).
+The first build hits the32GiB memory limit (one recorded OOM kill); the next reaches
+linking but runs out of root disk. Idle generated-only pruning records5,389,914,112
+volatile bytes and5,249,748,808 root bytes reclaimed, excluding current test link
+inputs and preserving every package/state/original/evidence. A77,459,456 allocated-
+byte incomplete test-link temporary is removed with a hashed receipt. One-job
+rebuild exposes the new palette's ordering regression and a report-modal test
+assumption; preserving layout ordering and closing the read-only view fix them.
+A private-field test compile fails and a wrong public-title run is interrupted;
+all logs remain. Current production/native Owner qualification is pending.
+
+Approved task16 native `--worktree` creates one managed detached checkout through
+the actual fork at `native-self-development/worktrees/09ba/codex`, base811b456376.
+The first driver stops at the actual folder trust dialog; continuation reuses that
+worktree rather than creating another. Fresh native inspection/quit then passes
+(`worktree-finish-result.json`): actual CLI exit0/daemon stop0, unchanged development
+checkout's dirty file hashes and HEAD, no usage records/model turns, and automatic
+cleanup disabled. Late rollout flushing is verified after daemon stop. The prior
+disk-full and recaptured-dirty-baseline driver failures remain. Keep this worktree
+and home for the bounded self-development pilot; no proposed change/grant/Apply
+exists there yet. This product qualification is within approved tasks16/24;
+the cloud development checkout itself remains `/workspace/codex`.

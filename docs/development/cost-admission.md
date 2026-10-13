@@ -73,5 +73,8 @@ and owned daemon stop0. The subsequent live coding grant retains its quote throu
 grant retains its original shared12-request ceiling and charged28,550 tokens;
 its child cannot create another child after the root ceiling is exhausted.
 See [paid evidence](daily-use-qualification.md#real-provider-coding-and-retained-delegation-failure-tasks5–6).
-Priced unknown-usage and corrected delegation qualification remain pending.
+Corrected native delegation now passes inherited exact quotes,7 root/child
+requests/18,038 reported tokens and checked artifact import; document work passes
+3 requests/7,256 tokens. Native usage estimate for both is$0.01086, excluding no
+known charged failure. Priced unknown-usage qualification remains pending.
 Do not mark task8 complete or replay completed native-cap/paid fixtures.

@@ -17,9 +17,22 @@ an estimated$0.0119091; its document pilot never starts. The runtime correction
 retains host-generated coordination fields/enums and gives direct-edit workers
 appropriate guidance. `delegation-guidance-tests-v2.log` passes18 selected
 app-server tests after correcting the new test's draft7 definition-table assumption.
-These are actual native runtime/workspace tests and a schema regression, not
-proof of a successful corrected live delegate. Fresh-package paid qualification
-remains pending. Keep all failed grants/usage/rollouts and stopped homes intact.
+The clean811b456376 package subsequently passes actual paid delegated coding and
+document creation:10 requests/25,294 tokens, native immutable checks and inherited
+quotes, no root acceptance/Apply, estimated$0.01086. Both root results remain
+needsReview; all services stopped. Never replay failed/completed pilot authority.
+
+The same package passes stopped managed upgrade/fresh-bundle rollback for this
+release pair, actual selected official-Neovim/matchit/rust-analyzer definition
+and abrupt embedded-editor SIGKILL/exact private-swap dirty recovery. Each final
+walkthrough has actual CLI exit0 and daemon stop0; original files stay unchanged,
+zero additional inference. [Detailed failures/proofs](daily-use-qualification.md)
+remain, including malformed fixture JSON, palette/paste/readiness/buffer-ID and
+literal native filename assumptions. The memory-limited Owner TUI build and then
+disk-full link failures are preserved; idle generated-only pruning restores
+headroom. Corrected one-job Owner source tests pass108 with actual Neovim
+(`owner-overview-tests-v6.log`); production CLI Clippy passes (`owner-overview-
+clippy.log`). Native Owner UI/package and remaining forty-task work are pending.
 
 ## Adaptive batch final qualification
 

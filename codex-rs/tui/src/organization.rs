@@ -155,6 +155,8 @@ struct Preferences {
     panes: [PaneSettings; 5],
     graph: graph::Settings,
     views: Vec<SavedView>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    executive_contact: Option<String>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -174,6 +176,7 @@ impl Default for Preferences {
             panes: std::array::from_fn(|_| PaneSettings::default()),
             graph: graph::Settings::default(),
             views: vec![],
+            executive_contact: None,
         }
     }
 }
@@ -211,6 +214,13 @@ impl Preferences {
         let mut content = String::new();
         file.read_to_string(&mut content)?;
         let mut prefs: Self = serde_json::from_str(&content)?;
+        if prefs
+            .executive_contact
+            .as_ref()
+            .is_some_and(|id| id.is_empty() || id.len() > 256 || id.contains('\0'))
+        {
+            return Err(std::io::Error::other("invalid executive contact"));
+        }
         if prefs.views.len() > 8
             || prefs
                 .views
@@ -283,6 +293,7 @@ enum Command {
     },
     NativeTerminal(PathBuf),
     ProjectExplorer(PathBuf),
+    OwnerContact(Option<String>),
     NamedView {
         name: String,
         action: String,
@@ -692,6 +703,7 @@ async fn worker(
                 | Command::BufferProposal(..)
                 | Command::NativeTerminal(..)
                 | Command::ProjectExplorer(..)
+                | Command::OwnerContact(..)
                 | Command::NamedView { .. } => {
                     anyhow::bail!("native editor actions must stay on the frontend")
                 }
@@ -1916,6 +1928,28 @@ impl Dashboard {
     }
     fn send(&mut self, command: Command) {
         let command = match command {
+            Command::OwnerContact(id) => {
+                if id.as_ref().is_some_and(|id| !self.snapshot.records.iter().any(|r| matches!(r,OrganizationRecord::Node(n) if &n.id==id && n.enabled && n.kind==OrganizationNodeKind::Agent))) {
+                    self.message = "Selected executive contact is unavailable; refresh and choose an enabled agent.".into();
+                    self.message_is_error = true;
+                    return;
+                }
+                let mut preferences = self.preferences.clone();
+                preferences.executive_contact = id;
+                if let Err(error) = preferences.save(&self.path) {
+                    self.message = format!("Executive contact was not saved: {error}");
+                    self.message_is_error = true;
+                    return;
+                }
+                self.preferences = preferences;
+                self.report_text = Some(reporting::owner_overview(
+                    &self.snapshot,
+                    self.preferences.executive_contact.as_deref(),
+                ));
+                self.report_request = None;
+                self.message = "Executive contact preference saved.".into();
+                return;
+            }
             Command::ProjectExplorer(root) => {
                 let result = (|| -> anyhow::Result<()> {
                     anyhow::ensure!(!self.applying, "Application outcome pending");
@@ -4255,6 +4289,7 @@ impl Dashboard {
                         if matches!(
                             c,
                             Command::NamedView { .. }
+                                | Command::OwnerContact(..)
                                 | Command::NativeTerminal(..)
                                 | Command::ProjectExplorer(..)
                         ) {
@@ -4557,6 +4592,41 @@ impl Dashboard {
             KeyCode::F(50) => self.open_form('κ'),
             KeyCode::F(51) => self.open_form('ν'),
             KeyCode::F(53) => self.open_form('ξ'),
+            KeyCode::F(55) => {
+                self.report_text = Some(reporting::owner_overview(
+                    &self.snapshot,
+                    self.preferences.executive_contact.as_deref(),
+                ));
+                self.report_request = None;
+                self.scroll = 0;
+                self.pane().inspector = true;
+            }
+            KeyCode::F(58) => {
+                let Some(id) = self.preferences.executive_contact.clone().filter(|id| self.snapshot.records.iter().any(|r| matches!(r,OrganizationRecord::Node(n) if &n.id==id && n.enabled && n.kind==OrganizationNodeKind::Agent))) else {
+                    self.message = "Choose an available executive contact first.".into();
+                    return;
+                };
+                self.selected = Some(id);
+                self.detail = None;
+                self.open_form('δ');
+            }
+            KeyCode::F(56) | KeyCode::F(57) => {
+                let id = if key.code == KeyCode::F(56) {
+                    let Some(OrganizationRecord::Node(node)) = self.record().filter(|r| matches!(r, OrganizationRecord::Node(n) if n.enabled && n.kind==OrganizationNodeKind::Agent)) else {
+                        self.message = "Select any enabled agent as your executive contact.".into();
+                        return;
+                    };
+                    Some(node.id.clone())
+                } else {
+                    None
+                };
+                self.confirmation = Some(Command::OwnerContact(id));
+                self.scroll = 0;
+                self.pane().inspector = true;
+                self.pane().inspector_focus = true;
+                self.confirmation_text = clean(&self.details());
+                self.message = "Confirm the displayed executive contact: y / Esc".into();
+            }
             KeyCode::F(54) => self.follow_recent_file(),
             KeyCode::F(52) => {
                 use Pane::*;
@@ -5601,6 +5671,9 @@ impl Dashboard {
                 ),
                 Command::NamedView { name, action } => serde_json::to_string_pretty(
                     &serde_json::json!({"savedView":name,"operation":action}),
+                ),
+                Command::OwnerContact(id) => serde_json::to_string_pretty(
+                    &serde_json::json!({"executiveContact":id,"purpose":"Optional direct contact for owner oversight; select any enabled agent"}),
                 ),
                 Command::NativeTerminal(root) => serde_json::to_string_pretty(
                     &serde_json::json!({"action":"Open actual Neovim terminal","cwd":root,"authority":"Owner shell; commands entered here have owner permissions, separately from agent sandbox/grants","checkpoint":"Close terminal windows before saving project-file checkpoints"}),

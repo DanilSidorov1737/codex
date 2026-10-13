@@ -3,6 +3,10 @@
 Current approved work: all40 [daily-use/self-development tasks](daily-use-batch.md).
 The completed baseline was pushed/verified to GitHub `work` before tracked edits.
 Read current status for execution, bounds, historical quarantines and evidence.
+The current candidate passes actual paid coding/delegation/document, paused
+restore, quiescent package upgrade/rollback and selected real Neovim/LSP/crash
+checks. [Owner overview](owner-overview.md) source passes108 selected TUI checks;
+its physical/package qualification and remaining forty-task work are pending.
 Read [all38 fork-text sections](fork-text-coverage.md) for evidence-linked
 coverage and explicit remaining capabilities; row counts are not completion percentages.
 

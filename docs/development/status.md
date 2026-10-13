@@ -1,52 +1,74 @@
 # Current status and resumption instructions
 
 Current approved work: all40 [daily-use/self-development tasks](daily-use-batch.md).
-The owner requested GitHub push first; `4f7e0f12eb` was pushed/verified on `work`
-before tracked edits and `main` preserved. Actual-TUI diagnosis, readiness-based
-terminal checks and storage headroom now have retained evidence. Ponytail, logical commits,
-continuous docs and meaningful automated/actual testing apply. Tasks1–2 diagnosis
-and terminal-driver checks now pass: actual fork TUI paid reply/normal exit0;
-earlier failures were premature readiness and paste+Enter, not a proven runtime
-defect. Task9 identical-asset dedup verified package bytes and recovered18.26GB.
-Read [daily-use qualification](daily-use-qualification.md). Task3 supported
-GPT-5.4 Mini catalog and actual-TUI reply pass ($0.008319 native usage estimate).
-Task7 output-cap transport/API and catalog checks pass641 library tests plus1
-core reuse check/9 API integration checks. The actual preview2 TUI/native task
-requests carry37/30-token caps and native immutable checks pass. Task4/10 package
-identity and diagnostics pass actual CLI/TUI/daemon readback;130 doctor and28
-package-builder checks pass. Fresh installed-preview2 remains a candidate, not
-a completed forty-task release. The first redacted-limit walkthrough failed and
-was fixed without changing secret redaction. All new owned services are stopped.
-Generated-cache relocations preserve exact bytes and leave several GiB on both
-root and `/tmp`; inspect headroom before every selection. Remaining scope is
-unfinished, including corrected delegation/lifecycle/Owner work.
-GitHub `work` is updated through0752f85977. The output-cap/package slice's106
-selected TUI checks pass, including actual Neovim. Task8 now has uncommitted
-[USD admission](cost-admission.md) source,115 passing state checks and106 cost TUI
-checks; contracts, production and actual priced-grant tests remain pending. Preview2
-predates cost admission. Preserve every native fixture and use a fresh priced
-qualification home after the new package is built.
-Cost schemas4/Python contracts5 and344 distinct state checks pass. The offline
-recovery rehearsal exposed missing global pause on a snapshot without controls;
-its failed restore remains stopped. New source locks execution before publication
-and pauses restored work without resetting limits/accounting. Native new-package
-priced-grant and corrected recovery qualification are next.
-Those two native checks now pass on clean/stamped application53e37b68ab:
-over-budget/wrong-endpoint quote refusal, valid native quoted work, immutable
-checks and fresh full restore with global pause and unchanged quote/usage/result
-evidence. All services stopped, zero new paid inference; read current qualification.
-Task5 now passes actual paid coding, native immutable checks, physical action
-approval, official-Neovim review, exact acceptance/one Apply and normal CLI exit0
-on53e37b68ab. Three requests/6,083 tokens; estimated$0.00328365. The first finite
-task6 delegated pilot fails at the original shared12-request ceiling:28,550
-reported tokens/$0.0119091 estimate, no acceptance/Apply, document pilot unrun.
-The child was prompted to plan recursively and guessed arguments after lossy
-schema compaction. The minimal runtime correction retains the trusted DTO schema
-and makes context/delegation conditional;18 selected app-server tests now pass.
-Production lint/new package/fresh bounded requalification are next. Preserve both
-paid fixtures, failures and charged usage; never replay their grants/Apply.
-Candidate `package-cost-preview3` is not the completed forty-task release.
-The adaptive release below remains the qualified application baseline.
+The owner requested GitHub push first; baseline4f7e0f12eb was pushed/verified on
+`work` before tracked edits. The tested runtime correction811b456376 is now
+pushed/verified on `work`; `main` remains8026444c98cd. Continue Ponytail, logical
+commits, documentation and meaningful automated/actual tests through every
+independent item. This batch is unfinished; the adaptive release below remains
+the previous fully qualified complete batch.
+
+Read [current qualification](daily-use-qualification.md) and preserve all private
+evidence under `/workspace/.onboarding/qualification/daily-use-batch/`.
+Tasks1–4 diagnose actual terminal readiness, qualify GPT-5.4 Mini and expose safe
+provider/package identity. Task7 narrows explicit Responses output caps and reuses
+native retry controls. Task8 implements captured versioned USD admission quotes;
+native over-budget/endpoint refusal and inherited delegation quotes pass, while
+priced unknown-usage qualification remains. Estimates are not invoice caps.
+Storage operations preserve hashes and state; inspect headroom before each Cargo
+selection and never move/prune a live compiler cache.
+
+Task5 paid coding passes actual TUI approval, immutable native checks, official
+Neovim review, exact acceptance and one Apply on53e37b68ab:3 requests/6,083 tokens,
+estimated$0.00328365. The first task6 delegation fails at its shared12-request
+ceiling and retains28,550 tokens/$0.0119091 estimate. The minimal correction
+preserves the host coordination schema and removes unconditional recursive plans.
+Its18 runtime/workspace checks and production Clippy pass. Clean811b456376 package
+`package-delegation-preview4`, release0.0.0-daily.delegation.preview4, builds in85s;
+CLI SHA256 `ab67244500b8e2f50bcb60b76f1785d582697561bcfa584b565c5ccf42847210`.
+Fresh delegated coding/document pilots pass10 total requests/25,294 tokens,
+estimated$0.01086; child/root checks and inherited quotes pass. Root results remain
+reviewable; no root acceptance/Apply, and owner originals unchanged. No more paid
+calls are planned for this checkpoint.
+
+Tasks11–12 now pass actual fresh managed package selection, stopped upgrade from
+preview3 to preview4, state-preserving TUI attachment, and fresh pre-upgrade bundle
+rollback to preview3. Both actual TUI exits0; restored global pause, separately
+retained nonsecret configuration and original files verified. This proves this
+release pair, not general future database compatibility. Task14 native priced
+full restore also preserves accounting/artifact evidence and creates a pause
+under execution ownership. Task13 real-host user-manager/logout/reboot stays
+blocked on a suitable host; container lifecycle is not that evidence.
+
+Task36 passes actual selected Neovim0.12.6 config/bundled matchit/rust-analyzer1.95,
+native definition lookup, empty diagnostics and normal CLI exit0/daemon stop0.
+Arbitrary plugin compatibility is not claimed. Task37's independent native swap
+mechanics and actual embedded-editor SIGKILL/private-swap recovery now pass;
+original bytes stay unchanged, recovered CLI exit0 and daemon stop0. Retain every
+failed driver and never represent forced cleanup as a normal exit.
+
+Tasks25–26/29–30 now have Owner overview/contact source in progress: canonical
+mission, outcomes/decisions/escalations/queue/trace brief inside the five layouts,
+and an optional arbitrary enabled-agent contact saved as a private UI preference.
+No agent role, task, grant or background authority is created by selecting it.
+Selected TUI108 and production CLI Clippy now pass. Package and physical Owner
+qualification remain pending. Initial memory/disk build failures, a palette-order
+regression and corrected test assumptions remain recorded.
+Task16 actual fork-managed worktree preparation passes on811b456376: one detached
+checkout, preserved development files and normal CLI exit0, no model requests or
+automatic cleanup. The bounded self-development pilot now has a captured branch/
+base/path/check preview and a31-test native baseline: valid single-quoted TOML
+workspace version is the one demonstrated packaging regression. No pilot model
+grant or change exists yet. Tasks15–24/27–28/31–35/38–40 need remaining work.
+
+All completed paid/lifecycle/LSP fixtures are stopped. Never rerun their setup,
+grants, acceptance/Apply or reset usage; preserve single coding's completed
+Application and both delegated pilot homes. Failed lifecycle control JSON and
+editor palette/paste/readiness/response-shape drivers are retained; subsequent
+steps continued without replaying successful mutations. Historical quarantines
+below still apply. Default-two/max-four active remains. External integrations,
+cloud workers, Dot API, deployment/merge and automatic root acceptance/Apply remain
+deferred. Finish remaining independent scope; do not stop at a source checkpoint.
 
 Latest delivery: **all30 bounded adaptive-operation/usability tasks are complete**
 on application source **`3eca8520e0`**. The owner approved Ponytail, logical commits,

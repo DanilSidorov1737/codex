@@ -45,6 +45,30 @@ const ACTIONS: &[Action] = &[
         context: "layout",
     },
     Action {
+        title: "Owner overview / strategic brief",
+        shortcut: "Commands",
+        code: KeyCode::F(55),
+        context: "mission, recorded outcomes, decisions and escalation evidence",
+    },
+    Action {
+        title: "Choose selected agent as executive contact",
+        shortcut: "Commands",
+        code: KeyCode::F(56),
+        context: "optional private owner preference; arbitrary enabled agent",
+    },
+    Action {
+        title: "Clear executive contact / direct owner control",
+        shortcut: "Commands",
+        code: KeyCode::F(57),
+        context: "review clearing the private contact preference",
+    },
+    Action {
+        title: "Talk to executive contact",
+        shortcut: "Commands",
+        code: KeyCode::F(58),
+        context: "open the existing scoped conversation draft; review and authorization remain separate",
+    },
+    Action {
         title: "Configure actual resource pressure thresholds",
         shortcut: "Commands",
         code: KeyCode::F(39),
