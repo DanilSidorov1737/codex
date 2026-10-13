@@ -33,7 +33,7 @@ pub(super) async fn requeue_known_startup_failures(
         let attempt: OrganizationTaskAttempt = serde_json::from_str(&attempt_data)?;
         if grant.id != authorization_id
             || grant.parent_attempt_id.is_some()
-            || grant.policy_version != ORGANIZATION_POLICY_VERSION
+            || grant.policy_version != grant.scope.policy_version()
             || attempt.stop_reason.as_deref() != Some("startup-before-runtime")
             || attempt.workspace.is_some()
             || now < attempt.started_at.saturating_add(10)

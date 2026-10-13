@@ -34,6 +34,42 @@ use crate::tools::router::ToolRouter;
 use crate::turn_diff_tracker::TurnDiffTracker;
 use tokio::sync::oneshot;
 
+#[tokio::test]
+async fn bounded_cell_admission_reserves_one_slot_until_terminal_cleanup() -> anyhow::Result<()> {
+    let (session, turn) = make_session_and_context().await;
+    let config = crate::config::CodeModeConfig {
+        max_active_cells: Some(1),
+        ..Default::default()
+    };
+    let service = super::super::CodeModeService::new(
+        session.thread_id,
+        Arc::new(codex_code_mode::DisabledCodeModeSessionProvider),
+        &config,
+        Default::default(),
+    );
+    let cell = CellId::new("live-owned-cell".into());
+    service.dispatch_broker.reserve_cell(&cell);
+    service.dispatch_broker.reserve_cell(&cell);
+    assert_eq!(service.dispatch_broker.active_cell_ids().len(), 1);
+    let step = StepContext::for_test(Arc::new(turn));
+    let request = codex_code_mode::ExecuteRequest {
+        tool_call_id: "bounded-next".into(),
+        enabled_tools: vec![],
+        source: "text('not admitted')".into(),
+        yield_time_ms: Some(1),
+        max_output_tokens: Some(10),
+    };
+    let error = service
+        .execute(request, step)
+        .await
+        .err()
+        .expect("live cell blocks another start");
+    assert!(error.contains("active Code Mode cell limit"));
+    service.finish_cell_dispatch(&cell);
+    assert!(service.dispatch_broker.active_cell_ids().is_empty());
+    Ok(())
+}
+
 #[derive(Default)]
 struct DispatchFields(BTreeMap<String, String>);
 

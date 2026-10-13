@@ -1,6 +1,67 @@
 use super::*;
 
 #[tokio::test]
+async fn explicit_code_mode_captures_a_separate_policy_without_widening_native_grants() -> Result<()>
+{
+    let home = Fixture::new();
+    let store = OrganizationStore::open(&home.0).await?;
+    let (_, native) = authorized_attempt(&store, false).await?;
+    let original = store.execution_view(&native.task_id).await?;
+    let native_scope = original.authorization.as_ref().unwrap().scope.clone();
+    assert!(!native_scope.code_mode);
+    assert!(
+        serde_json::to_value(&native_scope)?
+            .get("codeMode")
+            .is_none(),
+        "legacy native serialization stays unchanged"
+    );
+    let node = node_from(
+        store
+            .mutate_owner(
+                node_mutation("Code Mode worker", None, OrganizationNodeKind::Agent),
+                None,
+            )
+            .await?,
+    );
+    let project = execution_project(&store, &node.id).await?;
+    let task = execution_task(&store, &node.id, &project).await?;
+    let mut scope = execution_scope();
+    scope.code_mode = true;
+    let profile = OrganizationControlValue::ExecutionProfile {
+        id: Uuid::now_v7().to_string(),
+        label: "Explicit bounded Code Mode".into(),
+        scope: Box::new(scope.clone()),
+        policy_version: ORGANIZATION_POLICY_VERSION,
+    };
+    assert!(
+        set_control(&store, None, profile).await.is_err(),
+        "Code Mode cannot use the native-only policy marker"
+    );
+    let grant = store
+        .authorize_task(&task.id, task.revision, scope.clone(), 1000)
+        .await?;
+    assert_eq!(grant.policy_version, ORGANIZATION_CODE_MODE_POLICY_VERSION);
+    let worker = Uuid::now_v7().to_string();
+    let attempt = store
+        .claim_task(&worker, &Uuid::now_v7().to_string(), 1000, 2)
+        .await?
+        .unwrap();
+    store.heartbeat_attempt(&attempt.id, &worker, 1001).await?;
+    assert_eq!(
+        store
+            .execution_view(&attempt.task_id)
+            .await?
+            .authorization
+            .unwrap()
+            .scope,
+        scope
+    );
+    assert_eq!(original, store.execution_view(&native.task_id).await?);
+    store.close().await;
+    Ok(())
+}
+
+#[tokio::test]
 async fn research_receipts_keep_findings_assumptions_and_live_scope_separate() -> Result<()> {
     use codex_protocol::organization_coordination::*;
     let home = Fixture::new();

@@ -1179,6 +1179,7 @@ async fn finite_series_preview_refuses_changed_scope_and_late_closed_draft() {
         "model",
     );
     form.prefill_scope(&OrganizationExecutionScope {
+        code_mode: false,
         input_files: vec!["evidence.txt".into()],
         immutable_files: vec![],
         artifacts: vec!["evidence.txt".into()],
@@ -1482,6 +1483,7 @@ async fn workflow_views_save_prerequisite_closure_and_freeze_preview_confirmatio
         .as_mut()
         .unwrap()
         .prefill_scope(&OrganizationExecutionScope {
+            code_mode: false,
             input_files: vec!["oracle.py".into()],
             immutable_files: vec!["oracle.py".into()],
             artifacts: vec!["report.txt".into()],
@@ -1672,6 +1674,7 @@ async fn schedule_views_capture_controls_and_keep_tree_and_selection_stable() {
             id: "series".into(),
             template: task("template"),
             scope: OrganizationExecutionScope {
+                code_mode: false,
                 input_files: vec![],
                 immutable_files: vec![],
                 artifacts: vec!["report.txt".into()],

@@ -224,6 +224,12 @@ impl OrganizationRuntime {
             )
             .await;
         ensure_native_tool_mode(model_info.tool_mode)?;
+        if authorization.scope.code_mode {
+            ensure!(
+                self.config.features.enabled(Feature::CodeModeHost),
+                "bounded Code Mode requires the actual host enabled at daemon startup"
+            );
+        }
         let linked = self
             .thread_store
             .read_project(view.task.project_id.clone())
@@ -443,8 +449,11 @@ impl OrganizationRuntime {
         options.thread_extension_init.insert(ToolPolicy {
             allowed_tools: Some(
                 ["exec_command", "apply_patch", "organization"]
+                    .into_iter()
+                    .chain(authorization.scope.code_mode.then_some("exec"))
+                    .chain(authorization.scope.code_mode.then_some("wait"))
                     .map(ToolName::plain)
-                    .to_vec(),
+                    .collect(),
             ),
             require_managed_sandbox: true,
             require_unified_exec: false,
@@ -491,6 +500,15 @@ impl OrganizationRuntime {
                 !guard.failed.is_cancelled() && !stop.is_cancelled(),
                 "Codex task runtime did not complete successfully"
             );
+            if authorization.scope.code_mode {
+                // A yielded cell can outlive a model turn. Quiesce its real host
+                // and nested tools before checks/result capture observe any files.
+                new.thread.shutdown_and_wait().await?;
+                ensure!(
+                    !guard.failed.is_cancelled(),
+                    "Code Mode cleanup left an interrupted/unknown effect"
+                );
+            }
             let checks = workspace
                 .checks(&self.config, &authorization.scope, stop.clone())
                 .await?;
@@ -855,6 +873,16 @@ fn configure_task(
     ] {
         config.features.disable(feature)?;
     }
+    if scope.code_mode {
+        config.features.enable(Feature::CodeMode)?;
+        config.features.enable(Feature::CodeModeHost)?;
+        config.features.enable(Feature::CodeModeInterrupt)?;
+        config.code_mode.disable_in_process_fallback = true;
+        config.code_mode.default_exec_yield_time_ms = 1000;
+        config.code_mode.cell_execution_limits.max_yield_time_ms = Some(1000);
+        config.code_mode.cell_execution_limits.max_heap_size_bytes = Some(64 * 1024 * 1024);
+        config.code_mode.max_active_cells = Some(1);
+    }
     config.notify = None;
     config.project_doc_max_bytes = 0;
     config.orchestrator_mcp_enabled = false;
@@ -1039,6 +1067,23 @@ impl ToolLifecycleContributor for AttemptGuard {
                 return Err("tool outside managed task runtime".into());
             }
             let arguments = input.payload.log_payload();
+            if matches!(input.tool_name.name.as_str(), "exec" | "wait") {
+                ensure_code_mode_primitive(self.scope.code_mode, &input.tool_name.name, &arguments)
+                    .map_err(|error| format!("managed Code Mode denied: {error:#}"))?;
+                if self.stop.is_cancelled() || self.failed.is_cancelled() {
+                    return Err("managed Code Mode stopped".into());
+                }
+                // Interpreter orchestration holds no native-effect permit: its
+                // nested calls must acquire the same existing serial action lock.
+                self.wait_workflow_dispatch()
+                    .await
+                    .map_err(|e| format!("managed Code Mode denied: {e:#}"))?;
+                return self
+                    .store
+                    .heartbeat_attempt(&self.attempt_id, &self.worker_id, now())
+                    .await
+                    .map_err(|e| format!("managed Code Mode denied: {e:#}"));
+            }
             if input.tool_name.name == "organization" {
                 if self.stop.is_cancelled()
                     || self.failed.is_cancelled()
@@ -1120,6 +1165,19 @@ impl ToolLifecycleContributor for AttemptGuard {
             if permit.is_none() {
                 return;
             }
+            if matches!(
+                input.outcome,
+                ToolCallOutcome::Aborted
+                    | ToolCallOutcome::Failed {
+                        handler_executed: true
+                    }
+            ) {
+                // Keep the durable dispatched action unresolved. Recovery marks
+                // uncertainty; cancellation is not evidence that no effect ran.
+                self.failed.cancel();
+                drop(permit);
+                return;
+            }
             let succeeded = matches!(input.outcome, ToolCallOutcome::Completed { success: true });
             if self
                 .store
@@ -1179,6 +1237,34 @@ fn validate_native_arguments(tool: &str, arguments: &str) -> Result<()> {
     Ok(())
 }
 
+fn ensure_code_mode_primitive(enabled: bool, tool: &str, arguments: &str) -> Result<()> {
+    ensure!(
+        enabled && arguments.len() <= 128 * 1024 && !arguments.contains('\0'),
+        "Code Mode requires explicit captured scope and bounded arguments"
+    );
+    if tool == "wait" {
+        let data: serde_json::Value = serde_json::from_str(arguments)?;
+        let object = data
+            .as_object()
+            .context("wait arguments must be an object")?;
+        ensure!(
+            object.keys().all(|key| matches!(
+                key.as_str(),
+                "cell_id" | "yield_time_ms" | "max_tokens" | "terminate"
+            )),
+            "unsupported Code Mode wait fields"
+        );
+        ensure!(
+            object
+                .get("cell_id")
+                .and_then(serde_json::Value::as_str)
+                .is_some_and(|id| !id.is_empty() && id.len() <= 256),
+            "invalid cell identity"
+        );
+    }
+    Ok(())
+}
+
 fn parse_active_limit(setting: Option<&str>) -> Result<u32> {
     let active = setting.map(str::parse::<u32>).transpose()?.unwrap_or(2);
     ensure!(
@@ -1200,6 +1286,29 @@ fn ensure_native_tool_mode(mode: Option<codex_protocol::openai_models::ToolMode>
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn code_mode_primitives_need_explicit_scope_and_cannot_supply_extra_wait_authority() {
+        assert!(ensure_code_mode_primitive(false, "exec", "text('no grant')").is_err());
+        assert!(ensure_code_mode_primitive(true, "exec", "text('bounded')").is_ok());
+        assert!(ensure_code_mode_primitive(true, "exec", &"x".repeat(128 * 1024 + 1)).is_err());
+        assert!(
+            ensure_code_mode_primitive(
+                true,
+                "wait",
+                r#"{"cell_id":"owned-cell","yield_time_ms":1,"terminate":true}"#
+            )
+            .is_ok()
+        );
+        assert!(
+            ensure_code_mode_primitive(
+                true,
+                "wait",
+                r#"{"cell_id":"owned-cell","additional_permissions":{"network":true}}"#
+            )
+            .is_err()
+        );
+    }
 
     #[tokio::test]
     async fn heartbeat_contention_cannot_suspend_work_or_its_deadline() -> Result<()> {

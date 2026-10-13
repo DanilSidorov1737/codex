@@ -1194,6 +1194,11 @@ const DEFAULT_CODE_MODE_EXEC_YIELD_TIME_MS: u64 = 30_000;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct CodeModeConfig {
+    /// Internal captured execution controls; normal CLI sessions retain their defaults.
+    #[serde(skip)]
+    pub cell_execution_limits: codex_code_mode::CodeModeSessionCellExecutionLimits,
+    #[serde(skip)]
+    pub max_active_cells: Option<usize>,
     pub default_exec_yield_time_ms: u64,
     /// Show handler duration, code-mode host duration, and harness overhead
     /// in each code-mode cell response.
@@ -1209,6 +1214,8 @@ pub struct CodeModeConfig {
 impl Default for CodeModeConfig {
     fn default() -> Self {
         Self {
+            cell_execution_limits: Default::default(),
+            max_active_cells: None,
             default_exec_yield_time_ms: DEFAULT_CODE_MODE_EXEC_YIELD_TIME_MS,
             experimental_show_cell_overhead: false,
             tool_input_schema_max_bytes: None,
@@ -2775,6 +2782,8 @@ fn resolve_code_mode_config(config_toml: &ConfigToml) -> CodeModeConfig {
         });
 
     CodeModeConfig {
+        cell_execution_limits: Default::default(),
+        max_active_cells: None,
         default_exec_yield_time_ms: base
             .and_then(|config| config.default_exec_yield_time_ms)
             .unwrap_or(DEFAULT_CODE_MODE_EXEC_YIELD_TIME_MS),

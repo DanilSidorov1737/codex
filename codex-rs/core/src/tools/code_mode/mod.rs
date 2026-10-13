@@ -74,6 +74,9 @@ pub(crate) struct ExecContext {
 }
 
 pub(crate) struct CodeModeService {
+    cell_execution_limits: codex_code_mode::CodeModeSessionCellExecutionLimits,
+    max_active_cells: Option<usize>,
+    start_gate: tokio::sync::Mutex<()>,
     session: OnceCell<Arc<dyn CodeModeSession>>,
     session_provider: Arc<dyn CodeModeSessionProvider>,
     availability: Result<(), String>,
@@ -93,6 +96,9 @@ impl CodeModeService {
         let dispatch_broker = Arc::new(CodeModeDispatchBroker::new(thread_id, executed_tool_calls));
         let availability = session_provider.availability();
         Self {
+            cell_execution_limits: config.cell_execution_limits.clone(),
+            max_active_cells: config.max_active_cells,
+            start_gate: tokio::sync::Mutex::new(()),
             session: OnceCell::new(),
             session_provider,
             availability,
@@ -132,6 +138,20 @@ impl CodeModeService {
         mut request: codex_code_mode::ExecuteRequest,
         step_context: Arc<StepContext>,
     ) -> Result<codex_code_mode::StartedCell, String> {
+        let _start = if self.max_active_cells.is_some() {
+            Some(self.start_gate.lock().await)
+        } else {
+            None
+        };
+        if self
+            .max_active_cells
+            .is_some_and(|max| self.dispatch_broker.active_cell_ids().len() >= max)
+        {
+            return Err(
+                "active Code Mode cell limit reached; wait for or terminate the existing cell"
+                    .into(),
+            );
+        }
         request
             .yield_time_ms
             .get_or_insert(self.default_exec_yield_time_ms);
@@ -140,10 +160,15 @@ impl CodeModeService {
             broker: Arc::clone(&self.dispatch_broker),
             step_context,
         });
-        self.session()
+        let started = self
+            .session()
             .await?
             .execute(request, delegate, preempt)
-            .await
+            .await?;
+        if self.max_active_cells.is_some() {
+            self.dispatch_broker.reserve_cell(&started.cell_id);
+        }
+        Ok(started)
     }
 
     pub(crate) async fn wait(
@@ -247,7 +272,7 @@ impl CodeModeService {
                     }
                     session = self
                         .session_provider
-                        .create_session() => session?,
+                        .create_session_with_limits(self.cell_execution_limits.clone()) => session?,
                 };
                 if self.shutdown_token.is_cancelled() {
                     let _ = session.shutdown().await;

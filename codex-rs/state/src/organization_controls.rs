@@ -219,8 +219,7 @@ pub(super) async fn set(
             Uuid::parse_str(id)?;
             text(label, 256)?;
             ensure!(
-                *policy_version
-                    == codex_protocol::organization_execution::ORGANIZATION_POLICY_VERSION,
+                *policy_version == scope.policy_version(),
                 "profile policy version is unsupported"
             );
             super::execution::validate_scope(scope)?;

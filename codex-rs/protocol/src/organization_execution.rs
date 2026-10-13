@@ -9,14 +9,23 @@ use ts_rs::TS;
 /// Explicitly version the host's admitted tools and coordination behavior.
 /// Pre-coordination grants deserialize as version 1 and require reauthorization.
 pub const ORGANIZATION_POLICY_VERSION: u32 = 2;
+pub const ORGANIZATION_CODE_MODE_POLICY_VERSION: u32 = 3;
 
 fn legacy_policy_version() -> u32 {
     1
 }
 
+fn is_false(value: &bool) -> bool {
+    !*value
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct OrganizationExecutionScope {
+    /// Explicit owner opt-in. Omitted/false preserves the legacy native-only scope.
+    #[serde(default, skip_serializing_if = "is_false")]
+    #[ts(as = "Option<_>", optional)]
+    pub code_mode: bool,
     /// Files copied from the linked project into an isolated attempt workspace.
     pub input_files: Vec<String>,
     /// Input files mounted read-only, including owner-selected test oracles.
@@ -43,6 +52,16 @@ pub struct OrganizationExecutionScope {
     #[serde(default)]
     #[ts(type = "number | null")]
     pub not_before: Option<i64>,
+}
+
+impl OrganizationExecutionScope {
+    pub fn policy_version(&self) -> u32 {
+        if self.code_mode {
+            ORGANIZATION_CODE_MODE_POLICY_VERSION
+        } else {
+            ORGANIZATION_POLICY_VERSION
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]

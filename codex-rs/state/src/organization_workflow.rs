@@ -289,7 +289,7 @@ impl OrganizationStore {
                                 ensure!(
                                     node.revision == grant.node_revision
                                         && project.revision == grant.project_revision
-                                        && grant.policy_version == ORGANIZATION_POLICY_VERSION,
+                                        && grant.policy_version == grant.scope.policy_version(),
                                     "workflow scope changed"
                                 );
                             }

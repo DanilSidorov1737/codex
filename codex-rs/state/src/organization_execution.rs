@@ -33,7 +33,7 @@ impl OrganizationStore {
             anyhow::bail!("not an execution profile")
         };
         ensure!(
-            *policy_version == ORGANIZATION_POLICY_VERSION,
+            *policy_version == scope.policy_version(),
             "profile policy changed"
         );
         super::schedule::reject_occurrence_reauthorization(&mut tx, task_id).await?;
@@ -126,7 +126,7 @@ impl OrganizationStore {
             let mut task = read_task(&mut tx, &task_id).await?;
             let node = read_node(&mut tx, &task.owner_id).await?;
             let project = read_project(&mut tx, &task.project_id).await?;
-            if authorization.policy_version != ORGANIZATION_POLICY_VERSION
+            if authorization.policy_version != authorization.scope.policy_version()
                 || node.revision != authorization.node_revision
                 || project.revision != authorization.project_revision
                 || !ancestors_enabled(&mut tx, &node.id).await?
@@ -582,7 +582,7 @@ pub(super) async fn check_live_fence(
     let attempt: OrganizationTaskAttempt = serde_json::from_str(&data)?;
     let authorization: OrganizationTaskAuthorization = serde_json::from_str(&authorization_data)?;
     ensure!(
-        authorization.policy_version == ORGANIZATION_POLICY_VERSION,
+        authorization.policy_version == authorization.scope.policy_version(),
         "host policy changed; owner reauthorization required"
     );
     super::coordination::check_parent_grants(tx, &authorization, now).await?;
@@ -710,9 +710,9 @@ pub(super) async fn authorize_task_in(
             .max(now)
             .checked_add(i64::from(scope.max_seconds) * i64::from(scope.max_attempts) + 3600)
             .context("authorization expiry overflow")?,
+        policy_version: scope.policy_version(),
         scope,
         revoked: false,
-        policy_version: ORGANIZATION_POLICY_VERSION,
         parent_attempt_id: None,
         root_authorization_id: None,
     };

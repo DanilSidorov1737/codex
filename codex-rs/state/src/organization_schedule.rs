@@ -55,12 +55,12 @@ impl OrganizationStore {
                 let schedule = OrganizationSchedule {
                     id,
                     template: task,
+                    policy_version: scope.policy_version(),
                     scope: *scope,
                     next_run_at: Some(config.first_run_at),
                     config,
                     node_revision: node.revision,
                     project_revision: project.revision,
-                    policy_version: ORGANIZATION_POLICY_VERSION,
                     state: OrganizationScheduleState::Active,
                     revision: 1,
                     issued_runs: 0,
@@ -337,7 +337,7 @@ async fn definitions_current(
 ) -> Result<bool> {
     let node = read_node(tx, &s.template.owner_id).await?;
     let project = read_project(tx, &s.template.project_id).await?;
-    Ok(s.policy_version == ORGANIZATION_POLICY_VERSION
+    Ok(s.policy_version == s.scope.policy_version()
         && node.revision == s.node_revision
         && project.revision == s.project_revision
         && ancestors_enabled(tx, &node.id).await?)

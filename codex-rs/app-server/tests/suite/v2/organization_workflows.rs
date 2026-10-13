@@ -122,6 +122,7 @@ async fn owner_workflow_api_previews_exact_grants_and_persists_fresh_runs() -> R
         unreachable!()
     };
     let scope = OrganizationExecutionScope {
+        code_mode: false,
         input_files: vec![],
         immutable_files: vec![],
         artifacts: vec!["report.txt".into()],

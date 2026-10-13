@@ -406,3 +406,58 @@ shared helper now preserves boolean false, and all106 affected checks pass in
 `v4`. Full actual CLI/TUI workflow/endurance qualification remains unfinished.
 Continue task29, contracts/lint/build/package and task30; do not finish at this
 source/test checkpoint.
+
+## Code Mode development qualification in progress
+
+Task29 now has an explicit owner `codeMode` scope option. Omitted/false keeps
+native policy2 and identical legacy serialization; true captures separate policy3.
+Claims, profiles, recurring templates, workflow grants, handoffs and recovery
+validate the scope's matching policy. State340/protocol377 checks pass, exit0,
+`code-mode-state-protocol-v2.log`, including separate policy capture and unchanged
+prior native grants. GPT-6 Luna / other CodeModeOnly models remain denied before
+model admission while native host/fence qualification is incomplete.
+
+The managed compatible-model development path uses the existing actual host,
+one live cell per thread,64-MiB cell heap and1-second host wait ceiling. The
+interpreter primitives do not hold a native-effect serial permit; nested tools
+still use the existing identity, scope, budget, approval and action-receipt gates.
+Native interrupted/possibly executed failures retain unresolved dispatched
+effects for recovery, rather than treating cancellation as proof of no effect.
+The thread/host is shut down and awaited before final file checks/result capture.
+These changes are under qualification, not a release support claim.
+
+The initial standalone native-host test selection generated another dependency
+feature variant and filled temporary storage; its failure remains in
+`code-mode-actual-host-v1.log`. The first union selection stopped on a missing
+locked `float-cmp` archive (`code-mode-union-unit-v1.log`). The selected online
+retry uses a single serialized package selection with ordinary Cargo verification.
+Only failed generated Starlark objects were removed (hash receipt); further
+generated read-only compilation data was hash-verified and relocated to volatile
+shared memory in `code-mode-compiler-data-relocation-v2.json`. Executable outputs
+remain on executable storage. All historical homes/packages/state are preserved.
+
+The union Code Mode unit selection passes: app-server7, code-mode1, core47 and
+TUI8 (`code-mode-union-unit-v5.log`, exit0). Its initial compilation exposed
+internal-limit serialization and a double-wrapped test context; both were fixed.
+The actual installed host test now passes (`code-mode-actual-host-v2.log`, exit0):
+no ambient process/modules/network API, bounded yielding/wait, cross-session cell
+refusal and termination, using the retained verified official package host.
+These checks do not yet qualify managed task execution or CodeModeOnly models.
+
+The broader organization selection passes app-server17 and TUI106
+(`code-mode-organization-unit-v2.log`, exit0), including actual official Neovim.
+The first selection caught a supervision form test offset after adding the new
+scope option; the test now uses the shared scope-field count. Full root formatting
+passes (`code-mode-full-format-v1.log`, exit0).
+
+Relocated compiler outputs initially lost modification timestamps, forcing
+needless Cargo rebuilds. Subsequent hash-verified relocation preserves mode and
+nanosecond timestamps; see `code-mode-rebuild-cache-with-timestamps.json` and
+`code-mode-post-test-relocation.json`. Only superseded generated unit executables
+were pruned with a hash receipt; historical state/packages/receipts remain intact.
+
+Current next action: regenerate stable/experimental contracts and SDK, build the
+production package and qualify managed compatible-model execution through every
+existing fence with fresh localhost fixtures. Only afterward allow CodeModeOnly admission.
+Generated contracts, production checks/package and the full task30 endurance
+workflow are still required. No new paid inference or external integration ran.

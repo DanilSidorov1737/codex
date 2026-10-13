@@ -1164,6 +1164,7 @@ fn node_from(record: Option<OrganizationRecord>) -> OrganizationNode {
 
 fn execution_scope() -> OrganizationExecutionScope {
     OrganizationExecutionScope {
+        code_mode: false,
         input_files: vec!["input.txt".into(), "oracle.py".into()],
         immutable_files: vec!["oracle.py".into()],
         artifacts: vec!["report.txt".into()],

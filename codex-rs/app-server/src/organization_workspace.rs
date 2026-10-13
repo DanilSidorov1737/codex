@@ -999,6 +999,7 @@ mod tests {
             artifact_bases: vec![],
         };
         let mut scope = OrganizationExecutionScope {
+            code_mode: false,
             input_files: vec!["source.txt".into()],
             immutable_files: vec![],
             artifacts: vec![],

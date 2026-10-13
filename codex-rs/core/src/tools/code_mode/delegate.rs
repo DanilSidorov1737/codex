@@ -56,6 +56,16 @@ struct CellDispatchGate {
 }
 
 impl CodeModeDispatchBroker {
+    pub(super) fn reserve_cell(&self, cell_id: &CellId) {
+        self.dispatch_gates
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .entry(cell_id.clone())
+            .or_insert_with(|| CellDispatchGate {
+                ready: watch::channel(false).0,
+                originating_call: None,
+            });
+    }
     pub(super) fn new(thread_id: ThreadId, executed_tool_calls: ExecutedToolCalls) -> Self {
         let (dispatch_tx, dispatch_rx) = async_channel::unbounded();
         Self {

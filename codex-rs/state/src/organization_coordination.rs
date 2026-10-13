@@ -1109,7 +1109,7 @@ pub(super) async fn check_parent_grants(
         let attempt: OrganizationTaskAttempt = serde_json::from_str(&attempt_data)?;
         let grant: OrganizationTaskAuthorization = serde_json::from_str(&grant_data)?;
         ensure!(
-            grant.policy_version == ORGANIZATION_POLICY_VERSION,
+            grant.policy_version == grant.scope.policy_version(),
             "parent host policy changed"
         );
         ensure!(

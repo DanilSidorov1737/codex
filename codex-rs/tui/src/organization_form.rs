@@ -5,6 +5,8 @@ use crate::bottom_pane::TextAreaState;
 use crossterm::event::KeyModifiers;
 use ratatui::layout::Margin;
 
+const SCOPE_FIELDS: usize = 15;
+
 pub(super) enum Kind {
     ProjectExplorer {
         roots: Vec<String>,
@@ -831,19 +833,19 @@ mod tests {
         assert_eq!(request.expected_revision, 4);
         assert_eq!(config.max_runs, 3);
         assert!(source_task.is_none());
-        form.fields[24].choice = 1;
+        form.fields[SCOPE_FIELDS + 10].choice = 1;
         assert!(
             form.command().is_err(),
             "accepted trigger cannot issue three runs"
         );
-        set(&mut form, 21, "1");
+        set(&mut form, SCOPE_FIELDS + 7, "1");
         assert!(form.command().is_err(), "source is mandatory");
-        form.fields[25].choice = 1;
+        form.fields[SCOPE_FIELDS + 11].choice = 1;
         let Command::SeriesPreview { source_task, .. } = form.command().unwrap() else {
             panic!("source preview")
         };
         assert_eq!(source_task.as_deref(), Some("original-task"));
-        set(&mut form, 18, "0");
+        set(&mut form, SCOPE_FIELDS + 4, "0");
         assert!(form.command().is_err(), "past first run cannot confirm");
     }
 
@@ -881,7 +883,7 @@ mod tests {
         );
         set(&mut form, 0, "input.txt");
         set(&mut form, 2, "report.txt");
-        form.fields[26].choice = 1;
+        form.fields[SCOPE_FIELDS + 12].choice = 1;
         let Command::SeriesPreview {
             supervision: Some((captured, work_type)),
             ..
@@ -891,7 +893,7 @@ mod tests {
         };
         assert_eq!(*captured, goal);
         assert_eq!(work_type, "bounded goal work");
-        set(&mut form, 27, "");
+        set(&mut form, SCOPE_FIELDS + 13, "");
         assert!(form.command().is_err());
         let policy = OrganizationControl {
             id: "supervision:series".into(),
@@ -1480,9 +1482,9 @@ mod tests {
         set(&mut form, 0, "first.txt");
         set(&mut form, 2, "first.txt");
         set(&mut form, 5, "100");
-        set(&mut form, 14, "second.txt");
-        set(&mut form, 16, "second.txt");
-        set(&mut form, 19, "200");
+        set(&mut form, SCOPE_FIELDS, "second.txt");
+        set(&mut form, SCOPE_FIELDS + 2, "second.txt");
+        set(&mut form, SCOPE_FIELDS + 5, "200");
         let Command::WorkflowPreview(request) = form.command().unwrap() else {
             panic!("missing preview")
         };
@@ -1491,13 +1493,13 @@ mod tests {
         assert_eq!(request.scopes[0].scope.max_tokens, 100);
         assert_eq!(request.scopes[1].scope.max_tokens, 200);
         assert!(request.shared_limits.is_none());
-        set(&mut form, 28, "250");
+        set(&mut form, 2 * SCOPE_FIELDS, "250");
         assert!(
             form.command().is_err(),
             "a partial shared ceiling cannot be confirmed"
         );
-        set(&mut form, 29, "3");
-        set(&mut form, 30, "1");
+        set(&mut form, 2 * SCOPE_FIELDS + 1, "3");
+        set(&mut form, 2 * SCOPE_FIELDS + 2, "1");
         let Command::WorkflowPreview(request) = form.command().unwrap() else {
             panic!("preview")
         };
@@ -1510,7 +1512,7 @@ mod tests {
             })
         );
         assert_eq!(request.scopes[1].scope.max_tokens, 200);
-        set(&mut form, 16, "../escape");
+        set(&mut form, SCOPE_FIELDS + 2, "../escape");
         assert!(form.command().is_err(), "each step validates its own paths");
         for (w, h) in [(1, 1), (50, 20), (160, 48)] {
             let area = Rect::new(0, 0, w, h);
@@ -1647,6 +1649,7 @@ mod tests {
     fn recurring_form_freezes_template_identity_scope_and_finite_limits() {
         let mut form = Form::new(Kind::Schedule(task()), &[], None, "native-model");
         let scope = OrganizationExecutionScope {
+            code_mode: false,
             input_files: vec!["oracle.py".into()],
             immutable_files: vec!["oracle.py".into()],
             artifacts: vec!["report.txt".into()],
@@ -1698,7 +1701,13 @@ mod tests {
             ),
             (3, 30000, 15)
         );
-        for (index, value) in [(15, "0"), (16, "1"), (17, "1001"), (18, "0"), (19, "0")] {
+        for (index, value) in [
+            (SCOPE_FIELDS + 1, "0"),
+            (SCOPE_FIELDS + 2, "1"),
+            (SCOPE_FIELDS + 3, "1001"),
+            (SCOPE_FIELDS + 4, "0"),
+            (SCOPE_FIELDS + 5, "0"),
+        ] {
             let old = form.fields[index].value().to_string();
             set(&mut form, index, value);
             assert!(form.command().is_err());
@@ -1969,6 +1978,17 @@ impl Form {
                 "Start time (UTC epoch)",
                 "Optional one-shot time; blank starts when ready",
                 "",
+            ),
+            Field::select(
+                "Code Mode",
+                vec![
+                    ("false".into(), "Direct native tools (default)".into()),
+                    (
+                        "true".into(),
+                        "Actual Code Mode host · qualification in progress".into(),
+                    ),
+                ],
+                None,
             ),
         ]
     }
@@ -2451,15 +2471,17 @@ impl Form {
             && template.discussion.is_some()
         {
             for (index, item) in template.items.iter().enumerate() {
-                fields[index * 14].input.set_text_clearing_elements(
-                    &item
-                        .prerequisites
-                        .iter()
-                        .map(|key| format!("discussion/{key}.json"))
-                        .collect::<Vec<_>>()
-                        .join("\n"),
-                );
-                fields[index * 14 + 2]
+                fields[index * SCOPE_FIELDS]
+                    .input
+                    .set_text_clearing_elements(
+                        &item
+                            .prerequisites
+                            .iter()
+                            .map(|key| format!("discussion/{key}.json"))
+                            .collect::<Vec<_>>()
+                            .join("\n"),
+                    );
+                fields[index * SCOPE_FIELDS + 2]
                     .input
                     .set_text_clearing_elements(&format!("discussion/{}.json", item.key));
             }
@@ -2765,7 +2787,7 @@ impl Form {
         } else {
             1
         };
-        for start in (0..groups).map(|index| index * 14) {
+        for start in (0..groups).map(|index| index * SCOPE_FIELDS) {
             for (field, value) in self.fields[start..].iter_mut().zip(&values) {
                 field.input.set_text_clearing_elements(value);
             }
@@ -2777,6 +2799,7 @@ impl Form {
                 .input
                 .set_text_clearing_elements(&scope.max_children.to_string());
             self.fields[start + 12].choice = usize::from(scope.auto_accept_children);
+            self.fields[start + 14].choice = usize::from(scope.code_mode);
         }
     }
     pub(super) fn key(&mut self, key: KeyEvent) {
@@ -2962,6 +2985,7 @@ impl Form {
             })
         };
         let scope = OrganizationExecutionScope {
+            code_mode: value(14) == "true",
             input_files: lines(0),
             immutable_files: lines(1),
             artifacts: criteria(2)?,
@@ -3215,9 +3239,8 @@ impl Form {
                     expected_revision: previous.as_ref().map(|p| p.revision),
                     value: OrganizationControlValue::ExecutionProfile {
                         id,
-                        label: required(14)?,
-                        policy_version:
-                            codex_protocol::organization_execution::ORGANIZATION_POLICY_VERSION,
+                        label: required(SCOPE_FIELDS)?,
+                        policy_version: self.scope(0)?.policy_version(),
                         scope: Box::new(self.scope(0)?),
                     },
                 })
@@ -3797,7 +3820,7 @@ impl Form {
             Kind::WorkflowRun { template } | Kind::WorkflowSeries { template, .. } => {
                 let request = OrganizationWorkflowPreviewRequest {
                     shared_limits: {
-                        let start = template.items.len() * 14;
+                        let start = template.items.len() * SCOPE_FIELDS;
                         if (start..start + 3).all(|index| value(index).trim().is_empty()) {
                             None
                         } else {
@@ -3818,13 +3841,13 @@ impl Form {
                         .map(|(index, item)| {
                             Ok(OrganizationWorkflowScope {
                                 key: item.key.clone(),
-                                scope: self.scope(index * 14)?,
+                                scope: self.scope(index * SCOPE_FIELDS)?,
                             })
                         })
                         .collect::<anyhow::Result<Vec<_>>>()?,
                 };
                 if matches!(&self.kind, Kind::WorkflowSeries { .. }) {
-                    let start = template.items.len() * 14 + 3;
+                    let start = template.items.len() * SCOPE_FIELDS + 3;
                     let config = OrganizationScheduleConfig {
                         label: required(start)?,
                         first_run_at: required(start + 1)?.parse()?,
@@ -4098,13 +4121,13 @@ impl Form {
                 };
                 if matches!(&self.kind, Kind::Schedule(_)) {
                     let config = OrganizationScheduleConfig {
-                        label: required(14)?,
-                        interval_seconds: number(15)?,
+                        label: required(SCOPE_FIELDS)?,
+                        interval_seconds: number(SCOPE_FIELDS + 1)?,
                         first_run_at: required(13)?.parse()?,
-                        ends_at: required(16)?.parse()?,
-                        max_runs: number(17)?,
-                        max_tokens: i64::from(number(18)?),
-                        max_model_requests: number(19)?,
+                        ends_at: required(SCOPE_FIELDS + 2)?.parse()?,
+                        max_runs: number(SCOPE_FIELDS + 3)?,
+                        max_tokens: i64::from(number(SCOPE_FIELDS + 4)?),
+                        max_model_requests: number(SCOPE_FIELDS + 5)?,
                     };
                     config
                         .validate(chrono::Utc::now().timestamp())

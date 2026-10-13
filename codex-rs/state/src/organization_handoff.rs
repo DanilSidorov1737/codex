@@ -197,7 +197,7 @@ pub(super) async fn handoff_in(
     let mut authorization: OrganizationTaskAuthorization = serde_json::from_str(&data)?;
     ensure!(
         authorization.id == checkpoint.authorization_id
-            && authorization.policy_version == ORGANIZATION_POLICY_VERSION,
+            && authorization.policy_version == authorization.scope.policy_version(),
         "checkpoint grant or host policy changed"
     );
     super::coordination::check_parent_grants(tx, &authorization, now).await?;
