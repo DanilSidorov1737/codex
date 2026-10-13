@@ -582,3 +582,45 @@ save the runnable package and offline recovery evidence before another replaceme
 CodeModeOnly remains blocked. Cleanup/Only-model checks, final affected unit/lint/
 contracts/package checks and complete physical CLI/TUI/endurance qualification
 remain unfinished. Earlier checkpoints do not establish final release readiness.
+
+## Persistent fresh fixture and authorization fence correction
+
+The replacement environment completed the locked cold production build in
+18m31s. A new fixture lives in
+`adaptive-batch/recovery-native/home`, with fresh authority, a finite localhost
+provider and a saved five-asset package archive. Its global ceiling is78 requests,
+3670 synthetic tokens and two active attempts, retaining the earlier22 requests /
+330 tokens against the original phase envelope. No paid inference ran.
+The root filesystem could not hold another installed daemon package; only this
+fresh fixture's rebuildable package cache was relocated to `/tmp` and linked from
+the persistent home. Package/archive and live executable hashes are recorded.
+The failed first installation and offline test dependency miss remain in logs.
+
+Fresh actual Code Mode coding, exact approval/hash/pause, original-project write
+denial, immutable checks, request/token/attempt-time/stale-owner and ungranted
+CodeModeOnly-model checks pass. Ending a model turn with a running native effect
+joins cleanup, fails the attempt and preserves the uncertain action; the file
+remained unchanged after sixteen seconds. The subsequent negative retry check
+found a defect: a new root authorization could hide a previous uncertain effect.
+The unexpected authorization and second failed attempt remain recorded; the
+fixture was immediately paused. No result, acceptance or Apply was produced by
+those attempts. Do not replay their intents or delete their evidence.
+
+The correction adds one fence to the existing shared authorization function:
+any earlier attempt with unreported model usage or dispatched/uncertain native
+effects blocks fresh authorization. A meaningful state regression covers both
+uncertainties, atomic refusal and successful retry of a fully observed failure.
+All342 state and377 protocol tests pass in
+`final-state-protocol-online.log`, including the new regression. The initial
+offline selection could not find the freshly cleared `diff` crate cache; the
+locked online retry restored it with ordinary Cargo/TLS verification. A production
+rebuild and exact native refusal verification remain pending. Inspection records do not resolve
+effects or grant execution. CodeModeOnly admission remains disabled until this
+correction and all host fences are verified.
+
+The physical walkthrough recorded exactly one owner acceptance of the checked
+coding result. Its first driver then waited for a message reserved for a later
+file-change event; the actual editor had already opened the permitted read-only
+preview. The continuation checks real native buffer properties and resumes after
+the recorded acceptance. Preserve the failed driver/capture and do not repeat
+acceptance or replay Apply. The walkthrough is still in progress.

@@ -683,6 +683,16 @@ pub(super) async fn authorize_task_in(
         occupied == 0,
         "previous task runtime has not stopped; wait for cleanup or reconcile after restart"
     );
+    let unresolved: i64 = sqlx::query_scalar(
+        "SELECT count(*) FROM organization_attempts p WHERE p.task_id=? AND (json_extract(p.data,'$.modelRequests')<>json_extract(p.data,'$.reportedModelRequests') OR EXISTS(SELECT 1 FROM organization_actions x WHERE x.attempt_id=p.id AND x.state IN ('dispatched','uncertain')))"
+    )
+    .bind(task_id)
+    .fetch_one(&mut **tx)
+    .await?;
+    ensure!(
+        unresolved == 0,
+        "task has unresolved model usage or native effects; a fresh authorization cannot replay uncertain work"
+    );
     ensure!(
         matches!(
             task.state.as_str(),

@@ -235,6 +235,53 @@ async fn authorized_attempt_with_limit(
 }
 
 #[tokio::test]
+async fn fresh_authorization_cannot_hide_unknown_usage_or_uncertain_effects() -> Result<()> {
+    for unresolved in ["usage", "effect", "known"] {
+        let home = Fixture::new();
+        let store = OrganizationStore::open(&home.0).await?;
+        let (worker, attempt) = authorized_attempt(&store, false).await?;
+        store
+            .admit_model_request(&attempt.id, &worker, 1001)
+            .await?;
+        if unresolved != "usage" {
+            store.checkpoint_usage(&attempt.id, &worker, 1, 15).await?;
+        }
+        if unresolved == "effect" {
+            let action = store
+                .prepare_action(
+                    &attempt.id,
+                    &worker,
+                    "abandoned",
+                    "exec_command",
+                    "{}",
+                    1001,
+                )
+                .await?;
+            assert!(store.dispatch_action(&action.id, &worker, 1001, 2).await?);
+        }
+        store.fail_attempt(&attempt.id, &worker).await?;
+        store.release_attempt_capacity(&attempt.id, &worker).await?;
+        let before = store.execution_view(&attempt.task_id).await?;
+        let result = store
+            .authorize_task(
+                &attempt.task_id,
+                before.task.revision,
+                execution_scope(),
+                1002,
+            )
+            .await;
+        if unresolved == "known" {
+            assert!(result.is_ok(), "a fully observed failure remains retryable");
+        } else {
+            assert!(result.is_err(), "{unresolved} must stay fenced");
+            assert_eq!(store.execution_view(&attempt.task_id).await?, before);
+        }
+        store.close().await;
+    }
+    Ok(())
+}
+
+#[tokio::test]
 async fn pending_approval_cannot_dispatch_after_reported_budget_exhaustion() -> Result<()> {
     let home = Fixture::new();
     let store = OrganizationStore::open(&home.0).await?;

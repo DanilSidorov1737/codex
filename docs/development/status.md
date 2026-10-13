@@ -19,7 +19,13 @@ adaptive homes/databases/workspaces and preview binaries are unavailable. Read
 [the recovery record](adaptive-qualification.md#managed-runtime-evidence-and-environment-replacement),
 preserve every old intent/receipt, and qualify only fresh persistent fixtures.
 The last fully qualified archive `8cd392eaaa` was hash-verified/restored; a cold
-rebuild of the current source is running. This restart is not host reboot or
+rebuild of the current source passed in18m31s. A fresh persistent fixture's host
+fences pass, including ungranted Only-model denial and awaited abandoned-cell
+cleanup. A negative retry check exposed fresh authorization hiding an uncertain
+effect; the fixture was paused. The shared gate correction passes342 state /377
+protocol tests; corrected-package/native verification remains pending. Actual
+editor review has one recorded acceptance and an in-progress continuation; do
+not replay its acceptance/Apply intents. Read adaptive evidence. This restart is not host reboot or
 native recovery qualification. Do not mark the approved batch complete.
 
 ## Latest delivery: mission/usability batch complete
