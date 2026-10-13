@@ -1,5 +1,12 @@
 # Current status and resumption instructions
 
+Current approved work: all40 [daily-use/self-development tasks](daily-use-batch.md).
+The owner requested GitHub push first; `4f7e0f12eb` was pushed/verified on `work`
+before tracked edits and `main` preserved. Begin actual-TUI diagnosis, readiness-
+based terminal checks and safe storage headroom. Ponytail, logical commits,
+continuous docs and meaningful automated/actual testing apply. No new application
+feature is yet complete; the adaptive release below remains the qualified baseline.
+
 Latest delivery: **all30 bounded adaptive-operation/usability tasks are complete**
 on application source **`3eca8520e0`**. The owner approved Ponytail, logical commits,
 maintained docs and meaningful automated/actual testing.919 distinct selected

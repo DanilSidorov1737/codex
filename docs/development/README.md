@@ -1,5 +1,9 @@
 # Codex CLI fork development
 
+Current approved work: all40 [daily-use/self-development tasks](daily-use-batch.md).
+The completed baseline was pushed/verified to GitHub `work` before tracked edits.
+Read current status for execution, bounds, historical quarantines and evidence.
+
 Latest delivery: all [30 bounded adaptive-operation/usability tasks](adaptive-batch.md)
 are complete on `3eca8520e0`:919 selected checks, actual CLI/official-Neovim/host/
 approval/review/Apply and2700.580-second background/crash/full-restore qualification

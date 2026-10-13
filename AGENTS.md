@@ -247,6 +247,19 @@ implementation remains. New features need owner direction. Prior real-host
 logout/reboot remains blocked; integrations/remote workers/larger concurrency/
 automatic root acceptance or Apply/new paid probes/push/publication stay separate.
 
+The owner approved all40 [daily-use/self-development tasks](docs/development/daily-use-batch.md)
+with “ok lets do this make sure you push to github first”. Baseline `4f7e0f12eb`
+was pushed/verified to GitHub `work` before tracked edits; `main` is preserved.
+Continue Ponytail, logical commits, maintained docs and meaningful automated/
+actual CLI/TUI/official-Neovim tests through all independent work. A real-host
+reboot/logout test remains blocked if no suitable host exists. Preserve every
+historical quarantine/grant/counter, default-two/max-four active bounds and the
+remaining original $1 pilot allowance. Diagnose actual-terminal readiness/auth/
+daemon behavior before attributing unverified TUI turns to an application defect.
+Safe ordinary GitHub work-branch updates are authorized; external integrations,
+cloud workers, Dot API, deployment/merge and automatic root acceptance/Apply stay
+deferred. This latest approval supersedes older completed-batch next-step text.
+
 Then read [decisions](docs/development/decisions-and-risks.md),
 [MVP plan](docs/development/mvp.md), [testing](docs/development/testing.md) and
 [process](docs/development/process.md). Reconcile current user instructions with

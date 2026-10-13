@@ -1,5 +1,10 @@
 # Phased roadmap
 
+Current approval: all40 [daily-use/self-development tasks](daily-use-batch.md),
+including initial GitHub push, actual-TUI diagnosis, local product improvements
+and supervised self-development. Follow current status; prior sections are dated
+checkpoints, not permission to replay historical qualification fixtures.
+
 Current approved work: all [30 adaptive-operation/usability tasks](adaptive-batch.md),
 approved with “ok lets do this”. Continue their bounded implementation, tests,
 actual CLI/TUI/official Neovim, docs and logical commits; prior delivery below
