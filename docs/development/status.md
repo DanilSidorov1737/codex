@@ -7,6 +7,21 @@ is historical. Tasks1–28 now have source/test checkpoints (state339/protocol37
 see [adaptive evidence](adaptive-qualification.md). Tasks29–30 and complete native
 qualification remain unfinished; continue without requesting new approval.
 
+Current Code Mode checkpoint: application source `200bc7222b`; state341/protocol377
+pass, along with actual installed-host isolation/CPU interruption and refreshed
+schema4/Python-contract5 checks. Compatible-model native coding, exact approval,
+pause, original-project isolation, immutable tests, request/token/time and owner
+revision fences have recorded passes. CodeModeOnly remains blocked; abandoned-cell
+cleanup, final selected checks/package and full actual TUI/endurance remain pending.
+The cloud environment replaced itself and cleared `/tmp`/shared memory. Persistent
+docs and22 reported localhost requests/330 synthetic tokens survive, but old
+adaptive homes/databases/workspaces and preview binaries are unavailable. Read
+[the recovery record](adaptive-qualification.md#managed-runtime-evidence-and-environment-replacement),
+preserve every old intent/receipt, and qualify only fresh persistent fixtures.
+The last fully qualified archive `8cd392eaaa` was hash-verified/restored; a cold
+rebuild of the current source is running. This restart is not host reboot or
+native recovery qualification. Do not mark the approved batch complete.
+
 ## Latest delivery: mission/usability batch complete
 
 All **25 bounded [mission/usability tasks](mission-batch.md)** are implemented

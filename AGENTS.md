@@ -199,6 +199,19 @@ qualification. Real-host reboot/logout still needs a suitable host.
 Adaptive tasks1–28 now have source/test checkpoints; see
 [adaptive evidence](docs/development/adaptive-qualification.md). Selected state339,
 protocol377, app-server16, TUI106 (including official Neovim) and runner7 checks pass.
+Subsequent Code Mode work on `200bc7222b` passes state341/protocol377,
+actual installed-host isolation/CPU interruption, schema4 and Python contracts5,
+with preserved earlier app-server17/TUI106 checks. Fresh compatible-model native
+coding/approval/pause/path/immutable/budget/deadline/stale-owner checks passed;
+Only-model admission and abandoned-cell cleanup remain unfinished/blocked.
+The environment replaced itself and cleared all `/tmp` and shared-memory data.
+Persistent receipts retain22 reported localhost requests/330 synthetic tokens;
+the old adaptive native database/workspaces and preview packages are unavailable.
+Never recreate their authority or replay intents from inspection JSON. Read the
+environment-replacement section of adaptive evidence. Use a new persistent fixture
+home/evidence directory, save offline checkpoints/packages, and continue full
+qualification after the running cold rebuild. Earlier fully qualified archives
+and historical quarantine rules remain protected; no historical daemon starts.
 Continue tasks29–30 and all remaining schema/SDK, production lint/package and
 actual CLI/TUI/endurance qualification. Do not mistake this checkpoint for a
 completed approved batch. The last fully qualified application package remains

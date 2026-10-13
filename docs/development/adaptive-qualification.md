@@ -538,3 +538,47 @@ approval, an occupied active slot, unchanged request/reservation evidence while
 waiting and normal admission after explicit capacity release. The initial failed
 regression remains in `v1`. The daemon remains paused/stopped pending a corrected
 package and fresh task; no failed grant or counter is reset.
+
+## Managed runtime evidence and environment replacement
+
+Corrected source `200bc7222b` builds after recovery of the finite linker scratch
+space (`adaptive-production-build-v3.log`, exit0). The first corrected pilot
+accidentally used the previously installed daemon: `start` intentionally preserves
+the selected release. The live executable hash proved this; the paused test daemon
+was explicitly updated with `daemon update --from-cli --yes`, and its executable
+hash was checked before another fresh task. Both failed attempts and their exact
+usage remain recorded; their native actions never dispatched.
+
+On the actual corrected daemon, `code-mode-v3-verified.json` records successful
+managed Code Mode, exact wrong-hash refusal, global pause/refused approval/resume,
+one approved native command, immutable oracle exit0 and result capture. Three
+reported requests/45 synthetic tokens; no acceptance or Apply. External-path and
+immutable-input checks also pass in `external-denials-v2-observed.json`,
+`immutable-v1-observed.json` and `code-mode-path-immutable-completed.json`.
+The first path test incorrectly prohibited private scratch files. The existing
+sandbox intentionally permits them inside the isolated workspace; the corrected
+test attempts an original-project write and verifies denial. The failed checked
+result is preserved and unaccepted; no sandbox was weakened or rewritten.
+
+Actual request-ceiling, reported-token overage, fixed attempt-time and changed-owner
+fences pass in the respective `*-fenced.json` receipts. A later fixture selected
+Luna on a GPT-5.5 agent and was correctly rejected before authorization; no model
+request ran for it. The matching CodeModeOnly actor and abandoned-cell cleanup
+continuation had not executed when the cloud environment disconnected/replaced
+itself. `/tmp` and `/dev/shm` were cleared. Git source, persistent docs/receipts and
+the provider ledger survive; temporary preview packages, compiler outputs, native
+homes/databases and isolated workspaces are unavailable. Do not reconstruct their
+authority or replay their grants from inspection JSON. Preserved totals:22 local
+reported requests/330 synthetic tokens/no unreported fixture response/no paid calls.
+
+`environment-replacement.json` records the loss and outstanding gates. The last
+fully qualified mission package archive was verified against its retained SHA256
+and restored at `/tmp/mission-final-package-v2`; no historical daemon/grant started.
+Pinned Rust1.95 and official Neovim0.12.6 remain available. Volatile cache targets
+were recreated and a cold production rebuild of `200bc7222b` is running in
+`environment-replacement-production-build.log` with locked Cargo verification.
+Continue only in a new fixture/evidence directory with persistent home/checkpoints;
+save the runnable package and offline recovery evidence before another replacement.
+CodeModeOnly remains blocked. Cleanup/Only-model checks, final affected unit/lint/
+contracts/package checks and complete physical CLI/TUI/endurance qualification
+remain unfinished. Earlier checkpoints do not establish final release readiness.
