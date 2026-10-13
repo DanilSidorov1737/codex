@@ -13,9 +13,13 @@ def read_workspace_version() -> str:
     try:
         version = data["workspace"]["package"]["version"]
     except (KeyError, TypeError):
-        raise RuntimeError(f"Could not find [workspace.package].version in {cargo_toml}")
+        raise RuntimeError(
+            f"Could not find [workspace.package].version in {cargo_toml}"
+        )
 
     if not isinstance(version, str):
-        raise RuntimeError(f"Could not find [workspace.package].version in {cargo_toml}")
+        raise RuntimeError(
+            f"Could not find [workspace.package].version in {cargo_toml}"
+        )
 
     return version
