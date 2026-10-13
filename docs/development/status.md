@@ -4,8 +4,13 @@ Current approved work: all40 [daily-use/self-development tasks](daily-use-batch.
 The owner requested GitHub push first; `4f7e0f12eb` was pushed/verified on `work`
 before tracked edits and `main` preserved. Begin actual-TUI diagnosis, readiness-
 based terminal checks and safe storage headroom. Ponytail, logical commits,
-continuous docs and meaningful automated/actual testing apply. No new application
-feature is yet complete; the adaptive release below remains the qualified baseline.
+continuous docs and meaningful automated/actual testing apply. Tasks1–2 diagnosis
+and terminal-driver checks now pass: actual fork TUI paid reply/normal exit0;
+earlier failures were premature readiness and paste+Enter, not a proven runtime
+defect. Task9 identical-asset dedup verified package bytes and recovered18.26GB.
+Read [daily-use qualification](daily-use-qualification.md). Task3 supported
+low-cost catalog and task4 diagnostics are next; remaining scope is unfinished.
+The adaptive release below remains the qualified application baseline.
 
 Latest delivery: **all30 bounded adaptive-operation/usability tasks are complete**
 on application source **`3eca8520e0`**. The owner approved Ponytail, logical commits,
