@@ -15,10 +15,11 @@ offline full backup/fresh restore pass. The real CLI/official-Neovim walkthrough
 passes protected follow/explorer/balanced comparisons, dirty pane placement,
 36 layout switches, one acceptance/Apply, original oracle and normal exit0.
 
-The minimal Only-model source gate requires captured Code Mode scope plus existing
-actual-host availability before admission; app-server17/TUI106, full formatting
-and Python contracts5 pass. Core/host/schema, final lint/package, catalog-matched
-Luna and complete45-minute qualification are still pending. No release claim yet;
+The minimal Only-model source gate on `3eca8520e0` requires captured Code Mode scope
+plus actual-host availability before admission.919 distinct selected checks, full
+formatting and production Clippy pass. Actual CPU-bound deadline, conversation/
+proposals/local research/private knowledge checks also pass. Final build/package,
+catalog-matched Luna and complete45-minute qualification are pending. No release claim yet;
 the last fully qualified package remains `8cd392eaaa`.
 
 The replacement cleared the first adaptive temporary databases/workspaces; never

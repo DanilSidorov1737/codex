@@ -1,6 +1,10 @@
 # Adaptive batch qualification and safe resumption
 
-Tasks 1–2 build and runner checkpoint; application changes are not yet qualified.
+Current source checkpoint: `3eca8520e0`,919 distinct selected automated checks
+passed, including actual installed-host and official-Neovim tests. Production
+Clippy passes with warnings denied; final build/package, catalog-matched native
+pilot and45-minute mixed-project qualification remain in progress. Earlier
+sections below are preserved checkpoints, not the current release claim.
 Evidence: `/workspace/.onboarding/qualification/adaptive-batch/`.
 
 Activate `. /workspace/.onboarding/activate.sh`. Rust 1.95.0, pnpm 10.34.5,
@@ -679,3 +683,35 @@ installation/network/credentials/repositories. They cover volatile caches,
 verified Cargo restoration, serialized builds and all quarantines. Saving does
 not apply or publish a snapshot; environment settings review/save/publication
 remains an owner action.
+
+## Final selected checks and content pilots
+
+`final-selected-checks.json` deduplicates Rust test identities across selections:
+state342, protocol377, core47, app-server22, TUI113, code-mode1, actual host1 and
+schema4; runner7 and Python contracts5 bring the total to919. The existing schema
+generation hook remains intentionally ignored; no assertion was disabled. The
+first Core selection exhausted temporary storage; after the compiler stopped,
+3269 completed library/metadata files were SHA256-verified and relocated with
+permissions/nanosecond timestamps retained. Zero space initially prevented the
+temporary link allocation; one exact verified idle copy bootstrapped space before
+the atomic relocation continued. Failed runs remain recorded.
+
+The first resumed Core run omitted the documented test-stack environment and
+aborted on stack overflow. Both32-MiB and prescribed8-MiB stack selections pass;
+the final evidence uses `CARGO_INCREMENTAL=0 RUST_MIN_STACK=8388608`. A separate
+Core-only feature selection was interrupted to reuse the existing union build.
+Actual installed-host integration passes again. Production CLI Clippy with
+warnings denied passes in6m25s; its locked build is in progress.
+
+In `final-native`, a CPU-bound actual host cell is stopped at its fixed5-second
+attempt deadline, with no native effect/unreported request and released capacity;
+observed wall time including queue/poll/cleanup is9.644s,3 requests /45 tokens.
+Actual conversation replies retain host-attributed attempt provenance. Bounded
+role/team/plan proposals produce content and one unauthorized draft, without
+starting it. Local research captures declared source SHA/ranges and rejects an
+owner-forged research record. Knowledge consolidation preserves exact source
+hashes and private visibility; explicit owner review sets `ownerReviewed`, and
+project search remains empty. A driver incorrectly expected the flag to remain
+false after explicit review; the continuation verified the actual intended
+private reviewed state without replaying the owner decision. Results/checks and
+failed scripts remain. No new paid call or Apply ran in this fresh fixture.

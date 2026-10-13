@@ -3,7 +3,9 @@
 Current approved work: all [30 adaptive-operation/usability tasks](adaptive-batch.md),
 approved with “ok lets do this”. Continue their bounded implementation, tests,
 actual CLI/TUI/official Neovim, docs and logical commits; prior delivery below
-is historical. Tasks1–28 now have source/test checkpoints (state339/protocol377/app-server16/TUI106/runner7);
+is historical. Current source `3eca8520e0` passes919 distinct selected checks,
+actual host/Neovim/content/recovery checks and production Clippy. Final package,
+catalog-matched pilot and45-minute qualification are still in progress;
 see [adaptive evidence](adaptive-qualification.md). Tasks29–30 and complete native
 qualification remain unfinished; continue without requesting new approval.
 
