@@ -648,6 +648,7 @@ mod tests {
             http_headers: None,
             env_http_headers: None,
             request_max_retries: Some(0),
+            response_max_output_tokens: None,
             stream_max_retries: Some(0),
             stream_idle_timeout_ms: Some(5_000),
             websocket_connect_timeout_ms: None,

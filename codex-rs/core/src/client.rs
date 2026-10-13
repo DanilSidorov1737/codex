@@ -391,6 +391,7 @@ fn responses_request_properties_mismatch(
         tool_choice: previous_tool_choice,
         parallel_tool_calls: previous_parallel_tool_calls,
         reasoning: previous_reasoning,
+        max_output_tokens: previous_max_output_tokens,
         store: previous_store,
         stream: previous_stream,
         stream_options: _,
@@ -408,6 +409,7 @@ fn responses_request_properties_mismatch(
         tool_choice: current_tool_choice,
         parallel_tool_calls: current_parallel_tool_calls,
         reasoning: current_reasoning,
+        max_output_tokens: current_max_output_tokens,
         store: current_store,
         stream: current_stream,
         stream_options: _,
@@ -431,6 +433,8 @@ fn responses_request_properties_mismatch(
         "parallel_tool_calls_changed"
     } else if previous_reasoning != current_reasoning {
         "reasoning_changed"
+    } else if previous_max_output_tokens != current_max_output_tokens {
+        "output_token_limit_changed"
     } else if previous_store != current_store {
         "store_changed"
     } else if previous_stream != current_stream {
@@ -1057,6 +1061,12 @@ impl ModelClient {
             tool_choice: "auto".to_string(),
             parallel_tool_calls: prompt.parallel_tool_calls && !model_info.use_responses_lite,
             reasoning: Some(reasoning),
+            max_output_tokens: self
+                .state
+                .provider
+                .info()
+                .response_output_limit()
+                .map_err(CodexErr::Fatal)?,
             store: false,
             stream: true,
             stream_options,

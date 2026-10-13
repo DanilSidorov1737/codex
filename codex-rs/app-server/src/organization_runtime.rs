@@ -852,6 +852,9 @@ fn configure_task(
         ..Default::default()
     };
     config.model = Some(scope.model.clone());
+    if let Some(limit) = config.model_provider.response_max_output_tokens {
+        config.model_provider.response_max_output_tokens = Some(limit.min(scope.max_tokens as u64));
+    }
     // Each provider attempt must have its own durable admission. The MVP uses
     // HTTP without transparent retries; ambiguous requests require reconciliation.
     config.model_provider.supports_websockets = false;

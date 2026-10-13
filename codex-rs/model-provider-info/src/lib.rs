@@ -179,6 +179,9 @@ pub struct ModelProviderInfo {
     pub env_http_headers: Option<HashMap<String, String>>,
     /// Maximum number of times to retry a failed HTTP request to this provider.
     pub request_max_retries: Option<u64>,
+    /// Responses API output-token cap, including reasoning tokens. Absent preserves defaults.
+    #[schemars(range(min = 1, max = 128000))]
+    pub response_max_output_tokens: Option<u64>,
     /// Number of times to retry reconnecting a dropped streaming response before failing.
     pub stream_max_retries: Option<u64>,
     /// Idle timeout (in milliseconds) to wait for activity on a streaming response before treating
@@ -296,7 +299,17 @@ other non-default provider fields are not supported"
         Ok(())
     }
 
+    pub fn response_output_limit(&self) -> std::result::Result<Option<u64>, String> {
+        if let Some(limit) = self.response_max_output_tokens
+            && !(1..=128_000).contains(&limit)
+        {
+            return Err("response_max_output_tokens must be 1–128000".to_string());
+        }
+        Ok(self.response_max_output_tokens)
+    }
+
     pub fn validate(&self) -> std::result::Result<(), String> {
+        self.response_output_limit()?;
         if let Some(gateway) = &self.gateway_oauth {
             gateway.validate(self)?;
         }
@@ -554,6 +567,7 @@ other non-default provider fields are not supported"
             ),
             // Use global defaults for retry/timeout unless overridden in config.toml.
             request_max_retries: None,
+            response_max_output_tokens: None,
             stream_max_retries: None,
             stream_idle_timeout_ms: None,
             websocket_connect_timeout_ms: None,
@@ -594,6 +608,7 @@ other non-default provider fields are not supported"
             )])),
             env_http_headers: None,
             request_max_retries: None,
+            response_max_output_tokens: None,
             stream_max_retries: None,
             stream_idle_timeout_ms: None,
             websocket_connect_timeout_ms: None,
@@ -768,6 +783,7 @@ pub fn create_oss_provider_with_base_url(base_url: &str, wire_api: WireApi) -> M
         http_headers: None,
         env_http_headers: None,
         request_max_retries: None,
+        response_max_output_tokens: None,
         stream_max_retries: None,
         stream_idle_timeout_ms: None,
         websocket_connect_timeout_ms: None,

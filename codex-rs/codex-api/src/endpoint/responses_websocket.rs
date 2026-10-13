@@ -968,6 +968,7 @@ mod tests {
             tool_choice: "auto".to_string(),
             parallel_tool_calls: true,
             reasoning: None,
+            max_output_tokens: Some(1200),
             store: false,
             stream: true,
             stream_options: None,
@@ -1002,6 +1003,7 @@ mod tests {
         let wire_payload =
             serde_json::from_str::<Value>(&request_text).expect("parse websocket request");
 
+        assert_eq!(wire_payload["max_output_tokens"], json!(1200));
         assert_eq!(wire_payload, expected_payload);
     }
 

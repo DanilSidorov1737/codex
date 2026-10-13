@@ -6,6 +6,25 @@ use std::num::NonZeroU64;
 use tempfile::tempdir;
 
 #[test]
+fn configured_response_output_limit_is_positive_and_bounded() {
+    let provider: ModelProviderInfo =
+        toml::from_str("response_max_output_tokens = 1200").expect("valid provider token limit");
+    assert_eq!(provider.response_max_output_tokens, Some(1200));
+    assert!(provider.validate().is_ok());
+    assert_eq!(
+        ModelProviderInfo::default().response_max_output_tokens,
+        None
+    );
+    for limit in [0, 128_001] {
+        let invalid = ModelProviderInfo {
+            response_max_output_tokens: Some(limit),
+            ..Default::default()
+        };
+        assert!(invalid.validate().is_err());
+    }
+}
+
+#[test]
 fn runtime_internal_metadata_opt_in_is_not_serialized_or_configurable() {
     let trusted = ModelProviderInfo {
         include_internal_metadata: true,
@@ -90,6 +109,7 @@ base_url = "http://localhost:11434/v1"
         http_headers: None,
         env_http_headers: None,
         request_max_retries: None,
+        response_max_output_tokens: None,
         stream_max_retries: None,
         stream_idle_timeout_ms: None,
         websocket_connect_timeout_ms: None,
@@ -129,6 +149,7 @@ query_params = { api-version = "2025-04-01-preview" }
         http_headers: None,
         env_http_headers: None,
         request_max_retries: None,
+        response_max_output_tokens: None,
         stream_max_retries: None,
         stream_idle_timeout_ms: None,
         websocket_connect_timeout_ms: None,
@@ -172,6 +193,7 @@ supports_standalone_web_search = true
             "X-Example-Env-Header".to_string() => "EXAMPLE_ENV_VAR".to_string(),
         }),
         request_max_retries: None,
+        response_max_output_tokens: None,
         stream_max_retries: None,
         stream_idle_timeout_ms: None,
         websocket_connect_timeout_ms: None,
@@ -362,6 +384,7 @@ fn test_create_amazon_bedrock_provider() {
             }),
             env_http_headers: None,
             request_max_retries: None,
+            response_max_output_tokens: None,
             stream_max_retries: None,
             stream_idle_timeout_ms: None,
             websocket_connect_timeout_ms: None,

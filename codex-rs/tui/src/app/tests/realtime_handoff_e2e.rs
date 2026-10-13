@@ -112,6 +112,7 @@ async fn delegated_core_events_keep_private_output_hidden_and_deliver_final_spee
         name: "Mock provider for test".to_string(),
         base_url: Some(format!("{}/v1", model_server.uri())),
         request_max_retries: Some(0),
+        response_max_output_tokens: None,
         stream_max_retries: Some(0),
         ..ModelProviderInfo::default()
     };

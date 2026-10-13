@@ -247,6 +247,7 @@ async fn check_thread_title_generation(scenario: TitleScenario) -> color_eyre::R
         name: "Thread title test".to_string(),
         base_url: Some(format!("{}/v1", server.uri())),
         request_max_retries: Some(0),
+        response_max_output_tokens: None,
         stream_max_retries: Some(0),
         ..ModelProviderInfo::default()
     };

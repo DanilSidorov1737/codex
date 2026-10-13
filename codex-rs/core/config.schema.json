@@ -2852,6 +2852,13 @@
           "description": "Does this provider require an OpenAI API key or ChatGPT login token? If true, the user is presented with a login screen on first run, and credentials are stored using the backend selected by `cli_auth_credentials_store`. If false (the default), the login screen is skipped, and the API key (if needed) comes from the environment variable specified by `env_key`.",
           "type": "boolean"
         },
+        "response_max_output_tokens": {
+          "description": "Responses API output-token cap, including reasoning tokens. Absent preserves defaults.",
+          "format": "uint64",
+          "maximum": 128000.0,
+          "minimum": 1.0,
+          "type": "integer"
+        },
         "stream_idle_timeout_ms": {
           "description": "Idle timeout (in milliseconds) to wait for activity on a streaming response before treating the connection as lost.",
           "format": "uint64",

@@ -15,5 +15,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .out_dir(&proto_dir)
         .compile_protos(&[proto_file], &[proto_dir])?;
 
+    // Preserve the repository's annotation for prost's generated enum methods.
+    let generated = proto_dir.join("codex.thread_config.v1.rs");
+    let content = std::fs::read_to_string(&generated)?;
+    std::fs::write(
+        generated,
+        format!("#![allow(clippy::trivially_copy_pass_by_ref)]\n\n{content}"),
+    )?;
+
     Ok(())
 }

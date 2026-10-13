@@ -19,6 +19,21 @@ fn request() -> ResponsesApiRequest {
     }))
 }
 
+#[test]
+fn output_limit_change_disables_response_reuse() {
+    let previous = request();
+    let mut current = previous.clone();
+    current.max_output_tokens = Some(1200);
+    assert_eq!(
+        responses_request_properties_mismatch(&previous, &current),
+        Some("output_token_limit_changed")
+    );
+    assert_eq!(
+        responses_request_properties_mismatch(&current, &current),
+        None
+    );
+}
+
 fn request_with_metadata(metadata: &serde_json::Value) -> ResponsesApiRequest {
     request_with_metadata_and_source(metadata, /*with_source*/ true)
 }
@@ -57,6 +72,7 @@ fn request_with_metadata_and_source(
         prompt_cache_key: None,
         text: None,
         client_metadata: Some(HashMap::from([("padding".to_string(), "x".to_string())])),
+        max_output_tokens: None,
         access_programs: None,
     }
 }
@@ -339,3 +355,4 @@ fn inventory_only_message_budget_counts_the_complete_encoded_envelope() {
         assert_eq!(request.input, original_input);
     }
 }
+use crate::client::responses_request_properties_mismatch;

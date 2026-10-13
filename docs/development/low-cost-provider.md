@@ -64,7 +64,11 @@ there is no silent uncapped fallback. HTTP/stream retry limits already use nativ
 provider settings; set both0 for finite paid pilots. This is a per-response output
 cap, not an input/context, request-count, total-task or invoice cap.
 
-Provider/configuration/model/API library checks pass641 tests. The core reuse
-guard, production packaging and new-cap native request qualification are still
-in progress. Preserve consumed/unknown usage and the remaining original $1 test
+Provider/configuration/model/API library checks pass641 tests; the core reuse
+guard passes1 and API integration passes9. Actual preview2 TUI requests carry37
+and both bounded task requests carry30 after narrowing to its captured ceiling.
+The task's real immutable native check passes. This uses localhost synthetic
+responses, not a new paid provider cap/coding pilot. Source/default regressions,
+final packaging and live coding/delegation remain in progress. Preserve
+consumed/unknown usage and the remaining original $1 test
 ceiling across every attempted live pilot.

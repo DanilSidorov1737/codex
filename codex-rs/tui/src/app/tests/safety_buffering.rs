@@ -217,6 +217,7 @@ stream_max_retries = 0
         name: "Interrupt test".to_string(),
         base_url: Some(format!("{}/v1", server.uri())),
         request_max_retries: Some(0),
+        response_max_output_tokens: None,
         stream_max_retries: Some(0),
         ..ModelProviderInfo::default()
     };
@@ -587,6 +588,7 @@ goals = true
         name: "Safety retry test".to_string(),
         base_url: Some(format!("{}/v1", server.uri())),
         request_max_retries: Some(0),
+        response_max_output_tokens: None,
         stream_max_retries: Some(0),
         ..ModelProviderInfo::default()
     };

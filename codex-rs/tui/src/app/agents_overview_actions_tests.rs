@@ -726,6 +726,7 @@ async fn lifecycle_removes_background_and_current_tasks_without_losing_the_dashb
             name: "Lifecycle test".into(),
             base_url: Some(format!("{}/v1", server.uri())),
             request_max_retries: Some(0),
+            response_max_output_tokens: None,
             stream_max_retries: Some(0),
             ..ModelProviderInfo::default()
         };
