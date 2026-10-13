@@ -516,3 +516,35 @@ Production CLI Clippy passes with warnings denied in8m42s
 selected checks: state345, protocol10, app-server19, CLI2, TUI109, schema4 and
 SDK25. Generator-only/zero-test runs and repeats are excluded. The native repair
 package/workflow is the next gate; this is not final40 completion.
+
+## Native repair and check-advice qualification
+
+Clean application source66013d5a2a is committed/pushed to GitHub work; main remains
+8026444c98cd. The production build is paused before disk-full linking, then resumes
+without authority replay after verified idle relocation of2,799,999,999 generated
+bytes/173 files. Continuation builds in6m08s (`result-repair-build-v2.log`).
+The brief exec transport disconnect does not interrupt the owned compiler; current
+process/receipts are inspected before continuation. No duplicate build is started.
+
+Package `package-repair-preview7`, version0.0.0-daily.repair.preview7, has verified
+five-asset proof; CLI SHA256
+`4fb50c09e7001702591fbce54b85ee2694609904c34f7c12098deb0288acf905`.
+`result-repair-native/result.json` passes the actual packaged CLI/TUI/daemon and
+official-Neovim workflow. A first local-fixture candidate fails the protected
+Python multiplication oracle. Physical tool approval and F6/y exact result-repair
+confirmation queue a second checked attempt under the same grant, original
+artifact bases and expiry. The second immutable oracle passes; original checks,
+request/token counters and scope remain. Another repair is refused with the
+original allowance exhausted and no state change. The actual native editor shows
+the corrected diff; normal CLI exit0/daemon stop0. Four localhost responses/60
+synthetic tokens/zero paid; two attempts, one handoff, unaccepted root result and
+zero Applications. Owner originals stay byte-identical. This is native host/control
+qualification, not live-model autonomous repair quality. Never replay its setup,
+approvals, repair or counters; preserve both results/grant/usage/checkpoint.
+
+`repository-check-advice-native/result.json` also passes actual terminal CLI exit0
+and independent read-only JSON verification. Declared folder/file-type advice is
+labeled; all captured check argv remain unchanged and required. No dependency
+analysis, check execution, daemon/model/task/grant or owner/index mutation occurs.
+This qualifies bounded tasks19–20; revision-pinned comments, final-file recheck,
+reviewed Git controls and all other remaining independent daily-use work continue.

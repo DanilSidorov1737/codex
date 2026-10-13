@@ -29,10 +29,12 @@ owner/index bytes. Detailed evidence is recorded in
 checkpoint is the packaged release. Dedicated reviewed commit and final-byte
 verification remain separate daily-use tasks.
 
-The next source checkpoint adds bounded check advice from the declared output
+Clean66013d5a2a adds qualified bounded check advice from the declared output
 folders and file types. Rust, Python and configuration outputs receive relevant
 check categories; every owner-captured argv remains present and required. This
 is labeled file-type advice, not dependency analysis, test discovery or evidence
 that any check ran. Required cross-component checks must be added, never dropped.
 The native regression asserts unchanged captured argv and Python package advice.
-Current package preview6 predates this additional advice.
+Preview7 passes actual terminal/read-only JSON checks of the advice, unchanged
+check argv, declared folders and preserved owner/index bytes, with no inference
+or daemon. Preview6 predates this additional advice.

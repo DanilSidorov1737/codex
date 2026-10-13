@@ -81,8 +81,13 @@ Full state345, app-server19, CLI2, TUI109 (actual official Neovim), protocol10,
 schema comparisons4 and SDK25 checks pass. The repair transaction preserves
 original grants/counters/bases/expiry and rolls back stale, occupied, expired,
 exhausted and out-of-scope requests. Runtime source verifies actual artifact and
-immutable input hashes. Production lint/full formatting pass. Clean package and actual finite native
-repair remain pending. Generated schemas retain their existing raw style after
+immutable input hashes. Production lint/full formatting and clean66013d5a2a package/native repair pass: first
+failing then passing oracle, exact same-grant confirmation, exhausted retry refusal
+and real Neovim diff. Normal CLI exit0/daemon stop0, four localhost responses/60
+synthetic tokens/zero paid, no acceptance/Apply and unchanged originals. Preserve
+both attempts/results, one handoff and original counters; never replay the driver.
+Current package:0.0.0-daily.repair.preview7; CLI SHA256
+`4fb50c09e7001702591fbce54b85ee2694609904c34f7c12098deb0288acf905`. Generated schemas retain their existing raw style after
 correcting an optional-formatter mismatch; no assertions/dependencies are changed.
 Remaining review/final-byte/commit, strategic proposals/escalation rules/comparison,
 tree/layout/keyboard/conflict/endurance/coverage work is unfinished. Continue all

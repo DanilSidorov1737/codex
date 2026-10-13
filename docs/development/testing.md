@@ -56,7 +56,11 @@ app-server19, CLI2 and TUI109 selected checks with actual official Neovim. Runti
 file validation refuses changed result artifacts and immutable inputs. Source
 repair preserves the original grant/usage/bases and rolls back stale, occupied,
 expired/exhausted and out-of-scope requests. Protocol10, schema comparisons4, SDK contracts/signatures25 and full root
-formatting now pass. Production lint/package and actual native repair remain pending; a zero-test initial selection, invalid
+formatting now pass. Production lint/build/package and actual native repair now pass on66013d5a2a: first
+failing then passing oracle, exact same-grant confirmation, exhausted refusal
+and real Neovim diff, normal exit0/stop0, four synthetic responses/60 tokens, no
+acceptance/Apply and unchanged originals. The native check-advice command also
+preserves all captured argv and owner/index bytes. Earlier a zero-test initial selection, invalid
 repeated --lib invocation and resource-paused build are retained and not counted.
 Read [current qualification](daily-use-qualification.md).
 

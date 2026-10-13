@@ -29,5 +29,9 @@ it does not claim live-model quality. Read [current evidence](daily-use-qualific
 Source evidence: full state345, runtime/workspace19, CLI2, TUI109 (actual official
 Neovim), protocol10, exact schema comparisons4 and SDK contracts/signatures25 pass.
 Full root formatting and production CLI Clippy with warnings denied pass.
-The clean package and finite native
-failing-result/repair/Neovim-diff workflow are pending at this checkpoint.
+Clean66013d5a2a package and finite native failing-result/repair/Neovim-diff
+workflow pass: unchanged grant/scope/counters/bases, failing then passing immutable
+oracle, exact physical repair confirmation, exhausted retry refusal, original
+files unchanged, normal CLI exit0/daemon stop0. Four localhost responses/60
+synthetic tokens/zero paid; two attempts, one handoff, no acceptance or Apply.
+Never replay its setup, approval, repair or accounting.

@@ -9,8 +9,9 @@ checks. [Owner overview](owner-overview.md) passes108 selected TUI checks and ac
 package/contact/restart qualification. Human-assisted self-development integrates
 a reviewed standard-library TOML fix; bounded paid autonomous attempts fail and
 remain charged. [Repository preview](repository-preview.md) passes packaged native CLI checks.
-[Original-grant repair](result-repair.md) and captured-check advice pass selected
-source tests; schema/package/native repair and remaining forty-task work are underway.
+[Original-grant repair](result-repair.md) and captured-check advice pass source,
+contract, package and actual native CLI/TUI/Neovim qualification on66013d5a2a.
+The remaining forty-task work continues.
 Read [all38 fork-text sections](fork-text-coverage.md) for evidence-linked
 coverage and explicit remaining capabilities; row counts are not completion percentages.
 
