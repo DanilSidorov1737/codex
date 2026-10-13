@@ -351,3 +351,83 @@ disk-full and recaptured-dirty-baseline driver failures remain. Keep this worktr
 and home for the bounded self-development pilot; no proposed change/grant/Apply
 exists there yet. This product qualification is within approved tasks16/24;
 the cloud development checkout itself remains `/workspace/codex`.
+
+## Owner package and supervised self-development checkpoint
+
+Owner application c4f000e538 is committed/pushed to GitHub work; main remains
+8026444c98cd. Clean stamped one-job build501s, production Clippy506s,108 selected
+TUI checks and full formatting pass. Five-asset `package-owner-preview5`, release
+0.0.0-daily.owner.preview5, CLI SHA256
+`a3c310529a5771d4361094a92be0e1d375c5ac5ed2bb6fc9439555a37652b1c3`.
+`native-owner-overview/continuation-result.json` passes actual mission/outcome
+brief, exact arbitrary-agent contact, cancelled existing conversation draft,
+restart/persist/clear and two normal CLI exits0, stop0, no canonical authority
+change or inference. First driver selected a group rather than its child agent;
+the corrected physical Down navigation succeeds without mutating definitions.
+
+The actual managed fork worktree has a captured branch/base/dirty/path/check
+preview. Its full31-check baseline isolates a real defect: valid single-quoted
+TOML workspace version is rejected by the manual regex reader. All28 existing
+package checks remain; the three owner regressions use actual files. Declared
+input rehearsal initially lacks the WinGet helper; adding that immutable helper
+retains every required cross-component check. Python3.11+/C compiler/strip and
+all20 input files are captured. This is private owner setup, not a model grant.
+
+Two separately bounded paid grants fail and remain charged/stopped. First4
+responses/18,875 tokens estimate$0.0095505 ($0.0164625 uncached); it exhausts its
+context allowance during unnecessary reads, before editing. The finite corrected
+grant receives the complete source,30,000 tokens/4 requests and a15-cent quote;
+4 responses/18,651 tokens estimate$0.01074075 ($0.01938075 uncached). It produces
+the standard-library TOML fix and regression tests, but their package import is
+wrong; the request ceiling stops repair. No scope/counters are reset, no backend
+result is forged and neither failed paid task is accepted or Applied. No further
+paid loop runs. The lack of autonomous completion is explicitly retained.
+
+The owner corrects only the new test's import/sys.path in a separate preserved
+proposal. All34 real-file/package checks pass; original worktree remains unchanged.
+`verification-result.json` then verifies those exact owner-provided bytes through
+the actual fork daemon/sandbox and immutable oracle. Transport is a localhost
+deterministic fixture, NOT a successful autonomous paid-model pilot. Two responses /
+30 synthetic tokens/zero paid; exact physical staging-action approval, recorded
+34 native checks, original artifact bases/hashes and normal CLI exit0/stop0.
+
+`review-continuation-result.json` passes actual official-Neovim parser diff, exact
+acceptance and exactly one two-file Apply into the managed worktree. All34 checks
+pass on the applied bytes. `local-commit-result.json` records physically entered
+Git commands in the actual owner Neovim terminal, clean-index/exact-hash preflight
+and local commit325b20ae88fb, parent811b456376, containing exactly version.py and
+test_version.py. Unrelated proposal/oracle entries remain uncommitted; original
+development checkout unchanged. Normal CLI exit0/daemon stop0, no inference or
+Application replay. This is a qualified human-assisted self-development workflow;
+dedicated commit controls, final-byte recheck and bounded repair features remain.
+Never replay any script/grant/acceptance/Apply/commit. Preserve all failed grants,
+private proposal, exact one Application and detached commit. The reviewed commit is cherry-picked into the development checkout as77d9d637fc;
+all31 package tests pass (`integrated-self-development-tests.log`). The post-Apply
+full offline bundle is verified and retained separately from configuration, owner
+originals and private frontend preferences. Reusable repository-preview source has
+a passing native Git regression; actual packaged CLI qualification remains.
+
+## Repository preview source checkpoint
+
+Owner-only local `organization repository-preview` reuses native Git, typed scope
+JSON and the existing no-follow relative-file reader. It returns branch/base/dirty
+state, requested paths/checks and declared output-base SHA256; no daemon/model/
+task/grant or index mutation. One native Git regression passes; the final rerun
+adds byte-identical index/original assertions, symlink refusal and significant
+repository-path whitespace preservation. Read [usage and limits](repository-preview.md).
+Post-self-development package dedup preserves exact hashes/mode/ownership and
+reclaims2,246,262,784 allocated bytes across nine identical immutable files.
+No authoritative state, original, recovery asset or evidence is removed.
+
+Final source checks pass: native Git regression1 (`repository-preview-tests-v2.log`,
+34.73s), production CLI Clippy with denied warnings (`repository-preview-clippy-
+v2.log`,12.92s) and full root formatting (`repository-preview-full-format-v2.log`).
+The first Clippy hits root disk exhaustion; verified idle generated-file relocation
+preserves SHA256 and nanosecond mtime:219,276,264 bytes plus3,249,907,441 bytes,
+with durable receipts. The original source file is removed only after its exact
+copy is verified when the full disk prevents allocating a replacement symlink.
+No live compiler or authoritative data is affected. The first full formatter
+finds two Python line-wrap differences;3d63e32264 formats the reviewed TOML reader.
+One package-test rerun omits required CODEX_REPO_ROOT and fails before testing;
+corrected documented environment runs all31 checks (`integrated-self-development-
+tests-v3.log`). These failures remain; no assertion is disabled.

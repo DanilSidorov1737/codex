@@ -33,6 +33,13 @@ pub(crate) struct OrganizationCommand {
 
 #[derive(Debug, clap::Subcommand)]
 enum Action {
+    /// Read local branch/base/dirty state and requested file/check scope; creates no grant.
+    RepositoryPreview {
+        #[arg(long)]
+        root: PathBuf,
+        #[arg(long)]
+        scope: PathBuf,
+    },
     /// Offline preview of effect-free, unreferenced failed workspaces; never delete results/bases.
     RetentionPreview {
         project_id: String,
@@ -156,6 +163,12 @@ pub(crate) async fn run(
     overrides: CliConfigOverrides,
     arg0_paths: Arg0DispatchPaths,
 ) -> anyhow::Result<String> {
+    if let Action::RepositoryPreview { root, scope } = &command.command {
+        let scope = serde_json::from_slice(&read_mutation(scope.clone()).await?)?;
+        return Ok(serde_json::to_string_pretty(
+            &crate::organization_repo::preview(root, &scope).await?,
+        )?);
+    }
     if matches!(
         &command.command,
         Action::RetentionPreview { .. }
@@ -377,6 +390,7 @@ pub(crate) async fn run(
         Action::RetentionPreview { .. }
         | Action::RetentionArchive { .. }
         | Action::RetentionReconcile { .. } => unreachable!("retention handled offline"),
+        Action::RepositoryPreview { .. } => unreachable!("repository preview handled locally"),
     };
     let cli =
         finalize_session_archive_interactive(interactive, overrides, command.config_overrides);

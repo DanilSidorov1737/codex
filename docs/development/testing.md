@@ -32,7 +32,23 @@ literal native filename assumptions. The memory-limited Owner TUI build and then
 disk-full link failures are preserved; idle generated-only pruning restores
 headroom. Corrected one-job Owner source tests pass108 with actual Neovim
 (`owner-overview-tests-v6.log`); production CLI Clippy passes (`owner-overview-
-clippy.log`). Native Owner UI/package and remaining forty-task work are pending.
+clippy.log`). Clean c4f000e538 package/native Owner brief/contact/restart/persist/clear
+passes with two normal CLI exits0 and no authority or inference changes.
+
+Human-assisted self-development retains two bounded paid failures, then verifies
+a separate owner-corrected proposal through an explicitly localhost transport
+fixture and the real daemon/sandbox:34 native checks, two synthetic responses/30
+tokens. Actual Neovim review, exact acceptance, one two-file Apply and physically
+entered exact local Git commit325b20ae88fb pass. Cherry-picked77d9d637fc passes
+all31 package-builder tests. Failed paid tasks were never accepted/Applied or
+replayed. The post-Apply offline bundle is verified. Dedicated final-byte/commit
+controls and remaining forty-task work are pending.
+
+Repository preview has one native Git regression verifying dirty bytes/index
+preservation, output-base hashes, no unrelated body reads, traversal and symlink
+refusal. Final production lint/build/package/CLI qualification is underway.
+Idle post-self-development immutable-package dedup records nine identical files
+and2,246,262,784 allocated bytes reclaimed, preserving SHA/mode/ownership.
 
 ## Adaptive batch final qualification
 

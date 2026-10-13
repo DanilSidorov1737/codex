@@ -5,8 +5,10 @@ The completed baseline was pushed/verified to GitHub `work` before tracked edits
 Read current status for execution, bounds, historical quarantines and evidence.
 The current candidate passes actual paid coding/delegation/document, paused
 restore, quiescent package upgrade/rollback and selected real Neovim/LSP/crash
-checks. [Owner overview](owner-overview.md) source passes108 selected TUI checks;
-its physical/package qualification and remaining forty-task work are pending.
+checks. [Owner overview](owner-overview.md) passes108 selected TUI checks and actual
+package/contact/restart qualification. Human-assisted self-development integrates
+a reviewed standard-library TOML fix; bounded paid autonomous attempts fail and
+remain charged. Repository preview and remaining forty-task work are underway.
 Read [all38 fork-text sections](fork-text-coverage.md) for evidence-linked
 coverage and explicit remaining capabilities; row counts are not completion percentages.
 

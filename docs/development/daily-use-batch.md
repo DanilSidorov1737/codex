@@ -96,10 +96,12 @@ qualification candidate, not the final forty-task release. Remaining tasks are
 unfinished. Record
 source, commands, pass/fail/unrun outcomes and resumption.
 
-The clean53e37b68ab candidate now passes native USD admission and paused full
-restore, plus task5 actual paid coding/approval/Neovim review/exactly one Apply.
-The first task6 delegation consumes its shared12-request ceiling and fails;
-charged usage and unchanged originals remain. The minimal runtime correction
-preserves the trusted coordination schema and stops unconditional planning/context
-reads. Its18 selected app-server tests pass; production/new-package qualification
-and a fresh bounded pilot remain. Never replay failed or completed pilot authority.
+The clean53e37b68ab candidate passes native USD admission/paused restore and
+paid coding/approval/Neovim review/one Apply. The first delegation fails at its
+shared ceiling; the811b456376 runtime fix preserves the trusted coordination
+schema and fresh delegated/document pilots pass. c4f000e538 Owner overview/contact
+passes actual restart/persist/clear with no authority change. The human-assisted
+self-development fix is integrated as77d9d637fc; paid autonomous failures remain
+charged. Repository-preview qualification and remaining independent tasks are in
+progress. Read current status and qualification before resuming; never replay
+failed/completed grants, acceptance, Apply or local commits.

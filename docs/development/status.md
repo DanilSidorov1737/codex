@@ -47,19 +47,37 @@ mechanics and actual embedded-editor SIGKILL/private-swap recovery now pass;
 original bytes stay unchanged, recovered CLI exit0 and daemon stop0. Retain every
 failed driver and never represent forced cleanup as a normal exit.
 
-Tasks25–26/29–30 now have Owner overview/contact source in progress: canonical
-mission, outcomes/decisions/escalations/queue/trace brief inside the five layouts,
-and an optional arbitrary enabled-agent contact saved as a private UI preference.
-No agent role, task, grant or background authority is created by selecting it.
-Selected TUI108 and production CLI Clippy now pass. Package and physical Owner
-qualification remain pending. Initial memory/disk build failures, a palette-order
-regression and corrected test assumptions remain recorded.
-Task16 actual fork-managed worktree preparation passes on811b456376: one detached
-checkout, preserved development files and normal CLI exit0, no model requests or
-automatic cleanup. The bounded self-development pilot now has a captured branch/
-base/path/check preview and a31-test native baseline: valid single-quoted TOML
-workspace version is the one demonstrated packaging regression. No pilot model
-grant or change exists yet. Tasks15–24/27–28/31–35/38–40 need remaining work.
+Tasks25–26/29–30 pass physical Owner overview/contact qualification on clean
+c4f000e538, now pushed to work. The package is `package-owner-preview5`, version
+0.0.0-daily.owner.preview5, CLI SHA256
+`a3c310529a5771d4361094a92be0e1d375c5ac5ed2bb6fc9439555a37652b1c3`.
+108 selected TUI checks, production Clippy and full formatting pass. Actual brief,
+arbitrary contact, cancelled conversation draft, restart/persist/clear, two normal
+CLI exits and stopped daemon pass with no new authority or inference.
+
+Task16 actual fork-managed detached worktree passes with dirty development files
+preserved. Tasks15/18/24 then exercise a real packaging defect through captured
+20-file scope, all31 baseline checks, two finite paid failures and a separate
+owner-corrected proposal. The model's TOML fix is correct; its new test import is
+wrong and the request ceiling stops repair. Neither failed paid task is accepted
+or Applied. A distinct localhost verification grant checks the owner-corrected
+bytes through the actual sandbox/immutable oracle:34 checks, two synthetic
+responses/30 tokens, no paid request. Official Neovim review, exact acceptance,
+one two-file Apply and physically entered exact local Git commit325b20ae88fb
+pass. The reviewed change is integrated as77d9d637fc; all31 package tests pass.
+This proves human-assisted self-development, not autonomous paid completion or
+dedicated product commit controls. Preserve failed grants, proposal, worktree,
+Application, local commit and verified post-Apply offline bundle; never replay them.
+New known pilot estimates total$0.0572795, excluding unreported usage/taxes; the
+original$1 ceiling and uncertainty reserve remain. No further paid loop is planned.
+
+Task17 repository-preview source has one passing native Git regression; final
+lint/build/package/actual CLI qualification is underway. It creates no grant and
+reports branch/base/dirty state, requested paths/checks and declared-output bases
+without reading unrelated file bodies. Remaining repair/review/final-byte/commit,
+strategy/escalation/comparison, tree/layout/keyboard/conflict/endurance/coverage
+work is unfinished. Continue every independent daily-use task; real-host task13
+still needs a suitable host. Do not mistake any source checkpoint for completion.
 
 All completed paid/lifecycle/LSP fixtures are stopped. Never rerun their setup,
 grants, acceptance/Apply or reset usage; preserve single coding's completed

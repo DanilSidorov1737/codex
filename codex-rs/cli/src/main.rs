@@ -72,6 +72,7 @@ mod mcp_cmd;
 mod mcp_login;
 mod migrate_rollouts;
 mod organization_cmd;
+mod organization_repo;
 mod organization_service;
 mod plugin_cmd;
 mod queue_cmd;

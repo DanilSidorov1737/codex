@@ -35,5 +35,10 @@ Current checkpoint:108 selected TUI tests pass, including actual official Neovim
 unchanged palette navigation, exact contact confirmation, existing conversation
 draft routing, no backend mutation, save-failure preservation and unavailable/
 stale/partial outcome evidence. Production CLI Clippy passes with warnings denied;
-package and physical Owner walkthrough remain pending. Never describe this source
-checkpoint as all40 tasks complete.
+the clean c4f000e538 package and physical Owner walkthrough now pass. The actual
+CLI shows the mission, selects a user-named agent, cancels its existing conversation
+draft, remembers the contact after restart and clears it. Two normal CLI exits0,
+daemon stop0, unchanged canonical roles/tasks/controls and zero inference. Evidence:
+`daily-use-batch/native-owner-overview/continuation-result.json`. The first driver
+selected the agent's group; actual Down navigation selected the correct agent
+without changing any definition. Never describe this slice as all40 tasks complete.
