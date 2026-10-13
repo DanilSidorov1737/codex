@@ -452,6 +452,17 @@ impl OrganizationRequestProcessor {
                         .accept_result(&task_id, expected_revision, &digest)
                         .await?
                 }
+                OrganizationExecutionMutation::RepairResult { task_id, expected_revision, digest, instructions } => {
+                    let view = store.execution_view(&task_id).await?;
+                    let result = view.result.as_ref().context("repair result missing")?;
+                    anyhow::ensure!(result.digest == digest && !result.accepted, "repair result changed or accepted");
+                    let grant = view.authorization.as_ref().context("repair grant missing")?;
+                    let source = store.attempt_snapshot(&result.attempt_id).await?;
+                    anyhow::ensure!(source.authorization_id == grant.id, "repair grant changed");
+                    let files = crate::organization_workspace::repair_checkpoint_files(
+                        std::path::Path::new(source.workspace.as_deref().context("repair workspace missing")?), &grant.scope, result)?;
+                    store.repair_result(&task_id, expected_revision, &digest, &instructions, files, crate::organization_runtime::now()).await?;
+                }
                 OrganizationExecutionMutation::RequestChanges {
                     task_id,
                     expected_revision,

@@ -3852,6 +3852,41 @@
         },
         {
           "additionalProperties": false,
+          "description": "Queue a checked result repair using its original grant and remaining limits.",
+          "properties": {
+            "digest": {
+              "type": "string"
+            },
+            "expectedRevision": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "instructions": {
+              "type": "string"
+            },
+            "taskId": {
+              "type": "string"
+            },
+            "type": {
+              "enum": [
+                "repairResult"
+              ],
+              "title": "RepairResultOrganizationExecutionMutationType",
+              "type": "string"
+            }
+          },
+          "required": [
+            "digest",
+            "expectedRevision",
+            "instructions",
+            "taskId",
+            "type"
+          ],
+          "title": "RepairResultOrganizationExecutionMutation",
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
           "properties": {
             "digest": {
               "type": "string"

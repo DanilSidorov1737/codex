@@ -71,13 +71,23 @@ Application, local commit and verified post-Apply offline bundle; never replay t
 New known pilot estimates total$0.0572795, excluding unreported usage/taxes; the
 original$1 ceiling and uncertainty reserve remain. No further paid loop is planned.
 
-Task17 repository-preview source has one passing native Git regression; final
-lint/build/package/actual CLI qualification is underway. It creates no grant and
-reports branch/base/dirty state, requested paths/checks and declared-output bases
-without reading unrelated file bodies. Remaining repair/review/final-byte/commit,
-strategy/escalation/comparison, tree/layout/keyboard/conflict/endurance/coverage
-work is unfinished. Continue every independent daily-use task; real-host task13
-still needs a suitable host. Do not mistake any source checkpoint for completion.
+Task17 passes native Git regression, production lint, full formatting and clean
+be6cef7014 package/actual terminal CLI qualification. Dirty/detached/unborn,
+whitespace-path and traversal/.git/symlink refusal cases pass. It creates no grant,
+reports requested scope/output bases and never reads unrelated file bodies.
+
+Tasks19–20 add labeled captured-check advice and original-grant result repair.
+Full state345, app-server19, CLI2, TUI109 (actual official Neovim), protocol10,
+schema comparisons4 and SDK25 checks pass. The repair transaction preserves
+original grants/counters/bases/expiry and rolls back stale, occupied, expired,
+exhausted and out-of-scope requests. Runtime source verifies actual artifact and
+immutable input hashes. Production lint/full formatting pass. Clean package and actual finite native
+repair remain pending. Generated schemas retain their existing raw style after
+correcting an optional-formatter mismatch; no assertions/dependencies are changed.
+Remaining review/final-byte/commit, strategic proposals/escalation rules/comparison,
+tree/layout/keyboard/conflict/endurance/coverage work is unfinished. Continue all
+independent daily-use tasks; real-host task13 still needs a suitable host. Do not
+mistake any source checkpoint for completion.
 
 All completed paid/lifecycle/LSP fixtures are stopped. Never rerun their setup,
 grants, acceptance/Apply or reset usage; preserve single coding's completed

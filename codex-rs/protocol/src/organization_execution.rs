@@ -633,6 +633,15 @@ pub enum OrganizationExecutionMutation {
         expected_revision: i64,
         instructions: String,
     },
+    /// Queue a checked result repair using its original grant and remaining limits.
+    #[serde(rename_all = "camelCase")]
+    RepairResult {
+        task_id: String,
+        #[ts(type = "number")]
+        expected_revision: i64,
+        digest: String,
+        instructions: String,
+    },
     #[serde(rename_all = "camelCase")]
     Apply {
         task_id: String,
@@ -725,6 +734,7 @@ impl OrganizationExecutionMutation {
             | Self::DecideApproval { task_id, .. }
             | Self::Accept { task_id, .. }
             | Self::RequestChanges { task_id, .. }
+            | Self::RepairResult { task_id, .. }
             | Self::Apply { task_id, .. } => task_id,
             Self::Handoff { task_id, .. } | Self::ApplyReplan { task_id, .. } => task_id,
         }

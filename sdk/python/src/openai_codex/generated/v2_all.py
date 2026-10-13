@@ -3396,6 +3396,20 @@ class RequestChangesOrganizationExecutionMutation(BaseModel):
     ]
 
 
+class RepairResultOrganizationExecutionMutation(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    digest: str
+    expected_revision: Annotated[int, Field(alias="expectedRevision")]
+    instructions: str
+    task_id: Annotated[str, Field(alias="taskId")]
+    type: Annotated[
+        Literal["repairResult"], Field(title="RepairResultOrganizationExecutionMutationType")
+    ]
+
+
 class OrganizationExecutionScope(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
@@ -14350,6 +14364,7 @@ class OrganizationExecutionMutation(
         | DecideApprovalOrganizationExecutionMutation
         | AcceptOrganizationExecutionMutation
         | RequestChangesOrganizationExecutionMutation
+        | RepairResultOrganizationExecutionMutation
         | ApplyOrganizationExecutionMutation
     ]
 ):
@@ -14365,6 +14380,7 @@ class OrganizationExecutionMutation(
         | DecideApprovalOrganizationExecutionMutation
         | AcceptOrganizationExecutionMutation
         | RequestChangesOrganizationExecutionMutation
+        | RepairResultOrganizationExecutionMutation
         | ApplyOrganizationExecutionMutation
     )
 

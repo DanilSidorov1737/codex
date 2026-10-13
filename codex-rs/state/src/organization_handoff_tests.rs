@@ -1084,3 +1084,188 @@ async fn continuity_migration_from_eight_preserves_existing_authorizations() -> 
     store.close().await;
     Ok(())
 }
+
+#[tokio::test]
+async fn result_repair_preserves_grant_usage_bases_and_rolls_back_stale_or_exhausted_requests()
+-> Result<()> {
+    for max_attempts in [1, 3] {
+        let home = Fixture::new();
+        let store = OrganizationStore::open(&home.0).await?;
+        let (worker, attempt, _) = fixture(&store, max_attempts, 4).await?;
+        store
+            .admit_model_request(&attempt.id, &worker, 1001)
+            .await?;
+        store.checkpoint_usage(&attempt.id, &worker, 1, 10).await?;
+        let before = store.execution_view(&attempt.task_id).await?;
+        let scope = &before.authorization.as_ref().unwrap().scope;
+        let snapshots = files();
+        let inputs: Vec<_> = snapshots
+            .iter()
+            .filter(|file| scope.immutable_files.contains(&file.path))
+            .cloned()
+            .collect();
+        let checks = scope
+            .checks
+            .iter()
+            .map(|argv| OrganizationCheckEvidence {
+                immutable_inputs: Some(inputs.clone()),
+                argv: argv.clone(),
+                exit_code: Some(1),
+                output: "Fix the demonstrated regression".into(),
+                truncated: false,
+            })
+            .collect();
+        let artifacts = snapshots
+            .iter()
+            .filter(|file| scope.artifacts.contains(&file.path))
+            .cloned()
+            .collect();
+        let result = store
+            .record_result(&attempt.id, &worker, artifacts, checks, 1002)
+            .await?;
+        let view = store.execution_view(&attempt.task_id).await?;
+        let request = "Repair only the declared output; retain the immutable oracle";
+        assert!(
+            store
+                .repair_result(
+                    &attempt.task_id,
+                    view.task.revision,
+                    &result.digest,
+                    request,
+                    snapshots.clone(),
+                    1003
+                )
+                .await
+                .is_err(),
+            "occupied native runtime cannot be retried"
+        );
+        store.release_attempt_capacity(&attempt.id, &worker).await?;
+        assert!(
+            store
+                .repair_result(
+                    &attempt.task_id,
+                    view.task.revision - 1,
+                    &result.digest,
+                    request,
+                    snapshots.clone(),
+                    1003
+                )
+                .await
+                .is_err()
+        );
+        assert!(
+            store
+                .repair_result(
+                    &attempt.task_id,
+                    view.task.revision,
+                    &"f".repeat(64),
+                    request,
+                    snapshots.clone(),
+                    1003
+                )
+                .await
+                .is_err()
+        );
+        let mut changed = snapshots.clone();
+        changed
+            .iter_mut()
+            .find(|file| file.path == "report.txt")
+            .unwrap()
+            .sha256 = "f".repeat(64);
+        assert!(
+            store
+                .repair_result(
+                    &attempt.task_id,
+                    view.task.revision,
+                    &result.digest,
+                    request,
+                    changed,
+                    1003
+                )
+                .await
+                .is_err()
+        );
+        let mut outside = snapshots.clone();
+        outside.push(OrganizationArtifactEvidence {
+            path: "outside.txt".into(),
+            sha256: "a".repeat(64),
+            bytes: 1,
+        });
+        assert!(
+            store
+                .repair_result(
+                    &attempt.task_id,
+                    view.task.revision,
+                    &result.digest,
+                    request,
+                    outside,
+                    1003
+                )
+                .await
+                .is_err()
+        );
+        let expiry = view.authorization.as_ref().unwrap().expires_at;
+        assert!(
+            store
+                .repair_result(
+                    &attempt.task_id,
+                    view.task.revision,
+                    &result.digest,
+                    request,
+                    snapshots.clone(),
+                    expiry
+                )
+                .await
+                .is_err()
+        );
+        assert!(
+            store
+                .execution_view(&attempt.task_id)
+                .await?
+                .checkpoints
+                .is_empty()
+        );
+        let repaired = store
+            .repair_result(
+                &attempt.task_id,
+                view.task.revision,
+                &result.digest,
+                request,
+                snapshots,
+                1003,
+            )
+            .await;
+        let after = store.execution_view(&attempt.task_id).await?;
+        assert_eq!(after.authorization, view.authorization);
+        assert_eq!(after.authorization_used_tokens, 10);
+        assert_eq!(after.authorization_model_requests, 1);
+        assert_eq!(after.result, view.result);
+        if max_attempts == 1 {
+            assert!(repaired.is_err());
+            assert_eq!(after.task, view.task);
+            assert!(after.checkpoints.is_empty());
+        } else {
+            let handoff = repaired?;
+            assert_eq!(handoff.authorization_id, attempt.authorization_id);
+            assert_eq!(handoff.from_owner_id, handoff.to_owner_id);
+            assert_eq!(after.task.state, "queued");
+            assert_eq!(after.checkpoints[0].artifact_bases, result.artifact_bases);
+            assert!(
+                store
+                    .repair_result(
+                        &attempt.task_id,
+                        view.task.revision,
+                        &result.digest,
+                        request,
+                        files(),
+                        1003
+                    )
+                    .await
+                    .is_err(),
+                "exact decision cannot replay"
+            );
+        }
+        store.close().await;
+    }
+    Ok(())
+}

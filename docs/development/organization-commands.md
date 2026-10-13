@@ -40,6 +40,21 @@ work or widens authority. TUI host keys: `z` selected scope, `Z` whole store,
 `C` inventory; Escape closes. See [reports and selection](reports-and-selection.md)
 for bounds, estimates and actual Neovim's `Q` proposed-task flow.
 
+## Local repository preview and original-grant repair
+
+`codex organization repository-preview --root /absolute/project --scope scope.json`
+is local/read-only: native branch/HEAD/dirty metadata, requested scope/checks and
+declared output-base hashes. It creates no grant or daemon. See
+[preview limits and check advice](repository-preview.md).
+
+The current repair source adds `repairResult` to `organization execute`: taskId,
+expectedRevision, exact unaccepted result digest and concrete instructions. Ctrl-P
+→ **Repair exact result within original grant** opens the matching TUI form.
+F6 and `y` confirm; no replacement scope is accepted. Original grant, expiry,
+paths/checks, usage and attempt limits remain. Read [repair](result-repair.md)
+and current qualification before choosing a package; source checks are not native
+release evidence. Existing `c` request-changes still pauses without queuing repair.
+
 ## Checkpoints and blocked handoffs (qualified)
 
 `codex organization execution-read TASK_ID` returns canonical checkpoints and

@@ -50,6 +50,16 @@ refusal. Final production lint/build/package/CLI qualification is underway.
 Idle post-self-development immutable-package dedup records nine identical files
 and2,246,262,784 allocated bytes reclaimed, preserving SHA/mode/ownership.
 
+
+The next original-grant repair/check-advice checkpoint passes full state345,
+app-server19, CLI2 and TUI109 selected checks with actual official Neovim. Runtime
+file validation refuses changed result artifacts and immutable inputs. Source
+repair preserves the original grant/usage/bases and rolls back stale, occupied,
+expired/exhausted and out-of-scope requests. Protocol10, schema comparisons4, SDK contracts/signatures25 and full root
+formatting now pass. Production lint/package and actual native repair remain pending; a zero-test initial selection, invalid
+repeated --lib invocation and resource-paused build are retained and not counted.
+Read [current qualification](daily-use-qualification.md).
+
 ## Adaptive batch final qualification
 
 Final application source `3eca8520e0`; all30 bounded approved tasks complete.

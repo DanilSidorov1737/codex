@@ -16,6 +16,96 @@ use std::collections::HashSet;
 use uuid::Uuid;
 
 impl OrganizationStore {
+    /// Capture an exact unaccepted result, then reuse the same-grant handoff fences.
+    /// One transaction rolls back the checkpoint if any limit or uncertainty fails.
+    pub async fn repair_result(
+        &self,
+        task_id: &str,
+        expected_revision: i64,
+        digest: &str,
+        instructions: &str,
+        files: Vec<OrganizationArtifactEvidence>,
+        now: i64,
+    ) -> Result<OrganizationTaskHandoff> {
+        text(instructions, 4096)?;
+        let mut tx = self.pool.begin_with("BEGIN IMMEDIATE").await?;
+        let mut task = read_task(&mut tx, task_id).await?;
+        ensure!(
+            task.revision == expected_revision && task.state == "needsReview",
+            "repair requires the exact reviewable task revision"
+        );
+        let (result_data, grant_data): (String, String) = sqlx::query_as("SELECT r.data,a.data FROM organization_results r JOIN organization_attempts p ON p.id=r.attempt_id JOIN organization_tasks t ON t.id=p.task_id JOIN organization_authorizations a ON a.id=t.authorization_id WHERE t.id=? AND p.authorization_id=a.id AND p.state='needsReview' ORDER BY p.generation DESC LIMIT 1")
+            .bind(task_id).fetch_one(&mut *tx).await?;
+        let result: OrganizationTaskResult = serde_json::from_str(&result_data)?;
+        let grant: OrganizationTaskAuthorization = serde_json::from_str(&grant_data)?;
+        ensure!(
+            result.digest == digest && !result.accepted,
+            "repair result changed or accepted"
+        );
+        ensure!(
+            !result.checks.is_empty(),
+            "repair needs recorded host checks"
+        );
+        validate_files(&files, &result.artifact_bases, &grant.scope)?;
+        ensure!(
+            result.artifacts.iter().all(|file| files.contains(file)),
+            "repair artifact bytes changed"
+        );
+        for check in &result.checks {
+            let inputs = check
+                .immutable_inputs
+                .as_ref()
+                .context("repair requires captured immutable check inputs")?;
+            ensure!(
+                inputs.iter().all(|file| files.contains(file)),
+                "repair immutable inputs changed"
+            );
+        }
+        let count: i64 =
+            sqlx::query_scalar("SELECT count(*) FROM organization_checkpoints WHERE task_id=?")
+                .bind(task_id)
+                .fetch_one(&mut *tx)
+                .await?;
+        ensure!(count < 32, "checkpoint storage limit exhausted");
+        let owner = read_node(&mut tx, &task.owner_id).await?;
+        let checkpoint = OrganizationTaskCheckpoint {
+            id: Uuid::now_v7().to_string(),
+            task_id: task_id.into(),
+            project_id: task.project_id.clone(),
+            owner_id: task.owner_id.clone(),
+            attempt_id: result.attempt_id.clone(),
+            authorization_id: grant.id.clone(),
+            created_at: now,
+            completed_action_ids: sqlx::query_scalar("SELECT id FROM organization_actions WHERE attempt_id=? AND state='completed' ORDER BY id").bind(&result.attempt_id).fetch_all(&mut *tx).await?,
+            content: OrganizationCheckpointContent {
+                completed_steps: vec![format!("Host-captured result {digest}; retained check evidence")],
+                remaining_steps: vec![instructions.into()],
+                blocker: Some("Owner requested bounded repair of this exact result".into()),
+            },
+            files,
+            artifact_bases: result.artifact_bases,
+        };
+        sqlx::query("INSERT INTO organization_checkpoints(id,task_id,attempt_id,call_id,data) VALUES (?,?,?,?,?)")
+            .bind(&checkpoint.id).bind(task_id).bind(&result.attempt_id).bind(format!("owner-repair:{}", checkpoint.id)).bind(serde_json::to_string(&checkpoint)?).execute(&mut *tx).await?;
+        set_task_state(&mut tx, &mut task, OrganizationTaskState::Blocked).await?;
+        let handoff = handoff_in(
+            &mut tx,
+            &OrganizationExecutionMutation::Handoff {
+                task_id: task_id.into(),
+                expected_revision: task.revision,
+                checkpoint_id: checkpoint.id,
+                owner_id: owner.id,
+                expected_owner_revision: owner.revision,
+                instructions: instructions.into(),
+            },
+            now,
+        )
+        .await?;
+        owner_event(&mut tx, "result/repairRequested", task_id).await?;
+        tx.commit().await?;
+        Ok(handoff)
+    }
+
     /// The host supplies hashes from the private workspace while holding its
     /// native-tool lock; agents supply only progress/remaining/blocker text.
     pub async fn record_checkpoint(

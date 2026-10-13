@@ -75,6 +75,12 @@ const ACTIONS: &[Action] = &[
         context: "owner disk/memory admission thresholds; unknown telemetry fails closed",
     },
     Action {
+        title: "Repair exact result within original grant",
+        shortcut: "Commands",
+        code: KeyCode::F(59),
+        context: "selected unaccepted result; same paths/checks/budgets/deadline; no uncertain replay",
+    },
+    Action {
         title: "First-launch setup wizard",
         shortcut: "Commands",
         code: KeyCode::F(38),

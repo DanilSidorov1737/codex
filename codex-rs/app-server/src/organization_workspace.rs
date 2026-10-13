@@ -624,6 +624,43 @@ pub(crate) fn verify_checkpoint(
     Ok(())
 }
 
+/// Reuse the host's bounded, no-follow checkpoint reader for an exact result repair.
+pub(crate) fn repair_checkpoint_files(
+    source: &Path,
+    scope: &OrganizationExecutionScope,
+    result: &codex_protocol::organization_execution::OrganizationTaskResult,
+) -> Result<Vec<OrganizationArtifactEvidence>> {
+    ensure!(source.canonicalize()? == source, "aliased repair workspace");
+    private_directory(source, false)?;
+    ensure!(
+        !result.checks.is_empty(),
+        "repair needs recorded host checks"
+    );
+    let workspace = TaskWorkspace {
+        root: AbsolutePathBuf::try_from(source)?,
+        profile: PermissionProfile::default(),
+        artifact_bases: result.artifact_bases.clone(),
+    };
+    let files = workspace.checkpoint_files(scope)?;
+    for artifact in &result.artifacts {
+        ensure!(
+            files.contains(artifact),
+            "result bytes changed before repair"
+        );
+    }
+    for check in &result.checks {
+        let immutable = check
+            .immutable_inputs
+            .as_ref()
+            .context("repair needs captured immutable check inputs")?;
+        ensure!(
+            immutable.iter().all(|file| files.contains(file)),
+            "immutable check input changed before repair"
+        );
+    }
+    Ok(files)
+}
+
 fn workspace_profile(
     config: &Config,
     root: &AbsolutePathBuf,
@@ -1435,6 +1472,47 @@ mod tests {
             std::fs::read_to_string(root.join("nested/report.txt"))?,
             "accepted child"
         );
+        Ok(())
+    }
+
+    #[test]
+    fn result_repair_snapshot_refuses_changed_artifacts_or_immutable_oracles() -> Result<()> {
+        let fixture = tempfile::tempdir()?;
+        let root = fixture.path().canonicalize()?;
+        std::fs::write(root.join("code.py"), b"model candidate\n")?;
+        std::fs::write(root.join("oracle.py"), b"immutable owner oracle\n")?;
+        let scope: OrganizationExecutionScope = serde_json::from_value(
+            serde_json::json!({"inputFiles":["code.py","oracle.py"],"immutableFiles":["oracle.py"],"artifacts":["code.py"],"checks":[["python3","oracle.py"]],"model":"fixture","maxTokens":100,"maxSeconds":30,"maxModelRequests":4,"maxAttempts":3,"requireToolApproval":true,"delegates":[],"maxChildren":0}),
+        )?;
+        let evidence = |path: &str, bytes: &[u8]| OrganizationArtifactEvidence {
+            path: path.into(),
+            sha256: format!("{:x}", Sha256::digest(bytes)),
+            bytes: bytes.len() as u64,
+        };
+        let result = codex_protocol::organization_execution::OrganizationTaskResult {
+            attempt_id: Uuid::now_v7().to_string(),
+            artifacts: vec![evidence("code.py", b"model candidate\n")],
+            artifact_bases: vec![OrganizationArtifactBase {
+                path: "code.py".into(),
+                sha256: None,
+                captured: true,
+            }],
+            checks: vec![OrganizationCheckEvidence {
+                argv: scope.checks[0].clone(),
+                immutable_inputs: Some(vec![evidence("oracle.py", b"immutable owner oracle\n")]),
+                exit_code: Some(1),
+                output: "regression failure".into(),
+                truncated: false,
+            }],
+            digest: "a".repeat(64),
+            accepted: false,
+        };
+        assert_eq!(repair_checkpoint_files(&root, &scope, &result)?.len(), 2);
+        std::fs::write(root.join("code.py"), b"unreviewed changed candidate\n")?;
+        assert!(repair_checkpoint_files(&root, &scope, &result).is_err());
+        std::fs::write(root.join("code.py"), b"model candidate\n")?;
+        std::fs::write(root.join("oracle.py"), b"changed owner oracle\n")?;
+        assert!(repair_checkpoint_files(&root, &scope, &result).is_err());
         Ok(())
     }
 

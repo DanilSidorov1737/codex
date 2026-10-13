@@ -59,6 +59,10 @@ pub(super) enum Kind {
         runs: Vec<OrganizationWorkflowRun>,
     },
     ArtifactLibrary(String),
+    RepairResult {
+        task: OrganizationTask,
+        digest: String,
+    },
     Mission(Option<OrganizationControl>),
     GoalReview {
         goal: OrganizationGoal,
@@ -665,6 +669,39 @@ mod tests {
             (task_id, expected_revision, result_digest),
             ("original-task".into(), 7, "exact-result".into())
         );
+    }
+
+    #[test]
+    fn repair_form_pins_exact_result_and_never_constructs_a_new_grant() {
+        let task = task();
+        let mut form = Form::new(
+            Kind::RepairResult {
+                task: task.clone(),
+                digest: "a".repeat(64),
+            },
+            &[],
+            None,
+            "model",
+        );
+        assert!(form.command().is_err(), "repair instructions are required");
+        set(
+            &mut form,
+            0,
+            "Fix the declared output and retain all captured checks",
+        );
+        let Command::Execution(OrganizationExecutionMutation::RepairResult {
+            task_id,
+            expected_revision,
+            digest,
+            instructions,
+        }) = form.command().unwrap()
+        else {
+            panic!("exact original-grant repair only")
+        };
+        assert_eq!(task_id, task.id);
+        assert_eq!(expected_revision, task.revision);
+        assert_eq!(digest, "a".repeat(64));
+        assert!(instructions.contains("captured checks"));
     }
 
     #[test]
@@ -2132,6 +2169,7 @@ impl Form {
             Kind::WorkflowRollback {current,runs}=>vec![Field::text("Reason","Restore a version captured in a prior run; exact proposal then % applies; running captures remain", ""),Field::select("Captured earlier workflow",runs.iter().filter(|r|r.preview.template.id==current.id && r.preview.template.revision<current.revision).map(|r|(r.id.clone(),format!("{} v{} · run {}",r.preview.template.label,r.preview.template.revision,r.id))).collect(),None)],
             Kind::ArtifactLibrary(_) => vec![Field::text("Artifact query","Literal substring of captured path/task/project/owner/version/check status; empty browses a bounded catalog", "")],
             Kind::WorkflowImprovement {runs,..} => vec![Field::select("Baseline workflow run",runs.iter().map(|r|(r.id.clone(),format!("{} v{} · {}",r.preview.template.label,r.preview.template.revision,r.id))).collect(),None),Field::select("Candidate workflow run",runs.iter().map(|r|(r.id.clone(),format!("{} v{} · {}",r.preview.template.label,r.preview.template.revision,r.id))).collect(),None),Field::text("Why the checks represent intended work", "Every paired step must have accepted identical protected checks; % separately adopts this tested template", "")],
+            Kind::RepairResult { .. } => vec![Field::text("Repair instructions", "Same paths, immutable checks, grant, remaining deadline and budgets; uncertain effects are refused", "")],
             Kind::Mission(previous)=> {
                 let (purpose,priorities,constraints)=match previous.as_ref().map(|c|&c.value) {Some(OrganizationControlValue::Mission{purpose,priorities,constraints})=>(purpose.clone(),priorities.join("\n"),constraints.join("\n")),_=>(String::new(),"Useful verified outcomes".into(),"Use only exact granted paths, tools, workers and budgets\nFinal acceptance and Apply belong to the owner".into())};
                 vec![Field::text("Mission","Owner intent; native permissions/budgets remain enforced",&purpose),Field::text("Priorities","One per line",&priorities),Field::text("Constraints","One per line; agents cannot edit protected controls",&constraints)]
@@ -2661,6 +2699,7 @@ impl Form {
             Kind::RoleRollback { .. } => "Review role rollback proposal",
             Kind::WorkflowRollback { .. } => "Review captured workflow rollback proposal",
             Kind::ArtifactLibrary(_) => "Browse / search captured artifact library",
+            Kind::RepairResult { .. } => "Repair exact result · original grant / remaining limits",
             Kind::GoalReview { .. } => "Goal criteria / exact accepted evidence",
             Kind::Escalation { .. } => "Route local assistance / resolve request",
             Kind::Lesson { .. } => "Capture an accepted-result lesson proposal",
@@ -3358,6 +3397,14 @@ impl Form {
                     project_id: project_id.clone(),
                     query,
                 }
+            }
+            Kind::RepairResult { task, digest } => {
+                Command::Execution(OrganizationExecutionMutation::RepairResult {
+                    task_id: task.id.clone(),
+                    expected_revision: task.revision,
+                    digest: digest.clone(),
+                    instructions: required(0)?,
+                })
             }
             Kind::Mission(previous) => Command::Definition(OrganizationMutation::SetControl {
                 expected_revision: previous.as_ref().map(|c| c.revision),

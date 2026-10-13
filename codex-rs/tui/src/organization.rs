@@ -3786,6 +3786,22 @@ impl Dashboard {
                     .cloned();
                 form::Kind::Role(latest)
             }
+            'τ' => {
+                let Some(view) = self.detail.as_ref().filter(|view| {
+                    Some(&view.task.id) == self.selected.as_ref()
+                        && view.task.state == "needsReview"
+                }) else {
+                    self.message = "Select an unaccepted reviewable result; repair reuses its original remaining grant.".into();
+                    return;
+                };
+                let Some(result) = view.result.as_ref().filter(|result| !result.accepted) else {
+                    return;
+                };
+                form::Kind::RepairResult {
+                    task: view.task.clone(),
+                    digest: result.digest.clone(),
+                }
+            }
             'H' | '&' => {
                 let Some(view) = self.detail.as_ref().filter(|view| {
                     Some(&view.task.id) == self.selected.as_ref() && view.task.state == "blocked"
@@ -4592,6 +4608,7 @@ impl Dashboard {
             KeyCode::F(50) => self.open_form('κ'),
             KeyCode::F(51) => self.open_form('ν'),
             KeyCode::F(53) => self.open_form('ξ'),
+            KeyCode::F(59) => self.open_form('τ'),
             KeyCode::F(55) => {
                 self.report_text = Some(reporting::owner_overview(
                     &self.snapshot,
@@ -5771,7 +5788,10 @@ impl Dashboard {
             }
             if matches!(
                 command,
-                Command::Execution(OrganizationExecutionMutation::Handoff { .. })
+                Command::Execution(
+                    OrganizationExecutionMutation::Handoff { .. }
+                        | OrganizationExecutionMutation::RepairResult { .. }
+                )
             ) {
                 text.push_str("\nQueues one fresh attempt under the original grant and remaining budgets. The old worker stays fenced. Only verified checkpoint inputs/outputs are copied. Uncertain effects, missing usage, active descendants or changed authority prevent continuation. Acceptance and Apply remain separate owner decisions.\n");
             }

@@ -22,7 +22,17 @@ removed for this command. Repository paths retain significant whitespace.
 
 One native Git regression verifies dirty-byte/index preservation, exact output
 hashes, a new-file base, unrelated-body isolation and traversal/symlink refusal.
-Production lint/build/package/actual CLI evidence is recorded in
+Production lint/build/package and actual terminal CLI pass on clean be6cef7014.
+Dirty/detached/unborn and whitespace-path cases pass; all refusal checks preserve
+owner/index bytes. Detailed evidence is recorded in
 [daily-use qualification](daily-use-qualification.md); do not assume a source
 checkpoint is the packaged release. Dedicated reviewed commit and final-byte
 verification remain separate daily-use tasks.
+
+The next source checkpoint adds bounded check advice from the declared output
+folders and file types. Rust, Python and configuration outputs receive relevant
+check categories; every owner-captured argv remains present and required. This
+is labeled file-type advice, not dependency analysis, test discovery or evidence
+that any check ran. Required cross-component checks must be added, never dropped.
+The native regression asserts unchanged captured argv and Python package advice.
+Current package preview6 predates this additional advice.

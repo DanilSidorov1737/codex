@@ -6,6 +6,7 @@ use codex_protocol::organization_execution::OrganizationExecutionScope;
 use serde_json::json;
 use sha2::Digest;
 use sha2::Sha256;
+use std::collections::BTreeSet;
 use std::io::Read;
 use std::path::Component;
 use std::path::Path;
@@ -127,8 +128,29 @@ pub(crate) async fn preview(
         };
         bases.push(json!({"path":name,"sha256":hash}));
     }
+    let components: BTreeSet<_> = scope
+        .artifacts
+        .iter()
+        .filter_map(|name| Path::new(name).parent())
+        .map(|path| {
+            if path.as_os_str().is_empty() {
+                Path::new(".")
+            } else {
+                path
+            }
+        })
+        .collect();
+    let mut advice = BTreeSet::new();
+    for name in &scope.artifacts {
+        advice.insert(match Path::new(name).extension().and_then(|s| s.to_str()) {
+            Some("rs") => "Rust outputs: run affected crate unit/integration checks and workspace formatting; public types also need generated schema/SDK contract checks.",
+            Some("py") => "Python outputs: retain real-file and package/import checks; CLI/package changes also need native smoke checks.",
+            Some("json" | "toml" | "yaml" | "yml") => "Configuration/contract outputs: check parsing, compatibility and affected consumers.",
+            _ => "Owner-defined outputs: verify their intended consumers and actual display/content behavior.",
+        });
+    }
     Ok(
-        json!({"root":root,"repositoryRoot":repo,"head":head.status.success().then(|| String::from_utf8_lossy(&head.stdout).trim().to_owned()),"branch":branch.status.success().then(|| String::from_utf8_lossy(&branch.stdout).trim().to_owned()),"changes":changes,"requestedInputs":scope.input_files,"requestedImmutableFiles":scope.immutable_files,"declaredOutputs":scope.artifacts,"outputBases":bases,"checks":scope.checks,"authorizationCreated":false,"scopeValidation":"requested file preview only; native authorization separately revalidates identity, paths, checks, permissions and budgets"}),
+        json!({"root":root,"repositoryRoot":repo,"head":head.status.success().then(|| String::from_utf8_lossy(&head.stdout).trim().to_owned()),"branch":branch.status.success().then(|| String::from_utf8_lossy(&branch.stdout).trim().to_owned()),"changes":changes,"requestedInputs":scope.input_files,"requestedImmutableFiles":scope.immutable_files,"declaredOutputs":scope.artifacts,"outputBases":bases,"checks":scope.checks,"checkAdvice":{"declaredComponents":components,"advice":advice,"capturedChecksPreserved":true,"limits":"File-type advice only, not dependency analysis or test discovery. Every owner-captured check remains required; add applicable cross-component checks instead of dropping them."},"authorizationCreated":false,"scopeValidation":"requested file preview only; native authorization separately revalidates identity, paths, checks, permissions and budgets"}),
     )
 }
 
@@ -174,6 +196,13 @@ mod tests {
         let result = preview(root, &scope).await?;
         assert!(result["head"].is_string());
         assert_eq!(result["authorizationCreated"], false);
+        assert_eq!(result["checks"], serde_json::to_value(&scope.checks)?);
+        assert_eq!(result["checkAdvice"]["capturedChecksPreserved"], true);
+        assert!(
+            result["checkAdvice"]["advice"]
+                .to_string()
+                .contains("package/import")
+        );
         assert_eq!(
             result["outputBases"][0]["sha256"],
             format!("{:x}", Sha256::digest(b"owner dirty bytes\n"))
