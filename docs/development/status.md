@@ -17,9 +17,13 @@ passes protected follow/explorer/balanced comparisons, dirty pane placement,
 
 The minimal Only-model source gate on `3eca8520e0` requires captured Code Mode scope
 plus actual-host availability before admission.919 distinct selected checks, full
-formatting and production Clippy pass. Actual CPU-bound deadline, conversation/
-proposals/local research/private knowledge checks also pass. Final build/package,
-catalog-matched Luna and complete45-minute qualification are pending. No release claim yet;
+formatting, production Clippy and locked final build/package pass. Actual CPU-bound
+deadline, conversation/proposals/local research/private knowledge, catalog-matched
+Only-model/physical approval/review, sharing ACLs, owner adoption/goal evidence and
+resumable-runner checks pass. Final package is `0.0.0-adaptive.final.3eca8520e0`;
+the persistent verified base-plus-overlay assembly reproduces all five assets.
+The45-minute run has six checked results and45 reported requests /675 tokens at
+41 minutes. Final crash/fresh restore and cleanup remain pending. No release claim yet;
 the last fully qualified package remains `8cd392eaaa`.
 
 The replacement cleared the first adaptive temporary databases/workspaces; never

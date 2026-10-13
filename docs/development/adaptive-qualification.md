@@ -715,3 +715,51 @@ project search remains empty. A driver incorrectly expected the flag to remain
 false after explicit review; the continuation verified the actual intended
 private reviewed state without replaying the owner decision. Results/checks and
 failed scripts remain. No new paid call or Apply ran in this fresh fixture.
+
+## Final package, Only-model and sharing qualification
+
+The locked production build passes in4m44s. The complete final package is
+`/tmp/adaptive-final-package`, version `0.0.0-adaptive.final.3eca8520e0`;
+`final-native/final-package-live-proof.json` verifies all five installed assets
+and the live daemon executable. Persistent offline recovery uses the protected
+mission base archive plus `adaptive-batch/final-cli-and-manifest.tar.xz`.
+`persistent-package-overlay.json` records both hashes; extracting the base then
+overlay into a fresh directory reproduces all five exact final assets, verified
+by `offline-final-package-assembly-proof.json`. This uses native tar/xz because
+the finite persistent root cannot hold another full gzip package. No protected
+base archive or package content was removed.
+
+The final catalog-matched Luna pilot denies an omitted Code Mode scope before
+inference, then executes the explicitly captured scope through the actual host,
+exact physical approval, immutable oracle, owner acceptance and actual Neovim
+diff. Its initial quit driver left a summary modal open; the read-only continuation
+exits0 without repeating any owner decision. Native sharing/context checks now
+prove permitted, excluded and withdrawn output reads through actual tool outputs;
+private/forged publication is refused. Library context returns the exact selected
+public-note bytes; their recomputed hash matches the captured reference. No source
+execution authority is shared. A promotion API returns no mutation record, and a
+context response carries note bytes rather than a separate hash field; corrected
+drivers used canonical records/recomputed hashes without replaying publication.
+
+Explicit owner review adopts a proposed immutable role and definition-only team.
+Exact accepted child evidence closes its criterion; a parent with unfinished work
+cannot close, while its descendant evidence remains recorded with the parent open.
+The actual resumable runner creates one dormant definition, resumes solely from
+passed receipts and refuses changed plans. Its first driver incorrectly supplied
+a fresh UUID to the ordinary update API; that known failed action remains recorded
+and its resume is also refused. A separate corrected plan creates through id=null;
+no failed action was replayed or limit reset.
+
+`final-ui-readonly-completed.json` passes36 more rapid switches at three terminal
+sizes, real protected Neovim diff and normal CLI exit0 on the final package. Combined
+with the earlier workflow,72 switches pass. Supplemental conversation/readiness/
+library-navigation drivers retained wrong projection/selection/modal assumptions
+and failed; their screenshots are not claimed as successful feature verification.
+The matching native CLI/state/content checks pass. No production behavior or
+assertion was weakened to accommodate a driver.
+
+The finite45-minute monitor is still in progress. Six scheduled background results
+already have passing immutable checks, with no automatic acceptance/Apply or owner
+file changes. At41 minutes, total fresh usage is45 reported requests /675 fixture
+tokens, zero active and zero unreported. The final exact-package crash/fresh restore
+and owned-service cleanup remain pending. Keep the approved batch in progress.
