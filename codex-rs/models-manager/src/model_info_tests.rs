@@ -17,6 +17,35 @@ use codex_protocol::openai_models::ToolMessage;
 use codex_protocol::openai_models::ToolMessages;
 use pretty_assertions::assert_eq;
 
+#[test]
+fn bundled_low_cost_metadata_keeps_code_mode_only_models_fenced() {
+    let catalog: codex_protocol::openai_models::ModelsResponse =
+        serde_json::from_str(include_str!("../models.json")).expect("valid bundled model catalog");
+    let mini = catalog
+        .models
+        .iter()
+        .find(|model| model.slug == "gpt-5.4-mini")
+        .expect("explicit low-cost API model");
+    assert!(!mini.used_fallback_model_metadata);
+    assert!(mini.supported_in_api);
+    assert_eq!(mini.tool_mode, None);
+    assert_eq!(mini.context_window, Some(272_000));
+    assert!(
+        mini.supported_reasoning_levels
+            .iter()
+            .any(|level| level.effort == codex_protocol::openai_models::ReasoningEffort::Low)
+    );
+    let luna = catalog
+        .models
+        .iter()
+        .find(|model| model.slug == "gpt-6-luna")
+        .expect("existing Code Mode-only model");
+    assert_eq!(
+        luna.tool_mode,
+        Some(codex_protocol::openai_models::ToolMode::CodeModeOnly)
+    );
+}
+
 fn config_with_personality(personality: Option<Personality>) -> ModelsManagerConfig {
     ModelsManagerConfig {
         personality,
