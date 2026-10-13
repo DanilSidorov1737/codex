@@ -31,6 +31,11 @@ recovery rehearsal exposed missing global pause on a snapshot without controls;
 its failed restore remains stopped. New source locks execution before publication
 and pauses restored work without resetting limits/accounting. Native new-package
 priced-grant and corrected recovery qualification are next.
+Those two native checks now pass on clean/stamped application53e37b68ab:
+over-budget/wrong-endpoint quote refusal, valid native quoted work, immutable
+checks and fresh full restore with global pause and unchanged quote/usage/result
+evidence. All services stopped, zero new paid inference; read current qualification.
+Candidate `package-cost-preview3` is not the completed forty-task release.
 The adaptive release below remains the qualified application baseline.
 
 Latest delivery: **all30 bounded adaptive-operation/usability tasks are complete**

@@ -191,6 +191,36 @@ the regenerated safe-binding schemas4 and Python contracts5 pass. The approved
 forty-task work is still unfinished. [Coverage](fork-text-coverage.md) maps all38
 original text sections to bounded evidence and explicit remaining capabilities.
 
+An independent official-editor check passes (`native-editor-swap/result.json`):
+real Neovim0.12.6 loads its bundled matchit plugin, physically receives an unsaved
+line, writes a private native swap, is killed by its recorded owned PID and
+recovers identical dirty lines using native `:recover`. The original file remains
+byte-identical throughout. Actual before/after RGB captures and private swap
+evidence are retained; no paid inference. This qualifies selected editor mechanics,
+not CLI attachment or arbitrary plugin/LSP compatibility. The product defaults
+to noswapfile; an owner-selected private-swap configuration is required for this
+case. Tasks36–37 application walkthroughs remain pending.
+
+Clean application source53e37b68ab now builds successfully in6m24s with its
+actual full Git revision stamped through existing build-info. The complete
+five-asset candidate is `package-cost-preview3`, release0.0.0-daily.cost.preview3,
+CLI SHA256 `4116af89095e281faf4ca332a21478ddca7dee8c91374e973fd18db55ea556a3`.
+`cost-build-intent.json` pins clean source and argv; `cost-package-proof.json`
+records all assets. Native priced proof passes rejected USD/endpoint bounds,
+captured quote/30-token scope/native immutable checks and actual TUI/CLI/daemon
+identity/normal exit. Four localhost requests/60 synthetic tokens/zero paid calls;
+all services stopped. Never replay its grants or script.
+
+Corrected native full backup/fresh restore also passes on that package. The
+first final inspector misunderstood the tagged control wrapper; its failure is
+retained and only read-only verification continued. No backup/restore was repeated.
+`native-recovery-v3/read-only-continuation-result.json` verifies restored pause,
+identical grants/quotes/usage/results/counts and exact artifact hashes; config and
+owner oracle are retained separately, credential values absent. Source and restore
+stay stopped; neither restored daemon nor model was started. Preserve all three
+failed/successful recovery directories. Upgrade/rollback and actual restored
+editor walkthroughs remain.
+
 Finish current-source lint/protobuf/selected TUI checks and logical commits,
 then conservative cost admission, current-release live coding/delegation and
 the local package lifecycle. Tasks

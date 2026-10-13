@@ -63,6 +63,11 @@ contracts5 pass. Production lint caught growth of the existing execution enum;
 boxing only the optional quote reduces its footprint without changing JSON or
 introducing a new abstraction or lint exemption. Production Clippy now passes
 with warnings denied. Native CLI/TUI inventory exposes the safe endpoint binding;
-legacy missing fingerprints remain unknown. New package and actual
-native priced-grant/unknown/delegation checks remain pending. Do not mark task8
+legacy missing fingerprints remain unknown. The new clean-source53e37b68ab
+package passes native quoted-task admission: over-budget and wrong-endpoint
+quotes are refused before authorization, the valid captured quote is retained,
+both native requests carry30-token output caps and the immutable check passes.
+Four localhost requests/60 synthetic tokens/zero paid calls; normal TUI exit0
+and owned daemon stop0. Priced unknown/delegation and paid-provider pilots remain
+pending. Do not mark task8
 complete or replay the already completed native-cap fixtures to qualify it.
