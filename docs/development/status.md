@@ -108,27 +108,26 @@ tree/layout/keyboard/conflict/endurance/coverage work is unfinished. Continue al
 independent daily-use tasks; real-host task13 still needs a suitable host. Do not
 mistake any source checkpoint for completion.
 
-Tasks27–28 now have unqualified source: mission/priority proposals with reasons,
-consequences/resource estimates and exact separate adoption, plus versioned local
-escalation severity/responsibility/response windows and captured deadline pins.
-They reuse current owner controls/history/forms/briefs, with no new dependency,
-execution grant or external notification. Selected state control tests are running;
-schemas/SDK, lint/package and physical workflows remain. Preview8/6bf3e34093 is
-the latest qualified slice; the whole forty-task batch remains unfinished.
+Tasks27–28/31/38 now pass source and actual packaged CLI/TUI/official-Neovim
+qualification on `7d7e7acd7c`, pushed/verified to `work`. Package
+0.0.0-daily.strategy.preview9 has CLI SHA256
+`4ade8f05f4222ecf287f4f46bcc738dafa100a9f2f785331efe04365187679a7`; clean
+stamped build377.90s, production lint and formatting pass.515 selected checks
+pass:349 state,20 app-server,3 CLI,114 TUI,4 schema and25 SDK. Actual mission
+proposal/adoption, captured escalation rule/severity/deadline, controlled two-model
+comparison/adoption and pinned native conflict buffer/undo pass with normal exits
+and unchanged prior grants. Five total localhost responses/75 synthetic tokens,
+zero paid and no Applications across the two successful homes. Retain initial
+failed driver runs; they do not justify replaying existing authority.
 
-Source now also covers controlled model adoption31, recorded queue bottlenecks32,
-tree-list scan reduction33 and bounded conflict proposals38. Model adoption reuses
-existing evaluation/check logic but requires equal task/context/scope/base evidence
-with a single model variable and separate exact adoption. Conflict proposals use
-installed diffy and actual native buffer pins/undo, protected captured bases,
-owner/agent hashes and a64-KiB bound; they only change a clean pinned editor buffer
-after confirmation, with save/fresh checks separate. Legacy uncaptured bases are
-refused. Full349 state,20 app-server,3 CLI and114 TUI checks pass, including actual
-official Neovim. Stable/experimental generation, all4 schema comparisons,25 SDK
-contract/signature checks and full formatting pass. Production lint passes with
-warnings denied after an equivalent Boolean simplification; its failure is kept.
-Clean stamped package/native workflows and scale/endurance/coverage remain.
-No claim that the remaining approved batch is complete.
+Task32 queue advice uses actual dependencies/state/pressure/grants and labels
+missing evidence/timing unavailable. Task33's list rendering scans task records
+once per frame; actual baseline/candidate large-tree measurements are running.
+Task35's real scoped conversation/reply/readiness/library/review checks are in
+progress, with three localhost responses/45 synthetic tokens retained. No paid
+loop is planned. Task8 priced unknown usage, all-layout comparison, final mixed
+endurance/recovery and final evidence coverage remain. The whole forty-task batch
+is unfinished; continue every independent item. Task13 still needs a suitable host.
 
 All completed paid/lifecycle/LSP fixtures are stopped. Never rerun their setup,
 grants, acceptance/Apply or reset usage; preserve single coding's completed

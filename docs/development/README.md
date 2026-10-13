@@ -15,6 +15,8 @@ The remaining forty-task work continues.
 Pinned comments, independent saved-file checks and exact reviewed local Git
 controls pass actual packaged CLI/TUI/official-Neovim qualification on6bf3e34093;
 see [owner review and Git](owner-review-and-git.md) and current evidence/status.
+Strategic mission/rule controls, exact model adoption and native conflict buffer/undo
+pass actual preview9 qualification on7d7e7acd7c; scale/endurance remains in progress.
 Read [all38 fork-text sections](fork-text-coverage.md) for evidence-linked
 coverage and explicit remaining capabilities; row counts are not completion percentages.
 

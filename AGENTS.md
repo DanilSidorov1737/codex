@@ -272,6 +272,15 @@ Git receipt, unrelated dirty work and failed earlier fixture. NEVER rerun its
 setup/commit or reset its index to hide failures. All owned services are stopped.
 This is a qualified slice; continue every remaining independent forty-task item.
 
+Daily-use strategic/model/conflict slices are qualified on `7d7e7acd7c`; read
+current daily-use evidence/status. Preserve strategic-owner-native-v2's exact
+mission adoption/rule/escalation and one charged synthetic response/15 tokens,
+and model-conflict-native's two accepted samples, exact model adoption and native
+conflict/undo evidence (four total synthetic requests/60 tokens, no Applications).
+Never replay setup/grants/approvals/acceptance/adoption or reset counters. Initial
+failed drivers remain evidence, not permission to rerun successful mutations.
+Continue all remaining independent forty-task tasks; this is not batch completion.
+
 Then read [decisions](docs/development/decisions-and-risks.md),
 [MVP plan](docs/development/mvp.md), [testing](docs/development/testing.md) and
 [process](docs/development/process.md). Reconcile current user instructions with

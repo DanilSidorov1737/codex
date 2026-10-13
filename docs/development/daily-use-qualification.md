@@ -697,3 +697,47 @@ rule-pin TypeScript/SDK type and control variants only. Native drivers remain
 unexecuted pending a clean stamped package. The large-tree fixture is explicitly
 test-only bulk definitions with no task/grant authority; its planned timing
 includes real-terminal settling and cannot be presented as isolated CPU speed.
+
+## Strategic controls and native model/conflict qualification
+
+Application source `7d7e7acd7ce061d472231b85b55f4a29cd8d7ebe` is pushed and
+independently verified on `work`; `main` remains8026444c98cd. Clean stamped build
+passes, exit0 in377.90s. Package `package-strategy-preview9`, version
+0.0.0-daily.strategy.preview9, has five verified assets; CLI SHA256
+`4ade8f05f4222ecf287f4f46bcc738dafa100a9f2f785331efe04365187679a7`.
+The selected source checks total515:349 state,20 app-server,3 CLI,114 TUI
+(including official Neovim),4 schema comparisons and25 Python contracts. These
+are affected checks, not the full repository/platform suite. Production lint and
+formatting pass; the original lint failure remains.
+
+`strategic-owner-native-v2/result.json` passes actual palette/forms/F6/y strategy
+proposal and separate exact adoption, mission revision1 to2 with no grant. A
+versioned rule routes an actual failed artifact task through the assistance form:
+its captured rule revision, critical severity and3600-second response deadline
+match canonical state. The already failed grant/accounting remain unchanged.
+Normal CLI exit0/daemon stop0; one localhost response/15 synthetic tokens, zero
+paid, no acceptance or Application. The first driver incorrectly toggled out of
+Controls after the app had already selected the saved proposal; its failure is
+preserved and creates no inference authority.
+
+`model-conflict-native/continuation/result.json` passes two controlled samples,
+actual tool approvals, immutable checks and explicit owner acceptance. Provider,
+role, task, criteria, scope, frozen oracle and original output bases match; only
+model varies. Actual model-comparison form saves a proposal and separate exact
+adoption updates the captured agent model. Prior grant/accounting remain identical.
+Four total localhost responses/60 synthetic tokens, zero paid and no Application.
+The initial driver expected the wrong acceptance enum; continuation accepts the
+existing first result without replaying its two requests or creating another grant.
+
+After an independent owner file change, the actual conflict command displays the
+entire bounded merge and exact base/source/owner hashes. Confirmation changes
+only the pinned real Neovim buffer to conflict-marker text; original disk bytes
+stay unchanged. Native undo restores the clean owner buffer. Normal CLI exit0 and
+daemon stop0. This qualifies version fencing and native editing, not model quality
+or automatic conflict resolution. Saving and fresh checks remain separate.
+
+Both source homes and all failures/receipts stay preserved. Never replay their
+setup, grants, approvals, acceptance, strategy/model adoption or reset counters.
+Tree scale, all-layout walkthrough, positive conversation/restart, priced unknown
+usage and final mixed endurance/recovery are still in progress. Task13 requires
+a suitable host. These are qualified slices, not a completed forty-task batch.
