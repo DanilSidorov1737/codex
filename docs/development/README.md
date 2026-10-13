@@ -13,8 +13,8 @@ remain charged. [Repository preview](repository-preview.md) passes packaged nati
 contract, package and actual native CLI/TUI/Neovim qualification on66013d5a2a.
 The remaining forty-task work continues.
 Pinned comments, independent saved-file checks and exact reviewed local Git
-controls are under qualification; see [owner review and Git](owner-review-and-git.md)
-and the latest status for passed checks and remaining native/package evidence.
+controls pass actual packaged CLI/TUI/official-Neovim qualification on6bf3e34093;
+see [owner review and Git](owner-review-and-git.md) and current evidence/status.
 Read [all38 fork-text sections](fork-text-coverage.md) for evidence-linked
 coverage and explicit remaining capabilities; row counts are not completion percentages.
 

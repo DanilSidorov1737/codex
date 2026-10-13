@@ -1,9 +1,9 @@
 # Pinned feedback, fresh saved-file checks and reviewed local Git
 
 Approved daily-use tasks21–23 reuse versioned owner controls, the isolated native
-check runner and native Git. This source slice is under qualification; choose
-packages from current status/evidence rather than assuming every command exists
-in the previous preview.
+check runner and native Git. Source `6bf3e34093` is qualified through selected
+checks and actual packaged CLI/TUI/official-Neovim workflows. Choose packages
+from current status/evidence; this is not the final forty-task release.
 
 Select a current reviewable/accepted result and its output, then Ctrl-P →
 **Comment on exact artifact revision / file / lines**. Enter one-based inclusive

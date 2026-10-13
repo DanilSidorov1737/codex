@@ -90,11 +90,19 @@ Current package:0.0.0-daily.repair.preview7; CLI SHA256
 `4fb50c09e7001702591fbce54b85ee2694609904c34f7c12098deb0288acf905`. Generated schemas retain their existing raw style after
 correcting an optional-formatter mismatch; no assertions/dependencies are changed.
 Tasks21–23 pinned comments, fresh saved-file verification and reviewed local Git
-controls are in source/test qualification; see owner-review-and-git.md. Full346
+controls are qualified on `6bf3e34093`; see owner-review-and-git.md. Full346
 state,20 app-server,3 CLI,110 TUI and25 SDK checks pass, including actual official
 Neovim. Stable/experimental generation, all4 schema comparisons, full formatting
-and production lint with warnings denied pass. Final CLI checks, clean package
-and new native workflows remain pending.
+and production lint with warnings denied pass. Final3 CLI checks pass; the clean
+stamped build takes446.58s. Package0.0.0-daily.review.preview8 has CLI SHA256
+`34ad32349802fb04301d1e9475cfc0940c7e57c4d114542597bc99c6be659f5b`.
+Actual TUI comments, negative ranges/hashes, unchanged authority and official
+Neovim diff pass with normal CLI exit0/daemon stop0. Independent saved-file
+checks, real Neovim edit/save, exact one-file local commit, stale input/output,
+unrelated index, signing/filter, secret and replay refusals pass. No new paid
+calls; comment fixture retains2 synthetic requests/30 tokens, no acceptance/Apply.
+Fresh paused full restore preserves its exact comment/history/grant/result/usage.
+Never replay either native driver or its local commit; preserve all failed runs.
 Remaining strategic proposals/escalation rules/comparison,
 tree/layout/keyboard/conflict/endurance/coverage work is unfinished. Continue all
 independent daily-use tasks; real-host task13 still needs a suitable host. Do not

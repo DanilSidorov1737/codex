@@ -599,3 +599,58 @@ and rechecks every frozen check input immediately before native Git commit.
 Full repository formatting passes again after SDK generation. Final selected CLI
 tests, clean stamped package and actual native walkthroughs continue; this is not
 the completed forty-task batch.
+
+## Pinned feedback and owner-file/Git native qualification
+
+Application source `6bf3e340938faefe453e7b3018051ce5107c4fcc` is committed and
+pushed/independently verified on `work`; `main` stays8026444c98cd. Final selected
+CLI3 tests pass, exit0 after337.47s (`owner-review-cli-final-tests-result.json`).
+The clean stamped CLI builds in446.58s, exit0. Package
+`package-review-preview8`, version0.0.0-daily.review.preview8, retains a verified
+five-asset proof. CLI SHA256:
+`34ad32349802fb04301d1e9475cfc0940c7e57c4d114542597bc99c6be659f5b`.
+
+`review-comment-native/continuation/result.json` passes actual physical TUI
+palette/form/F6/y feedback, exact task revision/result/file SHA/lines1–2, invalid
+line/hash refusals, unchanged canonical execution view and actual official Neovim
+diff. Normal CLI exit0/daemon stop0. Its original task retains2 localhost
+responses/30 synthetic tokens, unaccepted root result, no Application and unchanged
+owner originals. The continuation creates no grant or model request. Full offline
+bundle/fresh restore and read-only CLI verification preserve the exact comment,
+control history, grant/result and counters; restored global pause is verified.
+
+`owner-check-git-native-v2/result.json` passes physically entered actual CLI
+commands in official-Neovim terminals. Wrong saved code fails the immutable
+oracle. Actual Neovim normal/insert/save/quit edits multiplication; fresh native
+checks pass its saved bytes. A second captured argv proves frozen-file write
+denial, protected original/home read denial and absent provider credentials.
+Both argv/check/input pins remain in the verification. A further independent
+check proves a nonsecret parent environment marker is excluded from native checks.
+No organization database/base-blob store, grant, result, acceptance or Apply is
+created by these owner-only checks.
+
+Preview leaves index bytes unchanged. Changed output or immutable check input,
+unrelated staging, configured signing/clean filters and missing confirmation are
+refused. Configuration and unrelated index bytes stay intact. The exact one-file
+local commit is `cb00393f6d42878a909433d1f03cdd074ef9265b`; parent/path/blob and
+private completed receipt are verified, unrelated dirty files remain and replay
+is refused. All command terminals and actual editor exit0. Additional real checks
+pass for harmless `.env.demo`/dummy private-key-signature fixtures, but preview
+refuses both before staging; HEAD/index unchanged and no new commit. These are
+bounded secret screens, not a comprehensive detector or provider quality claim.
+Git previews/receipts are separate owner JSON evidence, not SQLite tool actions.
+
+Failures remain: first check driver caught EACCES but native read-only mounts
+return EROFS; corrected guard requires errno13/30. The first comment driver
+typed21 at a prefilled cursor rather than2 and the form refused it. Feedback-only
+continuation corrects cursor input without replaying its completed grant/tool
+approval or altering usage. Neither failed driver is described as a normal exit.
+All owned services are stopped. Never rerun native setup/grants/feedback/Git
+commit or reset counters/index; retain both failed fixtures and completed receipts.
+
+After compiler writers stop,180 unreferenced obsolete relocated generated files
+are hash-recorded/pruned (4,595,937,280 volatile bytes). Verified idle generated
+relocations free1,509,519,360 root bytes/30 files and1,001,082,880 bytes/11 files,
+preserving content, mtime and cache paths. Source, packages, owner/state/recovery
+data and every receipt remain. Continue tasks8/27–28/31–35/38–40 and remaining
+final qualification; suitable-host task13 remains externally blocked.

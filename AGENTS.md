@@ -260,6 +260,18 @@ Safe ordinary GitHub work-branch updates are authorized; external integrations,
 cloud workers, Dot API, deployment/merge and automatic root acceptance/Apply stay
 deferred. This latest approval supersedes older completed-batch next-step text.
 
+Daily-use tasks21–23 are qualified on application source `6bf3e34093`: pinned
+artifact feedback, independent saved-file native checks and exact reviewed local
+Git. Read owner-review-and-git.md and current daily-use evidence/status. Preserve
+`daily-use-batch/review-comment-native`, its two synthetic requests/30 tokens,
+unaccepted result/comment/history and fresh paused recovery bundle/restore.
+Further review uses a fresh restore; never replay its grants/approvals/comment
+driver or reset usage. Preserve `owner-check-git-native-v2`, its fresh verification,
+one exact local commit `cb00393f6d42878a909433d1f03cdd074ef9265b`, private consumed
+Git receipt, unrelated dirty work and failed earlier fixture. NEVER rerun its
+setup/commit or reset its index to hide failures. All owned services are stopped.
+This is a qualified slice; continue every remaining independent forty-task item.
+
 Then read [decisions](docs/development/decisions-and-risks.md),
 [MVP plan](docs/development/mvp.md), [testing](docs/development/testing.md) and
 [process](docs/development/process.md). Reconcile current user instructions with
