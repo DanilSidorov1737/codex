@@ -1,29 +1,21 @@
 """Version discovery for Codex packages."""
 
-import re
+import tomllib
 
 from .targets import REPO_ROOT
 
 
-WORKSPACE_VERSION_PATTERN = re.compile(r'^version\s*=\s*"([^"]+)"')
-
-
 def read_workspace_version() -> str:
     cargo_toml = REPO_ROOT / "codex-rs" / "Cargo.toml"
-    in_workspace_package = False
-    with open(cargo_toml, encoding="utf-8") as fh:
-        for line in fh:
-            stripped = line.strip()
-            if stripped == "[workspace.package]":
-                in_workspace_package = True
-                continue
+    with open(cargo_toml, "rb") as fh:
+        data = tomllib.load(fh)
 
-            if in_workspace_package and stripped.startswith("["):
-                break
+    try:
+        version = data["workspace"]["package"]["version"]
+    except (KeyError, TypeError):
+        raise RuntimeError(f"Could not find [workspace.package].version in {cargo_toml}")
 
-            if in_workspace_package:
-                match = WORKSPACE_VERSION_PATTERN.match(stripped)
-                if match is not None:
-                    return match.group(1)
+    if not isinstance(version, str):
+        raise RuntimeError(f"Could not find [workspace.package].version in {cargo_toml}")
 
-    raise RuntimeError(f"Could not find [workspace.package].version in {cargo_toml}")
+    return version
