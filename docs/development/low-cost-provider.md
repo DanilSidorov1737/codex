@@ -67,8 +67,12 @@ cap, not an input/context, request-count, total-task or invoice cap.
 Provider/configuration/model/API library checks pass641 tests; the core reuse
 guard passes1 and API integration passes9. Actual preview2 TUI requests carry37
 and both bounded task requests carry30 after narrowing to its captured ceiling.
-The task's real immutable native check passes. This uses localhost synthetic
-responses, not a new paid provider cap/coding pilot. Source/default regressions,
-final packaging and live coding/delegation remain in progress. Preserve
-consumed/unknown usage and the remaining original $1 test
-ceiling across every attempted live pilot.
+The task's real immutable native check passes using localhost synthetic responses.
+The later actual paid coding pilot also passes3 native requests, immutable checks,
+official-Neovim review and exactly one owner-confirmed Apply; standard usage
+estimate$0.00328365. The first finite delegated pilot fails at its shared request
+ceiling and costs an estimated$0.0119091. Its charged failure exposed lossy tool
+schema and unconditional planning guidance; correction/requalification is in
+progress. [Evidence and no-replay instructions](daily-use-qualification.md)
+retain both outcomes. Final packaging and corrected delegation remain pending.
+Preserve consumed/unknown usage and the original$1 ceiling across every pilot.

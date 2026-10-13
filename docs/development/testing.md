@@ -1,5 +1,26 @@
 # Testing procedures and evidence
 
+## Daily-use checkpoint: priced recovery and paid coding
+
+Read [current evidence](daily-use-qualification.md) before historical batches.
+The clean53e37b68ab package passes native USD/endpoint admission, captured checks
+and paused full restore with unchanged accounting. State344, schema4, Python
+contracts5 and production Clippy/build/full formatting pass. Selected TUI106
+includes actual Neovim; app-server17 and package-builder28 checks pass.
+Actual provider task5 passes TUI action approval, native immutable checks,
+official-Neovim review, exact acceptance and one Apply; normal exit0/daemon stop0,
+3 requests/6,083 tokens, standard estimate$0.00328365. Retain both corrected
+focus/fold driver failures; no inference or Apply was replayed.
+
+The finite task6 delegated pilot fails at the shared12-request ceiling, costing
+an estimated$0.0119091; its document pilot never starts. The runtime correction
+retains host-generated coordination fields/enums and gives direct-edit workers
+appropriate guidance. `delegation-guidance-tests-v2.log` passes18 selected
+app-server tests after correcting the new test's draft7 definition-table assumption.
+These are actual native runtime/workspace tests and a schema regression, not
+proof of a successful corrected live delegate. Fresh-package paid qualification
+remains pending. Keep all failed grants/usage/rollouts and stopped homes intact.
+
 ## Adaptive batch final qualification
 
 Final application source `3eca8520e0`; all30 bounded approved tasks complete.

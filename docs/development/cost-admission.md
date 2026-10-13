@@ -68,6 +68,10 @@ package passes native quoted-task admission: over-budget and wrong-endpoint
 quotes are refused before authorization, the valid captured quote is retained,
 both native requests carry30-token output caps and the immutable check passes.
 Four localhost requests/60 synthetic tokens/zero paid calls; normal TUI exit0
-and owned daemon stop0. Priced unknown/delegation and paid-provider pilots remain
-pending. Do not mark task8
-complete or replay the already completed native-cap fixtures to qualify it.
+and owned daemon stop0. The subsequent live coding grant retains its quote through
+3 reported requests, checks, exact acceptance and one Apply. The failed delegated
+grant retains its original shared12-request ceiling and charged28,550 tokens;
+its child cannot create another child after the root ceiling is exhausted.
+See [paid evidence](daily-use-qualification.md#real-provider-coding-and-retained-delegation-failure-tasks5–6).
+Priced unknown-usage and corrected delegation qualification remain pending.
+Do not mark task8 complete or replay completed native-cap/paid fixtures.

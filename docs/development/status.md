@@ -19,7 +19,7 @@ a completed forty-task release. The first redacted-limit walkthrough failed and
 was fixed without changing secret redaction. All new owned services are stopped.
 Generated-cache relocations preserve exact bytes and leave several GiB on both
 root and `/tmp`; inspect headroom before every selection. Remaining scope is
-unfinished, including cost admission/live coding/lifecycle/Owner work.
+unfinished, including corrected delegation/lifecycle/Owner work.
 GitHub `work` is updated through0752f85977. The output-cap/package slice's106
 selected TUI checks pass, including actual Neovim. Task8 now has uncommitted
 [USD admission](cost-admission.md) source,115 passing state checks and106 cost TUI
@@ -35,6 +35,16 @@ Those two native checks now pass on clean/stamped application53e37b68ab:
 over-budget/wrong-endpoint quote refusal, valid native quoted work, immutable
 checks and fresh full restore with global pause and unchanged quote/usage/result
 evidence. All services stopped, zero new paid inference; read current qualification.
+Task5 now passes actual paid coding, native immutable checks, physical action
+approval, official-Neovim review, exact acceptance/one Apply and normal CLI exit0
+on53e37b68ab. Three requests/6,083 tokens; estimated$0.00328365. The first finite
+task6 delegated pilot fails at the original shared12-request ceiling:28,550
+reported tokens/$0.0119091 estimate, no acceptance/Apply, document pilot unrun.
+The child was prompted to plan recursively and guessed arguments after lossy
+schema compaction. The minimal runtime correction retains the trusted DTO schema
+and makes context/delegation conditional;18 selected app-server tests now pass.
+Production lint/new package/fresh bounded requalification are next. Preserve both
+paid fixtures, failures and charged usage; never replay their grants/Apply.
 Candidate `package-cost-preview3` is not the completed forty-task release.
 The adaptive release below remains the qualified application baseline.
 

@@ -95,3 +95,11 @@ pass. Task4/10 package identity and diagnostics pass the actual walkthrough;
 qualification candidate, not the final forty-task release. Remaining tasks are
 unfinished. Record
 source, commands, pass/fail/unrun outcomes and resumption.
+
+The clean53e37b68ab candidate now passes native USD admission and paused full
+restore, plus task5 actual paid coding/approval/Neovim review/exactly one Apply.
+The first task6 delegation consumes its shared12-request ceiling and fails;
+charged usage and unchanged originals remain. The minimal runtime correction
+preserves the trusted coordination schema and stops unconditional planning/context
+reads. Its18 selected app-server tests pass; production/new-package qualification
+and a fresh bounded pilot remain. Never replay failed or completed pilot authority.

@@ -221,10 +221,46 @@ stay stopped; neither restored daemon nor model was started. Preserve all three
 failed/successful recovery directories. Upgrade/rollback and actual restored
 editor walkthroughs remain.
 
-Finish current-source lint/protobuf/selected TUI checks and logical commits,
-then conservative cost admission, current-release live coding/delegation and
-the local package lifecycle. Tasks
-5–8/10–40 remain unfinished. Task13 remains gated on an actual suitable host.
-Use fresh native fixtures, retain unknown usage and the remaining $1 envelope,
-and preserve every historical quarantine. Do not rerun either diagnostic script:
-the first has preserved unsent input; the second is a completed paid turn.
+## Real provider coding and retained delegation failure: tasks5–6
+
+`live-code-pilot/` uses the actual clean53e37b68ab package and official HTTPS
+GPT-5.4 Mini, retries0 and a1200-token response cap. A captured30,000-token /
+3-request /240-second grant admits a conservative16-cent quote, including5,000
+unknown tokens. The real model corrects addition in `calculator.py`, an owner
+physically approves its action through the TUI, and the native immutable Python
+oracle passes. Actual official-Neovim diff review, exact owner acceptance and
+exactly one Apply produce a passing original-project oracle. `read-only-finish-
+result.json` verifies normal CLI exit0, daemon stop0 and one completed Application.
+There are3 admitted/reported requests and6,083 tokens. Deduplicated native usage
+is5,871 input (3,072 cached) /212 output: standard estimate$0.00328365; uncached
+estimate$0.00535725. These estimates are not provider invoice receipts.
+
+Two driver failures remain: F1 was sent while the actual embedded editor owned
+focus, opening Neovim help; later the applied equal-file diff folded the code.
+The continuations reused the exact checked result, returned focus with Ctrl-G,
+opened native folds with `zR`, and never repeated inference or the completed Apply.
+Never rerun its original, review or acceptance/Apply scripts. All services stopped.
+
+`live-content-pilots/` fails its finite delegated run before starting the document
+pilot. A coordinator correctly proposes, delegates and waits; the child wastes
+calls guessing note syntax and trying to propose another plan, then exhausts the
+shared12-request ceiling. Native usage is28,550 tokens,27,490 input (19,968 cached)
+and1,060 output, estimated$0.0119091 ($0.0253875 uncached). There is no root result,
+acceptance or Apply. Owner originals and immutable oracles remain unchanged;
+daemon stop0. The failed grant, child, rollouts and usage proof remain charged.
+Do not restart this home, reset its limits or replay its intents.
+
+Diagnosis finds two production guidance problems: the generic5000-byte schema
+compactor discards the host-owned coordination DTO's nested plan fields/enums,
+and the runtime prompt asks even direct-edit workers to plan delegation. The
+small fix reuses the existing lossless trusted-schema parser, supplies literal
+string note-search syntax and makes context/delegation conditional on the task.
+The new regression checks the actual exposed plan requirements and note enum;
+its initial test assumed draft2020 `$defs` instead of the generator's draft7
+`definitions`, a retained test failure corrected by supporting both native forms.
+Current-package production qualification and a fresh bounded pilot are pending.
+
+Continue task6 with fresh authority only after this correction is tested/built,
+then package lifecycle and remaining independent tasks15–40. Task13 remains
+blocked on an actual suitable host. Preserve all diagnostic and paid fixtures,
+unknown allowances, original$1 envelope and historical quarantines.
