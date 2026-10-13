@@ -22,6 +22,10 @@ pub struct OrganizationProviderObservation {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct OrganizationProviderCapability {
+    /// Safe endpoint binding for captured owner quotes; absent in legacy inventories.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub endpoint_sha256: Option<String>,
     pub id: String,
     pub selected: bool,
     pub origin: Option<String>,

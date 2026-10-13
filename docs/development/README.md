@@ -3,6 +3,8 @@
 Current approved work: all40 [daily-use/self-development tasks](daily-use-batch.md).
 The completed baseline was pushed/verified to GitHub `work` before tracked edits.
 Read current status for execution, bounds, historical quarantines and evidence.
+Read [all38 fork-text sections](fork-text-coverage.md) for evidence-linked
+coverage and explicit remaining capabilities; row counts are not completion percentages.
 
 Latest delivery: all [30 bounded adaptive-operation/usability tasks](adaptive-batch.md)
 are complete on `3eca8520e0`:919 selected checks, actual CLI/official-Neovim/host/

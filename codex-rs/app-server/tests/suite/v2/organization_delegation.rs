@@ -177,6 +177,7 @@ async fn real_delegation_uses_durable_context_shared_budget_and_checked_artifact
             task_id: task.id.clone(),
             expected_revision: task.revision,
             scope: OrganizationExecutionScope {
+                cost_budget: None,
                 code_mode: false,
                 input_files: vec!["oracle.py".into()],
                 immutable_files: vec!["oracle.py".into()],

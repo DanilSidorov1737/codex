@@ -364,6 +364,11 @@ impl OrganizationRequestProcessor {
         let result = async {
             match params.mutation {
                 OrganizationExecutionMutation::AuthorizeProfile {task_id,expected_revision,profile} => {
+                    if let codex_protocol::organization::OrganizationControlValue::ExecutionProfile { scope, .. } = &profile.value
+                        && let Some(budget) = &scope.cost_budget {
+                        let provider = crate::organization_inventory::provider_evidence(&self.config.model_provider_id, &self.config.model_provider)?;
+                        anyhow::ensure!(budget.provider_id == provider.id && budget.provider_endpoint_sha256 == provider.endpoint_sha256, "cost quote provider does not match the daemon");
+                    }
                     store.authorize_profile(&task_id,expected_revision,&profile,crate::organization_runtime::now()).await?;
                 }
                 OrganizationExecutionMutation::ApplyReplan { task_id, id, expected_revision } => {
@@ -398,6 +403,10 @@ impl OrganizationRequestProcessor {
                     expected_revision,
                     scope,
                 } => {
+                    if let Some(budget) = &scope.cost_budget {
+                        let provider = crate::organization_inventory::provider_evidence(&self.config.model_provider_id, &self.config.model_provider)?;
+                        anyhow::ensure!(budget.provider_id == provider.id && budget.provider_endpoint_sha256 == provider.endpoint_sha256, "cost quote provider does not match the daemon");
+                    }
                     store
                         .authorize_task(
                             &task_id,

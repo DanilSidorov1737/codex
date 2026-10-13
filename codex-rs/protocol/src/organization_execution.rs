@@ -18,6 +18,10 @@ fn legacy_policy_version() -> u32 {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct OrganizationExecutionScope {
+    /// Optional immutable owner quote; limits admission estimates, not invoices.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub cost_budget: Option<Box<OrganizationCostBudget>>,
     /// Explicit owner opt-in. Omitted/false preserves the legacy native-only scope.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     #[ts(as = "Option<_>", optional)]
@@ -48,6 +52,63 @@ pub struct OrganizationExecutionScope {
     #[serde(default)]
     #[ts(type = "number | null")]
     pub not_before: Option<i64>,
+}
+
+/// Owner-controlled USD quote bound to one provider/model and rate revision.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct OrganizationCostBudget {
+    pub provider_id: String,
+    pub provider_endpoint_sha256: String,
+    pub model: String,
+    pub rate_version: String,
+    pub rate_source: String,
+    /// Highest applicable token rate, in USD microdollars per million total tokens.
+    #[ts(type = "number")]
+    pub usd_micros_per_million_tokens: i64,
+    /// Captured reserve for unreported/in-flight token usage; never a refund.
+    #[ts(type = "number")]
+    pub unknown_token_allowance: i64,
+    #[ts(type = "number")]
+    pub max_usd_micros: i64,
+}
+
+impl OrganizationCostBudget {
+    /// Round up integer arithmetic; quotation assumptions exclude non-token charges.
+    pub fn admission_estimate(&self, model: &str, tokens: i64) -> Result<i64, String> {
+        for (value, maximum) in [
+            (&self.provider_id, 256),
+            (&self.model, 256),
+            (&self.rate_version, 128),
+            (&self.rate_source, 512),
+        ] {
+            if value.trim().is_empty() || value.len() > maximum || value.contains('\0') {
+                return Err("invalid cost quote provenance".into());
+            }
+        }
+        if self.provider_endpoint_sha256.len() != 64
+            || !self
+                .provider_endpoint_sha256
+                .bytes()
+                .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+            || self.model != model
+            || !(1..=10_000_000).contains(&tokens)
+            || !(1..=10_000_000).contains(&self.unknown_token_allowance)
+            || !(1..=1_000_000_000_000).contains(&self.usd_micros_per_million_tokens)
+            || !(1..=1_000_000_000_000).contains(&self.max_usd_micros)
+        {
+            return Err("cost quote model, rate, unknown allowance or USD limit is invalid".into());
+        }
+        let tokens = i128::from(tokens) + i128::from(self.unknown_token_allowance);
+        let estimate =
+            (tokens * i128::from(self.usd_micros_per_million_tokens) + 999_999) / 1_000_000;
+        if estimate > i128::from(self.max_usd_micros) {
+            return Err(
+                "conservative token estimate plus unknown allowance exceeds the USD limit".into(),
+            );
+        }
+        i64::try_from(estimate).map_err(|_| "cost estimate overflow".into())
+    }
 }
 
 impl OrganizationExecutionScope {

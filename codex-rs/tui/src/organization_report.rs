@@ -259,6 +259,9 @@ pub(super) fn inventory_text(inventory: &OrganizationInventory) -> String {
         "CONFIGURED CAPABILITIES / RECORDED EVIDENCE\nNo probes, installations or credential values.\n\nPROVIDERS\n",
     );
     for provider in &inventory.providers {
+        if let Some(fingerprint) = &provider.endpoint_sha256 {
+            text.push_str(&format!("Owner quote endpoint binding: {fingerprint}\n"));
+        }
         text.push_str(&format!("{}{} · {} · {}\n  {}\n  {} requests / {} usage receipts · {} checked results · {} failed task attempts\n  models {:?} · attempt {}\n",provider.id,if provider.selected {" (selected)"} else {""},provider.origin.as_deref().unwrap_or("host-resolved endpoint; unknown"),provider.qualification,provider.credential_requirement,provider.observation.model_requests,provider.observation.reported_model_requests,provider.observation.checked_results,provider.observation.failed_attempts,provider.observation.models,provider.observation.latest_attempt_id.as_deref().unwrap_or("none")));
     }
     text.push_str("\nNATIVE TASK TOOLS\n");

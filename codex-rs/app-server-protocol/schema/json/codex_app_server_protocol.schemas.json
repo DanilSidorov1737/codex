@@ -17671,6 +17671,52 @@
         ],
         "type": "object"
       },
+      "OrganizationCostBudget": {
+        "additionalProperties": false,
+        "description": "Owner-controlled USD quote bound to one provider/model and rate revision.",
+        "properties": {
+          "maxUsdMicros": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "model": {
+            "type": "string"
+          },
+          "providerEndpointSha256": {
+            "type": "string"
+          },
+          "providerId": {
+            "type": "string"
+          },
+          "rateSource": {
+            "type": "string"
+          },
+          "rateVersion": {
+            "type": "string"
+          },
+          "unknownTokenAllowance": {
+            "description": "Captured reserve for unreported/in-flight token usage; never a refund.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "usdMicrosPerMillionTokens": {
+            "description": "Highest applicable token rate, in USD microdollars per million total tokens.",
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "maxUsdMicros",
+          "model",
+          "providerEndpointSha256",
+          "providerId",
+          "rateSource",
+          "rateVersion",
+          "unknownTokenAllowance",
+          "usdMicrosPerMillionTokens"
+        ],
+        "type": "object"
+      },
       "OrganizationDeadlineKind": {
         "enum": [
           "goal",
@@ -18046,6 +18092,17 @@
           "codeMode": {
             "description": "Explicit owner opt-in. Omitted/false preserves the legacy native-only scope.",
             "type": "boolean"
+          },
+          "costBudget": {
+            "anyOf": [
+              {
+                "$ref": "#/definitions/v2/OrganizationCostBudget"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional immutable owner quote; limits admission estimates, not invoices."
           },
           "delegates": {
             "items": {
@@ -19341,6 +19398,13 @@
         "properties": {
           "credentialRequirement": {
             "type": "string"
+          },
+          "endpointSha256": {
+            "description": "Safe endpoint binding for captured owner quotes; absent in legacy inventories.",
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "id": {
             "type": "string"

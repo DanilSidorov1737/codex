@@ -422,6 +422,11 @@ impl OrganizationStore {
 }
 
 pub(super) fn validate_scope(scope: &OrganizationExecutionScope) -> Result<()> {
+    if let Some(budget) = &scope.cost_budget {
+        budget
+            .admission_estimate(&scope.model, scope.max_tokens)
+            .map_err(anyhow::Error::msg)?;
+    }
     ensure!(
         !scope.auto_accept_children || !scope.checks.is_empty(),
         "automatic internal acceptance requires owner-declared checks"

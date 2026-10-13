@@ -98,6 +98,7 @@ async fn owner_schedule_api_persists_controls_and_rejects_stale_or_duplicate_aut
         task_id: task.id,
         expected_revision: task.revision,
         scope: Box::new(OrganizationExecutionScope {
+            cost_budget: None,
             code_mode: false,
             input_files: vec![],
             immutable_files: vec![],

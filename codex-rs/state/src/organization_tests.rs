@@ -1028,6 +1028,18 @@ async fn durable_private_store_and_verified_restore() -> Result<()> {
     let recovery = Fixture::new();
     let restored = OrganizationStore::restore_into(&backup, &recovery.0).await?;
     assert_eq!(restored.database_id().await?, identity);
+    let mut tx = restored.pool.begin().await?;
+    let control = super::controls::read(&mut tx, "global")
+        .await?
+        .context("restored safety pause")?;
+    assert!(matches!(
+        control.value,
+        OrganizationControlValue::Global {
+            paused: true,
+            limits: None
+        }
+    ));
+    tx.rollback().await?;
     assert!(
         OrganizationStore::restore_into(&backup, &recovery.0)
             .await
@@ -1057,6 +1069,99 @@ async fn concurrent_restores_never_replace_the_winning_destination() -> Result<(
     let restored = first.or(second)?;
     assert_eq!(restored.database_id().await?, identity);
     check_file(&restored.path())?;
+    restored.close().await;
+    store.close().await;
+    Ok(())
+}
+
+#[tokio::test]
+async fn restored_ready_grants_require_resume_and_keep_global_limits() -> Result<()> {
+    let home = Fixture::new();
+    let store = OrganizationStore::open(&home.0).await?;
+    let node = node_from(
+        store
+            .mutate_owner(
+                node_mutation("Recovery", None, OrganizationNodeKind::Agent),
+                None,
+            )
+            .await?,
+    );
+    let project = execution_project(&store, &node.id).await?;
+    let task = execution_task(&store, &node.id, &project).await?;
+    let grant = store
+        .authorize_task(&task.id, task.revision, execution_scope(), 1000)
+        .await?;
+    let limits = codex_protocol::organization_workflow::OrganizationSharedCeilings {
+        max_tokens: 1000,
+        max_model_requests: 10,
+        max_active: 2,
+    };
+    store
+        .mutate_owner(
+            OrganizationMutation::SetControl {
+                expected_revision: None,
+                value: OrganizationControlValue::Global {
+                    paused: false,
+                    limits: Some(limits.clone()),
+                },
+            },
+            None,
+        )
+        .await?;
+    let backup = store.backup().await?;
+    let recovery = Fixture::new();
+    let restored = OrganizationStore::restore_into(&backup, &recovery.0).await?;
+    let mut tx = restored.pool.begin().await?;
+    let control = super::controls::read(&mut tx, "global")
+        .await?
+        .context("restored global limits")?;
+    assert_eq!(
+        control.value,
+        OrganizationControlValue::Global {
+            paused: true,
+            limits: Some(limits.clone())
+        }
+    );
+    tx.rollback().await?;
+    assert_eq!(
+        restored.execution_view(&task.id).await?.authorization,
+        Some(grant)
+    );
+    let worker = Uuid::now_v7().to_string();
+    let thread = Uuid::now_v7().to_string();
+    assert!(
+        restored
+            .claim_task(&worker, &thread, 1001, 2)
+            .await?
+            .is_none()
+    );
+    restored
+        .mutate_owner(
+            OrganizationMutation::SetControl {
+                expected_revision: Some(control.revision),
+                value: OrganizationControlValue::Global {
+                    paused: false,
+                    limits: Some(limits),
+                },
+            },
+            None,
+        )
+        .await?;
+    assert!(
+        restored
+            .claim_task(&worker, &thread, 1001, 2)
+            .await?
+            .is_some()
+    );
+    let mut tx = store.pool.begin().await?;
+    assert!(matches!(
+        super::controls::read(&mut tx, "global")
+            .await?
+            .context("source control")?
+            .value,
+        OrganizationControlValue::Global { paused: false, .. }
+    ));
+    tx.rollback().await?;
     restored.close().await;
     store.close().await;
     Ok(())
@@ -1211,6 +1316,7 @@ fn node_from(record: Option<OrganizationRecord>) -> OrganizationNode {
 
 fn execution_scope() -> OrganizationExecutionScope {
     OrganizationExecutionScope {
+        cost_budget: None,
         code_mode: false,
         input_files: vec!["input.txt".into(), "oracle.py".into()],
         immutable_files: vec!["oracle.py".into()],
@@ -1549,6 +1655,80 @@ async fn execution_invalid_scope_and_stale_authorization_are_atomic() -> Result<
         "expired leases cannot execute"
     );
     store.close().await;
+    Ok(())
+}
+
+#[tokio::test]
+async fn cost_quote_admission_is_conservative_atomic_and_captured() -> Result<()> {
+    let home = Fixture::new();
+    let store = OrganizationStore::open(&home.0).await?;
+    let node = node_from(
+        store
+            .mutate_owner(
+                node_mutation("Quoted", None, OrganizationNodeKind::Agent),
+                None,
+            )
+            .await?,
+    );
+    let project = execution_project(&store, &node.id).await?;
+    let task = execution_task(&store, &node.id, &project).await?;
+    let quote = OrganizationCostBudget {
+        provider_id: "local".into(),
+        provider_endpoint_sha256: "a".repeat(64),
+        model: "fixture".into(),
+        rate_version: "synthetic-owner-v1".into(),
+        rate_source: "Explicit invented unit-test quote; not provider pricing".into(),
+        usd_micros_per_million_tokens: 5_000_000,
+        unknown_token_allowance: 10,
+        max_usd_micros: 550,
+    };
+    assert_eq!(
+        quote
+            .admission_estimate("fixture", 100)
+            .map_err(anyhow::Error::msg)?,
+        550
+    );
+    let mut fractional = quote.clone();
+    fractional.usd_micros_per_million_tokens = 1;
+    assert_eq!(
+        fractional
+            .admission_estimate("fixture", 1)
+            .map_err(anyhow::Error::msg)?,
+        1
+    );
+    for invalid in 0..5 {
+        let mut bad = quote.clone();
+        match invalid {
+            0 => bad.max_usd_micros = 549,
+            1 => bad.unknown_token_allowance = 0,
+            2 => bad.rate_version.clear(),
+            3 => bad.model = "different-expensive-model".into(),
+            _ => bad.usd_micros_per_million_tokens = i64::MAX,
+        }
+        let mut scope = execution_scope();
+        scope.cost_budget = Some(Box::new(bad));
+        assert!(
+            store
+                .authorize_task(&task.id, task.revision, scope, 1000)
+                .await
+                .is_err()
+        );
+    }
+    let counts: (i64, i64) = sqlx::query_as("SELECT (SELECT count(*) FROM organization_authorizations),(SELECT count(*) FROM organization_outbox)").fetch_one(&store.pool).await?;
+    assert_eq!(counts, (0, 0));
+    let mut scope = execution_scope();
+    scope.cost_budget = Some(Box::new(quote.clone()));
+    let grant = store
+        .authorize_task(&task.id, task.revision, scope, 1000)
+        .await?;
+    assert_eq!(grant.scope.cost_budget, Some(Box::new(quote)));
+    assert_eq!(
+        store.execution_view(&task.id).await?.authorization,
+        Some(grant)
+    );
+    let legacy: OrganizationExecutionScope =
+        serde_json::from_value(serde_json::to_value(execution_scope())?)?;
+    assert_eq!(legacy.cost_budget, None);
     Ok(())
 }
 

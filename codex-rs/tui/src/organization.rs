@@ -5445,6 +5445,19 @@ impl Dashboard {
             .filter(|v| Some(&v.task.id) == self.selected.as_ref())
         {
             if let Some(grant) = &view.authorization {
+                if let Some(budget) = &grant.scope.cost_budget {
+                    match budget.admission_estimate(&grant.scope.model, grant.scope.max_tokens) {
+                            Ok(estimate) => text.push_str(&format!(
+                                "\nCaptured USD admission estimate: ${:.6} / ${:.6} planned limit\nUnknown-token allowance: {} · rate {}\nQuote: {}\nNot an invoice cap; non-token charges excluded.\n",
+                                estimate as f64 / 1_000_000.0,
+                                budget.max_usd_micros as f64 / 1_000_000.0,
+                                budget.unknown_token_allowance,
+                                budget.rate_version,
+                                budget.rate_source,
+                            )),
+                            Err(_) => text.push_str("\nCaptured cost quote is invalid; no estimate available.\n"),
+                        }
+                }
                 text.push_str(&format!("\nShared budget: {} / {} tokens · {} / {} requests\nModel: {} · max {} seconds · children {}\nInputs: {}\nRead-only: {}\nArtifacts: {}\n",view.authorization_used_tokens,grant.scope.max_tokens,view.authorization_model_requests,grant.scope.max_model_requests,grant.scope.model,grant.scope.max_seconds,grant.scope.max_children,grant.scope.input_files.join(", "),grant.scope.immutable_files.join(", "),grant.scope.artifacts.join(", ")));
             }
             if let Some(grant) = &view.authorization {
@@ -5461,7 +5474,11 @@ impl Dashboard {
                             )
                         })
                         .unwrap_or_else(|| {
-                            "Model price unavailable: no matching trusted owner quote.\n".into()
+                            if grant.scope.cost_budget.is_some() {
+                                "Current display-price file has no matching entry; the captured admission quote is shown separately.\n".into()
+                            } else {
+                                "Model price unavailable: no matching trusted owner quote.\n".into()
+                            }
                         }),
                 );
             }

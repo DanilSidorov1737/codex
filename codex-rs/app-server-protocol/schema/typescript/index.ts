@@ -72,6 +72,7 @@ export type { OrganizationControl } from "./OrganizationControl";
 export type { OrganizationControlHistory } from "./OrganizationControlHistory";
 export type { OrganizationControlValue } from "./OrganizationControlValue";
 export type { OrganizationConversationEntry } from "./OrganizationConversationEntry";
+export type { OrganizationCostBudget } from "./OrganizationCostBudget";
 export type { OrganizationDeadlineKind } from "./OrganizationDeadlineKind";
 export type { OrganizationDiscussion } from "./OrganizationDiscussion";
 export type { OrganizationExecutionMutation } from "./OrganizationExecutionMutation";

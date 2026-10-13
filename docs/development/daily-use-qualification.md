@@ -154,6 +154,43 @@ No authoritative file or installed package is a target. Root now has approximate
 
 ## Next work
 
+Source checkpoints: model17235eb152, output cap74896653f0, package identity
+cf57bad0a1 and lockfile/native-color captures0752f85977; GitHub `work` is updated
+through0752f85977. The corrected TUI test import passes106 selected checks,
+including actual Neovim (`tui-organization-tests-v2.log`). The idle-only final
+generated-cache move verifies33 files/3,173,697,144 bytes into `/dev/shm`, with
+receipt `generated-shm-cache-relocation.json`. These compiler files are volatile;
+packages, state and receipts remain persistent and untouched.
+
+Task8 [cost admission](cost-admission.md) now has uncommitted typed/state/provider/
+TUI source,115 selected passing state checks and106 selected cost TUI checks;
+schema/SDK, production and actual priced native checks are unfinished. New cost
+behavior is absent from preview2; do not qualify it using that older binary.
+
+Stable/experimental native schema generation and all4 fixture comparisons now
+pass. Python SDK generation and its5 contract checks pass. The updated state
+library passes343 checks, followed by one added passing queued-restore/resume
+regression (344 distinct tests). Full root formatting passes.
+
+The task14 offline rehearsal retains both failed attempts: the first inspection
+assumed an `id` column instead of `attempt_id` in results; it started no backup.
+`native-recovery-v2` then backs up/restores successfully and preserves counts,
+grants, usage and results, but fails its safety-pause assertion. Its original
+snapshot had no global control and the existing restorer did not create a pause.
+Neither daemon was started. Keep that restored home stopped; it is not qualified
+safe recovery. Separate nonsecret configuration/project copies and bundle remain.
+
+The new restorer holds the execution lock before publishing the database and
+sets a captured global pause while preserving existing lifetime limits. It does
+not reset grants, usage, decisions or results. Tests cover absent control, ready
+grant refusal until explicit owner resume, preserved limits/source control and
+concurrent destination refusal. Production lint/new package and a fresh actual
+recovery rerun are pending. Preview2 predates this fix.
+Current production lint passes (`cost-binding-clippy.log`,6m01s); full formatting,
+the regenerated safe-binding schemas4 and Python contracts5 pass. The approved
+forty-task work is still unfinished. [Coverage](fork-text-coverage.md) maps all38
+original text sections to bounded evidence and explicit remaining capabilities.
+
 Finish current-source lint/protobuf/selected TUI checks and logical commits,
 then conservative cost admission, current-release live coding/delegation and
 the local package lifecycle. Tasks

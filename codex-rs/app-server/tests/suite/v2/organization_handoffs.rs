@@ -128,6 +128,7 @@ async fn blocked_checkpoint_handoff_reuses_grant_verified_files_and_remaining_bu
         unreachable!()
     };
     let scope = OrganizationExecutionScope {
+        cost_budget: None,
         model: "gpt-5.4".into(),
         input_files: vec!["input.txt".into(), "oracle.py".into()],
         immutable_files: vec!["oracle.py".into()],

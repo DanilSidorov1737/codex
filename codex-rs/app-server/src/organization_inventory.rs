@@ -58,6 +58,7 @@ pub(crate) async fn inventory(
         let evidence = provider_evidence(id, provider)?;
         let observation = store.provider_observations(&evidence).await?;
         providers.push(OrganizationProviderCapability {
+            endpoint_sha256: Some(evidence.endpoint_sha256),
             id:id.clone(),selected:id==&config.model_provider_id,origin:evidence.origin,
             credential_requirement:provider.env_key.as_ref().map(|key|format!("Configured environment binding: {key}; values omitted")).unwrap_or_else(||if provider.requires_openai_auth {"Codex owner authentication; credentials remain on the host"} else {"Provider-specific host authentication; configuration does not prove readiness"}.into()),
             qualification:if observation.checked_results>0 {"checkedResultObserved"} else if observation.reported_model_requests>0 {"usageObserved"} else if observation.model_requests>0 {"requestRecorded"} else {"notTested"}.into(),

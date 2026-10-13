@@ -20,6 +20,17 @@ was fixed without changing secret redaction. All new owned services are stopped.
 Generated-cache relocations preserve exact bytes and leave several GiB on both
 root and `/tmp`; inspect headroom before every selection. Remaining scope is
 unfinished, including cost admission/live coding/lifecycle/Owner work.
+GitHub `work` is updated through0752f85977. The output-cap/package slice's106
+selected TUI checks pass, including actual Neovim. Task8 now has uncommitted
+[USD admission](cost-admission.md) source,115 passing state checks and106 cost TUI
+checks; contracts, production and actual priced-grant tests remain pending. Preview2
+predates cost admission. Preserve every native fixture and use a fresh priced
+qualification home after the new package is built.
+Cost schemas4/Python contracts5 and344 distinct state checks pass. The offline
+recovery rehearsal exposed missing global pause on a snapshot without controls;
+its failed restore remains stopped. New source locks execution before publication
+and pauses restored work without resetting limits/accounting. Native new-package
+priced-grant and corrected recovery qualification are next.
 The adaptive release below remains the qualified application baseline.
 
 Latest delivery: **all30 bounded adaptive-operation/usability tasks are complete**

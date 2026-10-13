@@ -12,6 +12,7 @@
 use anyhow::Context;
 use anyhow::Result;
 use anyhow::ensure;
+use codex_protocol::organization::OrganizationControlValue;
 use sqlx::SqlitePool;
 use sqlx::migrate::Migrator;
 use sqlx::sqlite::SqliteConnectOptions;
@@ -254,6 +255,11 @@ impl OrganizationStore {
             .context("restore destination must be a fresh organization directory")?;
         private_directory(&directory).await?;
         let staging = directory.join("restore.partial");
+        // Hold execution ownership before publishing an otherwise runnable snapshot.
+        let execution_lock = private_file(&directory.join("execution.lock"), true)?;
+        execution_lock
+            .try_lock()
+            .context("another service owns the restore destination")?;
         let mut source = private_file(backup, false)?;
         let mut target = private_file(&staging, true)?;
         std::io::copy(&mut source, &mut target)?;
@@ -264,7 +270,27 @@ impl OrganizationStore {
         tokio::fs::hard_link(&staging, directory.join(DATABASE)).await?;
         tokio::fs::remove_file(&staging).await?;
         sync_directory(&directory)?;
-        Self::open(sqlite_home).await
+        let restored = Self::open(sqlite_home).await?;
+        let mut tx = restored.pool.begin_with("BEGIN IMMEDIATE").await?;
+        let previous = controls::read(&mut tx, "global").await?;
+        let mut value = previous
+            .as_ref()
+            .map(|control| control.value.clone())
+            .unwrap_or(OrganizationControlValue::Global {
+                paused: true,
+                limits: None,
+            });
+        let OrganizationControlValue::Global { paused, .. } = &mut value else {
+            anyhow::bail!("invalid restored global control");
+        };
+        if !*paused || previous.is_none() {
+            *paused = true;
+            controls::set(&mut tx, previous.map(|control| control.revision), value).await?;
+            execution::event(&mut tx, "recovery/paused", "global").await?;
+        }
+        tx.commit().await?;
+        drop(execution_lock);
+        Ok(restored)
     }
 }
 

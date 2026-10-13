@@ -5,7 +5,7 @@ use crate::bottom_pane::TextAreaState;
 use crossterm::event::KeyModifiers;
 use ratatui::layout::Margin;
 
-const SCOPE_FIELDS: usize = 15;
+const SCOPE_FIELDS: usize = 16;
 
 pub(super) enum Kind {
     ProjectExplorer {
@@ -1649,6 +1649,16 @@ mod tests {
     fn recurring_form_freezes_template_identity_scope_and_finite_limits() {
         let mut form = Form::new(Kind::Schedule(task()), &[], None, "native-model");
         let scope = OrganizationExecutionScope {
+            cost_budget: Some(Box::new(OrganizationCostBudget {
+                provider_id: "local".into(),
+                provider_endpoint_sha256: "a".repeat(64),
+                model: "native-model".into(),
+                rate_version: "synthetic-owner-v1".into(),
+                rate_source: "Invented native-form test quote, not provider pricing".into(),
+                usd_micros_per_million_tokens: 5_000_000,
+                unknown_token_allowance: 10,
+                max_usd_micros: 6000,
+            })),
             code_mode: false,
             input_files: vec!["oracle.py".into()],
             immutable_files: vec!["oracle.py".into()],
@@ -1691,6 +1701,7 @@ mod tests {
         assert_eq!(task_id, "original-task");
         assert_eq!(expected_revision, 7);
         assert_eq!(captured.not_before, None);
+        assert_eq!(captured.cost_budget, scope.cost_budget);
         assert!(captured.require_tool_approval);
         assert_eq!(captured.checks, scope.checks);
         assert_eq!(
@@ -1989,6 +2000,11 @@ impl Form {
                     ),
                 ],
                 None,
+            ),
+            Field::text(
+                "Cost budget (optional JSON)",
+                "Captured USD quote, provider/model/rate version and unknown reserve; not an invoice cap",
+                "",
             ),
         ]
     }
@@ -2800,6 +2816,13 @@ impl Form {
                 .set_text_clearing_elements(&scope.max_children.to_string());
             self.fields[start + 12].choice = usize::from(scope.auto_accept_children);
             self.fields[start + 14].choice = usize::from(scope.code_mode);
+            self.fields[start + 15].input.set_text_clearing_elements(
+                &scope
+                    .cost_budget
+                    .as_ref()
+                    .map(|budget| serde_json::json!(budget).to_string())
+                    .unwrap_or_default(),
+            );
         }
     }
     pub(super) fn key(&mut self, key: KeyEvent) {
@@ -2985,6 +3008,10 @@ impl Form {
             })
         };
         let scope = OrganizationExecutionScope {
+            cost_budget: optional(15)
+                .map(|body| serde_json::from_str(&body))
+                .transpose()
+                .map_err(|error| anyhow::anyhow!("Invalid cost budget JSON: {error}"))?,
             code_mode: value(14) == "true",
             input_files: lines(0),
             immutable_files: lines(1),
@@ -3002,6 +3029,11 @@ impl Form {
             auto_accept_children: value(12) == "true",
             not_before: optional(13).map(|s| s.parse::<i64>()).transpose()?,
         };
+        if let Some(budget) = &scope.cost_budget {
+            budget
+                .admission_estimate(&scope.model, scope.max_tokens)
+                .map_err(anyhow::Error::msg)?;
+        }
         anyhow::ensure!(
             (1..=10_000_000).contains(&scope.max_tokens)
                 && (1..=3600).contains(&scope.max_seconds)

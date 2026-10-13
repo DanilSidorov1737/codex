@@ -3276,6 +3276,33 @@ class OrganizationConversationEntry(BaseModel):
     task_id: Annotated[str, Field(alias="taskId")]
 
 
+class OrganizationCostBudget(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    max_usd_micros: Annotated[int, Field(alias="maxUsdMicros")]
+    model: str
+    provider_endpoint_sha256: Annotated[str, Field(alias="providerEndpointSha256")]
+    provider_id: Annotated[str, Field(alias="providerId")]
+    rate_source: Annotated[str, Field(alias="rateSource")]
+    rate_version: Annotated[str, Field(alias="rateVersion")]
+    unknown_token_allowance: Annotated[
+        int,
+        Field(
+            alias="unknownTokenAllowance",
+            description="Captured reserve for unreported/in-flight token usage; never a refund.",
+        ),
+    ]
+    usd_micros_per_million_tokens: Annotated[
+        int,
+        Field(
+            alias="usdMicrosPerMillionTokens",
+            description="Highest applicable token rate, in USD microdollars per million total tokens.",
+        ),
+    ]
+
+
 class OrganizationDeadlineKind(Enum):
     goal = "goal"
     project = "project"
@@ -3396,6 +3423,13 @@ class OrganizationExecutionScope(BaseModel):
         Field(
             alias="codeMode",
             description="Explicit owner opt-in. Omitted/false preserves the legacy native-only scope.",
+        ),
+    ] = None
+    cost_budget: Annotated[
+        OrganizationCostBudget | None,
+        Field(
+            alias="costBudget",
+            description="Optional immutable owner quote; limits admission estimates, not invoices.",
         ),
     ] = None
     delegates: list[str]
@@ -10624,6 +10658,13 @@ class OrganizationProviderCapability(BaseModel):
         populate_by_name=True,
     )
     credential_requirement: Annotated[str, Field(alias="credentialRequirement")]
+    endpoint_sha256: Annotated[
+        str | None,
+        Field(
+            alias="endpointSha256",
+            description="Safe endpoint binding for captured owner quotes; absent in legacy inventories.",
+        ),
+    ] = None
     id: str
     observation: OrganizationProviderObservation
     origin: str | None = None

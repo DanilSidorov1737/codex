@@ -215,6 +215,17 @@ impl OrganizationRuntime {
         let store = self.store().await?.clone();
         let view = store.execution_view(&attempt.task_id).await?;
         let authorization = view.authorization.context("task authorization missing")?;
+        if let Some(budget) = &authorization.scope.cost_budget {
+            let provider = crate::organization_inventory::provider_evidence(
+                &self.config.model_provider_id,
+                &self.config.model_provider,
+            )?;
+            ensure!(
+                budget.provider_id == provider.id
+                    && budget.provider_endpoint_sha256 == provider.endpoint_sha256,
+                "cost quote provider changed; owner must review a matching quote"
+            );
+        }
         let manager = self.manager.upgrade().context("thread manager stopped")?;
         let model_info = manager
             .get_models_manager()

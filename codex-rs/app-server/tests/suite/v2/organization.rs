@@ -328,6 +328,7 @@ Path('report.txt').write_text('checked background artifact')
             task_id: task.id.clone(),
             expected_revision: task.revision,
             scope: OrganizationExecutionScope {
+                cost_budget: None,
                 code_mode: false,
                 input_files: vec!["oracle.py".into(), "probe.py".into()],
                 immutable_files: vec!["oracle.py".into(), "probe.py".into()],

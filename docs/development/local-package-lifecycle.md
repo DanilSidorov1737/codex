@@ -73,6 +73,10 @@ input. Model turns, coding, checks and Code Mode need their own bounded tests.
    the old bundle into a **fresh** test home and inspect it using the new package
    before switching the owner launcher. Preserve grant IDs, counters, approvals,
    accepted hashes and Applications; do not start historical quarantined homes.
+   The new restorer holds execution ownership before publishing its database and
+   sets a global pause while retaining lifetime limits. This behavior is in
+   source/test qualification; older preview2 does not add a pause when the backup
+   had no global control. Verify the actual restored pause before any attachment.
 5. For an actual native managed installation, `codex app-server daemon update
 --from-cli` copies/pins the complete current package. It can restart work:
    invoke it only after the quiescence/recovery preflight, with an explicit owner
