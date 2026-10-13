@@ -10,8 +10,13 @@ import type { OrganizationTaskAuthorization } from "./OrganizationTaskAuthorizat
 import type { OrganizationTaskCheckpoint } from "./OrganizationTaskCheckpoint";
 import type { OrganizationTaskHandoff } from "./OrganizationTaskHandoff";
 import type { OrganizationTaskResult } from "./OrganizationTaskResult";
+import type { OrganizationTokenReservation } from "./OrganizationTokenReservation";
 
 export type OrganizationExecutionView = { task: OrganizationTask, authorization: OrganizationTaskAuthorization | null, authorizationUsedTokens: number, authorizationModelRequests: number,
+/**
+ * Nominal in-flight/unknown allowances, not provider billing guarantees.
+ */
+tokenReservations: Array<OrganizationTokenReservation>,
 /**
  * Recent attempts, newest first; each authorization permits at most three.
  */

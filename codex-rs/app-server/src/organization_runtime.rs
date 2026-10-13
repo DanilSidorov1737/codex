@@ -229,6 +229,9 @@ impl OrganizationRuntime {
                 self.config.features.enabled(Feature::CodeModeHost),
                 "bounded Code Mode requires the actual host enabled at daemon startup"
             );
+            manager
+                .code_mode_availability()
+                .map_err(anyhow::Error::msg)?;
         }
         let linked = self
             .thread_store

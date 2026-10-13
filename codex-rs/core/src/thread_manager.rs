@@ -902,6 +902,10 @@ impl ThreadManager {
         self.state.models_manager.clone()
     }
 
+    pub fn code_mode_availability(&self) -> std::result::Result<(), String> {
+        self.state.code_mode_session_provider.availability()
+    }
+
     pub async fn list_models(
         &self,
         refresh_strategy: RefreshStrategy,

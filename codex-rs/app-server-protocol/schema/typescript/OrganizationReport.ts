@@ -4,13 +4,14 @@
 import type { OrganizationAuditEvent } from "./OrganizationAuditEvent";
 import type { OrganizationGlobalUsage } from "./OrganizationGlobalUsage";
 import type { OrganizationReportTotals } from "./OrganizationReportTotals";
+import type { OrganizationResourcePressure } from "./OrganizationResourcePressure";
 import type { OrganizationRuntimeResources } from "./OrganizationRuntimeResources";
 import type { OrganizationScorecards } from "./OrganizationScorecards";
 import type { OrganizationTaskReport } from "./OrganizationTaskReport";
 import type { OrganizationUpcomingRun } from "./OrganizationUpcomingRun";
 import type { OrganizationUsageReport } from "./OrganizationUsageReport";
 
-export type OrganizationReport = {
+export type OrganizationReport = { resourcePressure: OrganizationResourcePressure | null,
 /**
  * Canonical audit revision; paginated readers must not combine revisions.
  */

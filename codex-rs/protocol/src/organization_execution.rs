@@ -15,15 +15,11 @@ fn legacy_policy_version() -> u32 {
     1
 }
 
-fn is_false(value: &bool) -> bool {
-    !*value
-}
-
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct OrganizationExecutionScope {
     /// Explicit owner opt-in. Omitted/false preserves the legacy native-only scope.
-    #[serde(default, skip_serializing_if = "is_false")]
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     #[ts(as = "Option<_>", optional)]
     pub code_mode: bool,
     /// Files copied from the linked project into an isolated attempt workspace.

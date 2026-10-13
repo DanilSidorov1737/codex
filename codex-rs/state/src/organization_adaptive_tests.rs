@@ -1191,7 +1191,7 @@ async fn uncertainty_inspection_is_pinned_immutable_and_never_releases_a_reserva
         id: Uuid::now_v7().to_string(),
         attempt_id: attempt.id.clone(),
         request_sequence: captured.model_requests,
-        fingerprint: uncertainty_fingerprint(&captured, &before.actions),
+        fingerprint: uncertainty_fingerprint(&captured, &before.actions)?,
         evidence: "No provider completion receipt; retain charge and fence".into(),
     };
     let mut changed = value.clone();

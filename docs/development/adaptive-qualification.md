@@ -461,3 +461,44 @@ production package and qualify managed compatible-model execution through every
 existing fence with fresh localhost fixtures. Only afterward allow CodeModeOnly admission.
 Generated contracts, production checks/package and the full task30 endurance
 workflow are still required. No new paid inference or external integration ran.
+
+Stable and experimental exports now regenerate successfully (exit0,
+`adaptive-schema-generate-v1.log` and `adaptive-schema-experimental-v1.log`).
+All four schema comparisons pass (`adaptive-schema-compare-v1.log`, exit0;
+the explicit generation hook remains intentionally ignored in this comparison
+selection). Python SDK regeneration and its five contract checks pass
+(`adaptive-python-sdk-generate-v1.log`, `adaptive-python-contract-v1.log`).
+The optional TypeScript `codeMode` field preserves existing scope callers.
+
+The real installed-host test also interrupts a CPU-busy JavaScript cell within
+its bounded timeout (`code-mode-actual-host-v3.log`, exit0). Managed scope startup
+now checks the thread manager's actual configured provider availability before
+model admission; the added manager assertion and production build are pending.
+Production Clippy initially stopped on a missing locked `clap_complete` archive;
+the selected online retry retains TLS and Cargo integrity verification. No
+manifest/lockfile changes, paid inference or historical fixture mutations occurred.
+
+Production CLI Clippy with `-D warnings` now passes
+(`adaptive-production-clippy-v5.log`, exit0). The retries exposed a redundant
+boolean serializer helper, a panic in uncertainty fingerprint serialization and
+a nested editor-resize conditional. The boolean predicate reuses the standard
+library; fingerprint failures propagate through state validation and the existing
+owner UI; resize behavior is unchanged. The affected state/TUI tests still need
+their final rerun after these fixes. Full root formatting passed before these
+latest lint fixes; final formatting and the runnable package remain pending.
+
+Only completed generated executables and unreferenced compiler cache targets were
+pruned, with SHA256 receipts (`adaptive-pre-production-unit-prune.json` and
+`adaptive-orphan-generated-cache-prune.json`). Before the production build,
+generated read-only data was hash-verified and relocated with original mode and
+nanosecond timestamps (`adaptive-pre-build-relocation.json`). All historical
+qualification packages, homes, journals, owner files and failures are protected.
+
+The locked/offline production CLI build passes
+(`adaptive-production-build-v1.log`, exit0, 9m52s), as does final full root formatting
+(`adaptive-build-format.log`, exit0). Generated read-only build data was relocated
+with preserved timestamps (`adaptive-post-build-relocation.json`); executable
+outputs remain on executable storage. Next: stage a fresh complete package, run
+the prepared real managed-host fixtures, rerun affected tests, then finish Code
+Mode admission and the full native/endurance qualification. No fresh fixture
+home, grant, model request, acceptance or Apply has yet been created.

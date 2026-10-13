@@ -940,6 +940,7 @@ async fn code_mode_session_provider_is_shared_across_threads() {
         Arc::new(codex_exec_server::EnvironmentManager::default_for_tests()),
     )
     .with_code_mode_session_provider(Arc::clone(&provider));
+    assert!(manager.code_mode_availability().is_err());
     let first = manager
         .start_thread(StartThreadOptions::new(config.clone()))
         .await

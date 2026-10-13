@@ -1042,16 +1042,13 @@ pub(super) async fn stop_task_in(
 pub fn uncertainty_fingerprint(
     attempt: &OrganizationTaskAttempt,
     actions: &[OrganizationActionIntent],
-) -> String {
-    use sha2::Digest;
+) -> Result<String> {
     let mut pinned = attempt.clone();
     pinned.lease_until = 0;
     pinned.last_progress_at = None;
     pinned.runtime_active = false;
-    format!(
+    Ok(format!(
         "{:x}",
-        sha2::Sha256::digest(
-            serde_json::to_vec(&(pinned, actions)).expect("serializable execution records")
-        )
-    )
+        Sha256::digest(serde_json::to_vec(&(pinned, actions))?)
+    ))
 }

@@ -4,6 +4,10 @@
 
 export type OrganizationExecutionScope = {
 /**
+ * Explicit owner opt-in. Omitted/false preserves the legacy native-only scope.
+ */
+codeMode?: boolean,
+/**
  * Files copied from the linked project into an isolated attempt workspace.
  */
 inputFiles: Array<string>,

@@ -3123,6 +3123,66 @@ class OrganizationCheckpointContent(BaseModel):
     remaining_steps: Annotated[list[str], Field(alias="remainingSteps")]
 
 
+class ArtifactShareOrganizationControlValue(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    artifact: OrganizationArtifactEvidence
+    body: str | None = None
+    destinations: list[str]
+    id: str
+    result_digest: Annotated[str, Field(alias="resultDigest")]
+    source_owner_id: Annotated[str, Field(alias="sourceOwnerId")]
+    source_project_id: Annotated[str, Field(alias="sourceProjectId")]
+    source_revision: Annotated[int, Field(alias="sourceRevision")]
+    source_task_id: Annotated[str, Field(alias="sourceTaskId")]
+    type: Annotated[
+        Literal["artifactShare"], Field(title="ArtifactShareOrganizationControlValueType")
+    ]
+
+
+class RoleDraftOrganizationControlValue(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    applied: bool
+    id: str
+    instructions: str
+    name: str
+    source_attempt_id: Annotated[str, Field(alias="sourceAttemptId")]
+    type: Annotated[Literal["roleDraft"], Field(title="RoleDraftOrganizationControlValueType")]
+
+
+class ReconciliationOrganizationControlValue(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    attempt_id: Annotated[str, Field(alias="attemptId")]
+    evidence: str
+    fingerprint: str
+    id: str
+    request_sequence: Annotated[int, Field(alias="requestSequence", ge=0)]
+    type: Annotated[
+        Literal["reconciliation"], Field(title="ReconciliationOrganizationControlValueType")
+    ]
+
+
+class ResourcePressureOrganizationControlValue(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    min_available_memory_bytes: Annotated[int, Field(alias="minAvailableMemoryBytes", ge=0)]
+    min_disk_bytes: Annotated[int, Field(alias="minDiskBytes", ge=0)]
+    path: str
+    type: Annotated[
+        Literal["resourcePressure"], Field(title="ResourcePressureOrganizationControlValueType")
+    ]
+
+
 class MissionOrganizationControlValue(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
@@ -3203,6 +3263,23 @@ class PriorityOrganizationControlValue(BaseModel):
     task_id: Annotated[str, Field(alias="taskId")]
     task_revision: Annotated[int, Field(alias="taskRevision")]
     type: Annotated[Literal["priority"], Field(title="PriorityOrganizationControlValueType")]
+
+
+class OrganizationConversationEntry(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    prompt: str
+    reply: str | None = None
+    reply_attempt_id: Annotated[str | None, Field(alias="replyAttemptId")] = None
+    task_id: Annotated[str, Field(alias="taskId")]
+
+
+class OrganizationDeadlineKind(Enum):
+    goal = "goal"
+    project = "project"
+    task = "task"
 
 
 class OrganizationDiscussion(BaseModel):
@@ -3314,6 +3391,13 @@ class OrganizationExecutionScope(BaseModel):
             description="Owner-supplied argv, executed by the host in the same restricted workspace."
         ),
     ]
+    code_mode: Annotated[
+        bool | None,
+        Field(
+            alias="codeMode",
+            description="Explicit owner opt-in. Omitted/false preserves the legacy native-only scope.",
+        ),
+    ] = None
     delegates: list[str]
     immutable_files: Annotated[
         list[str],
@@ -3372,6 +3456,16 @@ class OrganizationGoal(BaseModel):
     revision: int
 
 
+class OrganizationGoalDependency(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    cross_project_approved: Annotated[bool, Field(alias="crossProjectApproved")]
+    goal: OrganizationGoal
+    project_id: Annotated[str, Field(alias="projectId")]
+
+
 class OrganizationHunkSelection(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
@@ -3404,6 +3498,40 @@ class OrganizationMembership(BaseModel):
     group_id: Annotated[str, Field(alias="groupId")]
     id: str
     node_id: Annotated[str, Field(alias="nodeId")]
+
+
+class MeetingFollowUpOrganizationMutation(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    criteria: list[str]
+    expected_source_revision: Annotated[int, Field(alias="expectedSourceRevision")]
+    goal_id: Annotated[str | None, Field(alias="goalId")] = None
+    instructions: str
+    owner_id: Annotated[str, Field(alias="ownerId")]
+    result_digest: Annotated[str, Field(alias="resultDigest")]
+    source_body: Annotated[str, Field(alias="sourceBody")]
+    source_task_id: Annotated[str, Field(alias="sourceTaskId")]
+    type: Annotated[
+        Literal["meetingFollowUp"], Field(title="MeetingFollowUpOrganizationMutationType")
+    ]
+
+
+class ConversationPromptOrganizationMutation(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    agent_id: Annotated[str, Field(alias="agentId")]
+    expected_revision: Annotated[int | None, Field(alias="expectedRevision")] = None
+    id: str | None = None
+    project_id: Annotated[str, Field(alias="projectId")]
+    prompt: str
+    topic: str
+    type: Annotated[
+        Literal["conversationPrompt"], Field(title="ConversationPromptOrganizationMutationType")
+    ]
 
 
 class ProposeLessonOrganizationMutation(BaseModel):
@@ -3535,6 +3663,15 @@ class SetMembershipOrganizationMutation(BaseModel):
 class OrganizationNodeKind(Enum):
     agent = "agent"
     group = "group"
+
+
+class OrganizationNoteReference(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    body_sha256: Annotated[str, Field(alias="bodySha256")]
+    note_id: Annotated[str, Field(alias="noteId")]
 
 
 class OrganizationNoteScope(Enum):
@@ -3695,6 +3832,30 @@ class OrganizationReportTotals(BaseModel):
     reported_tokens: Annotated[int, Field(alias="reportedTokens")]
     schedule_states: Annotated[dict[str, int], Field(alias="scheduleStates")]
     task_states: Annotated[dict[str, int], Field(alias="taskStates")]
+
+
+class OrganizationResearchCitation(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    end_line: Annotated[int, Field(alias="endLine", ge=0)]
+    path: str
+    sha256: str
+    start_line: Annotated[int, Field(alias="startLine", ge=0)]
+
+
+class OrganizationResourcePressure(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    available_disk_bytes: Annotated[int | None, Field(alias="availableDiskBytes", ge=0)] = None
+    available_memory_bytes: Annotated[int | None, Field(alias="availableMemoryBytes", ge=0)] = None
+    measured_at: Annotated[int, Field(alias="measuredAt")]
+    min_available_memory_bytes: Annotated[int, Field(alias="minAvailableMemoryBytes", ge=0)]
+    min_disk_bytes: Annotated[int, Field(alias="minDiskBytes", ge=0)]
+    path: str
+    ready: bool
 
 
 class OrganizationRoleVersion(BaseModel):
@@ -3984,6 +4145,17 @@ class OrganizationTaskState(Enum):
     failed = "failed"
     cancelled = "cancelled"
     accepted = "accepted"
+
+
+class OrganizationTokenReservation(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    attempt_id: Annotated[str, Field(alias="attemptId")]
+    released: bool
+    root_id: Annotated[str, Field(alias="rootId")]
+    sequence: Annotated[int, Field(ge=0)]
+    tokens: int
 
 
 class OrganizationToolCapability(BaseModel):
@@ -10156,6 +10328,110 @@ class OrganizationApplication(BaseModel):
     state: OrganizationApplicationState
 
 
+class ResearchEvidenceOrganizationControlValue(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    assumptions: list[str]
+    citations: list[OrganizationResearchCitation]
+    findings: list[str]
+    id: str
+    project_id: Annotated[str, Field(alias="projectId")]
+    source_attempt_id: Annotated[str, Field(alias="sourceAttemptId")]
+    source_owner_id: Annotated[str, Field(alias="sourceOwnerId")]
+    source_task_id: Annotated[str, Field(alias="sourceTaskId")]
+    type: Annotated[
+        Literal["researchEvidence"], Field(title="ResearchEvidenceOrganizationControlValueType")
+    ]
+
+
+class KnowledgeProposalOrganizationControlValue(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    author_id: Annotated[str, Field(alias="authorId")]
+    body: str
+    conflicts: list[str]
+    id: str
+    project_id: Annotated[str, Field(alias="projectId")]
+    reviewed: bool
+    source_attempt_id: Annotated[str, Field(alias="sourceAttemptId")]
+    sources: list[OrganizationNoteReference]
+    type: Annotated[
+        Literal["knowledgeProposal"], Field(title="KnowledgeProposalOrganizationControlValueType")
+    ]
+
+
+class WorkspaceLibraryOrganizationControlValue(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    projects: list[str]
+    sources: list[OrganizationNoteReference]
+    type: Annotated[
+        Literal["workspaceLibrary"], Field(title="WorkspaceLibraryOrganizationControlValueType")
+    ]
+
+
+class GoalMetadataOrganizationControlValue(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    goal: OrganizationGoal
+    prerequisites: list[OrganizationGoalDependency]
+    project_id: Annotated[str, Field(alias="projectId")]
+    responsible_node_id: Annotated[str, Field(alias="responsibleNodeId")]
+    type: Annotated[
+        Literal["goalMetadata"], Field(title="GoalMetadataOrganizationControlValueType")
+    ]
+
+
+class DeadlineOrganizationControlValue(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    display_offset_minutes: Annotated[int, Field(alias="displayOffsetMinutes")]
+    due_at: Annotated[int | None, Field(alias="dueAt")] = None
+    kind: OrganizationDeadlineKind
+    target_id: Annotated[str, Field(alias="targetId")]
+    target_revision: Annotated[int, Field(alias="targetRevision")]
+    type: Annotated[Literal["deadline"], Field(title="DeadlineOrganizationControlValueType")]
+
+
+class ConversationOrganizationControlValue(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    agent_id: Annotated[str, Field(alias="agentId")]
+    entries: list[OrganizationConversationEntry]
+    id: str
+    project_id: Annotated[str, Field(alias="projectId")]
+    topic: str
+    type: Annotated[
+        Literal["conversation"], Field(title="ConversationOrganizationControlValueType")
+    ]
+
+
+class ExecutionProfileOrganizationControlValue(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    id: str
+    label: str
+    policy_version: Annotated[int, Field(alias="policyVersion", ge=0)]
+    scope: OrganizationExecutionScope
+    type: Annotated[
+        Literal["executionProfile"], Field(title="ExecutionProfileOrganizationControlValueType")
+    ]
+
+
 class RoleRollbackOrganizationControlValue(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
@@ -10273,33 +10549,6 @@ class ApplyOrganizationExecutionMutation(BaseModel):
     ] = None
     task_id: Annotated[str, Field(alias="taskId")]
     type: Annotated[Literal["apply"], Field(title="ApplyOrganizationExecutionMutationType")]
-
-
-class OrganizationExecutionMutation(
-    RootModel[
-        ApplyReplanOrganizationExecutionMutation
-        | HandoffOrganizationExecutionMutation
-        | AuthorizeOrganizationExecutionMutation
-        | StopOrganizationExecutionMutation
-        | DecideApprovalOrganizationExecutionMutation
-        | AcceptOrganizationExecutionMutation
-        | RequestChangesOrganizationExecutionMutation
-        | ApplyOrganizationExecutionMutation
-    ]
-):
-    model_config = ConfigDict(
-        populate_by_name=True,
-    )
-    root: (
-        ApplyReplanOrganizationExecutionMutation
-        | HandoffOrganizationExecutionMutation
-        | AuthorizeOrganizationExecutionMutation
-        | StopOrganizationExecutionMutation
-        | DecideApprovalOrganizationExecutionMutation
-        | AcceptOrganizationExecutionMutation
-        | RequestChangesOrganizationExecutionMutation
-        | ApplyOrganizationExecutionMutation
-    )
 
 
 class PutNodeOrganizationMutation(BaseModel):
@@ -10443,6 +10692,9 @@ class OrganizationReport(BaseModel):
     ] = None
     next_cursor: Annotated[str | None, Field(alias="nextCursor")] = None
     project_id: Annotated[str | None, Field(alias="projectId")] = None
+    resource_pressure: Annotated[
+        OrganizationResourcePressure | None, Field(alias="resourcePressure")
+    ] = None
     runtime_resources: Annotated[
         OrganizationRuntimeResources | None, Field(alias="runtimeResources")
     ] = None
@@ -12887,7 +13139,18 @@ class TeamOrganizationControlValue(BaseModel):
 
 class OrganizationControlValue(
     RootModel[
-        RoleRollbackOrganizationControlValue
+        ResearchEvidenceOrganizationControlValue
+        | ArtifactShareOrganizationControlValue
+        | KnowledgeProposalOrganizationControlValue
+        | WorkspaceLibraryOrganizationControlValue
+        | RoleDraftOrganizationControlValue
+        | GoalMetadataOrganizationControlValue
+        | DeadlineOrganizationControlValue
+        | ConversationOrganizationControlValue
+        | ReconciliationOrganizationControlValue
+        | ExecutionProfileOrganizationControlValue
+        | ResourcePressureOrganizationControlValue
+        | RoleRollbackOrganizationControlValue
         | WorkflowRollbackOrganizationControlValue
         | MissionOrganizationControlValue
         | GoalReviewOrganizationControlValue
@@ -12908,7 +13171,18 @@ class OrganizationControlValue(
         populate_by_name=True,
     )
     root: (
-        RoleRollbackOrganizationControlValue
+        ResearchEvidenceOrganizationControlValue
+        | ArtifactShareOrganizationControlValue
+        | KnowledgeProposalOrganizationControlValue
+        | WorkspaceLibraryOrganizationControlValue
+        | RoleDraftOrganizationControlValue
+        | GoalMetadataOrganizationControlValue
+        | DeadlineOrganizationControlValue
+        | ConversationOrganizationControlValue
+        | ReconciliationOrganizationControlValue
+        | ExecutionProfileOrganizationControlValue
+        | ResourcePressureOrganizationControlValue
+        | RoleRollbackOrganizationControlValue
         | WorkflowRollbackOrganizationControlValue
         | MissionOrganizationControlValue
         | GoalReviewOrganizationControlValue
@@ -12946,6 +13220,13 @@ class OrganizationExecutionView(BaseModel):
     handoffs: list[OrganizationTaskHandoff] | None = []
     result: OrganizationTaskResult | None = None
     task: OrganizationTask
+    token_reservations: Annotated[
+        list[OrganizationTokenReservation] | None,
+        Field(
+            alias="tokenReservations",
+            description="Nominal in-flight/unknown allowances, not provider billing guarantees.",
+        ),
+    ] = []
 
 
 class OrganizationInventory(BaseModel):
@@ -12970,7 +13251,9 @@ class SetControlOrganizationMutation(BaseModel):
 
 class OrganizationMutation(
     RootModel[
-        ProposeLessonOrganizationMutation
+        MeetingFollowUpOrganizationMutation
+        | ConversationPromptOrganizationMutation
+        | ProposeLessonOrganizationMutation
         | SetControlOrganizationMutation
         | SavePresetOrganizationMutation
         | ClonePresetOrganizationMutation
@@ -12988,7 +13271,9 @@ class OrganizationMutation(
         populate_by_name=True,
     )
     root: (
-        ProposeLessonOrganizationMutation
+        MeetingFollowUpOrganizationMutation
+        | ConversationPromptOrganizationMutation
+        | ProposeLessonOrganizationMutation
         | SetControlOrganizationMutation
         | SavePresetOrganizationMutation
         | ClonePresetOrganizationMutation
@@ -13998,6 +14283,49 @@ class OrganizationControlHistory(BaseModel):
     )
     control: OrganizationControl
     id: str
+
+
+class AuthorizeProfileOrganizationExecutionMutation(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    expected_revision: Annotated[int, Field(alias="expectedRevision")]
+    profile: OrganizationControl
+    task_id: Annotated[str, Field(alias="taskId")]
+    type: Annotated[
+        Literal["authorizeProfile"],
+        Field(title="AuthorizeProfileOrganizationExecutionMutationType"),
+    ]
+
+
+class OrganizationExecutionMutation(
+    RootModel[
+        AuthorizeProfileOrganizationExecutionMutation
+        | ApplyReplanOrganizationExecutionMutation
+        | HandoffOrganizationExecutionMutation
+        | AuthorizeOrganizationExecutionMutation
+        | StopOrganizationExecutionMutation
+        | DecideApprovalOrganizationExecutionMutation
+        | AcceptOrganizationExecutionMutation
+        | RequestChangesOrganizationExecutionMutation
+        | ApplyOrganizationExecutionMutation
+    ]
+):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    root: (
+        AuthorizeProfileOrganizationExecutionMutation
+        | ApplyReplanOrganizationExecutionMutation
+        | HandoffOrganizationExecutionMutation
+        | AuthorizeOrganizationExecutionMutation
+        | StopOrganizationExecutionMutation
+        | DecideApprovalOrganizationExecutionMutation
+        | AcceptOrganizationExecutionMutation
+        | RequestChangesOrganizationExecutionMutation
+        | ApplyOrganizationExecutionMutation
+    )
 
 
 class ControlOrganizationRecord(BaseModel):

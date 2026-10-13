@@ -100,6 +100,30 @@ async fn actual_host_has_no_ambient_io_and_fences_yielded_cells_by_session() {
         session.terminate(cell).await.unwrap(),
         WaitOutcome::LiveCell(RuntimeResponse::Terminated { .. })
     ));
+
+    let busy = session
+        .execute(
+            execute("while (true) {}"),
+            Arc::new(NoopCodeModeSessionDelegate),
+            None,
+        )
+        .await
+        .unwrap();
+    let busy_cell = busy.cell_id.clone();
+    assert!(matches!(
+        tokio::time::timeout(Duration::from_secs(3), busy.initial_response())
+            .await
+            .unwrap()
+            .unwrap(),
+        RuntimeResponse::Yielded { .. }
+    ));
+    assert!(matches!(
+        tokio::time::timeout(Duration::from_secs(3), session.terminate(busy_cell))
+            .await
+            .unwrap()
+            .unwrap(),
+        WaitOutcome::LiveCell(RuntimeResponse::Terminated { .. })
+    ));
     session.shutdown().await.unwrap();
     other.shutdown().await.unwrap();
 }

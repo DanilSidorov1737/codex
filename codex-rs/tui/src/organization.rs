@@ -3305,12 +3305,19 @@ impl Dashboard {
                     self.message = "No unresolved usage/effects in the selected attempt".into();
                     return;
                 }
+                let fingerprint = match codex_state::organization::uncertainty_fingerprint(
+                    attempt,
+                    &view.actions,
+                ) {
+                    Ok(fingerprint) => fingerprint,
+                    Err(error) => {
+                        self.message = error.to_string();
+                        return;
+                    }
+                };
                 form::Kind::Reconciliation {
                     attempt: attempt.clone(),
-                    fingerprint: codex_state::organization::uncertainty_fingerprint(
-                        attempt,
-                        &view.actions,
-                    ),
+                    fingerprint,
                 }
             }
             'φ' => form::Kind::ExecutionProfile(match self.record() {
@@ -5823,10 +5830,9 @@ impl Dashboard {
                 })?;
                 if self.preferences.preset == Preset::Workspace
                     && let Some(editor) = &mut self.editor
+                    && let Err(e) = editor.resize(self.editor_area.width, self.editor_area.height)
                 {
-                    if let Err(e) = editor.resize(self.editor_area.width, self.editor_area.height) {
-                        self.message = e.to_string();
-                    }
+                    self.message = e.to_string();
                 }
                 if self.preferences.preset == Preset::Workspace
                     && let Err(e) = self.refresh_follow()

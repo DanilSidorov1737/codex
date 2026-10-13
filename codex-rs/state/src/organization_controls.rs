@@ -257,7 +257,7 @@ pub(super) async fn set(
                     .collect::<std::result::Result<_, _>>()?;
             ensure!(*request_sequence==attempt.model_requests && (attempt.model_requests>attempt.reported_model_requests || actions.iter().any(|a|a.state==codex_protocol::organization_execution::OrganizationActionState::Uncertain)),"select the exact unresolved request/effects");
             ensure!(
-                *fingerprint == super::actions::uncertainty_fingerprint(&attempt, &actions),
+                *fingerprint == super::actions::uncertainty_fingerprint(&attempt, &actions)?,
                 "request/effect evidence changed; inspect the latest receipt"
             );
         }

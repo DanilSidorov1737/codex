@@ -2369,8 +2369,521 @@
       ],
       "type": "string"
     },
+    "OrganizationArtifactEvidence": {
+      "properties": {
+        "bytes": {
+          "format": "uint64",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "path": {
+          "type": "string"
+        },
+        "sha256": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "bytes",
+        "path",
+        "sha256"
+      ],
+      "type": "object"
+    },
+    "OrganizationControl": {
+      "description": "Controls have separate revisions so pause/priority never invalidate a grant.",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "revision": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "value": {
+          "$ref": "#/definitions/OrganizationControlValue"
+        }
+      },
+      "required": [
+        "id",
+        "revision",
+        "value"
+      ],
+      "type": "object"
+    },
     "OrganizationControlValue": {
       "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "assumptions": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "citations": {
+              "items": {
+                "$ref": "#/definitions/OrganizationResearchCitation"
+              },
+              "type": "array"
+            },
+            "findings": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "id": {
+              "type": "string"
+            },
+            "projectId": {
+              "type": "string"
+            },
+            "sourceAttemptId": {
+              "type": "string"
+            },
+            "sourceOwnerId": {
+              "type": "string"
+            },
+            "sourceTaskId": {
+              "type": "string"
+            },
+            "type": {
+              "enum": [
+                "researchEvidence"
+              ],
+              "title": "ResearchEvidenceOrganizationControlValueType",
+              "type": "string"
+            }
+          },
+          "required": [
+            "assumptions",
+            "citations",
+            "findings",
+            "id",
+            "projectId",
+            "sourceAttemptId",
+            "sourceOwnerId",
+            "sourceTaskId",
+            "type"
+          ],
+          "title": "ResearchEvidenceOrganizationControlValue",
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Owner-approved immutable accepted output; recipients receive no source authority.",
+          "properties": {
+            "artifact": {
+              "$ref": "#/definitions/OrganizationArtifactEvidence"
+            },
+            "body": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "destinations": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "id": {
+              "type": "string"
+            },
+            "resultDigest": {
+              "type": "string"
+            },
+            "sourceOwnerId": {
+              "type": "string"
+            },
+            "sourceProjectId": {
+              "type": "string"
+            },
+            "sourceRevision": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "sourceTaskId": {
+              "type": "string"
+            },
+            "type": {
+              "enum": [
+                "artifactShare"
+              ],
+              "title": "ArtifactShareOrganizationControlValueType",
+              "type": "string"
+            }
+          },
+          "required": [
+            "artifact",
+            "destinations",
+            "id",
+            "resultDigest",
+            "sourceOwnerId",
+            "sourceProjectId",
+            "sourceRevision",
+            "sourceTaskId",
+            "type"
+          ],
+          "title": "ArtifactShareOrganizationControlValue",
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "authorId": {
+              "type": "string"
+            },
+            "body": {
+              "type": "string"
+            },
+            "conflicts": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "id": {
+              "type": "string"
+            },
+            "projectId": {
+              "type": "string"
+            },
+            "reviewed": {
+              "type": "boolean"
+            },
+            "sourceAttemptId": {
+              "type": "string"
+            },
+            "sources": {
+              "items": {
+                "$ref": "#/definitions/OrganizationNoteReference"
+              },
+              "type": "array"
+            },
+            "type": {
+              "enum": [
+                "knowledgeProposal"
+              ],
+              "title": "KnowledgeProposalOrganizationControlValueType",
+              "type": "string"
+            }
+          },
+          "required": [
+            "authorId",
+            "body",
+            "conflicts",
+            "id",
+            "projectId",
+            "reviewed",
+            "sourceAttemptId",
+            "sources",
+            "type"
+          ],
+          "title": "KnowledgeProposalOrganizationControlValue",
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Explicit owner publication: selected projects and exact reviewed public notes.",
+          "properties": {
+            "projects": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "sources": {
+              "items": {
+                "$ref": "#/definitions/OrganizationNoteReference"
+              },
+              "type": "array"
+            },
+            "type": {
+              "enum": [
+                "workspaceLibrary"
+              ],
+              "title": "WorkspaceLibraryOrganizationControlValueType",
+              "type": "string"
+            }
+          },
+          "required": [
+            "projects",
+            "sources",
+            "type"
+          ],
+          "title": "WorkspaceLibraryOrganizationControlValue",
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "applied": {
+              "type": "boolean"
+            },
+            "id": {
+              "type": "string"
+            },
+            "instructions": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "sourceAttemptId": {
+              "type": "string"
+            },
+            "type": {
+              "enum": [
+                "roleDraft"
+              ],
+              "title": "RoleDraftOrganizationControlValueType",
+              "type": "string"
+            }
+          },
+          "required": [
+            "applied",
+            "id",
+            "instructions",
+            "name",
+            "sourceAttemptId",
+            "type"
+          ],
+          "title": "RoleDraftOrganizationControlValue",
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "goal": {
+              "$ref": "#/definitions/OrganizationGoal"
+            },
+            "prerequisites": {
+              "items": {
+                "$ref": "#/definitions/OrganizationGoalDependency"
+              },
+              "type": "array"
+            },
+            "projectId": {
+              "type": "string"
+            },
+            "responsibleNodeId": {
+              "type": "string"
+            },
+            "type": {
+              "enum": [
+                "goalMetadata"
+              ],
+              "title": "GoalMetadataOrganizationControlValueType",
+              "type": "string"
+            }
+          },
+          "required": [
+            "goal",
+            "prerequisites",
+            "projectId",
+            "responsibleNodeId",
+            "type"
+          ],
+          "title": "GoalMetadataOrganizationControlValue",
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Business metadata only; changing this never extends a fixed execution grant.",
+          "properties": {
+            "displayOffsetMinutes": {
+              "format": "int32",
+              "type": "integer"
+            },
+            "dueAt": {
+              "format": "int64",
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "kind": {
+              "$ref": "#/definitions/OrganizationDeadlineKind"
+            },
+            "targetId": {
+              "type": "string"
+            },
+            "targetRevision": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": {
+              "enum": [
+                "deadline"
+              ],
+              "title": "DeadlineOrganizationControlValueType",
+              "type": "string"
+            }
+          },
+          "required": [
+            "displayOffsetMinutes",
+            "kind",
+            "targetId",
+            "targetRevision",
+            "type"
+          ],
+          "title": "DeadlineOrganizationControlValue",
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "agentId": {
+              "type": "string"
+            },
+            "entries": {
+              "items": {
+                "$ref": "#/definitions/OrganizationConversationEntry"
+              },
+              "type": "array"
+            },
+            "id": {
+              "type": "string"
+            },
+            "projectId": {
+              "type": "string"
+            },
+            "topic": {
+              "type": "string"
+            },
+            "type": {
+              "enum": [
+                "conversation"
+              ],
+              "title": "ConversationOrganizationControlValueType",
+              "type": "string"
+            }
+          },
+          "required": [
+            "agentId",
+            "entries",
+            "id",
+            "projectId",
+            "topic",
+            "type"
+          ],
+          "title": "ConversationOrganizationControlValue",
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "An exact owner's inspection record; never clears usage/effect uncertainty.",
+          "properties": {
+            "attemptId": {
+              "type": "string"
+            },
+            "evidence": {
+              "type": "string"
+            },
+            "fingerprint": {
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "requestSequence": {
+              "format": "uint32",
+              "minimum": 0.0,
+              "type": "integer"
+            },
+            "type": {
+              "enum": [
+                "reconciliation"
+              ],
+              "title": "ReconciliationOrganizationControlValueType",
+              "type": "string"
+            }
+          },
+          "required": [
+            "attemptId",
+            "evidence",
+            "fingerprint",
+            "id",
+            "requestSequence",
+            "type"
+          ],
+          "title": "ReconciliationOrganizationControlValue",
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Versioned content preset; authorization materializes an independent grant.",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "label": {
+              "type": "string"
+            },
+            "policyVersion": {
+              "format": "uint32",
+              "minimum": 0.0,
+              "type": "integer"
+            },
+            "scope": {
+              "$ref": "#/definitions/OrganizationExecutionScope"
+            },
+            "type": {
+              "enum": [
+                "executionProfile"
+              ],
+              "title": "ExecutionProfileOrganizationControlValueType",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "label",
+            "policyVersion",
+            "scope",
+            "type"
+          ],
+          "title": "ExecutionProfileOrganizationControlValue",
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Actual local pressure pauses admission; zero disables that threshold.",
+          "properties": {
+            "minAvailableMemoryBytes": {
+              "format": "uint64",
+              "minimum": 0.0,
+              "type": "integer"
+            },
+            "minDiskBytes": {
+              "format": "uint64",
+              "minimum": 0.0,
+              "type": "integer"
+            },
+            "path": {
+              "type": "string"
+            },
+            "type": {
+              "enum": [
+                "resourcePressure"
+              ],
+              "title": "ResourcePressureOrganizationControlValueType",
+              "type": "string"
+            }
+          },
+          "required": [
+            "minAvailableMemoryBytes",
+            "minDiskBytes",
+            "path",
+            "type"
+          ],
+          "title": "ResourcePressureOrganizationControlValue",
+          "type": "object"
+        },
         {
           "additionalProperties": false,
           "properties": {
@@ -2966,6 +3479,43 @@
         }
       ]
     },
+    "OrganizationConversationEntry": {
+      "additionalProperties": false,
+      "description": "Owner prompts and host-attributed agent replies; model text is not acceptance.",
+      "properties": {
+        "prompt": {
+          "type": "string"
+        },
+        "reply": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "replyAttemptId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "taskId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "prompt",
+        "taskId"
+      ],
+      "type": "object"
+    },
+    "OrganizationDeadlineKind": {
+      "enum": [
+        "goal",
+        "project",
+        "task"
+      ],
+      "type": "string"
+    },
     "OrganizationDiscussion": {
       "additionalProperties": false,
       "description": "A finite discussion is an ordinary, owner-reviewed workflow. Each round's participants depend on the prior round; a final step records conclusions, dissent and proposals. Artifact sharing still requires explicit input scopes.",
@@ -2998,6 +3548,36 @@
     },
     "OrganizationExecutionMutation": {
       "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "expectedRevision": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "profile": {
+              "$ref": "#/definitions/OrganizationControl"
+            },
+            "taskId": {
+              "type": "string"
+            },
+            "type": {
+              "enum": [
+                "authorizeProfile"
+              ],
+              "title": "AuthorizeProfileOrganizationExecutionMutationType",
+              "type": "string"
+            }
+          },
+          "required": [
+            "expectedRevision",
+            "profile",
+            "taskId",
+            "type"
+          ],
+          "title": "AuthorizeProfileOrganizationExecutionMutation",
+          "type": "object"
+        },
         {
           "additionalProperties": false,
           "properties": {
@@ -3300,6 +3880,10 @@
           },
           "type": "array"
         },
+        "codeMode": {
+          "description": "Explicit owner opt-in. Omitted/false preserves the legacy native-only scope.",
+          "type": "boolean"
+        },
         "delegates": {
           "items": {
             "type": "string"
@@ -3410,6 +3994,26 @@
       ],
       "type": "object"
     },
+    "OrganizationGoalDependency": {
+      "additionalProperties": false,
+      "properties": {
+        "crossProjectApproved": {
+          "type": "boolean"
+        },
+        "goal": {
+          "$ref": "#/definitions/OrganizationGoal"
+        },
+        "projectId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "crossProjectApproved",
+        "goal",
+        "projectId"
+      ],
+      "type": "object"
+    },
     "OrganizationHunkSelection": {
       "additionalProperties": false,
       "properties": {
@@ -3442,6 +4046,107 @@
     },
     "OrganizationMutation": {
       "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "criteria": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "expectedSourceRevision": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "goalId": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "instructions": {
+              "type": "string"
+            },
+            "ownerId": {
+              "type": "string"
+            },
+            "resultDigest": {
+              "type": "string"
+            },
+            "sourceBody": {
+              "type": "string"
+            },
+            "sourceTaskId": {
+              "type": "string"
+            },
+            "type": {
+              "enum": [
+                "meetingFollowUp"
+              ],
+              "title": "MeetingFollowUpOrganizationMutationType",
+              "type": "string"
+            }
+          },
+          "required": [
+            "criteria",
+            "expectedSourceRevision",
+            "instructions",
+            "ownerId",
+            "resultDigest",
+            "sourceBody",
+            "sourceTaskId",
+            "type"
+          ],
+          "title": "MeetingFollowUpOrganizationMutation",
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "agentId": {
+              "type": "string"
+            },
+            "expectedRevision": {
+              "format": "int64",
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "projectId": {
+              "type": "string"
+            },
+            "prompt": {
+              "type": "string"
+            },
+            "topic": {
+              "type": "string"
+            },
+            "type": {
+              "enum": [
+                "conversationPrompt"
+              ],
+              "title": "ConversationPromptOrganizationMutationType",
+              "type": "string"
+            }
+          },
+          "required": [
+            "agentId",
+            "projectId",
+            "prompt",
+            "topic",
+            "type"
+          ],
+          "title": "ConversationPromptOrganizationMutation",
+          "type": "object"
+        },
         {
           "additionalProperties": false,
           "properties": {
@@ -3977,6 +4682,22 @@
       ],
       "type": "string"
     },
+    "OrganizationNoteReference": {
+      "additionalProperties": false,
+      "properties": {
+        "bodySha256": {
+          "type": "string"
+        },
+        "noteId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "bodySha256",
+        "noteId"
+      ],
+      "type": "object"
+    },
     "OrganizationNoteScope": {
       "enum": [
         "project",
@@ -4101,6 +4822,35 @@
         "instructions",
         "ownerId",
         "taskId"
+      ],
+      "type": "object"
+    },
+    "OrganizationResearchCitation": {
+      "additionalProperties": false,
+      "description": "Lines are one-based, inclusive; SHA256 pins the complete declared local file.",
+      "properties": {
+        "endLine": {
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "path": {
+          "type": "string"
+        },
+        "sha256": {
+          "type": "string"
+        },
+        "startLine": {
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "endLine",
+        "path",
+        "sha256",
+        "startLine"
       ],
       "type": "object"
     },
