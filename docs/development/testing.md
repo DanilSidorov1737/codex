@@ -1,5 +1,41 @@
 # Testing procedures and evidence
 
+## Adaptive batch final qualification
+
+Final application source `3eca8520e0`; all30 bounded approved tasks complete.
+Evidence root `/workspace/.onboarding/qualification/adaptive-batch/`;
+read [final report](adaptive-qualification.md#final-delivery-and-safe-recovery).
+919 distinct selected automated checks pass: state342, protocol377, core47,
+app-server22, TUI113, code-mode1, actual installed host1, schema4, runner7 and
+Python contracts5. Rust identities are deduplicated across organization/Code Mode
+selections in final-selected-checks.json. One pre-existing schema generation hook
+is intentionally ignored; no assertion was disabled. Final Cargo checks use
+locked/offline/dev-small/-j2, `CARGO_INCREMENTAL=0 RUST_MIN_STACK=8388608`,
+cwd codex-rs. Production CLI Clippy `-D warnings` passes in6m25s; build4m44s.
+Full root `python3 scripts/format.py --check` passes. Python contracts use the
+existing SDK environment; resumable-runner checks also pass through actual CLI
+owner mutation, receipt-only resume and changed/failed-action refusal.
+
+Actual real CLI/official Neovim0.12.6/installed host checks pass for coding,
+exact approvals/pause, immutable/path/budget/deadline/stale-owner/no-grant fences,
+CPU interruption/abandoned-cell cleanup, catalog-matched CodeModeOnly scopes,
+conversation/content proposals/local citations/private knowledge, selected/
+excluded/withdrawn sharing, explicit adoption and accepted-descendant goal evidence.
+Protected follow/explorer/pane placement/dirty buffers/balanced comparisons,
+exactly one owner Apply/original oracle and72 layout switches are recorded.
+2700.580s detached produces six immutable-checked results with unchanged owner
+originals and no automatic acceptance/Apply. Final exact-package crash/full fresh
+restore preserves charged unknown, accounting, accepted artifacts/remapped paths;
+real restored Neovim review and normal CLI exit0 pass. All owned services stopped.
+
+Retained failures/limits are in the final report. Local deterministic model
+responses qualify real tools/state/host/editor, not live Luna/provider quality or
+billing. No new paid inference or external integration ran. Full unrelated Rust/
+Bazel/platform suites and real-host login/logout/reboot were not qualified.
+Preserve phase88 admitted /86 reported,1290 known tokens, two unknowns retaining
+1100 nominal tokens and all historical quarantines. Never replay grants or Apply.
+Earlier sections below are retained historical checkpoints.
+
 ## Mission batch backend checkpoint (in progress)
 
 Approved batch source checkpoints are not final qualification. Evidence root:

@@ -1,44 +1,59 @@
 # Current status and resumption instructions
 
-Current approved work: all [30 adaptive-operation/usability tasks](adaptive-batch.md),
-approved with “ok lets do this”. Continue their bounded implementation, tests,
-actual CLI/TUI/official Neovim, docs and logical commits; prior delivery below
-is historical. Tasks1–28 now have source/test checkpoints (state339/protocol377/app-server16/TUI106/runner7);
-see [adaptive evidence](adaptive-qualification.md). Tasks29–30 and complete native
-qualification remain unfinished; continue without requesting new approval.
+Latest delivery: **all30 bounded adaptive-operation/usability tasks are complete**
+on application source **`3eca8520e0`**. The owner approved Ponytail, logical commits,
+maintained docs and meaningful automated/actual testing.919 distinct selected
+checks, production CLI Clippy with warnings denied, locked build/package and full
+formatting pass. Actual CLI/official Neovim/host/coding/content/approvals/review/
+exactly one Apply,72 layout switches,2700.580-second background and final
+crash/full fresh restore qualification pass. Read
+[final adaptive evidence](adaptive-qualification.md#final-delivery-and-safe-recovery)
+and [Code Mode usage](code-mode.md). Earlier sections below are historical.
 
-Current Code Mode checkpoint: `e1212cd218` corrects fresh authorization hiding
-unresolved usage/effects; state342/protocol377 and the exact installed-daemon
-refusal pass. Actual coding, approvals/pause, path/immutable/request/token/time/
-stale-owner fences, awaited abandoned-cell cleanup, daemon crash/no-replay and
-offline full backup/fresh restore pass. The real CLI/official-Neovim walkthrough
-passes protected follow/explorer/balanced comparisons, dirty pane placement,
-36 layout switches, one acceptance/Apply, original oracle and normal exit0.
+The first supervised MVP was already usable; this release adds the approved
+adaptive capabilities and qualified bounded Code Mode. It supports reviewed
+single-host work and small improvements to itself. Whole-repository unattended
+self-development and the complete fork vision remain broader goals.
 
-The minimal Only-model source gate on `3eca8520e0` requires captured Code Mode scope
-plus actual-host availability before admission.919 distinct selected checks, full
-formatting, production Clippy and locked final build/package pass. Actual CPU-bound
-deadline, conversation/proposals/local research/private knowledge, catalog-matched
-Only-model/physical approval/review, sharing ACLs, owner adoption/goal evidence and
-resumable-runner checks pass. Final package is `0.0.0-adaptive.final.3eca8520e0`;
-the persistent verified base-plus-overlay assembly reproduces all five assets.
-The45-minute run has six checked results and45 reported requests /675 tokens at
-41 minutes. Final crash/fresh restore and cleanup remain pending. No release claim yet;
-the last fully qualified package remains `8cd392eaaa`.
+Final package: `/tmp/adaptive-final-package`, version
+`0.0.0-adaptive.final.3eca8520e0`, CLI SHA256
+`bd5e95efa87c9aea43209d2f0298f9d46a4e121049900f06b8e2bc10a1fdaf4a`.
+Persistent recovery uses the verified mission base archive plus
+`/workspace/.onboarding/qualification/adaptive-batch/final-cli-and-manifest.tar.xz`;
+all five assembled assets match. Full state archive:
+`/workspace/.onboarding/qualification/adaptive-batch/final-recovery-bundle.tar.xz`.
+Extract only into fresh destinations; retain owner originals/configuration/
+credentials/frontend settings separately. The raw bundle and proof restore are
+volatile copies, and their paused historical authority must not be restarted.
 
-The replacement cleared the first adaptive temporary databases/workspaces; never
-reconstruct their authority. Retain22 reported local requests/330 tokens. The
-new `recovery-native` source and its paused fresh restore are stopped/quarantined:
-20 admitted /19 reported,285 tokens, one charged unknown with1000-token nominal
-allowance retained, one protected Application. Never restart or replay them.
-`final-native` has fresh authority and residual58-request /2385-token /two-active
-ceilings after deducting all prior usage and the unknown allowance. Its paused
-owner definition/conversation/profile/deadline/pressure checks pass; no inference
-ran during those checks. Read [adaptive evidence](adaptive-qualification.md),
-remaining-phase-envelope.json and workspace-quarantine.json before continuation.
-Complete tasks29–30 without seeking new approval. Container replacement is not
-real-host reboot qualification. Reusable startup draft was saved; publication
-remains the owner's environment-settings action.
+All owned services are stopped. `recovery-native` and `final-native` source homes
+are quarantined: **never restart or replay grants/acceptance/Apply/reset counters**.
+Final fresh usage:46 admitted /45 reported,675 synthetic tokens, one charged
+unknown with100 nominal tokens retained. Across the phase:88 admitted /86 reported,
+1290 known tokens and two unknowns retaining1100 nominal tokens, within the original
+100 requests /4000 tokens. Zero new paid calls. Responses are localhost fixtures;
+actual tools/sandbox/editor run normally. Live provider quality/billing is not
+qualified by these checks. One earlier completed Application remains protected.
+
+Screenshots: `/workspace/artifacts/cli-adaptive-batch/` has persistent selected
+operations/three-way PNGs, Git bundle and receipts;44 original PNG/text pairs stay
+in persistent evidence. The duplicate ZIP links to `/tmp` because the32-GiB root
+is nearly full; regenerate from originals after replacement. The local Git bundle
+requires `8cd392eaaa`; verify it before manual recovery. No push/publication occurred.
+
+Failures remain: finite-storage compiler/restore failures, omitted documented
+Rust test-stack setting, invalid fixture mutation/response/modal/navigation
+assumptions and the corrected uncertain-reauthorization defect. Assertions and
+permissions were preserved. Supplemental navigation screenshots are not claimed
+as successful readiness UI checks; native state/CLI checks pass. Full unrelated
+repository/Bazel/platform tests were not run. Startup draft instructions were
+saved; environment-settings review/save/publication remains an owner action.
+
+No independent approved batch work remains. New feature scope needs owner direction.
+Real-host systemd user-manager/logout/reboot is still approved but needs a suitable
+host; container replacement is not that qualification. External integrations,
+remote workers, increased active concurrency, new paid probes and automatic root
+acceptance/Apply remain separately scoped. Default-two/max-four limits remain.
 
 ## Latest delivery: mission/usability batch complete
 

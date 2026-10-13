@@ -1,10 +1,11 @@
 # Adaptive batch qualification and safe resumption
 
-Current source checkpoint: `3eca8520e0`,919 distinct selected automated checks
-passed, including actual installed-host and official-Neovim tests. Production
-Clippy passes with warnings denied; final build/package, catalog-matched native
-pilot and45-minute mixed-project qualification remain in progress. Earlier
-sections below are preserved checkpoints, not the current release claim.
+Final qualified application source: `3eca8520e0`. All30 bounded approved adaptive
+tasks are complete:919 distinct selected checks, production lint/build/package,
+actual CLI/official-Neovim/host/content/approval/review/Apply,45-minute background
+and final crash/full fresh restore pass. All owned services are stopped. Preserve
+both source quarantines and every grant/counter/owner decision. Earlier sections
+below are retained checkpoints; the final section records the current delivery.
 Evidence: `/workspace/.onboarding/qualification/adaptive-batch/`.
 
 Activate `. /workspace/.onboarding/activate.sh`. Rust 1.95.0, pnpm 10.34.5,
@@ -763,3 +764,66 @@ already have passing immutable checks, with no automatic acceptance/Apply or own
 file changes. At41 minutes, total fresh usage is45 reported requests /675 fixture
 tokens, zero active and zero unreported. The final exact-package crash/fresh restore
 and owned-service cleanup remain pending. Keep the approved batch in progress.
+
+## Final delivery and safe recovery
+
+All30 approved bounded tasks are complete on `3eca8520e0`. The finite run lasted
+2700.580 seconds with six immutable-checked document results, no automatic
+acceptance/Apply, unchanged owner originals and zero active/unreported requests
+before the intentional final crash. The exact final package's crash preserves one
+charged unknown request, refuses fresh authorization and backs up/restores the full
+state. Actual CLI/official-Neovim review of the remapped accepted artifact and normal
+exit0 pass on the fresh paused restore. No owner decision or completed Apply was
+replayed. All owned daemons/providers are stopped; zombie entries under PID1 do not
+represent running workers. The unrelated primary Codex process was untouched.
+
+`final-native/cleanup.json` retains46 admitted /45 reported requests,675 synthetic
+tokens, one charged unknown with100 nominal tokens, zero new paid calls. Across all
+three adaptive fixtures, phase accounting is88 admitted /86 reported requests,
+1290 known tokens and two unknowns with1100 nominal tokens retained. This remains
+inside the original100-request /4000-token envelope. Never reset or reuse these
+grants/limits. `recovery-native` has the one completed Application; `final-native`
+has an accepted Only-model result with no Apply. Source homes remain quarantined.
+
+The first final restore exhausted persistent storage. Its failed partial destination
+and logs remain. Native SQLite checkpointing preserved exact logical dump hashes
+and integrity. The separate `/tmp/adaptive-final-restored-home` passed full restore,
+hash/path/accounting checks and actual editor review; it stays paused/stopped.
+The raw bundle view was relocated only after every archived member matched its
+source hash. Its lossless persistent archive is
+`adaptive-batch/final-recovery-bundle.tar.xz`; extract into a fresh directory before
+using the normal bundle-restore API. Bundles exclude owner originals, configuration,
+credentials, packages and private frontend settings; retain those separately.
+
+Final CLI SHA256:
+`bd5e95efa87c9aea43209d2f0298f9d46a4e121049900f06b8e2bc10a1fdaf4a`.
+Persistent CLI/manifest overlay SHA256:
+`71a8a145efedea208a9827fc707e7a7217fbde03d7234e29acf7191e3f5ba613`.
+The base archive SHA256 is
+`aca3d1f7ce4c456c0efada3c3d401d8f54fc4b00eda3a604a0f79d705fc35709`.
+Extract the verified base then overlay into a fresh package directory; all five
+final asset hashes match the live-package receipt. Working package:
+`/tmp/adaptive-final-package`; offline-assembled proof:
+`/tmp/adaptive-final-package-offline-proof`. Do not restart historical homes to
+verify a package. See [Code Mode usage and limits](code-mode.md).
+
+Screenshots:44 actual PNG/text pairs,88 CRC/hash-verified ZIP entries, including
+preserved failures. Original pairs and selected operations/three-way PNG copies
+remain persistent under evidence and `/workspace/artifacts/cli-adaptive-batch`.
+The13-MB duplicate ZIP is linked to `/tmp/cli-adaptive-batch-screenshots.zip` because
+the persistent root is nearly full; regenerate it from the retained originals
+after another environment replacement. It contains no homes/config/credentials/
+rollouts. A local Git bundle preserves commits after prerequisite `8cd392eaaa`;
+verify its receipt and current final documentation checkpoint before recovery.
+No push, merge or publication occurred.
+
+Limits: inference in this batch uses deterministic localhost responses; this is
+real tool/host/editor and state qualification, not live Luna/model-quality/billing
+evidence. Historical live pilots remain separate. The full unrelated repository/
+Bazel/platform suite was not run. Supplemental readiness/navigation failures are
+retained and not called successful UI tests. Whole-repository unattended
+self-development, remote workers/integrations, larger active concurrency and
+automatic root acceptance/Apply remain outside this bounded delivery. Real-host
+systemd user-manager/logout/reboot qualification still needs a suitable host;
+container replacement is not that proof. No independent approved batch work
+remains. New feature scope needs owner direction.

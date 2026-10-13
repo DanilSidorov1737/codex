@@ -1,13 +1,12 @@
 # Codex CLI fork development
 
-Current approved work: all [30 adaptive-operation/usability tasks](adaptive-batch.md),
-approved with “ok lets do this”. Continue their bounded implementation, tests,
-actual CLI/TUI/official Neovim, docs and logical commits; prior delivery below
-is historical. Current source `3eca8520e0` passes919 distinct selected checks,
-actual host/Neovim/content/recovery checks and production Clippy. Final package,
-catalog-matched pilot and45-minute qualification are still in progress;
-see [adaptive evidence](adaptive-qualification.md). Tasks29–30 and complete native
-qualification remain unfinished; continue without requesting new approval.
+Latest delivery: all [30 bounded adaptive-operation/usability tasks](adaptive-batch.md)
+are complete on `3eca8520e0`:919 selected checks, actual CLI/official-Neovim/host/
+approval/review/Apply and2700.580-second background/crash/full-restore qualification
+pass. Read [current status](status.md) and [final adaptive evidence](adaptive-qualification.md#final-delivery-and-safe-recovery).
+All owned services are stopped; never replay historical grants/owner decisions or
+restart quarantined homes. The usable envelope is supervised single-host work;
+new feature scope needs owner direction. Earlier deliveries below are historical.
 
 Latest delivery: **all 25 bounded [mission/usability tasks](mission-batch.md)
 are implemented and qualified** on final application source `8cd392eaaa`.

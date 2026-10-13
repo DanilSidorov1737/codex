@@ -228,6 +228,25 @@ actual CLI/TUI/endurance qualification. Do not mistake this checkpoint for a
 completed approved batch. The last fully qualified application package remains
 `8cd392eaaa` until the new complete native qualification passes.
 
+The adaptive batch is now complete on final application source `3eca8520e0`:
+all30 bounded tasks,919 selected checks, production lint/build/package/formatting
+and actual CLI/official-Neovim/host/approval/review/one Apply/72 layout switches/
+2700.580-second background/final crash/full fresh restore pass. Read the final
+adaptive evidence and current status; earlier pending checkpoints are historical.
+All owned services are stopped. Never restart either recovery-native/final-native
+source home or replay their owner decisions/grants/counters; preserve quarantine
+mappings, old lost-environment receipts and both charged unknowns. Phase totals:
+88 admitted /86 reported,1290 known tokens plus1100 reserved unknown tokens,
+zero new paid inference, within original100-request /4000-token ceilings.
+Persistent offline package recovery uses verified base archive plus final CLI/
+manifest overlay; the full bundle has a lossless persistent archive. Raw proof
+restore/bundle/ZIP copies in /tmp are volatile; original screenshots/data receipts
+stay persistent. Do not mistake archive reconstruction for authority to run old
+grants. Current envelope is supervised single-host work; no independent batch
+implementation remains. New features need owner direction. Prior real-host
+logout/reboot remains blocked; integrations/remote workers/larger concurrency/
+automatic root acceptance or Apply/new paid probes/push/publication stay separate.
+
 Then read [decisions](docs/development/decisions-and-risks.md),
 [MVP plan](docs/development/mvp.md), [testing](docs/development/testing.md) and
 [process](docs/development/process.md). Reconcile current user instructions with
