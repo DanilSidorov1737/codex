@@ -2,6 +2,7 @@
 use anyhow::Context;
 use anyhow::Result;
 use anyhow::ensure;
+use codex_app_server_protocol::OrganizationArtifactBase;
 use codex_app_server_protocol::OrganizationArtifactEvidence;
 use sha2::Digest;
 use sha2::Sha256;
@@ -105,6 +106,35 @@ impl Preview {
             hash: format!("{:x}", Sha256::digest(text.as_bytes())),
         })
     }
+    pub(crate) fn artifact_base(home: &Path, base: &OrganizationArtifactBase) -> Result<Self> {
+        ensure!(
+            base.captured,
+            "original base was not captured; do not invent a merge base"
+        );
+        let Some(hash) = &base.sha256 else {
+            return Self::captured_text(home, "");
+        };
+        ensure!(
+            hash.len() == 64 && hash.bytes().all(|byte| byte.is_ascii_hexdigit()),
+            "invalid captured base hash"
+        );
+        let directory = home.join("organization-artifact-bases");
+        let file = codex_utils_path::open_relative_regular_file(&directory, Path::new(hash))
+            .context("original base bytes unavailable; restore complete recovery evidence")?;
+        let bytes = file.metadata()?.len();
+        ensure!(bytes <= 1024 * 1024, "native comparison base exceeds 1 MiB");
+        Self::new(
+            home,
+            &directory,
+            hash,
+            Some(&OrganizationArtifactEvidence {
+                path: hash.clone(),
+                sha256: hash.clone(),
+                bytes,
+            }),
+        )
+    }
+
     pub(crate) fn new(
         home: &Path,
         root: &Path,
@@ -194,6 +224,34 @@ mod tests {
             assert!(follow.changed().is_err());
         }
     }
+    #[test]
+    fn captured_comparison_base_refuses_legacy_missing_and_changed_bytes() {
+        let home = tempfile::tempdir().unwrap();
+        let bytes = b"actual common base\n";
+        let hash = format!("{:x}", Sha256::digest(bytes));
+        let directory = home.path().join("organization-artifact-bases");
+        std::fs::create_dir(&directory).unwrap();
+        std::fs::write(directory.join(&hash), bytes).unwrap();
+        let mut base = OrganizationArtifactBase {
+            path: "code.py".into(),
+            sha256: Some(hash.clone()),
+            captured: true,
+        };
+        let preview = Preview::artifact_base(home.path(), &base).unwrap();
+        assert_eq!(std::fs::read(preview.path()).unwrap(), bytes);
+        std::fs::write(directory.join(hash), b"changed base\n").unwrap();
+        assert!(Preview::artifact_base(home.path(), &base).is_err());
+        base.sha256 = None;
+        base.captured = false;
+        assert!(Preview::artifact_base(home.path(), &base).is_err());
+        base.captured = true;
+        assert!(
+            std::fs::read(Preview::artifact_base(home.path(), &base).unwrap().path())
+                .unwrap()
+                .is_empty()
+        );
+    }
+
     #[test]
     fn protected_preview_tracks_real_bytes_without_redirecting_neovim_to_agent_paths() {
         let home = tempfile::tempdir().unwrap();

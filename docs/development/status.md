@@ -108,6 +108,28 @@ tree/layout/keyboard/conflict/endurance/coverage work is unfinished. Continue al
 independent daily-use tasks; real-host task13 still needs a suitable host. Do not
 mistake any source checkpoint for completion.
 
+Tasks27–28 now have unqualified source: mission/priority proposals with reasons,
+consequences/resource estimates and exact separate adoption, plus versioned local
+escalation severity/responsibility/response windows and captured deadline pins.
+They reuse current owner controls/history/forms/briefs, with no new dependency,
+execution grant or external notification. Selected state control tests are running;
+schemas/SDK, lint/package and physical workflows remain. Preview8/6bf3e34093 is
+the latest qualified slice; the whole forty-task batch remains unfinished.
+
+Source now also covers controlled model adoption31, recorded queue bottlenecks32,
+tree-list scan reduction33 and bounded conflict proposals38. Model adoption reuses
+existing evaluation/check logic but requires equal task/context/scope/base evidence
+with a single model variable and separate exact adoption. Conflict proposals use
+installed diffy and actual native buffer pins/undo, protected captured bases,
+owner/agent hashes and a64-KiB bound; they only change a clean pinned editor buffer
+after confirmation, with save/fresh checks separate. Legacy uncaptured bases are
+refused. Full349 state,20 app-server,3 CLI and114 TUI checks pass, including actual
+official Neovim. Stable/experimental generation, all4 schema comparisons,25 SDK
+contract/signature checks and full formatting pass. Production lint passes with
+warnings denied after an equivalent Boolean simplification; its failure is kept.
+Clean stamped package/native workflows and scale/endurance/coverage remain.
+No claim that the remaining approved batch is complete.
+
 All completed paid/lifecycle/LSP fixtures are stopped. Never rerun their setup,
 grants, acceptance/Apply or reset usage; preserve single coding's completed
 Application and both delegated pilot homes. Failed lifecycle control JSON and

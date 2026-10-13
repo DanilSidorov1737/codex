@@ -46,6 +46,35 @@ pub(super) fn owner_overview(snapshot: &Snapshot, executive: Option<&str>) -> St
     } else {
         text.push_str("Mission not configured. Commands → edit owner mission.\n");
     }
+    text.push_str("\nSTRATEGY PROPOSALS\n");
+    for control in snapshot
+        .records
+        .iter()
+        .filter_map(|r| match r {
+            OrganizationRecord::Control(c)
+                if matches!(
+                    c.value,
+                    OrganizationControlValue::StrategyProposal { applied: false, .. }
+                ) =>
+            {
+                Some(c)
+            }
+            _ => None,
+        })
+        .take(32)
+    {
+        if let OrganizationControlValue::StrategyProposal {
+            mission_revision,
+            purpose,
+            reason,
+            consequences,
+            resource_estimate,
+            ..
+        } = &control.value
+        {
+            text.push_str(&format!("{} v{} · captured mission {:?}\n  Proposed: {}\n  Reason: {}\n  Consequences: {}\n  Resource estimate (unverified assumptions): {}\n  Select control, then % reviews exact adoption; execution grants unchanged.\n", control.id, control.revision, mission_revision, purpose, reason, consequences.join("; "), resource_estimate));
+        }
+    }
     text.push_str("\nOUTCOMES / OWNER DECISIONS\n");
     if let Some(report) = &snapshot.report {
         text.push_str(&format!("Captured audit revision {} · UTC {} · scope {}\nCanonical task states: {:?}\nRecorded checks: {} passed / {} failed\n", report.sequence, utc_time(report.generated_at), report.project_id.as_deref().unwrap_or("whole store"), report.totals.task_states, report.totals.checks_passed, report.totals.checks_failed));
@@ -88,6 +117,7 @@ pub(super) fn owner_overview(snapshot: &Snapshot, executive: Option<&str>) -> St
             assignee_id,
             reason,
             requested_action,
+            rule,
             ..
         } = &control.value
         {
@@ -107,12 +137,64 @@ pub(super) fn owner_overview(snapshot: &Snapshot, executive: Option<&str>) -> St
                 reason,
                 requested_action
             ));
+            if let Some(pin) = rule {
+                text.push_str(&format!(
+                    "  Captured rule {} v{} · severity {} · response due UTC {} · {}\n",
+                    pin.rule_id,
+                    pin.rule_revision,
+                    pin.severity,
+                    utc_time(pin.response_due_at),
+                    if snapshot
+                        .report
+                        .as_ref()
+                        .is_some_and(|r| r.generated_at >= pin.response_due_at)
+                    {
+                        "response overdue at captured report time; no automatic grant/retry"
+                    } else {
+                        "business response deadline; inspect latest task state"
+                    }
+                ));
+            }
         }
     }
     text.push_str(&format!(
         "{} unresolved escalations in loaded definitions; first32 shown.\n",
         escalations.len()
     ));
+    text.push_str("\nVERSIONED LOCAL ESCALATION RULES\n");
+    for control in snapshot
+        .records
+        .iter()
+        .filter_map(|r| match r {
+            OrganizationRecord::Control(c)
+                if matches!(c.value, OrganizationControlValue::EscalationRule { .. }) =>
+            {
+                Some(c)
+            }
+            _ => None,
+        })
+        .take(32)
+    {
+        if let OrganizationControlValue::EscalationRule {
+            label,
+            task_states,
+            severity,
+            assignee_id,
+            response_seconds,
+            enabled,
+            ..
+        } = &control.value
+        {
+            let matching = snapshot
+                .records
+                .iter()
+                .filter(
+                    |r| matches!(r, OrganizationRecord::Task(t) if task_states.contains(&t.state)),
+                )
+                .count();
+            text.push_str(&format!("{} v{} · {} · {}\n  States: {:?} · severity {} · responsibility {} · response {} seconds\n  {} matching loaded tasks; route assistance explicitly to capture the exact rule/deadline.\n", control.id, control.revision, label, if *enabled { "enabled" } else { "disabled" }, task_states, severity, assignee_id.as_deref().unwrap_or("human owner"), response_seconds, matching));
+        }
+    }
     text.push_str("\nTRACE / QUEUE\n");
     let tasks: Vec<_> = snapshot
         .records
@@ -122,6 +204,13 @@ pub(super) fn owner_overview(snapshot: &Snapshot, executive: Option<&str>) -> St
             _ => None,
         })
         .collect();
+    let task_index: BTreeMap<_, _> = tasks.iter().map(|task| (task.id.as_str(), *task)).collect();
+    let evidence_index: BTreeMap<_, _> = snapshot
+        .report
+        .iter()
+        .flat_map(|r| &r.tasks)
+        .map(|task| (task.task_id.as_str(), task))
+        .collect();
     for task in tasks
         .iter()
         .filter(|t| t.state != "accepted" && t.state != "cancelled")
@@ -130,14 +219,72 @@ pub(super) fn owner_overview(snapshot: &Snapshot, executive: Option<&str>) -> St
         let unmet: Vec<_> = task
             .prerequisites
             .iter()
-            .filter(|id| !tasks.iter().any(|t| &t.id == *id && t.state == "accepted"))
+            .filter(|id| {
+                task_index
+                    .get(id.as_str())
+                    .is_none_or(|task| task.state != "accepted")
+            })
             .collect();
-        let evidence = snapshot
-            .report
-            .as_ref()
-            .and_then(|r| r.tasks.iter().find(|t| t.task_id == task.id));
+        let evidence = evidence_index.get(task.id.as_str()).copied();
         let grant = evidence.and_then(|t| t.budget.as_ref());
         text.push_str(&format!("Mission → goal {} → project {} → task {} v{} [{}]\n  Prerequisites awaiting accepted or missing evidence: {:?}\n  Grant {} · shared root {} · result {}\n  Actions/checks/review: codex organization execution-read {}\n",task.goal_id.as_deref().unwrap_or("unlinked"),task.project_id,task.id,task.revision,task.state,unmet,grant.map(|b|b.grant_id.as_str()).unwrap_or("unavailable"),grant.map(|b|b.root_id.as_str()).unwrap_or("unavailable"),evidence.and_then(|t|t.result_digest.as_deref()).unwrap_or("unavailable"),task.id));
+        let mut reasons = Vec::new();
+        if !unmet.is_empty() {
+            reasons.push("prerequisites lack accepted evidence");
+        }
+        match task.state.as_str() {
+            "proposed" => reasons.push("explicit execution authorization required"),
+            "waitingApproval" => reasons.push("exact pending tool approval required"),
+            "waitingDependency" => reasons.push("waiting for delegated/dependency evidence"),
+            "needsReview" => reasons.push("owner result review required"),
+            "needsReconciliation" => {
+                reasons.push("uncertain effects/usage need inspection; never replay")
+            }
+            "blocked" => reasons.push("recorded blocker needs an explicit bounded resolution"),
+            "paused" => reasons.push("task is paused"),
+            "failed" => reasons.push("failed attempt needs reviewed recovery"),
+            _ => {}
+        }
+        if snapshot.records.iter().any(|r| matches!(r, OrganizationRecord::Control(c) if matches!(&c.value, OrganizationControlValue::Global { paused: true, .. }))) { reasons.push("global execution pause"); }
+        if snapshot.records.iter().any(|r| matches!(r, OrganizationRecord::Control(c) if matches!(&c.value, OrganizationControlValue::Project { project_id, state, .. } if project_id == &task.project_id && *state != OrganizationProjectState::Active))) { reasons.push("project is paused/completed/archived"); }
+        if snapshot
+            .report
+            .as_ref()
+            .and_then(|r| r.resource_pressure.as_ref())
+            .is_some_and(|p| !p.ready)
+        {
+            reasons.push("recorded disk/memory admission pressure");
+        }
+        if let Some(budget) = grant {
+            if budget.revoked {
+                reasons.push("execution grant revoked");
+            }
+            if snapshot
+                .report
+                .as_ref()
+                .is_some_and(|r| budget.expires_at <= r.generated_at)
+            {
+                reasons.push("grant expired at captured report time");
+            }
+            if budget.used_tokens >= budget.max_tokens
+                || budget.model_requests >= budget.max_model_requests
+            {
+                reasons.push("recorded grant token/request allowance exhausted");
+            }
+        } else {
+            reasons.push("grant evidence unavailable; refresh before deciding readiness");
+        }
+        text.push_str(&format!("  Recorded bottlenecks: {}\n", if reasons.is_empty() { "no blocker in loaded evidence; host rechecks shared limits and live capacity at dispatch".into() } else { reasons.join("; ") }));
+        if let Some(blocker) = evidence.and_then(|t| t.blocker.as_deref()) {
+            text.push_str(&format!("  Blocker evidence: {blocker}\n"));
+        }
+        if let Some(usage) = snapshot
+            .report
+            .as_ref()
+            .and_then(|r| r.global_usage.as_ref())
+        {
+            text.push_str(&format!("  Captured whole-store active executions: {}; completion/slot timing forecast unavailable.\n", usage.active));
+        }
     }
     text.push_str("Snapshot only; reopen after refresh. Missing evidence stays unavailable. No completion-time forecast inferred.\n");
     if snapshot.limited {

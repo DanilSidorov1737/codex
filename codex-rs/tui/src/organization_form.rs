@@ -70,6 +70,8 @@ pub(super) enum Kind {
         digest: String,
     },
     Mission(Option<OrganizationControl>),
+    StrategyProposal(Option<OrganizationControl>),
+    EscalationRule(Option<OrganizationControl>),
     GoalReview {
         goal: OrganizationGoal,
         previous: Option<OrganizationControl>,
@@ -78,6 +80,7 @@ pub(super) enum Kind {
     Escalation {
         task: OrganizationTask,
         previous: Option<OrganizationControl>,
+        rules: Vec<OrganizationControl>,
     },
     Lesson {
         task: OrganizationTask,
@@ -139,6 +142,10 @@ pub(super) enum Kind {
         projects: Vec<OrganizationProjectPlan>,
     },
     Improvement {
+        node: OrganizationNode,
+        accepted: Vec<OrganizationTaskReport>,
+    },
+    ModelComparison {
         node: OrganizationNode,
         accepted: Vec<OrganizationTaskReport>,
     },
@@ -675,6 +682,82 @@ mod tests {
             (task_id, expected_revision, result_digest),
             ("original-task".into(), 7, "exact-result".into())
         );
+    }
+
+    #[test]
+    fn strategic_forms_capture_mission_revision_and_rule_responsibility_without_execution() {
+        let mission = OrganizationControl {
+            id: "mission".into(),
+            revision: 7,
+            value: OrganizationControlValue::Mission {
+                purpose: "Current owner intent".into(),
+                priorities: vec!["Verified outcomes".into()],
+                constraints: vec!["Keep grants bounded".into()],
+            },
+        };
+        let mut proposal = Form::new(Kind::StrategyProposal(Some(mission)), &[], None, "fixture");
+        set(&mut proposal, 3, "Observed meaningful regression");
+        set(&mut proposal, 4, "Defer cosmetic work");
+        set(&mut proposal, 5, "One bounded task; actual cost unknown");
+        let Command::Definition(OrganizationMutation::SetControl {
+            expected_revision,
+            value:
+                OrganizationControlValue::StrategyProposal {
+                    mission_revision,
+                    applied,
+                    ..
+                },
+        }) = proposal.command().unwrap()
+        else {
+            panic!("proposal only")
+        };
+        assert_eq!(expected_revision, None);
+        assert_eq!(mission_revision, Some(7));
+        assert!(!applied);
+        let rule = OrganizationControl {
+            id: "escalation-rule:captured".into(),
+            revision: 3,
+            value: OrganizationControlValue::EscalationRule {
+                id: "captured".into(),
+                label: "Owner-defined critical".into(),
+                task_states: vec!["failed".into()],
+                severity: "Urgent local assistance".into(),
+                assignee_id: Some("arbitrary-responsibility".into()),
+                response_seconds: 3600,
+                enabled: true,
+            },
+        };
+        let mut failed = task();
+        failed.state = "failed".into();
+        let mut escalation = Form::new(
+            Kind::Escalation {
+                task: failed,
+                previous: None,
+                rules: vec![rule],
+            },
+            &[],
+            None,
+            "fixture",
+        );
+        set(&mut escalation, 2, "Inspect evidence without new grants");
+        escalation.fields[4].choice = 1;
+        let Command::Definition(OrganizationMutation::SetControl {
+            value:
+                OrganizationControlValue::Escalation {
+                    assignee_id,
+                    rule: Some(pin),
+                    resolved,
+                    ..
+                },
+            ..
+        }) = escalation.command().unwrap()
+        else {
+            panic!("assistance metadata only")
+        };
+        assert_eq!(assignee_id.as_deref(), Some("arbitrary-responsibility"));
+        assert_eq!(pin.rule_revision, 3);
+        assert_eq!(pin.response_due_at - pin.raised_at, 3600);
+        assert!(!resolved);
     }
 
     #[test]
@@ -2230,6 +2313,21 @@ impl Form {
                 let (purpose,priorities,constraints)=match previous.as_ref().map(|c|&c.value) {Some(OrganizationControlValue::Mission{purpose,priorities,constraints})=>(purpose.clone(),priorities.join("\n"),constraints.join("\n")),_=>(String::new(),"Useful verified outcomes".into(),"Use only exact granted paths, tools, workers and budgets\nFinal acceptance and Apply belong to the owner".into())};
                 vec![Field::text("Mission","Owner intent; native permissions/budgets remain enforced",&purpose),Field::text("Priorities","One per line",&priorities),Field::text("Constraints","One per line; agents cannot edit protected controls",&constraints)]
             }
+            Kind::StrategyProposal(mission) => {
+                let (purpose, priorities, constraints) = match mission.as_ref().map(|c| &c.value) {
+                    Some(OrganizationControlValue::Mission { purpose, priorities, constraints }) => (purpose.clone(), priorities.join("\n"), constraints.join("\n")),
+                    _ => (String::new(), "Useful verified outcomes".into(), "Keep existing permissions, budgets and owner acceptance/Apply".into()),
+                };
+                vec![Field::text("Proposed mission", "Version-pinned proposal; adoption is a separate owner decision", &purpose), Field::text("Proposed priorities", "One per line", &priorities), Field::text("Proposed constraints", "Business intent never replaces enforced grants", &constraints), Field::text("Reason", "Why the current strategy should change", ""), Field::text("Consequences", "One expected consequence/tradeoff per line", ""), Field::text("Resource estimate", "Explicit assumptions/uncertainty; no invoice or budget authority", "")]
+            }
+            Kind::EscalationRule(previous) => {
+                let (label, states, severity, assignee, seconds, enabled) = match previous.as_ref().map(|c| &c.value) {
+                    Some(OrganizationControlValue::EscalationRule { label, task_states, severity, assignee_id, response_seconds, enabled, .. }) => (label.clone(), task_states.join("\n"), severity.clone(), assignee_id.clone(), *response_seconds, *enabled),
+                    _ => (String::new(), "blocked\nneedsReconciliation".into(), "Needs owner attention".into(), None, 3600, true),
+                };
+                let choices = std::iter::once((String::new(), "Human owner".into())).chain(records.iter().filter_map(|r| match r { OrganizationRecord::Node(n) if n.enabled => Some((n.id.clone(), n.label.clone())), _ => None })).collect();
+                vec![Field::text("Rule label", "Versioned local assistance rule", &label), Field::text("Task states", "One per line: blocked, paused, waitingApproval, needsReconciliation, failed", &states), Field::text("Severity", "Owner-defined severity; no required role hierarchy", &severity), Field::select("Responsible agent / team / human", choices, assignee.as_deref()), Field::text("Response seconds", "30–604800; business response deadline, never grant expiry", &seconds.to_string()), Field::select("Rule state", vec![("true".into(), "Enabled".into()), ("false".into(), "Disabled; historical pins retained".into())], Some(if enabled { "true" } else { "false" }))]
+            }
             Kind::GoalReview {goal,previous,accepted}=> {
                 let completed=previous.as_ref().is_some_and(|c|matches!(c.value,OrganizationControlValue::GoalReview{completed:true,..}));
                 let proofs=match previous.as_ref().map(|c|&c.value) {Some(OrganizationControlValue::GoalReview{evidence,..})=>evidence.as_slice(),_=>&[]};
@@ -2242,10 +2340,11 @@ impl Form {
                 }
                 fields
             }
-            Kind::Escalation {task,previous}=> {
+            Kind::Escalation {task,previous,rules}=> {
                 let (assignee,reason,action)=match previous.as_ref().map(|c|&c.value) {Some(OrganizationControlValue::Escalation{assignee_id,reason,requested_action,..})=>(assignee_id.clone(),reason.clone(),requested_action.clone()),_=>(None,format!("{} needs assistance",task.id),String::new())};
                 let choices=std::iter::once((String::new(),"Human owner".into())).chain(records.iter().filter_map(|r|match r {OrganizationRecord::Node(n) if n.enabled=>Some((n.id.clone(),n.label.clone())),_=>None})).collect();
-                vec![Field::select("Responsible agent / team / human",choices,assignee.as_deref()),Field::text("Reason","Local request; no new execution authority",&reason),Field::text("Requested action","What is needed to unblock this task",&action),Field::select("Status",vec![("open".into(),"Open assistance request".into()),("resolved".into(),"Resolve the exact existing request".into())],None)]
+                let rule_choices = std::iter::once((String::new(), "Manual responsibility; no rule deadline".into())).chain(rules.iter().filter_map(|c| match &c.value { OrganizationControlValue::EscalationRule { label, severity, response_seconds, .. } => Some((c.id.clone(), format!("{label} v{} · {severity} · {response_seconds}s", c.revision))), _ => None })).collect();
+                vec![Field::select("Responsible agent / team / human",choices,assignee.as_deref()),Field::text("Reason","Local request; no new execution authority",&reason),Field::text("Requested action","What is needed to unblock this task",&action),Field::select("Status",vec![("open".into(),"Open assistance request".into()),("resolved".into(),"Resolve the exact existing request".into())],None),Field::select("Captured rule (uses rule responsibility)", rule_choices, None)]
             }
             Kind::Lesson {..}=>vec![Field::text("What to reuse and avoid","Private proposal pinned to the accepted result; O separately reviews/promotes", "")],
             Kind::Playbook(project)=> {
@@ -2271,6 +2370,7 @@ impl Form {
             },
             Kind::ShareNote {note, projects} => vec![Field::select("Destination project",projects.iter().filter(|p|p.id!=note.project_id).map(|p|(p.id.clone(),p.name.clone())).collect(),None),Field::text("Reviewed shared knowledge", "Only current owner-reviewed PROJECT sources; independent copy retains provenance", &note.body)],
             Kind::Improvement {node,accepted} => vec![Field::select("Evaluated candidate role version",records.iter().filter_map(|r|match r {OrganizationRecord::Role(role) if node.role_version_id.as_ref()!=Some(&role.id)=>Some((role.id.clone(),format!("{} v{}",role.name,role.version))),_=>None}).collect(),None),Field::select("Accepted baseline evaluation",accepted.iter().map(|t|(t.task_id.clone(),t.title.clone())).collect(),None),Field::select("Accepted candidate evaluation",accepted.iter().map(|t|(t.task_id.clone(),t.title.clone())).collect(),None),Field::text("Why the checks represent intended work", "Same project/model/provider/hash-pinned immutable checks; owner adoption is separate", "")],
+            Kind::ModelComparison { node, accepted } => vec![Field::text("Evaluated candidate model", "Must match an accepted evaluation; provider/instructions/checks remain unchanged", node.model.as_deref().unwrap_or(model)), Field::select("Accepted baseline evaluation", accepted.iter().map(|t| (t.task_id.clone(), t.title.clone())).collect(), None), Field::select("Accepted candidate evaluation", accepted.iter().map(|t| (t.task_id.clone(), t.title.clone())).collect(), None), Field::text("Why these checks represent intended work", "One controlled model variable; no general quality or invoice guarantee", "")],
             Kind::RestoreEditor(session)=>vec![Field::select("Restore choice",vec![("false".into(),format!("{} · saved files only; retain unsaved checkpoint",session.summary())),("true".into(),"Explicitly recover unsaved text into native buffers; files on disk stay untouched".into())],None)],
             Kind::HunkApply {files,..}=>files.iter().flat_map(|file| {
                 let patch=diffy::create_patch(&file.base,&file.artifact);
@@ -2752,6 +2852,12 @@ impl Form {
             Kind::AuthorizeProfile { .. } => "Review exact profile authorization · separate grant",
             Kind::Reconciliation { .. } => "Inspect uncertainty · retain charges / no replay",
             Kind::Mission(_) => "Workspace mission / priorities / constraints",
+            Kind::StrategyProposal(_) => {
+                "Propose mission / priorities · reason / consequences / estimate"
+            }
+            Kind::EscalationRule(_) => {
+                "Versioned escalation severity / responsibility / response window"
+            }
             Kind::RoleRollback { .. } => "Review role rollback proposal",
             Kind::WorkflowRollback { .. } => "Review captured workflow rollback proposal",
             Kind::ArtifactLibrary(_) => "Browse / search captured artifact library",
@@ -2792,6 +2898,9 @@ impl Form {
             Kind::Recovery { .. } => "Review bounded known-startup recovery policy",
             Kind::ShareNote { .. } => "Review cross-project knowledge copy",
             Kind::Improvement { .. } => "Compare evaluated instructions · propose owner adoption",
+            Kind::ModelComparison { .. } => {
+                "Compare evaluated models · propose exact owner adoption"
+            }
             Kind::Discussion => "Draft finite agent discussion · saving starts no execution",
             Kind::Knowledge { .. } => "Review knowledge retirement / restoration",
             Kind::PromoteNote(_) => "Promote / correct knowledge · explicit owner review",
@@ -3500,6 +3609,40 @@ impl Form {
                     constraints: lines(2),
                 },
             }),
+            Kind::StrategyProposal(mission) => {
+                Command::Definition(OrganizationMutation::SetControl {
+                    expected_revision: None,
+                    value: OrganizationControlValue::StrategyProposal {
+                        id: self.project_key.clone(),
+                        mission_revision: mission.as_ref().map(|m| m.revision),
+                        purpose: required(0)?,
+                        priorities: lines(1),
+                        constraints: lines(2),
+                        reason: required(3)?,
+                        consequences: lines(4),
+                        resource_estimate: required(5)?,
+                        applied: false,
+                    },
+                })
+            }
+            Kind::EscalationRule(previous) => {
+                let id = match previous.as_ref().map(|c| &c.value) {
+                    Some(OrganizationControlValue::EscalationRule { id, .. }) => id.clone(),
+                    _ => self.project_key.clone(),
+                };
+                Command::Definition(OrganizationMutation::SetControl {
+                    expected_revision: previous.as_ref().map(|c| c.revision),
+                    value: OrganizationControlValue::EscalationRule {
+                        id,
+                        label: required(0)?,
+                        task_states: lines(1),
+                        severity: required(2)?,
+                        assignee_id: optional(3),
+                        response_seconds: required(4)?.parse()?,
+                        enabled: value(5) == "true",
+                    },
+                })
+            }
             Kind::GoalReview {
                 goal,
                 previous,
@@ -3534,7 +3677,11 @@ impl Form {
                     },
                 })
             }
-            Kind::Escalation { task, previous } => {
+            Kind::Escalation {
+                task,
+                previous,
+                rules,
+            } => {
                 let value = if value(3) == "resolved" {
                     let mut captured = previous
                         .as_ref()
@@ -3548,13 +3695,49 @@ impl Form {
                     *resolved = true;
                     captured
                 } else {
+                    let chosen = optional(4)
+                        .map(|id| {
+                            rules
+                                .iter()
+                                .find(|c| c.id == id)
+                                .context("select a captured matching escalation rule")
+                        })
+                        .transpose()?;
+                    let (assignee_id, rule) = if let Some(control) = chosen {
+                        let OrganizationControlValue::EscalationRule {
+                            id,
+                            severity,
+                            assignee_id,
+                            response_seconds,
+                            ..
+                        } = &control.value
+                        else {
+                            anyhow::bail!("invalid captured rule")
+                        };
+                        let raised_at = chrono::Utc::now().timestamp();
+                        (
+                            assignee_id.clone(),
+                            Some(OrganizationEscalationRulePin {
+                                rule_id: id.clone(),
+                                rule_revision: control.revision,
+                                severity: severity.clone(),
+                                raised_at,
+                                response_due_at: raised_at
+                                    .checked_add(i64::from(*response_seconds))
+                                    .context("response deadline overflow")?,
+                            }),
+                        )
+                    } else {
+                        (optional(0), None)
+                    };
                     OrganizationControlValue::Escalation {
                         task_id: task.id.clone(),
                         task_revision: task.revision,
-                        assignee_id: optional(0),
+                        assignee_id,
                         reason: required(1)?,
                         requested_action: required(2)?,
                         resolved: false,
+                        rule,
                     }
                 };
                 Command::Definition(OrganizationMutation::SetControl {
@@ -4193,7 +4376,7 @@ impl Form {
                     body: required(1)?,
                 })
             }
-            Kind::Improvement { node, accepted } => {
+            Kind::Improvement { node, accepted } | Kind::ModelComparison { node, accepted } => {
                 let evidence = |i| -> anyhow::Result<(String, String)> {
                     let t = accepted
                         .iter()
@@ -4208,19 +4391,35 @@ impl Form {
                 };
                 let (baseline_task_id, baseline_digest) = evidence(1)?;
                 let (candidate_task_id, candidate_digest) = evidence(2)?;
-                Command::Definition(OrganizationMutation::SetControl {
-                    expected_revision: None,
-                    value: OrganizationControlValue::Improvement {
+                let candidate = required(0)?;
+                let value = if matches!(self.kind, Kind::ModelComparison { .. }) {
+                    OrganizationControlValue::ModelComparison {
                         id: self.project_key.clone(),
                         reason: required(3)?,
                         node: Box::new(node.clone()),
-                        role_version_id: required(0)?,
+                        model: candidate,
                         baseline_task_id,
                         baseline_digest,
                         candidate_task_id,
                         candidate_digest,
                         applied: false,
-                    },
+                    }
+                } else {
+                    OrganizationControlValue::Improvement {
+                        id: self.project_key.clone(),
+                        reason: required(3)?,
+                        node: Box::new(node.clone()),
+                        role_version_id: candidate,
+                        baseline_task_id,
+                        baseline_digest,
+                        candidate_task_id,
+                        candidate_digest,
+                        applied: false,
+                    }
+                };
+                Command::Definition(OrganizationMutation::SetControl {
+                    expected_revision: None,
+                    value,
                 })
             }
             Kind::Task

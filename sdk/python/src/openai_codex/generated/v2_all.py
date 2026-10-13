@@ -3123,6 +3123,42 @@ class OrganizationCheckpointContent(BaseModel):
     remaining_steps: Annotated[list[str], Field(alias="remainingSteps")]
 
 
+class StrategyProposalOrganizationControlValue(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    applied: bool
+    consequences: list[str]
+    constraints: list[str]
+    id: str
+    mission_revision: Annotated[int | None, Field(alias="missionRevision")] = None
+    priorities: list[str]
+    purpose: str
+    reason: str
+    resource_estimate: Annotated[str, Field(alias="resourceEstimate")]
+    type: Annotated[
+        Literal["strategyProposal"], Field(title="StrategyProposalOrganizationControlValueType")
+    ]
+
+
+class EscalationRuleOrganizationControlValue(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    assignee_id: Annotated[str | None, Field(alias="assigneeId")] = None
+    enabled: bool
+    id: str
+    label: str
+    response_seconds: Annotated[int, Field(alias="responseSeconds", ge=0)]
+    severity: str
+    task_states: Annotated[list[str], Field(alias="taskStates")]
+    type: Annotated[
+        Literal["escalationRule"], Field(title="EscalationRuleOrganizationControlValueType")
+    ]
+
+
 class ReviewCommentOrganizationControlValue(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
@@ -3210,20 +3246,6 @@ class MissionOrganizationControlValue(BaseModel):
     priorities: list[str]
     purpose: str
     type: Annotated[Literal["mission"], Field(title="MissionOrganizationControlValueType")]
-
-
-class EscalationOrganizationControlValue(BaseModel):
-    model_config = ConfigDict(
-        extra="forbid",
-        populate_by_name=True,
-    )
-    assignee_id: Annotated[str | None, Field(alias="assigneeId")] = None
-    reason: str
-    requested_action: Annotated[str, Field(alias="requestedAction")]
-    resolved: bool
-    task_id: Annotated[str, Field(alias="taskId")]
-    task_revision: Annotated[int, Field(alias="taskRevision")]
-    type: Annotated[Literal["escalation"], Field(title="EscalationOrganizationControlValueType")]
 
 
 class WorkflowImprovementOrganizationControlValue(BaseModel):
@@ -3336,6 +3358,18 @@ class OrganizationDiscussion(BaseModel):
     participants: list[str]
     rounds: Annotated[int, Field(ge=0)]
     topic: str
+
+
+class OrganizationEscalationRulePin(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    raised_at: Annotated[int, Field(alias="raisedAt")]
+    response_due_at: Annotated[int, Field(alias="responseDueAt")]
+    rule_id: Annotated[str, Field(alias="ruleId")]
+    rule_revision: Annotated[int, Field(alias="ruleRevision")]
+    severity: str
 
 
 class ApplyReplanOrganizationExecutionMutation(BaseModel):
@@ -10541,6 +10575,21 @@ class GoalReviewOrganizationControlValue(BaseModel):
     type: Annotated[Literal["goalReview"], Field(title="GoalReviewOrganizationControlValueType")]
 
 
+class EscalationOrganizationControlValue(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    assignee_id: Annotated[str | None, Field(alias="assigneeId")] = None
+    reason: str
+    requested_action: Annotated[str, Field(alias="requestedAction")]
+    resolved: bool
+    rule: OrganizationEscalationRulePin | None = None
+    task_id: Annotated[str, Field(alias="taskId")]
+    task_revision: Annotated[int, Field(alias="taskRevision")]
+    type: Annotated[Literal["escalation"], Field(title="EscalationOrganizationControlValueType")]
+
+
 class ReplanOrganizationControlValue(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
@@ -13197,6 +13246,25 @@ class ImprovementOrganizationControlValue(BaseModel):
     type: Annotated[Literal["improvement"], Field(title="ImprovementOrganizationControlValueType")]
 
 
+class ModelComparisonOrganizationControlValue(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    applied: bool
+    baseline_digest: Annotated[str, Field(alias="baselineDigest")]
+    baseline_task_id: Annotated[str, Field(alias="baselineTaskId")]
+    candidate_digest: Annotated[str, Field(alias="candidateDigest")]
+    candidate_task_id: Annotated[str, Field(alias="candidateTaskId")]
+    id: str
+    model: str
+    node: OrganizationNode
+    reason: str
+    type: Annotated[
+        Literal["modelComparison"], Field(title="ModelComparisonOrganizationControlValueType")
+    ]
+
+
 class TeamOrganizationControlValue(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
@@ -13212,7 +13280,9 @@ class TeamOrganizationControlValue(BaseModel):
 
 class OrganizationControlValue(
     RootModel[
-        ReviewCommentOrganizationControlValue
+        StrategyProposalOrganizationControlValue
+        | EscalationRuleOrganizationControlValue
+        | ReviewCommentOrganizationControlValue
         | ResearchEvidenceOrganizationControlValue
         | ArtifactShareOrganizationControlValue
         | KnowledgeProposalOrganizationControlValue
@@ -13231,6 +13301,7 @@ class OrganizationControlValue(
         | EscalationOrganizationControlValue
         | WorkflowImprovementOrganizationControlValue
         | ImprovementOrganizationControlValue
+        | ModelComparisonOrganizationControlValue
         | TeamOrganizationControlValue
         | SafeRecoveryOrganizationControlValue
         | KnowledgeOrganizationControlValue
@@ -13245,7 +13316,9 @@ class OrganizationControlValue(
         populate_by_name=True,
     )
     root: (
-        ReviewCommentOrganizationControlValue
+        StrategyProposalOrganizationControlValue
+        | EscalationRuleOrganizationControlValue
+        | ReviewCommentOrganizationControlValue
         | ResearchEvidenceOrganizationControlValue
         | ArtifactShareOrganizationControlValue
         | KnowledgeProposalOrganizationControlValue
@@ -13264,6 +13337,7 @@ class OrganizationControlValue(
         | EscalationOrganizationControlValue
         | WorkflowImprovementOrganizationControlValue
         | ImprovementOrganizationControlValue
+        | ModelComparisonOrganizationControlValue
         | TeamOrganizationControlValue
         | SafeRecoveryOrganizationControlValue
         | KnowledgeOrganizationControlValue

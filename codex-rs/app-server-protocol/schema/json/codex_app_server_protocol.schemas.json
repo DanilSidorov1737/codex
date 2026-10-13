@@ -16578,6 +16578,123 @@
         "oneOf": [
           {
             "additionalProperties": false,
+            "properties": {
+              "applied": {
+                "type": "boolean"
+              },
+              "consequences": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "constraints": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "id": {
+                "type": "string"
+              },
+              "missionRevision": {
+                "format": "int64",
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "priorities": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "purpose": {
+                "type": "string"
+              },
+              "reason": {
+                "type": "string"
+              },
+              "resourceEstimate": {
+                "type": "string"
+              },
+              "type": {
+                "enum": [
+                  "strategyProposal"
+                ],
+                "title": "StrategyProposalOrganizationControlValueType",
+                "type": "string"
+              }
+            },
+            "required": [
+              "applied",
+              "consequences",
+              "constraints",
+              "id",
+              "priorities",
+              "purpose",
+              "reason",
+              "resourceEstimate",
+              "type"
+            ],
+            "title": "StrategyProposalOrganizationControlValue",
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "assigneeId": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "enabled": {
+                "type": "boolean"
+              },
+              "id": {
+                "type": "string"
+              },
+              "label": {
+                "type": "string"
+              },
+              "responseSeconds": {
+                "format": "uint32",
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              "severity": {
+                "type": "string"
+              },
+              "taskStates": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "type": {
+                "enum": [
+                  "escalationRule"
+                ],
+                "title": "EscalationRuleOrganizationControlValueType",
+                "type": "string"
+              }
+            },
+            "required": [
+              "enabled",
+              "id",
+              "label",
+              "responseSeconds",
+              "severity",
+              "taskStates",
+              "type"
+            ],
+            "title": "EscalationRuleOrganizationControlValue",
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
             "description": "Immutable owner feedback pinned to the exact task/result/file and line range.",
             "properties": {
               "artifact": {
@@ -17272,6 +17389,16 @@
               "resolved": {
                 "type": "boolean"
               },
+              "rule": {
+                "anyOf": [
+                  {
+                    "$ref": "#/definitions/v2/OrganizationEscalationRulePin"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
               "taskId": {
                 "type": "string"
               },
@@ -17405,6 +17532,60 @@
               "type"
             ],
             "title": "ImprovementOrganizationControlValue",
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "description": "Same checks/provider/instructions, different captured model; explicit owner adoption.",
+            "properties": {
+              "applied": {
+                "type": "boolean"
+              },
+              "baselineDigest": {
+                "type": "string"
+              },
+              "baselineTaskId": {
+                "type": "string"
+              },
+              "candidateDigest": {
+                "type": "string"
+              },
+              "candidateTaskId": {
+                "type": "string"
+              },
+              "id": {
+                "type": "string"
+              },
+              "model": {
+                "type": "string"
+              },
+              "node": {
+                "$ref": "#/definitions/v2/OrganizationNode"
+              },
+              "reason": {
+                "type": "string"
+              },
+              "type": {
+                "enum": [
+                  "modelComparison"
+                ],
+                "title": "ModelComparisonOrganizationControlValueType",
+                "type": "string"
+              }
+            },
+            "required": [
+              "applied",
+              "baselineDigest",
+              "baselineTaskId",
+              "candidateDigest",
+              "candidateTaskId",
+              "id",
+              "model",
+              "node",
+              "reason",
+              "type"
+            ],
+            "title": "ModelComparisonOrganizationControlValue",
             "type": "object"
           },
           {
@@ -17807,6 +17988,38 @@
           "participants",
           "rounds",
           "topic"
+        ],
+        "type": "object"
+      },
+      "OrganizationEscalationRulePin": {
+        "additionalProperties": false,
+        "description": "Captured business response deadline; never extends an execution grant.",
+        "properties": {
+          "raisedAt": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "responseDueAt": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "ruleId": {
+            "type": "string"
+          },
+          "ruleRevision": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "severity": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "raisedAt",
+          "responseDueAt",
+          "ruleId",
+          "ruleRevision",
+          "severity"
         ],
         "type": "object"
       },

@@ -1,5 +1,43 @@
 # Strategic native Owner overview
 
+The next approved daily-use tasks27–28 are under implementation/qualification.
+New source adds revision-pinned strategy proposals (mission/priorities/constraints,
+reason, consequences and explicitly unverified resource estimates), with separate
+exact adoption. Adoption changes business intent only; original execution grants,
+tasks, deadlines, requests and usage remain.
+
+Versioned local escalation rules select assistance states, owner-defined severity,
+arbitrary agent/team/human responsibility and a30-second–seven-day response window.
+The existing assistance form optionally captures an exact enabled matching rule,
+severity and UTC response deadline. Rule changes/disabled responsibility/stale
+task revisions or forged deadline pins are refused. Resolving the original exact
+request remains possible after a rule update; it never queues work or replays
+effects. These are business response deadlines, separate from fixed grant expiry.
+No external notifications or automatic escalation authority is introduced.
+
+Ctrl-P commands and Owner overview integration are new source, not commands in
+the previously qualified preview8 package. Selected state/UI checks, schema/SDK,
+lint/package and actual physical qualification remain pending. Continue the full
+approved batch; source-only checkpoints are not completion.
+
+Controlled model comparisons (task31) now have source alongside existing role
+and workflow comparisons. They require distinct owner-accepted evaluations with
+the same provider, captured role instructions, evaluation task/criteria, protected
+checks, frozen non-output inputs, identical captured output bases and execution
+scope/limits. Only model, its price quote and admission start time may differ.
+Missing/legacy base evidence cannot qualify model adoption. Saving a proposal
+does not change the agent; `%` separately adopts the exact evaluated model against
+the captured node revision. Existing grants/counters remain, and future execution
+still requires catalog/host/permission checks. Samples are not general quality or
+invoice guarantees. New source passes17 selected state control tests, including
+strategy/rule/model refusals; broader checks and native qualification continue.
+
+Queue briefs now name actual missing prerequisite evidence, approvals, pause,
+blockers, uncertainty, recorded pressure and captured grant exhaustion/expiry.
+Missing grant/report evidence stays unavailable. Slot/completion times are not
+invented. Tree list rendering scans task records once per frame instead of once
+per visible row; actual large-tree measurements remain pending.
+
 Approved daily-use tasks25–26/29–30 reuse existing mission, report, escalation,
 task/dependency and conversation records. The overview fits the existing five
 layouts. It introduces no required executive role or hierarchy level.

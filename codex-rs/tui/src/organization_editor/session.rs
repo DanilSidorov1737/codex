@@ -225,6 +225,15 @@ pub(crate) struct BufferProposal {
     pub(crate) text: String,
     pub(crate) result_digest: String,
     pub(crate) artifact_sha256: String,
+    pub(crate) conflict: Option<BufferConflictEvidence>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct BufferConflictEvidence {
+    pub(crate) base_sha256: String,
+    pub(crate) source_artifact_sha256: String,
+    pub(crate) conflict_markers: bool,
 }
 
 impl BufferProposal {

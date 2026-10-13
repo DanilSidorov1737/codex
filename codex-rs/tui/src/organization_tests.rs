@@ -1038,6 +1038,7 @@ async fn owner_overview_distinguishes_unavailable_and_stale_evidence_from_outcom
                 reason: "Recorded concern".into(),
                 requested_action: "Inspect exact evidence".into(),
                 resolved: false,
+                rule: None,
             },
         }));
     let text = reporting::owner_overview(&d.snapshot, Some("missing"));
@@ -1054,6 +1055,44 @@ async fn owner_overview_distinguishes_unavailable_and_stale_evidence_from_outcom
     }
     assert!(!text.contains("0 passed"));
     assert!(d.preferences.executive_contact.is_none());
+}
+
+#[tokio::test]
+async fn owner_queue_explains_missing_dependencies_pause_and_unknown_grants_without_forecasts() {
+    let mut d = dashboard();
+    d.snapshot.report = None;
+    let task = d
+        .snapshot
+        .records
+        .iter_mut()
+        .find_map(|r| match r {
+            OrganizationRecord::Task(t) if t.id == "one" => Some(t),
+            _ => None,
+        })
+        .unwrap();
+    task.state = "queued".into();
+    task.prerequisites.push("missing-dependency".into());
+    d.snapshot
+        .records
+        .push(OrganizationRecord::Control(OrganizationControl {
+            id: "global".into(),
+            revision: 2,
+            value: OrganizationControlValue::Global {
+                paused: true,
+                limits: None,
+            },
+        }));
+    let text = reporting::owner_overview(&d.snapshot, None);
+    for expected in [
+        "missing-dependency",
+        "prerequisites lack accepted evidence",
+        "global execution pause",
+        "grant evidence unavailable",
+        "No completion-time forecast inferred",
+    ] {
+        assert!(text.contains(expected), "missing {expected}");
+    }
+    assert!(!text.contains("active executions: 0"));
 }
 
 #[tokio::test]
@@ -1090,6 +1129,7 @@ async fn changed_original_refusal_survives_background_snapshot() {
         text: "Accepted proposal\n".into(),
         result_digest: "accepted-result".into(),
         artifact_sha256: format!("{:x}", Sha256::digest(b"Accepted proposal\n")),
+        conflict: None,
     })));
     std::fs::write(&path, "Changed by the owner\n").unwrap();
     d.key(KeyCode::Char('y').into());

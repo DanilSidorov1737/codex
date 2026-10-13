@@ -210,6 +210,7 @@ async fn official_neovim_buffer_proposals_pin_identity_tick_path_text_and_use_na
         text: "proposal 界\n".into(),
         result_digest: "accepted-result".into(),
         artifact_sha256: hash("proposal 界\n".as_bytes()),
+        conflict: None,
     };
     editor.apply_buffer_proposal(&proposal).unwrap();
     assert!(editor.dirty().unwrap());
@@ -255,6 +256,46 @@ async fn official_neovim_buffer_proposals_pin_identity_tick_path_text_and_use_na
             .unwrap()
             .as_str(),
         Some("human change")
+    );
+}
+
+#[tokio::test]
+async fn official_neovim_conflict_proposal_retains_owner_file_and_native_undo() {
+    let project = tempfile::tempdir().unwrap();
+    let path = project.path().join("conflict.txt");
+    let base = "shared\noriginal value\n";
+    let owner = "shared\nowner value\n";
+    let agent = "shared\nagent value\n";
+    std::fs::write(&path, owner).unwrap();
+    let merged = diffy::merge(base, owner, agent).unwrap_err();
+    assert!(merged.contains("owner value") && merged.contains("agent value"));
+    let mut editor = Editor::start(FrameRequester::test_dummy()).unwrap();
+    editor.open(&path, false).unwrap();
+    let proposal = BufferProposal {
+        pin: editor.pin_buffer().unwrap(),
+        text: merged.clone(),
+        result_digest: "state-only accepted source".into(),
+        artifact_sha256: hash(merged.as_bytes()),
+        conflict: Some(super::BufferConflictEvidence {
+            base_sha256: hash(base.as_bytes()),
+            source_artifact_sha256: hash(agent.as_bytes()),
+            conflict_markers: true,
+        }),
+    };
+    proposal
+        .verify_original(&[project.path().to_path_buf()])
+        .unwrap();
+    editor.apply_buffer_proposal(&proposal).unwrap();
+    assert!(editor.dirty().unwrap());
+    assert_eq!(std::fs::read_to_string(&path).unwrap(), owner);
+    assert!(editor.apply_buffer_proposal(&proposal).is_err());
+    editor.command("undo", vec![]).unwrap();
+    assert_eq!(std::fs::read_to_string(&path).unwrap(), owner);
+    std::fs::write(&path, "later owner edit\n").unwrap();
+    assert!(
+        proposal
+            .verify_original(&[project.path().to_path_buf()])
+            .is_err()
     );
 }
 

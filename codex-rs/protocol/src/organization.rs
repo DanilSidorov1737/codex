@@ -170,9 +170,46 @@ impl OrganizationReplanItem {
     }
 }
 
+/// Captured business response deadline; never extends an execution grant.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct OrganizationEscalationRulePin {
+    pub rule_id: String,
+    #[ts(type = "number")]
+    pub rule_revision: i64,
+    pub severity: String,
+    #[ts(type = "number")]
+    pub raised_at: i64,
+    #[ts(type = "number")]
+    pub response_due_at: i64,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
 #[serde(tag = "type", rename_all = "camelCase", deny_unknown_fields)]
 pub enum OrganizationControlValue {
+    #[serde(rename_all = "camelCase")]
+    StrategyProposal {
+        id: String,
+        #[ts(type = "number | null")]
+        mission_revision: Option<i64>,
+        purpose: String,
+        priorities: Vec<String>,
+        constraints: Vec<String>,
+        reason: String,
+        consequences: Vec<String>,
+        resource_estimate: String,
+        applied: bool,
+    },
+    #[serde(rename_all = "camelCase")]
+    EscalationRule {
+        id: String,
+        label: String,
+        task_states: Vec<String>,
+        severity: String,
+        assignee_id: Option<String>,
+        response_seconds: u32,
+        enabled: bool,
+    },
     /// Immutable owner feedback pinned to the exact task/result/file and line range.
     #[serde(rename_all = "camelCase")]
     ReviewComment {
@@ -329,6 +366,8 @@ pub enum OrganizationControlValue {
         reason: String,
         requested_action: String,
         resolved: bool,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        rule: Option<OrganizationEscalationRulePin>,
     },
     #[serde(rename_all = "camelCase")]
     WorkflowImprovement {
@@ -351,6 +390,19 @@ pub enum OrganizationControlValue {
         reason: String,
         node: Box<OrganizationNode>,
         role_version_id: String,
+        baseline_task_id: String,
+        baseline_digest: String,
+        candidate_task_id: String,
+        candidate_digest: String,
+        applied: bool,
+    },
+    /// Same checks/provider/instructions, different captured model; explicit owner adoption.
+    #[serde(rename_all = "camelCase")]
+    ModelComparison {
+        id: String,
+        reason: String,
+        node: Box<OrganizationNode>,
+        model: String,
         baseline_task_id: String,
         baseline_digest: String,
         candidate_task_id: String,

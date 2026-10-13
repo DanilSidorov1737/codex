@@ -1528,32 +1528,7 @@ impl Dashboard {
                 .find(|b| b.path == artifact.path)
                 .context("original base evidence missing")?;
             let home = self.path.parent().context("owner home missing")?;
-            let base_preview = match &base.sha256 {
-                Some(hash) => {
-                    anyhow::ensure!(
-                        hash.len() == 64 && hash.bytes().all(|b| b.is_ascii_hexdigit()),
-                        "invalid captured base hash"
-                    );
-                    let directory = home.join("organization-artifact-bases");
-                    let file=codex_utils_path::open_relative_regular_file(&directory,Path::new(hash)).context("original base bytes unavailable (legacy or incomplete recovery); do not invent a merge base")?;
-                    anyhow::ensure!(
-                        file.metadata()?.len() <= 1024 * 1024,
-                        "three-way base exceeds 1 MiB"
-                    );
-                    let bytes = file.metadata()?.len();
-                    Preview::new(
-                        home,
-                        &directory,
-                        hash,
-                        Some(&OrganizationArtifactEvidence {
-                            path: hash.clone(),
-                            sha256: hash.clone(),
-                            bytes,
-                        }),
-                    )?
-                }
-                None => Preview::captured_text(home, "")?,
-            };
+            let base_preview = Preview::artifact_base(home, base)?;
             let project = self.selected_project().context("project unavailable")?;
             let root = Path::new(project.roots.first().context("project root unavailable")?);
             let owner_preview =
@@ -1740,7 +1715,7 @@ impl Dashboard {
         }
     }
 
-    fn buffer_proposal(&mut self) {
+    fn buffer_proposal(&mut self, allow_conflict: bool) {
         let proposal = (|| -> anyhow::Result<crate::organization_editor::BufferProposal> {
             anyhow::ensure!(
                 !self.applying,
@@ -1800,8 +1775,8 @@ impl Dashboard {
                             .any(|h| h.path == artifact.path && h.output_sha256 == hash)
                 });
             anyhow::ensure!(
-                known_base,
-                "original no longer matches its task base or completed hunk receipt; reconcile owner changes first"
+                known_base || allow_conflict,
+                "original no longer matches its task base or completed hunk receipt; use protected conflict review"
             );
             let preview = Preview::new(
                 self.path.parent().context("owner home missing")?,
@@ -1809,19 +1784,57 @@ impl Dashboard {
                 &artifact.path,
                 Some(artifact),
             )?;
-            let text = std::fs::read_to_string(preview.path())?;
+            let mut text = std::fs::read_to_string(preview.path())?;
+            let conflict = if allow_conflict {
+                anyhow::ensure!(
+                    text.len() <= 65536 && bytes.len() <= 65536,
+                    "conflict proposal inputs exceed 64 KiB"
+                );
+                let base = result
+                    .artifact_bases
+                    .iter()
+                    .find(|base| base.path == artifact.path)
+                    .context("captured merge base unavailable")?;
+                let captured = Preview::artifact_base(
+                    self.path.parent().context("owner home missing")?,
+                    base,
+                )?;
+                let base_text = std::fs::read_to_string(captured.path())?;
+                anyhow::ensure!(
+                    base_text.len() <= 65536,
+                    "conflict merge base exceeds 64 KiB"
+                );
+                let owner_text = std::str::from_utf8(&bytes)?;
+                let (merged, conflict_markers) = match diffy::merge(&base_text, owner_text, &text) {
+                    Ok(text) => (text, false),
+                    Err(text) => (text, true),
+                };
+                anyhow::ensure!(
+                    merged.len() <= 65536,
+                    "merged proposal exceeds 64 KiB; resolve in protected native comparison"
+                );
+                text = merged;
+                Some(crate::organization_editor::BufferConflictEvidence {
+                    base_sha256: format!("{:x}", Sha256::digest(base_text.as_bytes())),
+                    source_artifact_sha256: artifact.sha256.clone(),
+                    conflict_markers,
+                })
+            } else {
+                None
+            };
             Ok(crate::organization_editor::BufferProposal {
                 pin,
+                artifact_sha256: format!("{:x}", Sha256::digest(text.as_bytes())),
                 text,
                 result_digest: result.digest.clone(),
-                artifact_sha256: artifact.sha256.clone(),
+                conflict,
             })
         })();
         match proposal {
             Ok(proposal) => {
                 self.confirmation = Some(Command::BufferProposal(Box::new(proposal)));
                 self.confirmation_text = clean(&self.details());
-                self.message="Review the exact pinned native-buffer proposal · y changes buffer · Esc cancels · native undo · save separately".into();
+                self.message="Review the exact pinned native-buffer proposal · y changes buffer · Esc cancels · native undo · save separately · merged bytes require fresh checks".into();
             }
             Err(error) => {
                 self.message = error.to_string();
@@ -2799,6 +2812,8 @@ impl Dashboard {
                     | OrganizationControlValue::RoleRollback { applied: false, .. }
                     | OrganizationControlValue::WorkflowRollback { applied: false, .. }
                     | OrganizationControlValue::WorkflowImprovement { applied: false, .. }
+                    | OrganizationControlValue::StrategyProposal { applied: false, .. }
+                    | OrganizationControlValue::ModelComparison { applied: false, .. }
                     | OrganizationControlValue::Improvement { applied: false, .. } => {
                         let mut value = control.value.clone();
                         match &mut value {
@@ -2807,6 +2822,8 @@ impl Dashboard {
                             | OrganizationControlValue::RoleRollback { applied, .. }
                             | OrganizationControlValue::WorkflowRollback { applied, .. }
                             | OrganizationControlValue::WorkflowImprovement { applied, .. }
+                            | OrganizationControlValue::StrategyProposal { applied, .. }
+                            | OrganizationControlValue::ModelComparison { applied, .. }
                             | OrganizationControlValue::Improvement { applied, .. } => {
                                 *applied = true
                             }
@@ -3391,6 +3408,15 @@ impl Dashboard {
             'ρ' => form::Kind::ResourcePressure(self.control("pressure")),
             'Z' => form::Kind::Setup,
             'µ' => form::Kind::Mission(self.control("mission")),
+            'β' => form::Kind::StrategyProposal(self.control("mission")),
+            'ω' => form::Kind::EscalationRule(match self.record() {
+                Some(OrganizationRecord::Control(c))
+                    if matches!(c.value, OrganizationControlValue::EscalationRule { .. }) =>
+                {
+                    Some(c.clone())
+                }
+                _ => None,
+            }),
             'π' => {
                 let id = match self.record() {
                     Some(OrganizationRecord::Project(p)) => Some(p.id.clone()),
@@ -3437,6 +3463,7 @@ impl Dashboard {
                 form::Kind::Escalation {
                     task: task.clone(),
                     previous: self.control(&format!("escalation:{}", task.id)),
+                    rules: self.snapshot.records.iter().filter_map(|r| match r { OrganizationRecord::Control(c) if matches!(&c.value, OrganizationControlValue::EscalationRule { task_states, enabled: true, .. } if task_states.contains(&task.state)) => Some(c.clone()), _ => None }).collect(),
                 }
             }
             'λ' => {
@@ -3536,9 +3563,10 @@ impl Dashboard {
                     previous: self.control(&format!("recovery:{}", view.task.id)),
                 }
             }
-            '$' => {
-                if let Some(OrganizationWorkflowView::Template { template }) =
-                    self.selected_workflow()
+            '$' | 'Ω' => {
+                if key == '$'
+                    && let Some(OrganizationWorkflowView::Template { template }) =
+                        self.selected_workflow()
                 {
                     let runs = self
                         .snapshot
@@ -3576,9 +3604,16 @@ impl Dashboard {
                     .filter(|t| t.state == "accepted" && t.result_digest.is_some())
                     .cloned()
                     .collect();
-                form::Kind::Improvement {
-                    node: node.clone(),
-                    accepted,
+                if key == 'Ω' {
+                    form::Kind::ModelComparison {
+                        node: node.clone(),
+                        accepted,
+                    }
+                } else {
+                    form::Kind::Improvement {
+                        node: node.clone(),
+                        accepted,
+                    }
                 }
             }
             'P' => match self.record() {
@@ -4233,7 +4268,7 @@ impl Dashboard {
                         return;
                     }
                     KeyCode::Char('B') => {
-                        self.buffer_proposal();
+                        self.buffer_proposal(false);
                         return;
                     }
                     KeyCode::Char('Q') => {
@@ -4654,6 +4689,10 @@ impl Dashboard {
             KeyCode::F(53) => self.open_form('ξ'),
             KeyCode::F(59) => self.open_form('τ'),
             KeyCode::F(60) => self.open_form('σ'),
+            KeyCode::F(61) => self.open_form('β'),
+            KeyCode::F(62) => self.open_form('ω'),
+            KeyCode::F(63) => self.open_form('Ω'),
+            KeyCode::F(64) => self.buffer_proposal(true),
             KeyCode::F(55) => {
                 self.report_text = Some(reporting::owner_overview(
                     &self.snapshot,
@@ -5309,6 +5348,13 @@ impl Dashboard {
                         candidate_task_id,
                         candidate_digest,
                         ..
+                    }
+                    | OrganizationControlValue::ModelComparison {
+                        baseline_task_id,
+                        baseline_digest,
+                        candidate_task_id,
+                        candidate_digest,
+                        ..
                     } = &control.value
                     {
                         let evidence = |id: &str, digest: &str| {
@@ -5788,7 +5834,7 @@ impl Dashboard {
                     &serde_json::json!({"nativeSession":session,"recoverUnsaved":recover,"writesOriginalFiles":false}),
                 ),
                 Command::BufferProposal(proposal) => serde_json::to_string_pretty(
-                    &serde_json::json!({"nativeBuffer":proposal.pin,"acceptedResult":proposal.result_digest,"proposalSha256":proposal.artifact_sha256,"writesOriginalFiles":false,"undo":"native Neovim undo; save is separate"}),
+                    &serde_json::json!({"nativeBuffer":proposal.pin,"acceptedResult":proposal.result_digest,"proposalSha256":proposal.artifact_sha256,"conflictEvidence":proposal.conflict,"conflictProposalText":proposal.conflict.as_ref().map(|_|&proposal.text),"writesOriginalFiles":false,"undo":"native Neovim undo; save is separate"}),
                 ),
                 Command::Execution(m) => serde_json::to_string_pretty(m),
                 Command::Definition(m) => serde_json::to_string_pretty(m),

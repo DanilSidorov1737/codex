@@ -39,6 +39,8 @@ pub(super) async fn set(
     value: OrganizationControlValue,
 ) -> Result<OrganizationControl> {
     let id = match &value {
+        OrganizationControlValue::StrategyProposal { id, .. } => format!("strategy:{id}"),
+        OrganizationControlValue::EscalationRule { id, .. } => format!("escalation-rule:{id}"),
         OrganizationControlValue::ReviewComment { id, .. } => format!("review-comment:{id}"),
         OrganizationControlValue::ResearchEvidence { .. } => anyhow::bail!(
             "research evidence requires the live executor; owner edits cannot forge citations"
@@ -68,6 +70,7 @@ pub(super) async fn set(
             format!("workflow-improvement:{id}")
         }
         OrganizationControlValue::Improvement { id, .. } => format!("improvement:{id}"),
+        OrganizationControlValue::ModelComparison { id, .. } => format!("model-comparison:{id}"),
         OrganizationControlValue::Team { id, .. } => format!("team:{id}"),
         OrganizationControlValue::SafeRecovery { task_id, .. } => format!("recovery:{task_id}"),
         OrganizationControlValue::Knowledge { note_id, .. } => format!("knowledge:{note_id}"),
@@ -85,6 +88,93 @@ pub(super) async fn set(
         "control revision conflict"
     );
     match &value {
+        OrganizationControlValue::StrategyProposal {
+            id,
+            mission_revision,
+            purpose,
+            priorities,
+            constraints,
+            reason,
+            consequences,
+            resource_estimate,
+            applied,
+        } => {
+            Uuid::parse_str(id)?;
+            text(reason, 4096)?;
+            text(resource_estimate, 4096)?;
+            super::definitions::validate_criteria(consequences)?;
+            ensure!(
+                !consequences.is_empty(),
+                "record expected consequences before review"
+            );
+            validate_mission(purpose, priorities, constraints)?;
+            let mission = read(tx, "mission").await?;
+            ensure!(
+                mission.as_ref().map(|m| m.revision) == *mission_revision,
+                "mission changed; recapture the proposal"
+            );
+            ensure!(
+                !previous.as_ref().is_some_and(|p| matches!(
+                    p.value,
+                    OrganizationControlValue::StrategyProposal { applied: true, .. }
+                )),
+                "adopted strategy proposal is immutable"
+            );
+            if *applied {
+                let mut pending = value.clone();
+                if let OrganizationControlValue::StrategyProposal { applied, .. } = &mut pending {
+                    *applied = false;
+                }
+                ensure!(
+                    previous.as_ref().is_some_and(|p| p.value == pending),
+                    "save and review the exact strategy proposal before adoption"
+                );
+                persist(
+                    tx,
+                    mission,
+                    "mission".into(),
+                    OrganizationControlValue::Mission {
+                        purpose: purpose.clone(),
+                        priorities: priorities.clone(),
+                        constraints: constraints.clone(),
+                    },
+                )
+                .await?;
+            }
+        }
+        OrganizationControlValue::EscalationRule {
+            id,
+            label,
+            task_states,
+            severity,
+            assignee_id,
+            response_seconds,
+            enabled,
+        } => {
+            Uuid::parse_str(id)?;
+            text(label, 256)?;
+            text(severity, 64)?;
+            ensure!(
+                (1..=5).contains(&task_states.len())
+                    && task_states.iter().collect::<BTreeSet<_>>().len() == task_states.len()
+                    && task_states.iter().all(|state| matches!(
+                        state.as_str(),
+                        "blocked" | "paused" | "waitingApproval" | "needsReconciliation" | "failed"
+                    )),
+                "select distinct assistance task states"
+            );
+            ensure!(
+                (30..=604800).contains(response_seconds),
+                "response window must be 30 seconds to seven days"
+            );
+            if *enabled && let Some(assignee) = assignee_id {
+                ensure!(
+                    read_node(tx, assignee).await?.enabled
+                        && ancestors_enabled(tx, assignee).await?,
+                    "rule responsibility is disabled or unavailable"
+                );
+            }
+        }
         OrganizationControlValue::ReviewComment {
             id,
             task_id,
@@ -405,16 +495,7 @@ pub(super) async fn set(
             priorities,
             constraints,
         } => {
-            text(purpose, 4096)?;
-            super::definitions::validate_criteria(priorities)?;
-            super::definitions::validate_criteria(constraints)?;
-            ensure!(
-                purpose.len()
-                    + priorities.iter().map(String::len).sum::<usize>()
-                    + constraints.iter().map(String::len).sum::<usize>()
-                    <= 8192,
-                "mission context exceeds 8 KiB"
-            );
+            validate_mission(purpose, priorities, constraints)?;
         }
         OrganizationControlValue::GoalReview {
             goal,
@@ -467,6 +548,7 @@ pub(super) async fn set(
             reason,
             requested_action,
             resolved,
+            rule,
         } => {
             text(reason, 4096)?;
             text(requested_action, 4096)?;
@@ -494,6 +576,39 @@ pub(super) async fn set(
                     ensure!(
                         node.enabled && ancestors_enabled(tx, id).await?,
                         "responsible definition is disabled"
+                    );
+                }
+                if let Some(pin) = rule {
+                    let captured = read(tx, &format!("escalation-rule:{}", pin.rule_id))
+                        .await?
+                        .context("escalation rule missing")?;
+                    let OrganizationControlValue::EscalationRule {
+                        task_states,
+                        severity,
+                        assignee_id: responsible,
+                        response_seconds,
+                        enabled,
+                        ..
+                    } = &captured.value
+                    else {
+                        anyhow::bail!("invalid escalation rule")
+                    };
+                    let now = chrono::Utc::now().timestamp();
+                    ensure!(
+                        captured.revision == pin.rule_revision
+                            && *enabled
+                            && task_states.contains(&task.state)
+                            && severity == &pin.severity
+                            && responsible == assignee_id,
+                        "escalation rule, task state or responsibility changed"
+                    );
+                    ensure!(
+                        pin.raised_at > 0
+                            && pin.raised_at <= now
+                            && now - pin.raised_at <= 300
+                            && pin.raised_at.checked_add(i64::from(*response_seconds))
+                                == Some(pin.response_due_at),
+                        "recapture the exact rule response deadline before confirming"
                     );
                 }
             }
@@ -578,33 +693,50 @@ pub(super) async fn set(
             id,
             reason,
             node,
-            role_version_id,
+            role_version_id: candidate_value,
+            baseline_task_id,
+            baseline_digest,
+            candidate_task_id,
+            candidate_digest,
+            applied,
+        }
+        | OrganizationControlValue::ModelComparison {
+            id,
+            reason,
+            node,
+            model: candidate_value,
             baseline_task_id,
             baseline_digest,
             candidate_task_id,
             candidate_digest,
             applied,
         } => {
+            let comparing_models =
+                matches!(value, OrganizationControlValue::ModelComparison { .. });
             Uuid::parse_str(id)?;
             text(reason, 4096)?;
+            text(candidate_value, 256)?;
             ensure!(
                 baseline_task_id != candidate_task_id
-                    && node.role_version_id.as_ref() != Some(role_version_id),
-                "compare distinct evaluations and a fresh instruction version"
+                    && (comparing_models || node.role_version_id.as_ref() != Some(candidate_value)),
+                "compare distinct evaluations and a fresh candidate"
             );
             if let Some(old) = &previous {
                 ensure!(
                     !matches!(
                         old.value,
                         OrganizationControlValue::Improvement { applied: true, .. }
+                            | OrganizationControlValue::ModelComparison { applied: true, .. }
                     ),
                     "adopted improvement is immutable"
                 );
             }
             if *applied {
                 let mut pending = value.clone();
-                if let OrganizationControlValue::Improvement { applied, .. } = &mut pending {
-                    *applied = false;
+                match &mut pending {
+                    OrganizationControlValue::Improvement { applied, .. }
+                    | OrganizationControlValue::ModelComparison { applied, .. } => *applied = false,
+                    _ => unreachable!(),
                 }
                 ensure!(
                     previous.as_ref().is_some_and(|old| old.value == pending),
@@ -619,20 +751,70 @@ pub(super) async fn set(
             let candidate = comparison_evidence(tx, candidate_task_id, candidate_digest).await?;
             ensure!(
                 baseline.0.project_id == candidate.0.project_id
-                    && baseline.1.scope.model == candidate.1.scope.model
                     && baseline.2.provider.is_some()
                     && baseline.2.provider == candidate.2.provider,
-                "evaluation project/model/provider differ or provenance is unavailable"
+                "evaluation project/provider differ or provenance is unavailable"
             );
-            ensure!(
-                baseline.2.role_version_id == node.role_version_id
-                    && candidate.2.role_version_id.as_ref() == Some(role_version_id),
-                "evaluate the actual captured baseline and candidate instructions"
-            );
+            if comparing_models {
+                let mut equivalent_scope = candidate.1.scope.clone();
+                equivalent_scope.model = baseline.1.scope.model.clone();
+                equivalent_scope.cost_budget = baseline.1.scope.cost_budget.clone();
+                equivalent_scope.not_before = baseline.1.scope.not_before;
+                ensure!(
+                    equivalent_scope == baseline.1.scope,
+                    "model comparison must retain the same tools, checks, limits and delegation scope"
+                );
+                ensure!(
+                    baseline.0.instructions == candidate.0.instructions
+                        && baseline.0.criteria == candidate.0.criteria
+                        && baseline.1.scope.input_files == candidate.1.scope.input_files
+                        && baseline.1.scope.immutable_files == candidate.1.scope.immutable_files
+                        && baseline.1.scope.artifacts == candidate.1.scope.artifacts
+                        && baseline.1.scope.input_files.iter().all(|path| baseline
+                            .1
+                            .scope
+                            .immutable_files
+                            .contains(path)
+                            || baseline.1.scope.artifacts.contains(path)),
+                    "model comparison requires the same evaluation task, file scope and frozen non-output inputs"
+                );
+                ensure!(
+                    baseline.3.artifact_bases == candidate.3.artifact_bases
+                        && baseline.3.artifact_bases.len() == baseline.1.scope.artifacts.len()
+                        && baseline.3.artifact_bases.iter().all(|base| base.captured),
+                    "model comparison requires identical captured output bases; legacy or missing evidence cannot qualify adoption"
+                );
+                ensure!(
+                    node.kind == OrganizationNodeKind::Agent
+                        && baseline.1.scope.model != candidate.1.scope.model
+                        && candidate.1.scope.model == *candidate_value
+                        && node
+                            .model
+                            .as_ref()
+                            .is_none_or(|model| *model == baseline.1.scope.model),
+                    "evaluate distinct captured baseline/candidate models for this agent"
+                );
+                ensure!(
+                    baseline.2.role_version_id == node.role_version_id
+                        && candidate.2.role_version_id == node.role_version_id,
+                    "model comparison must keep actual captured instructions unchanged"
+                );
+            } else {
+                ensure!(
+                    baseline.1.scope.model == candidate.1.scope.model
+                        && baseline.2.role_version_id == node.role_version_id
+                        && candidate.2.role_version_id.as_ref() == Some(candidate_value),
+                    "evaluate actual baseline/candidate instructions with the same model"
+                );
+            }
             compare_checks(&baseline.3, &candidate.3)?;
             if *applied {
                 let mut updated = (**node).clone();
-                updated.role_version_id = Some(role_version_id.clone());
+                if comparing_models {
+                    updated.model = Some(candidate_value.clone());
+                } else {
+                    updated.role_version_id = Some(candidate_value.clone());
+                }
                 updated.revision = updated
                     .revision
                     .checked_add(1)
@@ -1065,6 +1247,20 @@ pub(super) async fn persist(
     .execute(&mut **tx)
     .await?;
     Ok(control)
+}
+
+fn validate_mission(purpose: &str, priorities: &[String], constraints: &[String]) -> Result<()> {
+    text(purpose, 4096)?;
+    super::definitions::validate_criteria(priorities)?;
+    super::definitions::validate_criteria(constraints)?;
+    ensure!(
+        purpose.len()
+            + priorities.iter().map(String::len).sum::<usize>()
+            + constraints.iter().map(String::len).sum::<usize>()
+            <= 8192,
+        "mission context exceeds 8 KiB"
+    );
+    Ok(())
 }
 
 fn check_rollback_proposal(

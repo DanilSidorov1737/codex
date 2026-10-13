@@ -364,6 +364,16 @@ impl Dashboard {
         };
         let height = usize::from(inner.height / step);
         let start = selected.saturating_sub(height.saturating_sub(1));
+        // Scan loaded records once, instead of once for every visible row.
+        let task_states: BTreeMap<_, _> = self
+            .snapshot
+            .records
+            .iter()
+            .filter_map(|record| match record {
+                OrganizationRecord::Task(task) => Some((task.id.as_str(), task.state.as_str())),
+                _ => None,
+            })
+            .collect();
         if self.rows.is_empty() {
             Paragraph::new(if matches!(self.projection,Projection::Health|Projection::Incidents) {"No incidents in the loaded report.\nApproval waits and paused work are expected states.\nRefresh to obtain current evidence; Alt-H health."} else {"No matching records.\n\nN New project   T New task\nG New goal      U New agent\n\nDefinitions stay idle until authorized."}).style(Style::default().fg(foreground(MUTED))).wrap(Wrap { trim: false }).render(inner.inner(Margin::new(1, 0)), buffer);
         }
@@ -378,10 +388,7 @@ impl Dashboard {
             let y = inner.y + line as u16 * step;
             let area = Rect::new(inner.x, y, inner.width, step);
             let selected = index == selected;
-            let state = self.snapshot.records.iter().find_map(|r| match r {
-                OrganizationRecord::Task(t) if t.id == row.id => Some(t.state.as_str()),
-                _ => None,
-            });
+            let state = task_states.get(row.id.as_str()).copied();
             let style = Style::default()
                 .fg(if selected {
                     foreground(BLUE)

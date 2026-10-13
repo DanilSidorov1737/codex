@@ -34,6 +34,7 @@ const MAX_COLUMNS: u16 = 512;
 const MAX_ROWS: u16 = 256;
 
 mod session;
+pub(crate) use session::BufferConflictEvidence;
 pub(crate) use session::BufferProposal;
 pub(crate) use session::Session;
 #[cfg(test)]

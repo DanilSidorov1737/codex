@@ -75,6 +75,7 @@ export type { OrganizationConversationEntry } from "./OrganizationConversationEn
 export type { OrganizationCostBudget } from "./OrganizationCostBudget";
 export type { OrganizationDeadlineKind } from "./OrganizationDeadlineKind";
 export type { OrganizationDiscussion } from "./OrganizationDiscussion";
+export type { OrganizationEscalationRulePin } from "./OrganizationEscalationRulePin";
 export type { OrganizationExecutionMutation } from "./OrganizationExecutionMutation";
 export type { OrganizationExecutionScope } from "./OrganizationExecutionScope";
 export type { OrganizationExecutionView } from "./OrganizationExecutionView";

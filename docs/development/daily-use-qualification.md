@@ -654,3 +654,46 @@ relocations free1,509,519,360 root bytes/30 files and1,001,082,880 bytes/11 file
 preserving content, mtime and cache paths. Source, packages, owner/state/recovery
 data and every receipt remain. Continue tasks8/27–28/31–35/38–40 and remaining
 final qualification; suitable-host task13 remains externally blocked.
+
+## Strategic controls, model comparisons, queue and conflict source checkpoint
+
+Approved tasks27–28/31–33/38 now reuse versioned owner controls/history/forms,
+existing evaluation evidence, installed diffy and actual native buffer pins/undo.
+Strategy adoption pins the current mission and exact saved reasons/consequences/
+unverified resource estimates. Rule routing captures severity, responsibility and
+a30-second–seven-day response deadline, with stale/forged pins refused. Model
+adoption retains provider, role/evaluation task, scope/limits, frozen non-output
+inputs, captured output bases and exact checks, with only model/price quote/start
+time varying. Adoption remains separate and preserves old grants/accounting.
+
+Conflict proposals pin accepted source/base/current owner text and show the entire
+bounded merged text and hashes. They change only the clean actual Neovim buffer;
+native undo/save/fresh checks stay separate. Unknown/legacy bases are refused.
+Queue advice uses actual loaded dependencies/state/pressure/grant evidence and
+labels timing unavailable. Tree-list rendering scans task records once per frame.
+
+`strategy-model-state-tests-result.json` passes17 selected controls, exit0 after
+69.71s; the full current executable passes349 tests, exit0 in17.90s. Current
+runtime selection (`strategy-owner-runtime-ui-tests-result.json`) passes20
+app-server,3 CLI and114 TUI checks, exit0 after777.01s build/tests, including
+official Neovim conflict/undo/stale-original tests. A zero-test CLI library run is
+not counted. Stable generation151.38s and experimental generation pass; all4
+regenerated schema comparisons pass, exit0 after83.82s. Python generation/25
+contracts/signatures and full repository formatting pass. Production lint,
+clean source/package and actual native/large-tree/final endurance are unfinished.
+
+After compiler writers stop,126 hash/mtime-verified generated file relocations
+free1,503,498,240 root bytes; four stopped immutable package asset links free
+543,412,224 bytes without changing paths/bytes/state. No protected fixture,
+accounting, original, receipt or recovery package is removed. Scripts prepared
+outside the checkout have not yet executed; do not describe them as evidence.
+
+Production lint initially rejects the queue lookup's negated Boolean predicate
+(`strategy-production-clippy.log`, exit101). It is replaced with equivalent
+`is_none_or` logic; no behavior/assertion is weakened. Production CLI Clippy with
+warnings denied then passes, exit0 in49.81s (`strategy-production-clippy-v2.log`).
+Stable/experimental fixtures keep their existing raw style, with the new public
+rule-pin TypeScript/SDK type and control variants only. Native drivers remain
+unexecuted pending a clean stamped package. The large-tree fixture is explicitly
+test-only bulk definitions with no task/grant authority; its planned timing
+includes real-terminal settling and cannot be presented as isolated CPU speed.

@@ -494,6 +494,7 @@ async fn resolving_assistance_neither_changes_task_nor_replays_an_attempt() -> R
         reason: "Owner assistance required".into(),
         requested_action: "Inspect captured evidence".into(),
         resolved: false,
+        rule: None,
     };
     assert!(
         set(&store, None, request(&before.task)).await.is_err(),
@@ -533,6 +534,323 @@ async fn resolving_assistance_neither_changes_task_nor_replays_an_attempt() -> R
             .claim_task(&worker, &Uuid::now_v7().to_string(), 1003, 4)
             .await?
             .is_none()
+    );
+    Ok(())
+}
+
+#[tokio::test]
+async fn strategy_adoption_pins_mission_and_preserves_execution_authority() -> Result<()> {
+    let home = Fixture::new();
+    let store = OrganizationStore::open(&home.0).await?;
+    let (_, attempt) = authorized_attempt(&store, false).await?;
+    let before = store.execution_view(&attempt.task_id).await?;
+    let mission = OrganizationControlValue::Mission {
+        purpose: "Current owner intent".into(),
+        priorities: vec!["Keep current work bounded".into()],
+        constraints: vec!["Owner accepts and Applies".into()],
+    };
+    let current = set(&store, None, mission.clone()).await?;
+    let proposal = OrganizationControlValue::StrategyProposal {
+        id: Uuid::now_v7().to_string(),
+        mission_revision: Some(current.revision),
+        purpose: "Prioritize verified parser behavior".into(),
+        priorities: vec!["Fix real regressions first".into()],
+        constraints: vec!["Keep current grants and budgets".into()],
+        reason: "Observed regression has a useful independent check".into(),
+        consequences: vec!["Defer cosmetic work; retain unfinished tasks".into()],
+        resource_estimate: "Owner estimate: one bounded local task; provider invoice unknown"
+            .into(),
+        applied: false,
+    };
+    let mut forged = proposal.clone();
+    if let OrganizationControlValue::StrategyProposal { applied, .. } = &mut forged {
+        *applied = true;
+    }
+    assert!(
+        set(&store, None, forged).await.is_err(),
+        "adoption requires saved exact proposal"
+    );
+    let saved = set(&store, None, proposal.clone()).await?;
+    assert_eq!(store.mission().await?, Some(current.clone()));
+    assert_eq!(store.execution_view(&attempt.task_id).await?, before);
+    set(&store, Some(current.revision), mission).await?;
+    let mut adopt = proposal.clone();
+    if let OrganizationControlValue::StrategyProposal { applied, .. } = &mut adopt {
+        *applied = true;
+    }
+    assert!(
+        set(&store, Some(saved.revision), adopt.clone())
+            .await
+            .is_err(),
+        "stale mission cannot be overwritten"
+    );
+    let mut fresh = proposal;
+    if let OrganizationControlValue::StrategyProposal {
+        id,
+        mission_revision,
+        ..
+    } = &mut fresh
+    {
+        *id = Uuid::now_v7().to_string();
+        *mission_revision = Some(2);
+    }
+    let pending = set(&store, None, fresh.clone()).await?;
+    if let OrganizationControlValue::StrategyProposal { applied, .. } = &mut fresh {
+        *applied = true;
+    }
+    let adopted = set(&store, Some(pending.revision), fresh.clone()).await?;
+    assert_eq!(store.mission().await?.unwrap().revision, 3);
+    assert!(set(&store, Some(adopted.revision), fresh).await.is_err());
+    assert_eq!(store.execution_view(&attempt.task_id).await?, before);
+    store.close().await;
+    let reopened = OrganizationStore::open(&home.0).await?;
+    assert_eq!(reopened.mission().await?.unwrap().revision, 3);
+    assert_eq!(reopened.execution_view(&attempt.task_id).await?, before);
+    Ok(())
+}
+
+#[tokio::test]
+async fn escalation_rule_deadlines_reject_stale_and_forged_pins_without_replay() -> Result<()> {
+    let home = Fixture::new();
+    let store = OrganizationStore::open(&home.0).await?;
+    let (worker, attempt) = authorized_attempt(&store, false).await?;
+    store.fail_attempt(&attempt.id, &worker).await?;
+    store.release_attempt_capacity(&attempt.id, &worker).await?;
+    let before = store.execution_view(&attempt.task_id).await?;
+    let rule_id = Uuid::now_v7().to_string();
+    let rule = OrganizationControlValue::EscalationRule {
+        id: rule_id.clone(),
+        label: "Local failure assistance".into(),
+        task_states: vec!["failed".into()],
+        severity: "Owner-defined critical".into(),
+        assignee_id: None,
+        response_seconds: 3600,
+        enabled: true,
+    };
+    let saved = set(&store, None, rule.clone()).await?;
+    let now = chrono::Utc::now().timestamp();
+    let request = OrganizationControlValue::Escalation {
+        task_id: before.task.id.clone(),
+        task_revision: before.task.revision,
+        assignee_id: None,
+        reason: "Inspect actual failed evidence".into(),
+        requested_action: "Review before any new authorization".into(),
+        resolved: false,
+        rule: Some(OrganizationEscalationRulePin {
+            rule_id,
+            rule_revision: saved.revision,
+            severity: "Owner-defined critical".into(),
+            raised_at: now,
+            response_due_at: now + 3600,
+        }),
+    };
+    for invalid in 0..4 {
+        let mut changed = request.clone();
+        if let OrganizationControlValue::Escalation {
+            rule: Some(pin),
+            assignee_id,
+            ..
+        } = &mut changed
+        {
+            match invalid {
+                0 => pin.rule_revision += 1,
+                1 => pin.severity = "forged".into(),
+                2 => pin.response_due_at += 1,
+                _ => *assignee_id = Some(before.task.owner_id.clone()),
+            }
+        }
+        assert!(set(&store, None, changed).await.is_err());
+        assert_eq!(store.execution_view(&attempt.task_id).await?, before);
+    }
+    let pending = set(&store, None, request.clone()).await?;
+    let mut disabled = rule;
+    if let OrganizationControlValue::EscalationRule { enabled, .. } = &mut disabled {
+        *enabled = false;
+    }
+    set(&store, Some(saved.revision), disabled).await?;
+    assert!(
+        set(&store, Some(pending.revision), request.clone())
+            .await
+            .is_err()
+    );
+    let mut resolved = request;
+    if let OrganizationControlValue::Escalation { resolved, .. } = &mut resolved {
+        *resolved = true;
+    }
+    let done = set(&store, Some(pending.revision), resolved.clone()).await?;
+    assert!(set(&store, Some(done.revision), resolved).await.is_err());
+    assert_eq!(store.execution_view(&attempt.task_id).await?, before);
+    assert!(
+        store
+            .claim_task(&worker, &Uuid::now_v7().to_string(), 1003, 4)
+            .await?
+            .is_none()
+    );
+    Ok(())
+}
+
+#[tokio::test]
+async fn model_adoption_changes_only_one_evaluated_variable_and_preserves_grants() -> Result<()> {
+    let home = Fixture::new();
+    let store = OrganizationStore::open(&home.0).await?;
+    let baseline = node_from(
+        store
+            .mutate_owner(
+                node_mutation("Model baseline", None, OrganizationNodeKind::Agent),
+                None,
+            )
+            .await?,
+    );
+    let candidate = node_from(
+        store
+            .mutate_owner(
+                node_mutation("Model candidate", None, OrganizationNodeKind::Agent),
+                None,
+            )
+            .await?,
+    );
+    let project = execution_project(&store, &baseline.id).await?;
+    let worker = Uuid::now_v7().to_string();
+    let mut evaluated = Vec::new();
+    for (index, owner) in [&baseline.id, &candidate.id, &candidate.id]
+        .into_iter()
+        .enumerate()
+    {
+        let task = execution_task(&store, owner, &project).await?;
+        let mut scope = execution_scope();
+        scope.immutable_files = scope.input_files.clone();
+        scope.model = if index == 0 {
+            "fixture"
+        } else {
+            "candidate-fixture"
+        }
+        .into();
+        store
+            .authorize_task(&task.id, task.revision, scope, 1000)
+            .await?;
+        let attempt = store
+            .claim_task(&worker, &Uuid::now_v7().to_string(), 1000, 2)
+            .await?
+            .unwrap();
+        store
+            .bind_attempt_runtime(
+                &attempt.id,
+                &worker,
+                &OrganizationRuntimeBinding {
+                    workspace: "/tmp/state-only-model-comparison".into(),
+                    turn_id: None,
+                    artifact_bases: vec![OrganizationArtifactBase {
+                        captured: true,
+                        path: "report.txt".into(),
+                        sha256: None,
+                    }],
+                },
+                1001,
+            )
+            .await?;
+        store
+            .record_attempt_provider(
+                &attempt.id,
+                &worker,
+                OrganizationProviderEvidence {
+                    id: "fixture".into(),
+                    origin: None,
+                    endpoint_sha256: "b".repeat(64),
+                },
+                1001,
+            )
+            .await?;
+        store
+            .admit_model_request(&attempt.id, &worker, 1001)
+            .await?;
+        store
+            .checkpoint_usage(&attempt.id, &worker, 1, if index == 0 { 20 } else { 10 })
+            .await?;
+        let result = store
+            .record_result(
+                &attempt.id,
+                &worker,
+                vec![OrganizationArtifactEvidence {
+                    path: "report.txt".into(),
+                    sha256: "d".repeat(64),
+                    bytes: 2,
+                }],
+                vec![OrganizationCheckEvidence {
+                    immutable_inputs: Some(vec![
+                        OrganizationArtifactEvidence {
+                            path: "input.txt".into(),
+                            sha256: "e".repeat(64),
+                            bytes: 4,
+                        },
+                        OrganizationArtifactEvidence {
+                            path: "oracle.py".into(),
+                            sha256: if index == 2 { "c" } else { "a" }.repeat(64),
+                            bytes: 4,
+                        },
+                    ]),
+                    argv: execution_scope().checks[0].clone(),
+                    exit_code: Some(0),
+                    output: "State-only synthetic comparison oracle".into(),
+                    truncated: false,
+                }],
+                1002,
+            )
+            .await?;
+        let view = store.execution_view(&task.id).await?;
+        store
+            .accept_result(&task.id, view.task.revision, &result.digest)
+            .await?;
+        store.release_attempt_capacity(&attempt.id, &worker).await?;
+        evaluated.push((task.id, result.digest));
+    }
+    let proposal = |which: usize| OrganizationControlValue::ModelComparison {
+        id: Uuid::now_v7().to_string(),
+        reason: "Controlled model comparison; same representative check hashes and instructions"
+            .into(),
+        node: Box::new(baseline.clone()),
+        model: "candidate-fixture".into(),
+        baseline_task_id: evaluated[0].0.clone(),
+        baseline_digest: evaluated[0].1.clone(),
+        candidate_task_id: evaluated[which].0.clone(),
+        candidate_digest: evaluated[which].1.clone(),
+        applied: false,
+    };
+    assert!(
+        set(&store, None, proposal(2)).await.is_err(),
+        "changed oracle cannot qualify model adoption"
+    );
+    let mut forged = proposal(1);
+    if let OrganizationControlValue::ModelComparison { model, .. } = &mut forged {
+        *model = "unevaluated-model".into();
+    }
+    assert!(set(&store, None, forged).await.is_err());
+    let before = store.execution_view(&evaluated[0].0).await?;
+    let mut value = proposal(1);
+    let pending = set(&store, None, value.clone()).await?;
+    assert_eq!(
+        store
+            .read_definition(OrganizationRecordKind::Nodes, &baseline.id)
+            .await?,
+        OrganizationRecord::Node(baseline.clone())
+    );
+    if let OrganizationControlValue::ModelComparison { applied, .. } = &mut value {
+        *applied = true;
+    }
+    let adopted = set(&store, Some(pending.revision), value.clone()).await?;
+    assert!(set(&store, Some(adopted.revision), value).await.is_err());
+    let updated = node_from(Some(
+        store
+            .read_definition(OrganizationRecordKind::Nodes, &baseline.id)
+            .await?,
+    ));
+    assert_eq!(updated.model.as_deref(), Some("candidate-fixture"));
+    assert_eq!(updated.role_version_id, baseline.role_version_id);
+    assert_eq!(store.execution_view(&evaluated[0].0).await?, before);
+    assert_eq!(
+        sqlx::query_scalar::<_, i64>("SELECT count(*) FROM organization_authorizations")
+            .fetch_one(&store.pool)
+            .await?,
+        3
     );
     Ok(())
 }

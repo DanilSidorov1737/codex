@@ -51,10 +51,34 @@ const ACTIONS: &[Action] = &[
         context: "mission, recorded outcomes, decisions and escalation evidence",
     },
     Action {
+        title: "Propose mission / priorities with consequences and estimates",
+        shortcut: "Commands",
+        code: KeyCode::F(61),
+        context: "captured mission revision; save proposal, then % reviews exact adoption; no new grant",
+    },
+    Action {
+        title: "Configure versioned local escalation rule",
+        shortcut: "Commands",
+        code: KeyCode::F(62),
+        context: "owner severity, arbitrary responsibility and response window; select rule to edit; no external messages",
+    },
+    Action {
         title: "Choose selected agent as executive contact",
         shortcut: "Commands",
         code: KeyCode::F(56),
         context: "optional private owner preference; arbitrary enabled agent",
+    },
+    Action {
+        title: "Compare evaluated models / propose owner adoption",
+        shortcut: "Commands",
+        code: KeyCode::F(63),
+        context: "select agent; same provider/instructions/immutable checks; exact accepted evaluations; % separately adopts",
+    },
+    Action {
+        title: "Propose bounded conflict merge in native owner buffer",
+        shortcut: "Commands",
+        code: KeyCode::F(64),
+        context: "accepted artifact + captured base + clean current original; review all pinned text; native undo; save/fresh checks separately",
     },
     Action {
         title: "Clear executive contact / direct owner control",
