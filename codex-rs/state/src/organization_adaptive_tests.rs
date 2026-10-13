@@ -1,6 +1,95 @@
 use super::*;
 
 #[tokio::test]
+async fn yielded_code_mode_waits_for_native_approval_and_capacity_without_spending() -> Result<()> {
+    let home = Fixture::new();
+    let store = OrganizationStore::open(&home.0).await?;
+    let node = node_from(
+        store
+            .mutate_owner(
+                node_mutation("Yielded cell owner", None, OrganizationNodeKind::Agent),
+                None,
+            )
+            .await?,
+    );
+    let project = execution_project(&store, &node.id).await?;
+    let task = execution_task(&store, &node.id, &project).await?;
+    let mut scope = execution_scope();
+    scope.code_mode = true;
+    scope.require_tool_approval = true;
+    store
+        .authorize_task(&task.id, task.revision, scope, 1000)
+        .await?;
+    let worker = Uuid::now_v7().to_string();
+    let attempt = store
+        .claim_task(&worker, &Uuid::now_v7().to_string(), 1000, 1)
+        .await?
+        .unwrap();
+    store
+        .admit_model_request(&attempt.id, &worker, 1001)
+        .await?;
+    store.checkpoint_usage(&attempt.id, &worker, 1, 15).await?;
+    let action = store
+        .prepare_action(
+            &attempt.id,
+            &worker,
+            "yielded-native",
+            "exec_command",
+            r#"{"cmd":"true"}"#,
+            1001,
+        )
+        .await?;
+    let before = store.execution_view(&task.id).await?;
+    assert_eq!(before.task.state, "waitingApproval");
+    let error = store
+        .admit_model_request(&attempt.id, &worker, 1002)
+        .await
+        .unwrap_err();
+    assert!(error.is::<WorkflowPaused>());
+    assert_eq!(before, store.execution_view(&task.id).await?);
+
+    let (other_worker, other) = authorized_attempt_with_limit(&store, false, 1).await?;
+    let approval = &before.approvals[0];
+    store
+        .decide_approval(&approval.id, &approval.action_hash, true, 1002)
+        .await?;
+    assert!(!store.dispatch_action(&action.id, &worker, 1002, 1).await?);
+    assert!(
+        store
+            .admit_model_request(&attempt.id, &worker, 1002)
+            .await
+            .unwrap_err()
+            .is::<WorkflowPaused>()
+    );
+    assert_eq!(
+        store
+            .execution_view(&task.id)
+            .await?
+            .authorization_model_requests,
+        1
+    );
+    store.fail_attempt(&other.id, &other_worker).await?;
+    store
+        .release_attempt_capacity(&other.id, &other_worker)
+        .await?;
+    assert!(store.dispatch_action(&action.id, &worker, 1003, 1).await?);
+    assert_eq!(
+        store
+            .admit_model_request(&attempt.id, &worker, 1003)
+            .await?,
+        (2, 15)
+    );
+    store.checkpoint_usage(&attempt.id, &worker, 2, 30).await?;
+    store
+        .finish_action(&attempt.id, &worker, "yielded-native", true, "checked")
+        .await?;
+    store.fail_attempt(&attempt.id, &worker).await?;
+    store.release_attempt_capacity(&attempt.id, &worker).await?;
+    store.close().await;
+    Ok(())
+}
+
+#[tokio::test]
 async fn explicit_code_mode_captures_a_separate_policy_without_widening_native_grants() -> Result<()>
 {
     let home = Fixture::new();

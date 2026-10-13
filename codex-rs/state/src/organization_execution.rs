@@ -218,9 +218,21 @@ impl OrganizationStore {
         now: i64,
     ) -> Result<(u32, i64)> {
         let mut tx = self.pool.begin_with("BEGIN IMMEDIATE").await?;
-        let (mut attempt, authorization) = check_fence(&mut tx, attempt_id, worker_id, now).await?;
+        let (mut attempt, authorization) =
+            check_live_fence(&mut tx, attempt_id, worker_id, now).await?;
+        ensure!(
+            attempt.state == OrganizationTaskState::Running || authorization.scope.code_mode,
+            "attempt is waiting"
+        );
         super::workflow::check_workflow_dispatch(&mut tx, &authorization).await?;
         super::resource::check_shared_ceilings(&mut tx, &authorization, true).await?;
+        if authorization.scope.code_mode
+            && (attempt.state != OrganizationTaskState::Running || !attempt.runtime_active)
+        {
+            // A yielded cell may still await its native approval/capacity.
+            // Model admission retries this pause without spending another request.
+            return Err(super::WorkflowPaused.into());
+        }
         ensure!(
             attempt.runtime_active,
             "inference requires reserved active capacity"

@@ -502,3 +502,39 @@ outputs remain on executable storage. Next: stage a fresh complete package, run
 the prepared real managed-host fixtures, rerun affected tests, then finish Code
 Mode admission and the full native/endurance qualification. No fresh fixture
 home, grant, model request, acceptance or Apply has yet been created.
+
+## First fresh managed-host pilot failure (preserved)
+
+The five-asset preview package is staged at `/tmp/adaptive-qualification-package`,
+version `0.0.0-adaptive.preview1.3d577f4fbe`; asset hashes are recorded in
+`adaptive-package-v1-assets.json`. The builder's first invocation required the
+documented `CODEX_REPO_ROOT` binding; the corrected staging and CLI version check
+pass. Three retained runtime helper assets match their verified prior hashes.
+
+Fresh home `/tmp/adaptive-native-qualification-home` and its own finite localhost
+provider were prepared. The first Code Mode task reached an exact native approval,
+and wrong-hash/global-pause decisions were refused. It then failed: after a yielded
+cell, model admission treated released active capacity as fatal instead of waiting
+for the pending approval. Its one reported request/15 synthetic tokens, released
+reservation, pending action and superseded approval are preserved in
+`native-workflow/first-pilot-failed-view.json`. No native action was dispatched,
+no result was accepted and no Apply ran. The owned daemon is paused/stopped;
+the finite local provider remains running for corrected fresh tasks.
+
+The fix returns the existing transient WorkflowPaused condition for an explicitly
+captured Code Mode scope without active capacity. It grants no slot, request,
+tokens or permission. A new regression proves pending approval and occupied
+capacity do not spend another request, then exact approval and slot release permit
+normal admission. Its state/protocol run is in progress; CodeModeOnly remains
+blocked. Never replay the failed pilot or its saved mutation intents. Continue
+with a new task/package after the fix passes, preserving all original accounting.
+
+The first regression run exposed an earlier running-only fence before the new
+pause branch. Model admission now validates the complete live fence first,
+retains the native running-only condition for native scopes, and returns the
+transient pause for waiting/inactive Code Mode scopes. All state341/protocol377
+checks pass (`code-mode-approval-state-protocol-v2.log`, exit0), including exact
+approval, an occupied active slot, unchanged request/reservation evidence while
+waiting and normal admission after explicit capacity release. The initial failed
+regression remains in `v1`. The daemon remains paused/stopped pending a corrected
+package and fresh task; no failed grant or counter is reset.
