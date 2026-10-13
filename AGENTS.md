@@ -212,6 +212,17 @@ environment-replacement section of adaptive evidence. Use a new persistent fixtu
 home/evidence directory, save offline checkpoints/packages, and continue full
 qualification after the running cold rebuild. Earlier fully qualified archives
 and historical quarantine rules remain protected; no historical daemon starts.
+The later `e1212cd218` shared authorization fix passes342 state/protocol377 and
+exact native refusal. Actual official-Neovim workflow now has one protected Apply,
+36 layout switches and normal exit0; crash/full backup/fresh restore also pass.
+`recovery-native` and its paused restore are stopped/quarantined with20 admitted /
+19 reported requests,285 tokens, one charged unknown and1000 reserved nominal
+tokens. Never restart or replay them. `final-native` uses fresh residual58-request /
+2385-token /two-active ceilings; its definition checks pass without inference.
+Only-model source admission now requires captured Code Mode scope and the actual
+host before admission; app-server17/TUI106/full formatting/Python-contract5 pass.
+The final catalog-matched pilot, remaining selected checks/package and endurance
+are pending. Preserve failed drivers/builds and all package/state/usage evidence.
 Continue tasks29–30 and all remaining schema/SDK, production lint/package and
 actual CLI/TUI/endurance qualification. Do not mistake this checkpoint for a
 completed approved batch. The last fully qualified application package remains

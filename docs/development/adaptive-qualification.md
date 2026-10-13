@@ -624,3 +624,58 @@ file-change event; the actual editor had already opened the permitted read-only
 preview. The continuation checks real native buffer properties and resumes after
 the recorded acceptance. Preserve the failed driver/capture and do not repeat
 acceptance or replay Apply. The walkthrough is still in progress.
+
+## Corrected native fence, editor workflow and finite recovery
+
+`e1212cd218` passes corrected native refusal on its exact installed daemon;
+`corrected-uncertainty-native-proof.json` confirms previous attempts, actions
+and counters remain unchanged. The locked production retry and full root
+formatter pass. Cache cleanup raced a newly starting compiler and interrupted
+the first build; its failure remains recorded. Later cleanup occurred only
+after stopping the selection. Final selections disable incremental compilation
+to fit the finite disk. Identical owned immutable package assets were deduplicated
+with native hardlinks, matching content/ownership/permissions and preserving all
+paths; the receipt records previous timestamps. No state or authority was removed.
+
+`recovery-native/editor-workflow-completed.json` records actual official Neovim
+following, balanced protected two-/three-way comparisons, bundled netrw owner
+file browsing, preserved unsaved edits during three pane placements,36 rapid
+layout switches at three sizes, exactly one owner acceptance and one completed
+Apply. The original addition oracle and normal CLI exit0 pass. The driver first
+used transient-message assumptions, then selected an accepted task in Review's
+pending-only inbox. Corrected continuations used native buffer facts and Projects
+for the already accepted task. All failures, intents and captures remain; never
+repeat that acceptance/Apply.
+
+Actual Code Mode daemon SIGKILL/startup reconciliation preserves one admitted,
+unreported request and refuses fresh authorization. An offline full bundle and
+fresh restore succeed; `code-mode-crash-no-replay-proof.json` and
+`code-mode-fresh-restore.json` retain evidence. This source home and its paused
+restore stay stopped/quarantined. Totals:20 admitted /19 reported local requests,
+285 synthetic tokens and one charged unknown. Its1000-token nominal allowance
+stays reserved against the phase envelope; never clear it through inspection or
+reauthorization. Read `workspace-quarantine.json`.
+
+`final-native` is separate fresh authority, maximum58 requests /2385 tokens /two
+active attempts: original100 requests /4000 tokens minus previous42 admitted
+requests,615 known tokens and1000 reserved unknown tokens. Old accounting is
+preserved; no old grant is reconstructed. Its paused actual CLI checks cover
+nested goals, child-to-parent cycle refusal, business due dates, exact versioned
+scope profiles, stable conversation drafts without authority and measured disk
+pressure. The first driver incorrectly called the parent's already required child
+dependency a cycle; the correct inverse is refused. A separate recorded owner
+mutation removed the redundant prerequisite. No model request ran for these checks.
+
+The minimal CodeModeOnly source gate now requires captured Code Mode scope;
+existing actual-host feature/provider-availability checks still run before model
+admission. Catalog metadata and direct-tool defaults are unchanged. Organization
+tests pass app-server17 /TUI106, including the scope gate and actual official-Neovim
+tests. Full formatting passes. The finite catalog-matched Luna pilot, remaining
+Core/host/contracts/lint/package and45-minute native qualification are pending;
+this checkpoint is not a release claim.
+
+Reusable startup instructions were saved in the environment draft, preserving
+installation/network/credentials/repositories. They cover volatile caches,
+verified Cargo restoration, serialized builds and all quarantines. Saving does
+not apply or publish a snapshot; environment settings review/save/publication
+remains an owner action.

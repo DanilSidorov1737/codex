@@ -223,7 +223,7 @@ impl OrganizationRuntime {
                 &self.config.to_models_manager_config(),
             )
             .await;
-        ensure_native_tool_mode(model_info.tool_mode)?;
+        ensure_native_tool_mode(model_info.tool_mode, authorization.scope.code_mode)?;
         if authorization.scope.code_mode {
             ensure!(
                 self.config.features.enabled(Feature::CodeModeHost),
@@ -1277,10 +1277,13 @@ fn parse_active_limit(setting: Option<&str>) -> Result<u32> {
     Ok(active)
 }
 
-fn ensure_native_tool_mode(mode: Option<codex_protocol::openai_models::ToolMode>) -> Result<()> {
+fn ensure_native_tool_mode(
+    mode: Option<codex_protocol::openai_models::ToolMode>,
+    code_mode: bool,
+) -> Result<()> {
     ensure!(
-        mode != Some(codex_protocol::openai_models::ToolMode::CodeModeOnly),
-        "selected model requires Code Mode, which is disabled for bounded organization execution; select a model supporting direct native tools"
+        mode != Some(codex_protocol::openai_models::ToolMode::CodeModeOnly) || code_mode,
+        "selected model requires explicitly captured Code Mode permission"
     );
     Ok(())
 }
@@ -1365,11 +1368,14 @@ mod tests {
     }
 
     #[test]
-    fn code_mode_only_model_is_denied_before_native_execution() {
+    fn code_mode_only_model_requires_captured_host_scope_before_execution() {
         use codex_protocol::openai_models::ToolMode;
-        assert!(ensure_native_tool_mode(Some(ToolMode::CodeModeOnly)).is_err());
+        assert!(ensure_native_tool_mode(Some(ToolMode::CodeModeOnly), false).is_err());
+        assert!(ensure_native_tool_mode(Some(ToolMode::CodeModeOnly), true).is_ok());
         for mode in [None, Some(ToolMode::Direct), Some(ToolMode::CodeMode)] {
-            assert!(ensure_native_tool_mode(mode).is_ok());
+            for code_mode in [false, true] {
+                assert!(ensure_native_tool_mode(mode, code_mode).is_ok());
+            }
         }
     }
 

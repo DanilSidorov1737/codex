@@ -7,26 +7,33 @@ is historical. Tasks1–28 now have source/test checkpoints (state339/protocol37
 see [adaptive evidence](adaptive-qualification.md). Tasks29–30 and complete native
 qualification remain unfinished; continue without requesting new approval.
 
-Current Code Mode checkpoint: application source `200bc7222b`; state341/protocol377
-pass, along with actual installed-host isolation/CPU interruption and refreshed
-schema4/Python-contract5 checks. Compatible-model native coding, exact approval,
-pause, original-project isolation, immutable tests, request/token/time and owner
-revision fences have recorded passes. CodeModeOnly remains blocked; abandoned-cell
-cleanup, final selected checks/package and full actual TUI/endurance remain pending.
-The cloud environment replaced itself and cleared `/tmp`/shared memory. Persistent
-docs and22 reported localhost requests/330 synthetic tokens survive, but old
-adaptive homes/databases/workspaces and preview binaries are unavailable. Read
-[the recovery record](adaptive-qualification.md#managed-runtime-evidence-and-environment-replacement),
-preserve every old intent/receipt, and qualify only fresh persistent fixtures.
-The last fully qualified archive `8cd392eaaa` was hash-verified/restored; a cold
-rebuild of the current source passed in18m31s. A fresh persistent fixture's host
-fences pass, including ungranted Only-model denial and awaited abandoned-cell
-cleanup. A negative retry check exposed fresh authorization hiding an uncertain
-effect; the fixture was paused. The shared gate correction passes342 state /377
-protocol tests; corrected-package/native verification remains pending. Actual
-editor review has one recorded acceptance and an in-progress continuation; do
-not replay its acceptance/Apply intents. Read adaptive evidence. This restart is not host reboot or
-native recovery qualification. Do not mark the approved batch complete.
+Current Code Mode checkpoint: `e1212cd218` corrects fresh authorization hiding
+unresolved usage/effects; state342/protocol377 and the exact installed-daemon
+refusal pass. Actual coding, approvals/pause, path/immutable/request/token/time/
+stale-owner fences, awaited abandoned-cell cleanup, daemon crash/no-replay and
+offline full backup/fresh restore pass. The real CLI/official-Neovim walkthrough
+passes protected follow/explorer/balanced comparisons, dirty pane placement,
+36 layout switches, one acceptance/Apply, original oracle and normal exit0.
+
+The minimal Only-model source gate requires captured Code Mode scope plus existing
+actual-host availability before admission; app-server17/TUI106, full formatting
+and Python contracts5 pass. Core/host/schema, final lint/package, catalog-matched
+Luna and complete45-minute qualification are still pending. No release claim yet;
+the last fully qualified package remains `8cd392eaaa`.
+
+The replacement cleared the first adaptive temporary databases/workspaces; never
+reconstruct their authority. Retain22 reported local requests/330 tokens. The
+new `recovery-native` source and its paused fresh restore are stopped/quarantined:
+20 admitted /19 reported,285 tokens, one charged unknown with1000-token nominal
+allowance retained, one protected Application. Never restart or replay them.
+`final-native` has fresh authority and residual58-request /2385-token /two-active
+ceilings after deducting all prior usage and the unknown allowance. Its paused
+owner definition/conversation/profile/deadline/pressure checks pass; no inference
+ran during those checks. Read [adaptive evidence](adaptive-qualification.md),
+remaining-phase-envelope.json and workspace-quarantine.json before continuation.
+Complete tasks29–30 without seeking new approval. Container replacement is not
+real-host reboot qualification. Reusable startup draft was saved; publication
+remains the owner's environment-settings action.
 
 ## Latest delivery: mission/usability batch complete
 

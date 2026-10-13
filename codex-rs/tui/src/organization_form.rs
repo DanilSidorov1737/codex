@@ -1985,7 +1985,7 @@ impl Form {
                     ("false".into(), "Direct native tools (default)".into()),
                     (
                         "true".into(),
-                        "Actual Code Mode host · qualification in progress".into(),
+                        "Actual Code Mode host · captured native limits".into(),
                     ),
                 ],
                 None,
