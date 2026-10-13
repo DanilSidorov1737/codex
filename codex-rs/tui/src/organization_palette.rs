@@ -81,6 +81,12 @@ const ACTIONS: &[Action] = &[
         context: "selected unaccepted result; same paths/checks/budgets/deadline; no uncertain replay",
     },
     Action {
+        title: "Comment on exact artifact revision / file / lines",
+        shortcut: "Commands",
+        code: KeyCode::F(60),
+        context: "selected current result/output; immutable pinned owner feedback; no authority",
+    },
+    Action {
         title: "First-launch setup wizard",
         shortcut: "Commands",
         code: KeyCode::F(38),

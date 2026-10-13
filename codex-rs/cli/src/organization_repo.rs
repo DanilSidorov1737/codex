@@ -13,7 +13,7 @@ use std::path::Path;
 use std::process::Output;
 use std::time::Duration;
 
-async fn git(root: &Path, args: &[&str]) -> Result<Output> {
+pub(crate) async fn git(root: &Path, args: &[&str]) -> Result<Output> {
     let mut command = tokio::process::Command::new("git");
     command
         .current_dir(root)
@@ -32,8 +32,10 @@ async fn git(root: &Path, args: &[&str]) -> Result<Output> {
     }
     tokio::time::timeout(Duration::from_secs(5), command.output())
         .await
-        .context("repository preview Git command timed out")?
-        .context("run native Git for repository preview")
+        .context(
+            "owner repository Git command timed out; inspect effects before retrying mutations",
+        )?
+        .context("run native Git for owner repository operation")
 }
 
 pub(crate) async fn preview(

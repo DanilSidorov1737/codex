@@ -1590,3 +1590,104 @@ async fn instruction_adoption_requires_captured_roles_identical_immutable_oracle
     store.close().await;
     Ok(())
 }
+
+#[tokio::test]
+async fn review_comments_pin_result_file_and_revision_without_changing_task_authority() -> Result<()>
+{
+    let home = Fixture::new();
+    let store = OrganizationStore::open(&home.0).await?;
+    let (worker, attempt) = authorized_attempt(&store, false).await?;
+    store
+        .bind_attempt_runtime(
+            &attempt.id,
+            &worker,
+            &OrganizationRuntimeBinding {
+                workspace: "/tmp/state-only-review-comment".into(),
+                turn_id: None,
+                artifact_bases: vec![OrganizationArtifactBase {
+                    path: "report.txt".into(),
+                    sha256: None,
+                    captured: true,
+                }],
+            },
+            1001,
+        )
+        .await?;
+    let artifact = OrganizationArtifactEvidence {
+        path: "report.txt".into(),
+        sha256: "a".repeat(64),
+        bytes: 20,
+    };
+    let checks = vec![OrganizationCheckEvidence {
+        argv: execution_scope().checks[0].clone(),
+        immutable_inputs: None,
+        exit_code: Some(0),
+        output: "state-only captured check".into(),
+        truncated: false,
+    }];
+    let result = store
+        .record_result(&attempt.id, &worker, vec![artifact.clone()], checks, 1002)
+        .await?;
+    store.release_attempt_capacity(&attempt.id, &worker).await?;
+    let before = store.execution_view(&attempt.task_id).await?;
+    let value = OrganizationControlValue::ReviewComment {
+        id: "feedback".into(),
+        task_id: attempt.task_id.clone(),
+        task_revision: before.task.revision,
+        result_digest: result.digest.clone(),
+        artifact,
+        start_line: 1,
+        end_line: 2,
+        body: "Check the second line against the owner criterion".into(),
+    };
+    let mut stale = value.clone();
+    if let OrganizationControlValue::ReviewComment { task_revision, .. } = &mut stale {
+        *task_revision -= 1;
+    }
+    assert!(set(&store, None, stale).await.is_err());
+    let mut forged = value.clone();
+    if let OrganizationControlValue::ReviewComment { artifact, .. } = &mut forged {
+        artifact.sha256 = "b".repeat(64);
+    }
+    assert!(set(&store, None, forged).await.is_err());
+    let mut outside = value.clone();
+    if let OrganizationControlValue::ReviewComment {
+        start_line,
+        end_line,
+        ..
+    } = &mut outside
+    {
+        *start_line = 0;
+        *end_line = 66;
+    }
+    assert!(set(&store, None, outside).await.is_err());
+    let saved = set(&store, None, value.clone()).await?;
+    assert_eq!(store.execution_view(&attempt.task_id).await?, before);
+    assert!(
+        set(&store, Some(saved.revision), value.clone())
+            .await
+            .is_err(),
+        "pinned feedback cannot be rewritten"
+    );
+    store
+        .accept_result(&attempt.task_id, before.task.revision, &result.digest)
+        .await?;
+    let mut late = value;
+    if let OrganizationControlValue::ReviewComment { id, .. } = &mut late {
+        *id = "late".into();
+    }
+    assert!(
+        set(&store, None, late).await.is_err(),
+        "new comments need the current task revision"
+    );
+    store.close().await;
+    let reopened = OrganizationStore::open(&home.0).await?;
+    assert_eq!(
+        reopened
+            .read_definition(OrganizationRecordKind::Controls, &saved.id)
+            .await?,
+        OrganizationRecord::Control(saved)
+    );
+    reopened.close().await;
+    Ok(())
+}

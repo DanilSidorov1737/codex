@@ -59,6 +59,12 @@ pub(super) enum Kind {
         runs: Vec<OrganizationWorkflowRun>,
     },
     ArtifactLibrary(String),
+    ReviewComment {
+        task: OrganizationTask,
+        digest: String,
+        artifact: OrganizationArtifactEvidence,
+        line_count: u32,
+    },
     RepairResult {
         task: OrganizationTask,
         digest: String,
@@ -669,6 +675,55 @@ mod tests {
             (task_id, expected_revision, result_digest),
             ("original-task".into(), 7, "exact-result".into())
         );
+    }
+
+    #[test]
+    fn review_comment_form_pins_file_hash_range_and_task_revision_without_execution() {
+        let mut form = Form::new(
+            Kind::ReviewComment {
+                task: task(),
+                digest: "a".repeat(64),
+                artifact: OrganizationArtifactEvidence {
+                    path: "code.py".into(),
+                    sha256: "b".repeat(64),
+                    bytes: 20,
+                },
+                line_count: 2,
+            },
+            &[],
+            None,
+            "model",
+        );
+        assert!(form.command().is_err(), "feedback body required");
+        set(&mut form, 2, "Check the second line");
+        set(&mut form, 1, "3");
+        assert!(
+            form.command().is_err(),
+            "line must exist in the verified artifact"
+        );
+        set(&mut form, 1, "2");
+        let Command::Definition(OrganizationMutation::SetControl {
+            expected_revision: None,
+            value:
+                OrganizationControlValue::ReviewComment {
+                    task_id,
+                    task_revision,
+                    result_digest,
+                    artifact,
+                    start_line,
+                    end_line,
+                    body,
+                    ..
+                },
+        }) = form.command().unwrap()
+        else {
+            panic!("owner feedback only")
+        };
+        assert_eq!((task_id, task_revision), ("original-task".into(), 7));
+        assert_eq!(result_digest, "a".repeat(64));
+        assert_eq!(artifact.sha256, "b".repeat(64));
+        assert_eq!((start_line, end_line), (1, 2));
+        assert_eq!(body, "Check the second line");
     }
 
     #[test]
@@ -2169,6 +2224,7 @@ impl Form {
             Kind::WorkflowRollback {current,runs}=>vec![Field::text("Reason","Restore a version captured in a prior run; exact proposal then % applies; running captures remain", ""),Field::select("Captured earlier workflow",runs.iter().filter(|r|r.preview.template.id==current.id && r.preview.template.revision<current.revision).map(|r|(r.id.clone(),format!("{} v{} · run {}",r.preview.template.label,r.preview.template.revision,r.id))).collect(),None)],
             Kind::ArtifactLibrary(_) => vec![Field::text("Artifact query","Literal substring of captured path/task/project/owner/version/check status; empty browses a bounded catalog", "")],
             Kind::WorkflowImprovement {runs,..} => vec![Field::select("Baseline workflow run",runs.iter().map(|r|(r.id.clone(),format!("{} v{} · {}",r.preview.template.label,r.preview.template.revision,r.id))).collect(),None),Field::select("Candidate workflow run",runs.iter().map(|r|(r.id.clone(),format!("{} v{} · {}",r.preview.template.label,r.preview.template.revision,r.id))).collect(),None),Field::text("Why the checks represent intended work", "Every paired step must have accepted identical protected checks; % separately adopts this tested template", "")],
+            Kind::ReviewComment { .. } => vec![Field::text("Start line", "One-based inclusive line in the verified artifact", "1"),Field::text("End line", "One-based inclusive; at most 64 lines", "1"),Field::text("Review comment", "Pinned task revision, result digest, file SHA256 and range; feedback grants no authority", "")],
             Kind::RepairResult { .. } => vec![Field::text("Repair instructions", "Same paths, immutable checks, grant, remaining deadline and budgets; uncertain effects are refused", "")],
             Kind::Mission(previous)=> {
                 let (purpose,priorities,constraints)=match previous.as_ref().map(|c|&c.value) {Some(OrganizationControlValue::Mission{purpose,priorities,constraints})=>(purpose.clone(),priorities.join("\n"),constraints.join("\n")),_=>(String::new(),"Useful verified outcomes".into(),"Use only exact granted paths, tools, workers and budgets\nFinal acceptance and Apply belong to the owner".into())};
@@ -2699,6 +2755,7 @@ impl Form {
             Kind::RoleRollback { .. } => "Review role rollback proposal",
             Kind::WorkflowRollback { .. } => "Review captured workflow rollback proposal",
             Kind::ArtifactLibrary(_) => "Browse / search captured artifact library",
+            Kind::ReviewComment { .. } => "Comment on exact artifact revision / file / lines",
             Kind::RepairResult { .. } => "Repair exact result · original grant / remaining limits",
             Kind::GoalReview { .. } => "Goal criteria / exact accepted evidence",
             Kind::Escalation { .. } => "Route local assistance / resolve request",
@@ -3397,6 +3454,35 @@ impl Form {
                     project_id: project_id.clone(),
                     query,
                 }
+            }
+            Kind::ReviewComment {
+                task,
+                digest,
+                artifact,
+                line_count,
+            } => {
+                let start_line: u32 = required(0)?.parse()?;
+                let end_line: u32 = required(1)?.parse()?;
+                anyhow::ensure!(
+                    start_line > 0
+                        && start_line <= end_line
+                        && end_line - start_line < 64
+                        && end_line <= *line_count,
+                    "Select 1–64 existing artifact lines"
+                );
+                Command::Definition(OrganizationMutation::SetControl {
+                    expected_revision: None,
+                    value: OrganizationControlValue::ReviewComment {
+                        id: self.project_key.clone(),
+                        task_id: task.id.clone(),
+                        task_revision: task.revision,
+                        result_digest: digest.clone(),
+                        artifact: artifact.clone(),
+                        start_line,
+                        end_line,
+                        body: required(2)?,
+                    },
+                })
             }
             Kind::RepairResult { task, digest } => {
                 Command::Execution(OrganizationExecutionMutation::RepairResult {

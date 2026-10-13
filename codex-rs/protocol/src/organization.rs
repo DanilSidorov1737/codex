@@ -173,6 +173,19 @@ impl OrganizationReplanItem {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
 #[serde(tag = "type", rename_all = "camelCase", deny_unknown_fields)]
 pub enum OrganizationControlValue {
+    /// Immutable owner feedback pinned to the exact task/result/file and line range.
+    #[serde(rename_all = "camelCase")]
+    ReviewComment {
+        id: String,
+        task_id: String,
+        #[ts(type = "number")]
+        task_revision: i64,
+        result_digest: String,
+        artifact: crate::organization_execution::OrganizationArtifactEvidence,
+        start_line: u32,
+        end_line: u32,
+        body: String,
+    },
     #[serde(rename_all = "camelCase")]
     ResearchEvidence {
         id: String,

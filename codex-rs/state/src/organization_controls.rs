@@ -39,6 +39,7 @@ pub(super) async fn set(
     value: OrganizationControlValue,
 ) -> Result<OrganizationControl> {
     let id = match &value {
+        OrganizationControlValue::ReviewComment { id, .. } => format!("review-comment:{id}"),
         OrganizationControlValue::ResearchEvidence { .. } => anyhow::bail!(
             "research evidence requires the live executor; owner edits cannot forge citations"
         ),
@@ -84,6 +85,44 @@ pub(super) async fn set(
         "control revision conflict"
     );
     match &value {
+        OrganizationControlValue::ReviewComment {
+            id,
+            task_id,
+            task_revision,
+            result_digest,
+            artifact,
+            start_line,
+            end_line,
+            body,
+        } => {
+            text(id, 128)?;
+            text(body, 16384)?;
+            ensure!(
+                previous.is_none(),
+                "review comments are immutable; create a follow-up comment"
+            );
+            let task = read_task(tx, task_id).await?;
+            ensure!(
+                task.revision == *task_revision
+                    && matches!(task.state.as_str(), "needsReview" | "accepted"),
+                "review comment task revision/state changed"
+            );
+            let data: String = sqlx::query_scalar("SELECT r.data FROM organization_results r JOIN organization_attempts p ON p.id=r.attempt_id JOIN organization_tasks t ON t.id=p.task_id WHERE t.id=? AND p.authorization_id=t.authorization_id ORDER BY p.generation DESC LIMIT 1")
+                .bind(task_id).fetch_one(&mut **tx).await?;
+            let result: codex_protocol::organization_execution::OrganizationTaskResult =
+                serde_json::from_str(&data)?;
+            ensure!(
+                result.digest == *result_digest && result.artifacts.contains(artifact),
+                "review comment result/file changed"
+            );
+            ensure!(
+                *start_line > 0
+                    && start_line <= end_line
+                    && end_line - start_line < 64
+                    && u64::from(*end_line) <= artifact.bytes,
+                "review comment range must contain 1–64 existing text lines"
+            );
+        }
         OrganizationControlValue::ResearchEvidence { .. } => {
             anyhow::bail!("research evidence is immutable executor output")
         }

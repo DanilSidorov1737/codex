@@ -33,6 +33,31 @@ pub(crate) struct OrganizationCommand {
 
 #[derive(Debug, clap::Subcommand)]
 enum Action {
+    /// Capture exact local Git paths/base/message from fresh passing owner-file checks.
+    CommitPreview {
+        #[arg(long)]
+        verification: PathBuf,
+        #[arg(long)]
+        message: String,
+        #[arg(long)]
+        output: PathBuf,
+    },
+    /// Stage and commit an exact saved owner preview once; never pushes or runs hooks.
+    CommitReviewed {
+        #[arg(long)]
+        preview: PathBuf,
+        #[arg(long, required = true)]
+        yes: bool,
+    },
+    /// Run all captured checks against frozen saved owner files; no model/grant/result change.
+    FinalCheck {
+        #[arg(long)]
+        root: PathBuf,
+        #[arg(long)]
+        scope: PathBuf,
+        #[arg(long)]
+        output: PathBuf,
+    },
     /// Read local branch/base/dirty state and requested file/check scope; creates no grant.
     RepositoryPreview {
         #[arg(long)]
@@ -163,6 +188,50 @@ pub(crate) async fn run(
     overrides: CliConfigOverrides,
     arg0_paths: Arg0DispatchPaths,
 ) -> anyhow::Result<String> {
+    if let Action::CommitPreview {
+        verification,
+        message,
+        output,
+    } = &command.command
+    {
+        let verification = crate::organization_commit::read_private(verification)?;
+        let plan = crate::organization_commit::preview(verification, message.clone()).await?;
+        crate::organization_commit::write_new(output, &plan)?;
+        return Ok(serde_json::to_string_pretty(
+            &serde_json::json!({"preview":output,"plan":plan,"localOnly":true,"hooksDisabled":true,"instruction":"Review exact files, checked hashes, branch/base and message. commit-reviewed --preview FILE --yes consumes this plan once. Unsaved editor buffers are excluded."}),
+        )?);
+    }
+    if let Action::CommitReviewed { preview, yes } = &command.command {
+        anyhow::ensure!(*yes, "exact local commit confirmation is required");
+        let plan = crate::organization_commit::read_private(preview)?;
+        let home = codex_core::config::find_codex_home()?;
+        return Ok(serde_json::to_string_pretty(
+            &crate::organization_commit::commit(plan, &home).await?,
+        )?);
+    }
+    if let Action::FinalCheck {
+        root,
+        scope,
+        output,
+    } = &command.command
+    {
+        let scope = serde_json::from_slice(&read_mutation(scope.clone()).await?)?;
+        let config = codex_core::config::ConfigBuilder::default()
+            .cli_overrides(overrides.parse_overrides().map_err(anyhow::Error::msg)?)
+            .harness_overrides(codex_core::config::ConfigOverrides {
+                cwd: Some(root.clone()),
+                codex_self_exe: arg0_paths.codex_self_exe,
+                codex_linux_sandbox_exe: arg0_paths.codex_linux_sandbox_exe,
+                ..Default::default()
+            })
+            .build()
+            .await?;
+        let verification = codex_app_server::verify_owner_files(&config, root, scope).await?;
+        crate::organization_commit::write_new(output, &verification)?;
+        return Ok(serde_json::to_string_pretty(
+            &serde_json::json!({"verification":output,"passed":verification.passed,"verificationDigest":verification.verification_digest,"authorizationCreated":false,"scope":"fresh saved owner-file checks; no model request, backend result, acceptance or Apply; unsaved editor buffers excluded"}),
+        )?);
+    }
     if let Action::RepositoryPreview { root, scope } = &command.command {
         let scope = serde_json::from_slice(&read_mutation(scope.clone()).await?)?;
         return Ok(serde_json::to_string_pretty(
@@ -391,6 +460,10 @@ pub(crate) async fn run(
         | Action::RetentionArchive { .. }
         | Action::RetentionReconcile { .. } => unreachable!("retention handled offline"),
         Action::RepositoryPreview { .. } => unreachable!("repository preview handled locally"),
+        Action::FinalCheck { .. } => unreachable!("final check handled locally"),
+        Action::CommitPreview { .. } | Action::CommitReviewed { .. } => {
+            unreachable!("reviewed Git handled locally")
+        }
     };
     let cli =
         finalize_session_archive_interactive(interactive, overrides, command.config_overrides);

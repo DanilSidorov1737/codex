@@ -89,7 +89,13 @@ both attempts/results, one handoff and original counters; never replay the drive
 Current package:0.0.0-daily.repair.preview7; CLI SHA256
 `4fb50c09e7001702591fbce54b85ee2694609904c34f7c12098deb0288acf905`. Generated schemas retain their existing raw style after
 correcting an optional-formatter mismatch; no assertions/dependencies are changed.
-Remaining review/final-byte/commit, strategic proposals/escalation rules/comparison,
+Tasks21–23 pinned comments, fresh saved-file verification and reviewed local Git
+controls are in source/test qualification; see owner-review-and-git.md. Full346
+state,20 app-server,3 CLI,110 TUI and25 SDK checks pass, including actual official
+Neovim. Stable/experimental generation, all4 schema comparisons, full formatting
+and production lint with warnings denied pass. Final CLI checks, clean package
+and new native workflows remain pending.
+Remaining strategic proposals/escalation rules/comparison,
 tree/layout/keyboard/conflict/endurance/coverage work is unfinished. Continue all
 independent daily-use tasks; real-host task13 still needs a suitable host. Do not
 mistake any source checkpoint for completion.

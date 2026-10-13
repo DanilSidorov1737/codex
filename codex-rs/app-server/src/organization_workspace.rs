@@ -34,6 +34,138 @@ use uuid::Uuid;
 const MAX_FILE_BYTES: u64 = 8 * 1024 * 1024;
 const MAX_INPUT_BYTES: u64 = 64 * 1024 * 1024;
 
+/// Fresh saved-owner-file evidence; never a backend result, grant or acceptance.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct OwnerFileVerification {
+    pub version: u32,
+    pub root: PathBuf,
+    pub scope: OrganizationExecutionScope,
+    pub inputs: Vec<OrganizationArtifactEvidence>,
+    pub artifacts: Vec<OrganizationArtifactEvidence>,
+    pub checks: Vec<OrganizationCheckEvidence>,
+    pub passed: bool,
+    pub verification_digest: String,
+}
+
+/// Reuse the isolated native check runner, freezing every captured input.
+pub async fn verify_owner_files(
+    config: &Config,
+    project: &Path,
+    scope: OrganizationExecutionScope,
+) -> Result<OwnerFileVerification> {
+    ensure!(
+        (1..=1024).contains(&scope.input_files.len())
+            && (1..=32).contains(&scope.artifacts.len())
+            && (1..=8).contains(&scope.checks.len()),
+        "final check needs 1–1024 inputs, 1–32 outputs and 1–8 captured checks"
+    );
+    for argv in &scope.checks {
+        ensure!(
+            (1..=64).contains(&argv.len())
+                && argv
+                    .iter()
+                    .all(|arg| !arg.is_empty() && arg.len() <= 4096 && !arg.contains('\0')),
+            "invalid captured check argv"
+        );
+    }
+    let mut snapshot_scope = scope.clone();
+    for path in &scope.artifacts {
+        if !snapshot_scope.input_files.contains(path) {
+            snapshot_scope.input_files.push(path.clone());
+        }
+    }
+    ensure!(
+        snapshot_scope.input_files.len() <= 1024
+            && scope
+                .immutable_files
+                .iter()
+                .all(|path| scope.input_files.contains(path)),
+        "invalid final check input/immutable scope"
+    );
+    for path in &snapshot_scope.input_files {
+        ensure!(!path.is_empty() && path.len() <= 4096 && !path.contains('\0') && Path::new(path).components().all(|component| matches!(component, std::path::Component::Normal(name) if name != ".git")), "invalid final check path");
+    }
+    let unique: std::collections::HashSet<_> = snapshot_scope.input_files.iter().collect();
+    ensure!(
+        unique.len() == snapshot_scope.input_files.len(),
+        "duplicate final check input"
+    );
+    let unique: std::collections::HashSet<_> = scope.artifacts.iter().collect();
+    ensure!(
+        unique.len() == scope.artifacts.len(),
+        "duplicate final check output"
+    );
+    snapshot_scope.immutable_files = snapshot_scope.input_files.clone();
+    // Final checks never Apply: outputs are already frozen inputs, so no base blobs are needed.
+    snapshot_scope.artifacts.clear();
+    let root = project.canonicalize()?;
+    let capture = |base: &Path| -> Result<Vec<OrganizationArtifactEvidence>> {
+        let mut total = 0;
+        snapshot_scope
+            .input_files
+            .iter()
+            .map(|path| {
+                let bytes = read_relative(base, path)?;
+                total += bytes.len();
+                ensure!(
+                    total <= MAX_INPUT_BYTES as usize,
+                    "final check snapshot exceeds 64 MiB"
+                );
+                Ok(OrganizationArtifactEvidence {
+                    path: path.clone(),
+                    sha256: format!("{:x}", Sha256::digest(&bytes)),
+                    bytes: bytes.len() as u64,
+                })
+            })
+            .collect()
+    };
+    let inputs = capture(&root)?;
+    let workspace = TaskWorkspace::create(
+        config,
+        &root,
+        &Uuid::now_v7().to_string(),
+        &snapshot_scope,
+        &[],
+        None,
+    )?;
+    let result: Result<OwnerFileVerification> = async {
+        ensure!(
+            capture(workspace.root.as_path())? == inputs,
+            "owner files changed while capturing final check"
+        );
+        let checks = workspace
+            .checks(config, &snapshot_scope, CancellationToken::new())
+            .await?;
+        let artifacts = workspace.artifacts(&scope)?;
+        let passed = checks.iter().all(|check| check.exit_code == Some(0))
+            && capture(workspace.root.as_path())? == inputs
+            && capture(&root)? == inputs;
+        let verification_digest = format!(
+            "{:x}",
+            Sha256::digest(serde_json::to_vec(&(
+                &root, &scope, &inputs, &artifacts, &checks, passed
+            ))?)
+        );
+        Ok(OwnerFileVerification {
+            version: 1,
+            root,
+            scope,
+            inputs,
+            artifacts,
+            checks,
+            passed,
+            verification_digest,
+        })
+    }
+    .await;
+    // This temporary check snapshot has no task, result, grant or recovery references.
+    let cleanup = std::fs::remove_dir_all(workspace.root.as_path());
+    let evidence = result?;
+    cleanup.context("remove unreferenced final-check snapshot")?;
+    Ok(evidence)
+}
+
 /// Frozen bytes are prepared before the durable intent; every base is checked
 /// again immediately before its atomic replacement. No cross-file transaction
 /// is claimed: interruptions get an uncertain receipt and are never replayed.
@@ -621,6 +753,33 @@ pub(crate) fn verify_checkpoint(
     for file in &checkpoint.files {
         verified_checkpoint_file(source, file, &mut total)?;
     }
+    Ok(())
+}
+
+/// Recheck the exact text before saving immutable revision-pinned owner feedback.
+pub(crate) fn validate_review_comment(
+    source: &Path,
+    artifact: &OrganizationArtifactEvidence,
+    start_line: u32,
+    end_line: u32,
+) -> Result<()> {
+    ensure!(source.canonicalize()? == source, "aliased comment source");
+    private_directory(source, false)?;
+    let bytes = read_relative(source, &artifact.path)?;
+    ensure!(
+        bytes.len() as u64 == artifact.bytes
+            && format!("{:x}", Sha256::digest(&bytes)) == artifact.sha256,
+        "review comment artifact changed"
+    );
+    let body = std::str::from_utf8(&bytes).context("review comments require UTF-8 text")?;
+    ensure!(
+        !body.contains('\0')
+            && start_line > 0
+            && start_line <= end_line
+            && end_line - start_line < 64
+            && end_line as usize <= body.lines().count(),
+        "review comment range exceeds the verified text"
+    );
     Ok(())
 }
 
@@ -1472,6 +1631,32 @@ mod tests {
             std::fs::read_to_string(root.join("nested/report.txt"))?,
             "accepted child"
         );
+        Ok(())
+    }
+
+    #[test]
+    fn review_comment_refuses_nonexistent_lines_changed_bytes_and_symlink_sources() -> Result<()> {
+        let fixture = tempfile::tempdir()?;
+        let root = fixture.path().canonicalize()?;
+        let bytes = b"first line\nsecond line\n";
+        std::fs::write(root.join("review.txt"), bytes)?;
+        let artifact = OrganizationArtifactEvidence {
+            path: "review.txt".into(),
+            sha256: format!("{:x}", Sha256::digest(bytes)),
+            bytes: bytes.len() as u64,
+        };
+        validate_review_comment(&root, &artifact, 1, 2)?;
+        assert!(validate_review_comment(&root, &artifact, 0, 1).is_err());
+        assert!(validate_review_comment(&root, &artifact, 1, 3).is_err());
+        std::fs::write(root.join("review.txt"), b"changed\n")?;
+        assert!(validate_review_comment(&root, &artifact, 1, 1).is_err());
+        #[cfg(unix)]
+        {
+            std::fs::remove_file(root.join("review.txt"))?;
+            std::fs::write(root.join("other.txt"), bytes)?;
+            std::os::unix::fs::symlink("other.txt", root.join("review.txt"))?;
+            assert!(validate_review_comment(&root, &artifact, 1, 2).is_err());
+        }
         Ok(())
     }
 

@@ -2415,6 +2415,61 @@
       "oneOf": [
         {
           "additionalProperties": false,
+          "description": "Immutable owner feedback pinned to the exact task/result/file and line range.",
+          "properties": {
+            "artifact": {
+              "$ref": "#/definitions/OrganizationArtifactEvidence"
+            },
+            "body": {
+              "type": "string"
+            },
+            "endLine": {
+              "format": "uint32",
+              "minimum": 0.0,
+              "type": "integer"
+            },
+            "id": {
+              "type": "string"
+            },
+            "resultDigest": {
+              "type": "string"
+            },
+            "startLine": {
+              "format": "uint32",
+              "minimum": 0.0,
+              "type": "integer"
+            },
+            "taskId": {
+              "type": "string"
+            },
+            "taskRevision": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": {
+              "enum": [
+                "reviewComment"
+              ],
+              "title": "ReviewCommentOrganizationControlValueType",
+              "type": "string"
+            }
+          },
+          "required": [
+            "artifact",
+            "body",
+            "endLine",
+            "id",
+            "resultDigest",
+            "startLine",
+            "taskId",
+            "taskRevision",
+            "type"
+          ],
+          "title": "ReviewCommentOrganizationControlValue",
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
           "properties": {
             "assumptions": {
               "items": {

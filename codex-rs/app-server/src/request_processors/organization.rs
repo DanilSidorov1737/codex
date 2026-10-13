@@ -124,6 +124,47 @@ impl OrganizationRequestProcessor {
             } else {
                 None
             };
+        if let OrganizationMutation::SetControl {
+            value:
+                codex_protocol::organization::OrganizationControlValue::ReviewComment {
+                    task_id,
+                    result_digest,
+                    artifact,
+                    start_line,
+                    end_line,
+                    ..
+                },
+            ..
+        } = &params.mutation
+        {
+            let store = self.store().await?;
+            let view = store.execution_view(task_id).await.map_err(|error| {
+                invalid_params(format!("review comment task unavailable: {error:#}"))
+            })?;
+            let result = view
+                .result
+                .as_ref()
+                .ok_or_else(|| invalid_params("review comment result missing"))?;
+            if result.digest != *result_digest || !result.artifacts.contains(artifact) {
+                return Err(invalid_params("review comment result/file changed"));
+            }
+            let attempt = view
+                .attempts
+                .iter()
+                .find(|attempt| attempt.id == result.attempt_id)
+                .ok_or_else(|| invalid_params("review comment attempt missing"))?;
+            let source = attempt
+                .workspace
+                .as_deref()
+                .ok_or_else(|| invalid_params("review comment workspace missing"))?;
+            crate::organization_workspace::validate_review_comment(
+                std::path::Path::new(source),
+                artifact,
+                *start_line,
+                *end_line,
+            )
+            .map_err(|error| invalid_params(format!("review comment rejected: {error:#}")))?;
+        }
         let record = self
             .store()
             .await?

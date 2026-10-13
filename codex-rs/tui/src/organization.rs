@@ -3786,6 +3786,50 @@ impl Dashboard {
                     .cloned();
                 form::Kind::Role(latest)
             }
+            'σ' => {
+                let capture = (|| -> anyhow::Result<form::Kind> {
+                    let view = self
+                        .detail
+                        .as_ref()
+                        .filter(|view| {
+                            Some(&view.task.id) == self.selected.as_ref()
+                                && matches!(view.task.state.as_str(), "needsReview" | "accepted")
+                        })
+                        .context("Select a current reviewable/accepted result")?;
+                    let result = view.result.as_ref().context("Result unavailable")?;
+                    let artifact = result
+                        .artifacts
+                        .get(self.review_file % result.artifacts.len().max(1))
+                        .context("No declared artifact")?;
+                    let source = view
+                        .attempts
+                        .iter()
+                        .find(|a| a.id == result.attempt_id)
+                        .and_then(|a| a.workspace.as_deref())
+                        .context("Artifact workspace unavailable")?;
+                    let home = self.path.parent().context("Owner home unavailable")?;
+                    let preview =
+                        Preview::new(home, Path::new(source), &artifact.path, Some(artifact))?;
+                    let body = std::fs::read_to_string(preview.path())?;
+                    anyhow::ensure!(
+                        !body.contains('\0') && !body.is_empty(),
+                        "Select a nonempty UTF-8 artifact"
+                    );
+                    Ok(form::Kind::ReviewComment {
+                        task: view.task.clone(),
+                        digest: result.digest.clone(),
+                        artifact: artifact.clone(),
+                        line_count: body.lines().count().try_into()?,
+                    })
+                })();
+                match capture {
+                    Ok(form) => form,
+                    Err(error) => {
+                        self.message = error.to_string();
+                        return;
+                    }
+                }
+            }
             'τ' => {
                 let Some(view) = self.detail.as_ref().filter(|view| {
                     Some(&view.task.id) == self.selected.as_ref()
@@ -4609,6 +4653,7 @@ impl Dashboard {
             KeyCode::F(51) => self.open_form('ν'),
             KeyCode::F(53) => self.open_form('ξ'),
             KeyCode::F(59) => self.open_form('τ'),
+            KeyCode::F(60) => self.open_form('σ'),
             KeyCode::F(55) => {
                 self.report_text = Some(reporting::owner_overview(
                     &self.snapshot,
@@ -5531,6 +5576,47 @@ impl Dashboard {
             .as_ref()
             .filter(|v| Some(&v.task.id) == self.selected.as_ref())
         {
+            let comments: Vec<_> = self.snapshot.records.iter().filter_map(|record| match record {
+                OrganizationRecord::Control(control) if matches!(&control.value, OrganizationControlValue::ReviewComment { task_id, .. } if task_id == &view.task.id) => Some(control),
+                _ => None,
+            }).collect();
+            if !comments.is_empty() {
+                text.push_str(
+                    "\nPinned review comments (first32 loaded; feedback is not approval):\n",
+                );
+                for control in comments.iter().take(32) {
+                    if let OrganizationControlValue::ReviewComment {
+                        task_revision,
+                        result_digest,
+                        artifact,
+                        start_line,
+                        end_line,
+                        body,
+                        ..
+                    } = &control.value
+                    {
+                        let current = view.result.as_ref().is_some_and(|result| {
+                            result.digest == *result_digest && result.artifacts.contains(artifact)
+                        });
+                        text.push_str(&format!(
+                            "{} · task revision {} · {}\nResult {} · {}:{}–{} · SHA256 {}\n{}\n",
+                            control.id,
+                            task_revision,
+                            if current {
+                                "current result"
+                            } else {
+                                "historical result; retained pin"
+                            },
+                            result_digest,
+                            artifact.path,
+                            start_line,
+                            end_line,
+                            artifact.sha256,
+                            body.chars().take(2048).collect::<String>()
+                        ));
+                    }
+                }
+            }
             if let Some(grant) = &view.authorization {
                 if let Some(budget) = &grant.scope.cost_budget {
                     match budget.admission_estimate(&grant.scope.model, grant.scope.max_tokens) {

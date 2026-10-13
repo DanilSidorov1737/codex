@@ -3123,6 +3123,24 @@ class OrganizationCheckpointContent(BaseModel):
     remaining_steps: Annotated[list[str], Field(alias="remainingSteps")]
 
 
+class ReviewCommentOrganizationControlValue(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    artifact: OrganizationArtifactEvidence
+    body: str
+    end_line: Annotated[int, Field(alias="endLine", ge=0)]
+    id: str
+    result_digest: Annotated[str, Field(alias="resultDigest")]
+    start_line: Annotated[int, Field(alias="startLine", ge=0)]
+    task_id: Annotated[str, Field(alias="taskId")]
+    task_revision: Annotated[int, Field(alias="taskRevision")]
+    type: Annotated[
+        Literal["reviewComment"], Field(title="ReviewCommentOrganizationControlValueType")
+    ]
+
+
 class ArtifactShareOrganizationControlValue(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
@@ -13194,7 +13212,8 @@ class TeamOrganizationControlValue(BaseModel):
 
 class OrganizationControlValue(
     RootModel[
-        ResearchEvidenceOrganizationControlValue
+        ReviewCommentOrganizationControlValue
+        | ResearchEvidenceOrganizationControlValue
         | ArtifactShareOrganizationControlValue
         | KnowledgeProposalOrganizationControlValue
         | WorkspaceLibraryOrganizationControlValue
@@ -13226,7 +13245,8 @@ class OrganizationControlValue(
         populate_by_name=True,
     )
     root: (
-        ResearchEvidenceOrganizationControlValue
+        ReviewCommentOrganizationControlValue
+        | ResearchEvidenceOrganizationControlValue
         | ArtifactShareOrganizationControlValue
         | KnowledgeProposalOrganizationControlValue
         | WorkspaceLibraryOrganizationControlValue

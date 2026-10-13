@@ -133,6 +133,8 @@ mod notification_media;
 mod organization_inventory;
 mod organization_runtime;
 mod organization_workspace;
+pub use organization_workspace::OwnerFileVerification;
+pub use organization_workspace::verify_owner_files;
 mod otel_reloader;
 mod outgoing_message;
 mod plugin_config_reload;
