@@ -96,3 +96,26 @@ $0.345433 token-cost estimate including all failures. The successful delegated
 grant reported 25,101 tokens against a 25,000 ceiling because its final request
 was already admitted. The request ceiling remained intact; estimates do not
 guarantee provider billing. See release-qualification.md for full receipts/limits.
+
+## Current cloud build headroom and runtime evidence
+
+The32-GiB disk/RAM cloud environment hit compiler OOM and full-root native
+linking while volatile generated caches consumed RAM and duplicate outputs
+consumed root storage. These are development-build failures, not a measured
+minimum runtime hardware requirement. Inspect root/tmpfs/cgroup headroom before
+Cargo; allow several GiB for generated objects/linking and compiler memory,
+keep one locked/offline dev-small writer and the documented Rust stack setting.
+Do not start with only hundreds of MiB of free root space. Never move/prune
+active compiler caches; preserve current needed variants and authoritative data.
+
+SHA/mtime-journaled idle relocations and strictly obsolete unreferenced cache
+pruning restore headroom; current515→516 checks/lint/package/native reruns pass.
+Generated volatile symlinks may require a rebuild after environment replacement.
+Source, immutable packages, originals, state, receipts and recovery material are
+retained separately. See final daily-use evidence for failures and exact journals.
+
+Current native qualification observes10,005 stored definitions and responsive
+graph/list selection (median0.203/0.201s including driver settling), without
+model sessions for every node. One-hour finite work stays within500 tokens/
+20 requests/two active with14 known requests/210 synthetic tokens; it does not
+qualify larger active concurrency, provider invoices or day-long host service.

@@ -2,9 +2,10 @@
 
 ## What is available now
 
-This session exposes the installed `engineering-suite-ponytail` plugin skills.
-Phase 0 used its entry workflow and `ponytail` rules for reuse-first design.
-That availability does not prove the standalone fork's CLI has a plugin installed.
+The original Phase0 session exposed `engineering-suite-ponytail` skills and
+used its entry workflow/rules. In the current final daily-use session, both
+cloud/executor skill catalogs are empty. The documented Ponytail reuse/review
+process is applied; no standalone plugin/hook installation or trust is claimed.
 
 The session bundle describes `ponytail-review` as a complexity-focused review
 and uses `ponytail:` debt markers. Current upstream documentation differs:
@@ -80,3 +81,10 @@ Do not create speculative scaffolding for thousands of active agents.
 If Ponytail is absent in a future session, follow AGENTS.md's principles, report
 the missing integration, and complete the authorized research/setup work.
 Do not install a replacement without authorization.
+
+Final daily-use review keeps the smallest coherent correction: existing
+viewport arithmetic/iterators, BTreeSet/BTreeMap and palette/contrast helpers
+replace hidden sidebar/per-dot work. No dependency, default-layout change,
+state migration or new abstraction is added. Meaningful full-tree/search tests
+and actual packaged10,005-node/Neovim/layout/recovery checks pass. Unnecessary
+default-proportion code was withdrawn; existing saved pane controls are used.

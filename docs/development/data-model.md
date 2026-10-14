@@ -104,6 +104,9 @@ Applications. Transaction-linked audit events reference these canonical records;
 evidence. The current Owner overview connects mission/goal/project/task/grant/
 result; it does not invent missing links or expose private model reasoning.
 
+Standalone Console chat/title turns use Codex native thread/session records,
+rather than the organization audit tables.
+
 This is not a universal recording of everything on the host. Ordinary manual
 terminal commands, editor keystrokes and unobserved external actions are outside
 that ledger. Native reviewed owner Git commands retain separate private JSON

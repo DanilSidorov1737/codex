@@ -862,3 +862,95 @@ Production CLI Clippy with warnings denied now passes on the corrected rendering
 source, exit0 in38.99s. No new dependency/schema/SDK/state-format change is
 introduced. Full formatting is checked before the logical source commit; the
 clean stamped package and corrected actual navigation measurements follow.
+
+## Corrected packaged scale qualification
+
+Application source `8b827aa83e4ba49755f3e1c02a59f15097dad32d` is committed,
+pushed and independently verified on `work`; `main` remains8026444c98cd. Full
+formatting passes, exit0. Clean stamped build passes in78.94s. Package
+`package-visible-preview10`, version0.0.0-daily.visible.preview10, has five
+verified assets; unchanged host/ripgrep/bwrap hashes match preview9. CLI SHA256:
+`aa15a105f2c1693024e33498051d4f085a33643a0a668ead2ea4e4c2aefafff3`.
+
+`large-tree-native/visible-final-measurement/result.json` passes actual10,005
+stored definitions, graph/list movement and stable-tail search with normal CLI
+exit0/daemon stop0. Eight verified selection changes per view have observed
+medians0.203s graph and0.201s list, maxima0.206/0.204s. Earlier comparable
+preview8 observations were9.709/9.754s; preview9's still-unbounded sidebar
+observed12.507/9.395s. This demonstrates useful measured improvement after
+bounding hidden-row rendering and overview palette work. It includes terminal
+RPC/settling and sequential cloud conditions; it is not isolated CPU, a calibrated
+benchmark, an SLA or evidence of larger active-model capacity.
+
+The complete original definitions remain, no task/grant/model request is created
+and default-two/max-four active limits are unchanged. Actual stopped managed
+package selection uses the final complete package before this check. Seven
+verified identical stopped-asset links recover543,891,456 root bytes while keeping
+every path/byte/state. Final all-layout/frontend/recovery proof is in progress.
+
+## Final independent daily-use delivery and safe resumption
+
+All39 independent items of the approved forty-task list are implemented and
+qualified. Task13 remains blocked on a designated suitable systemd user-manager/
+logout/reboot host; current inspection records PID1=tail and user manager offline.
+This does not qualify24/7 host lifecycle or the full original38-section vision.
+External integrations/cloud workers/Dot API/larger active capacity/deploy/merge/
+automatic root acceptance or Apply remain deferred.
+
+Final application source8b827aa83e, preview10 release/CLI hashes above,516
+distinct affected checks, production lint with warnings denied, full formatting
+and clean stamped78.94-second build pass. Public protocol/schema/SDK/state format
+is unchanged by the final renderer correction. The actual new frontend passes
+all five layouts,36 switches at three sizes, native focus/motions/resize, saved
+70/30 proportions/restart and two normal exits in both ANSI-256 and explicitly
+selected truecolor modes. Truecolor renders the supplied navy/blue concept
+palette; reduced palettes retain their supported colors. Actual selected PNG/
+text/metadata copies are at `/workspace/artifacts/cli-daily-use-final/`, with RGB
+captures in `truecolor/`. Console's richer sidebar/inspector shell, full timeline
+and unsupported domain metrics remain visual/full-vision work.
+
+`daily-endurance-native/endurance-completed.json` passes3600.815 seconds of
+finite mixed-project background observation: six checked document occurrences
+and one code result.14 admitted/reported localhost responses,210 synthetic
+tokens, zero unresolved requests, within500-token/20-request/two-active ceilings.
+No new paid call; the original$1 allowance and uncertainty are preserved. Code
+was physically tool-approved, independently checked, reviewed in official
+Neovim, explicitly accepted and Applied once; unrelated files remain. Documents
+stay needsReview/unaccepted/unapplied and their owner original is unchanged.
+
+`daily-endurance-native/final-recovery-continuation/result.json` passes owned
+idle-daemon SIGKILL/start, exact state/usage preservation, global pause, complete
+offline bundle, separately retained project/config/frontend files, stopped
+preview10 managed upgrade and fresh full restore. It verifies every grant/quote,
+result/check/artifact SHA, action/approval and the one Application, with isolated
+workspace paths remapped beneath the fresh home. Actual official-Neovim restored
+document diff, Operations, normal CLI exit0 and restored daemon stop0 pass;
+no new request, acceptance or Apply. The separate priced-unknown fixture covers
+interrupted inference: one charged unknown and100-token reservation remain.
+
+The first final driver assumed stopped `update --from-cli` restarted the daemon;
+it correctly selected/pinned the package with runningVersion=null, so version
+probe failed while stopped. The continuation starts the globally paused selected
+release once, verifies it and restores the existing bundle. It does not repeat
+crash, grant, pause, upgrade, backup, acceptance or Apply. Failed driver/logs remain.
+All owned services are stopped. Source daily-endurance-native/home is quarantined:
+NEVER restart it or replay its completed decisions/finite schedule/counters. Read
+`final-recovery-continuation/workspace-quarantine.json`; further review uses a
+fresh restore. Keep source/bundles/restores, both packages, private receipts,
+separate project/config/frontend files and every earlier protected fixture.
+
+A full business/runtime/workspace bundle intentionally excludes owner originals,
+configuration/credentials, private frontend editor state and owner Git JSON
+receipts; preserve those separately. No universal plugin/OS compatibility,
+provider invoice cap, private-reasoning audit or thousands of simultaneous
+executions is claimed. Further live inference/new features need their matching
+scope; task13 is already approved but needs the suitable host.
+
+Complete final start_skill is confirmed saved to existing environment draft
+506cba64-f442-41a4-82e2-1818db7a3966~cecfgdraft_6aca9efe3f0481908f227132c6cb6775,
+requires_publish=true. Installation/network/repository/credential settings are
+preserved by omission; no setup script, login, new binding or publication is run.
+The owner can review/save/publish in environment settings. This is persistence
+confirmation, not proof of a fresh-task snapshot restore or credential readiness.
+Final independent package rehash and six selected owned-source service checks
+pass in final-verification.json; no historical daemon is started.

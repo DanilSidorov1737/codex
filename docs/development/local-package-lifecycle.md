@@ -2,8 +2,9 @@
 
 Use the complete fork package, rather than a different upstream `codex` on PATH.
 The [current status](status.md) identifies the last fully qualified package.
-This runbook is being exercised in daily-use tasks4/10–14; new-source packaging,
-upgrade and recovery are not yet qualified. A suitable-host reboot/logout test
+Daily-use tasks4/10–12/14 pass native package identity, stopped release
+selection and recovery. Final preview10 also passes stopped upgrade and fresh
+paused full restore; see daily-use-qualification.md. A suitable-host reboot/logout test
 remains separate from local daemon restart.
 
 ## Identity and diagnostics
@@ -106,3 +107,10 @@ editor outcomes; failed compatibility attempts; pre/post-upgrade canonical IDs
 and accounting; offline bundle verification; separately retained nonsecret
 configuration/project hashes; fresh rollback and cleanup results. Label actual
 model calls, localhost fixtures, automated checks and unrun host gates separately.
+
+Final preview10 managed update returns installedVersion0.0.0-daily.visible.preview10
+and runningVersion=null when stopped; it selects/pins without starting the daemon.
+Start the selected release explicitly only after the quiescence/pause preflight,
+then probe its live version. The original final driver assumed a restart and
+failed its version probe; a paused continuation verifies the already completed
+update without repeating it. Never start historical quarantined source homes.

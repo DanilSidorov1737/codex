@@ -1,24 +1,14 @@
 # Codex CLI fork development
 
-Current approved work: all40 [daily-use/self-development tasks](daily-use-batch.md).
-The completed baseline was pushed/verified to GitHub `work` before tracked edits.
-Read current status for execution, bounds, historical quarantines and evidence.
-The current candidate passes actual paid coding/delegation/document, paused
-restore, quiescent package upgrade/rollback and selected real Neovim/LSP/crash
-checks. [Owner overview](owner-overview.md) passes108 selected TUI checks and actual
-package/contact/restart qualification. Human-assisted self-development integrates
-a reviewed standard-library TOML fix; bounded paid autonomous attempts fail and
-remain charged. [Repository preview](repository-preview.md) passes packaged native CLI checks.
-[Original-grant repair](result-repair.md) and captured-check advice pass source,
-contract, package and actual native CLI/TUI/Neovim qualification on66013d5a2a.
-The remaining forty-task work continues.
-Pinned comments, independent saved-file checks and exact reviewed local Git
-controls pass actual packaged CLI/TUI/official-Neovim qualification on6bf3e34093;
-see [owner review and Git](owner-review-and-git.md) and current evidence/status.
-Strategic mission/rule controls, exact model adoption and native conflict buffer/undo
-pass actual preview9 qualification on7d7e7acd7c; scale/endurance remains in progress.
-Read [all38 fork-text sections](fork-text-coverage.md) for evidence-linked
-coverage and explicit remaining capabilities; row counts are not completion percentages.
+Current delivery: all39 independent [daily-use/self-development tasks](daily-use-batch.md)
+are qualified on8b827aa83e; suitable-host task13 remains blocked.516 affected
+checks, actual CLI/TUI/official-Neovim, improved10,005-node navigation, one-hour
+finite background/crash/upgrade/full fresh restore pass. Read [current status](status.md)
+and [final evidence](daily-use-qualification.md#final-independent-daily-use-delivery-and-safe-resumption).
+GitHub `work` is updated; `main` is preserved. All owned services are stopped.
+Never restart quarantined source homes or replay grants/decisions/counters.
+See [all38 fork-text sections](fork-text-coverage.md) for remaining full-vision
+capabilities;39 completed bounded tasks do not mean the full vision is complete.
 
 Latest delivery: all [30 bounded adaptive-operation/usability tasks](adaptive-batch.md)
 are complete on `3eca8520e0`:919 selected checks, actual CLI/official-Neovim/host/

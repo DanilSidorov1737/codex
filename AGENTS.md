@@ -293,6 +293,22 @@ Application; NEVER replay acceptance/Apply or reset counters. Read current
 receipts before any continuation. Finish the duration/crash/restore/layout/scale
 gates before claiming the forty-task batch complete.
 
+The independent daily-use batch is now qualified on `8b827aa83e`: tasks1–12/14–40,
+516 affected checks and actual CLI/TUI/official-Neovim/10,005-node/two-palette/
+3600.815-second background/crash/stopped-upgrade/fresh paused restore pass.
+Task13 remains approved but blocked on a suitable user-manager/logout/reboot host.
+No independent implementation remains; read current status/final daily-use evidence
+before selecting new scope. All owned services are stopped. NEVER restart
+daily-endurance-native/home or priced-unknown-native/home; read their quarantine
+records and use a fresh paused restore. Preserve endurance's14 requests/210
+synthetic tokens/six unaccepted document results/one completed Application, and
+priced unknown's one request/unreleased100-token reservation/captured quote.
+Never replay fixture grants/approvals/acceptance/Apply/adoption/repair/Git commits
+or reset accounting. Retain all failed drivers/builds, packages/bundles/restores
+and separately retained originals/config/frontend/owner-Git evidence. Default
+two/max four active and deferred external/cloud/Dot/deploy/merge/automatic root
+acceptance or Apply boundaries remain. No further paid loop is planned.
+
 Then read [decisions](docs/development/decisions-and-risks.md),
 [MVP plan](docs/development/mvp.md), [testing](docs/development/testing.md) and
 [process](docs/development/process.md). Reconcile current user instructions with

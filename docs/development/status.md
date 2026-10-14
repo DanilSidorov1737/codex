@@ -1,5 +1,47 @@
 # Current status and resumption instructions
 
+Current delivery: **all39 independent daily-use/self-development tasks are
+implemented and qualified** on application source `8b827aa83e4ba49755f3e1c02a59f15097dad32d`.
+Task13 remains blocked on a suitable user-manager/logout/reboot host. The owner
+approved the entire40-task list, Ponytail, periodic commits/docs/tests and normal
+GitHub `work` updates; `main` stays8026444c98cd. No independent authorized work
+remains in this batch. Read the final daily-use qualification before older
+checkpoints below.
+
+Current complete package: `/workspace/.onboarding/qualification/daily-use-batch/
+package-visible-preview10/`, version0.0.0-daily.visible.preview10, CLI SHA256
+`aa15a105f2c1693024e33498051d4f085a33643a0a668ead2ea4e4c2aefafff3`.
+Five asset hashes, clean78.94-second build, production lint, full formatting and
+516 distinct affected checks pass. Actual all-five layouts,72 final switches
+across three sizes/two palette modes, real Neovim focus/resize/review,10,005 stored
+nodes (observed median graph/list selection0.203/0.201s including settling),
+3600.815-second finite background/crash/upgrade/fresh paused restore pass.
+
+Six checked background documents remain unaccepted/unapplied; code has exactly
+one protected Application. Current endurance totals14 known requests/210
+synthetic tokens, zero paid; separate priced-unknown fixture keeps one unknown
+request/100-token reservation. All owned services are stopped. NEVER restart
+daily-endurance-native/home or priced-unknown-native/home, replay any fixture
+grants/approvals/acceptance/Apply/adoption/repair/commits or reset accounting. Read
+their quarantine records; further inspection uses fresh verified paused restores.
+Preserve bundles/packages, every failed driver/build, separate project/config/
+frontend/owner-Git evidence and all historical protected homes.
+
+Screenshots: `/workspace/artifacts/cli-daily-use-final/` (ANSI-256) and
+`truecolor/` (actual RGB). The [all38-section evidence map](fork-text-coverage.md)
+distinguishes bounded local delivery from the broader/deferred vision. The
+current envelope is supervised single-host work, arbitrary stored hierarchy,
+default-two/max-four active executions and explicit root acceptance/Apply.
+External integrations/cloud workers/Dot API/deploy/merge/larger active capacity
+remain deferred. The original$1 allowance includes unreported uncertainty; no
+more paid loop is planned. Full repository/platform suites and real host reboot
+were not run. Complete startup instructions are confirmed saved to the existing environment
+draft, with requires_publish=true. Installation/network/repository/credential
+configuration is preserved. Review/save/publication in environment settings and
+fresh-task restoration are separate from current runtime proof.
+
+## Historical daily-use checkpoints
+
 Current approved work: all40 [daily-use/self-development tasks](daily-use-batch.md).
 The owner requested GitHub push first; baseline4f7e0f12eb was pushed/verified on
 `work` before tracked edits. The tested runtime correction811b456376 is now
@@ -147,6 +189,18 @@ Neovim and the complete-tree/sidebar/search regression. Distinct affected
 selection is516 with unchanged349 state/4 schema/25 SDK evidence. Production
 lint, final package/scale/endurance/recovery/coverage remain. The whole forty-task batch
 is unfinished; continue every independent item. Task13 still needs a suitable host.
+
+Corrected scale source `8b827aa83e` is committed/pushed/verified.516 selected
+checks, production lint/full formatting and clean78.94-second build pass.
+Package0.0.0-daily.visible.preview10 has CLI SHA256
+`aa15a105f2c1693024e33498051d4f085a33643a0a668ead2ea4e4c2aefafff3`; five
+assets verified. Actual10,005-definition graph/list navigation and stable-tail
+search pass with normal CLI exit0/daemon stop0 and no authority/model request.
+Eight selection samples per view observe medians0.203/0.201s, substantially
+below earlier9.709/9.754s including terminal settling; no SLA/isolated-CPU claim.
+The final new-frontend all-layout walkthrough and completed-hour crash/upgrade/
+fresh restore/evidence coverage remain. Continue those gates; suitable-host13
+is the only external blocker.
 
 All completed paid/lifecycle/LSP fixtures are stopped. Never rerun their setup,
 grants, acceptance/Apply or reset usage; preserve single coding's completed

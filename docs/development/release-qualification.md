@@ -11,7 +11,6 @@ checkpoint without autosave or a keystroke journal. The real-host systemd/
 logout/reboot gate remains unqualified. Tables below retain their historical
 MVP evidence and are not claims that later features are absent.
 
-
 B1–B6 implementation and local qualification are complete on 2026-10-10 UTC.
 Heartbeat/database contention, idle editor redraw, overlapping dashboard IDs and
 refresh-triggered task inspection bugs were fixed and verified. **The MVP criteria
@@ -102,29 +101,29 @@ checks rather than replay. See [recurring schedules](recurring-schedules.md) and
 [testing](testing.md). Calendar/cron, new live-model quality and other platforms
 remain outside this qualification.
 
-| Criterion | Local result and evidence | Remaining boundary |
-| --- | --- | --- |
-| A01 arbitrary agents/forests | CLI creation/restart and native API preserved stable IDs; standalone and custom delegation ran | No mandatory role names or hierarchy levels |
-| A02 versioned hierarchy/membership | Real stale edit/cycle denials; transactional reparent/membership/state tests passed | Moving nodes never grants execution authority |
-| A03 goals/tasks/plans | Persistent goal/project/task contracts and bounded plan/DAG/child acceptance tests; real native delegated plan ran | Owner grants constrain every child; no autonomous authority expansion |
-| A04 claim/generation fences | Concurrent claims, stale completion/settlement and reservation tests passed | Single owner host |
-| A05 useful live model workflow | Real GPT-5.5 single/delegated coding and fact-document pilots passed native checks, physical Neovim review, exact acceptance/Apply and independent original checks | Small supplied fixtures; one verified native-tool provider/model; invoice unverified |
-| A06 detach/restart | Real CLI detach/reconnect and post-dispatch/pending-approval SIGKILL/restart tests passed | Interrupted work reconciles; arbitrary reboot/service supervision unqualified |
-| A07 pause/revocation | Physical pause/resume plus inherited authorization/delegation/context state gates passed | Existing native cleanup retains reservations until joined |
-| A08 exact human approvals | Actual protected owner approval/rejection; stale approval, pending crash and self-administration denial passed | Silence never approves |
-| A09 budgets/limits | Real reported usage, exhausted request/tool gates, child shared-budget/capacity races; invalid boot limit creates no grant/attempt | Corrected four-active/default-two native checks passed; provider billing is not capped |
-| A10 uncertain effects | Native post-dispatch crash and application intent restart become reconciliation/uncertain, with no automatic replay | External financial/messaging effects excluded |
-| A11 protected authority | Nine real sandbox denial assertions cover canonical state, owner IPC/home, other roots and privileged arguments | Notes/instructions remain untrusted input |
-| A12 five layouts | Current UI: 25 targeted tests, 60 physical switches per fresh monochrome/RGB workflow across three sizes; earlier startup source passed 370 commands, 20 Console reopen cycles and 152 layout/slash/overlay checks | Linux clean-terminal envelope; Console retains existing chat, hierarchy uses indented cards |
-| A13 Operations tree | Actual selection/search/collapse/expand and pause/resume; 1,000-agent deep-node PTY benchmark passed | Frontend bounds record loading; owner CLI/API pagination extends inspection |
-| A14 official Neovim | Actual v0.12.6 modal Unicode save/paste/undo, splits/diff, focus and resize passed | Clean configuration; user plugins/configs unqualified |
-| A15 isolated editing/review | Protected read-only preview, native diff, dirty buffers/changed originals, exact hash Apply and owner oracle passed | Actual two-stage native Follow retained focus/cursor; external writers must be coordinated |
-| A16 editor independence | SIGKILL only the owned editor during native 15-second work left daemon running; task reached NeedsReview; saved files reopened | Clean mode disables swap: unsaved crash data is lost |
-| A17 scoped persistent context | Durable notes/inbox/ack across fresh grants, cross-project denial and real two-agent context exchange passed | No embedding/vector retrieval or automatic global memory promotion |
-| A18 canonical recovery | Corruption/missing/incompatible state and actual SQLite full error tests passed; native CLI verified/fresh snapshot restore matched 21 tables | Business DB snapshot excludes runtime history and workspace artifacts |
-| A19 stored scale/active bound | 1,000 additional agents, 200-level hierarchy, six owner pages, real PTY navigation and default-two/third-queued work passed | Corrected four-active/fifth-queued and default-two/third-queued checks passed |
-| A20 exact review | Physical request changes/acceptance; artifact/check/base digest and one application receipt enforced; all four native API cases passed | Model claims cannot set completion |
-| A21 startup/idle | Complete package/helper startup and real 30-second idle interval passed without model requests | Final corrected package passed the 30-second no-inference interval |
+| Criterion                          | Local result and evidence                                                                                                                                                                                          | Remaining boundary                                                                          |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------- |
+| A01 arbitrary agents/forests       | CLI creation/restart and native API preserved stable IDs; standalone and custom delegation ran                                                                                                                     | No mandatory role names or hierarchy levels                                                 |
+| A02 versioned hierarchy/membership | Real stale edit/cycle denials; transactional reparent/membership/state tests passed                                                                                                                                | Moving nodes never grants execution authority                                               |
+| A03 goals/tasks/plans              | Persistent goal/project/task contracts and bounded plan/DAG/child acceptance tests; real native delegated plan ran                                                                                                 | Owner grants constrain every child; no autonomous authority expansion                       |
+| A04 claim/generation fences        | Concurrent claims, stale completion/settlement and reservation tests passed                                                                                                                                        | Single owner host                                                                           |
+| A05 useful live model workflow     | Real GPT-5.5 single/delegated coding and fact-document pilots passed native checks, physical Neovim review, exact acceptance/Apply and independent original checks                                                 | Small supplied fixtures; one verified native-tool provider/model; invoice unverified        |
+| A06 detach/restart                 | Real CLI detach/reconnect and post-dispatch/pending-approval SIGKILL/restart tests passed                                                                                                                          | Interrupted work reconciles; arbitrary reboot/service supervision unqualified               |
+| A07 pause/revocation               | Physical pause/resume plus inherited authorization/delegation/context state gates passed                                                                                                                           | Existing native cleanup retains reservations until joined                                   |
+| A08 exact human approvals          | Actual protected owner approval/rejection; stale approval, pending crash and self-administration denial passed                                                                                                     | Silence never approves                                                                      |
+| A09 budgets/limits                 | Real reported usage, exhausted request/tool gates, child shared-budget/capacity races; invalid boot limit creates no grant/attempt                                                                                 | Corrected four-active/default-two native checks passed; provider billing is not capped      |
+| A10 uncertain effects              | Native post-dispatch crash and application intent restart become reconciliation/uncertain, with no automatic replay                                                                                                | External financial/messaging effects excluded                                               |
+| A11 protected authority            | Nine real sandbox denial assertions cover canonical state, owner IPC/home, other roots and privileged arguments                                                                                                    | Notes/instructions remain untrusted input                                                   |
+| A12 five layouts                   | Current UI: 25 targeted tests, 60 physical switches per fresh monochrome/RGB workflow across three sizes; earlier startup source passed 370 commands, 20 Console reopen cycles and 152 layout/slash/overlay checks | Linux clean-terminal envelope; Console retains existing chat, hierarchy uses indented cards |
+| A13 Operations tree                | Actual selection/search/collapse/expand and pause/resume; 1,000-agent deep-node PTY benchmark passed                                                                                                               | Frontend bounds record loading; owner CLI/API pagination extends inspection                 |
+| A14 official Neovim                | Actual v0.12.6 modal Unicode save/paste/undo, splits/diff, focus and resize passed                                                                                                                                 | Clean configuration; user plugins/configs unqualified                                       |
+| A15 isolated editing/review        | Protected read-only preview, native diff, dirty buffers/changed originals, exact hash Apply and owner oracle passed                                                                                                | Actual two-stage native Follow retained focus/cursor; external writers must be coordinated  |
+| A16 editor independence            | SIGKILL only the owned editor during native 15-second work left daemon running; task reached NeedsReview; saved files reopened                                                                                     | Clean mode disables swap: unsaved crash data is lost                                        |
+| A17 scoped persistent context      | Durable notes/inbox/ack across fresh grants, cross-project denial and real two-agent context exchange passed                                                                                                       | No embedding/vector retrieval or automatic global memory promotion                          |
+| A18 canonical recovery             | Corruption/missing/incompatible state and actual SQLite full error tests passed; native CLI verified/fresh snapshot restore matched 21 tables                                                                      | Business DB snapshot excludes runtime history and workspace artifacts                       |
+| A19 stored scale/active bound      | 1,000 additional agents, 200-level hierarchy, six owner pages, real PTY navigation and default-two/third-queued work passed                                                                                        | Corrected four-active/fifth-queued and default-two/third-queued checks passed               |
+| A20 exact review                   | Physical request changes/acceptance; artifact/check/base digest and one application receipt enforced; all four native API cases passed                                                                             | Model claims cannot set completion                                                          |
+| A21 startup/idle                   | Complete package/helper startup and real 30-second idle interval passed without model requests                                                                                                                     | Final corrected package passed the 30-second no-inference interval                          |
 
 ## Measured envelope
 
@@ -224,7 +223,6 @@ additional platforms, user editor configurations, broader providers, simultaneou
 shared-buffer merging, overlapping parallel child outputs and arbitrary external
 writers remains unqualified/deferred. Prefer disjoint child artifacts.
 
-
 ## Startup/workflow follow-up — 2026-10-10 UTC
 
 Application source for this earlier checkpoint is `6a4a9f6329`, following `4a19208b2c`.
@@ -261,11 +259,11 @@ Unchanged application source `6a4a9f6329`, same complete package/helper hashes.
 Official GPT-5.5 with low reasoning, HTTPS Responses, no provider retries, one
 private owner home and explicit immutable-input/native-check scopes.
 
-| Pilot | Successful grant requests/tokens | Native check and physical result |
-| --- | --- | --- |
-| Single coding | 4 / 8,015 | Addition including zero/negative/fractional values and explanation passed; two exact approvals; pending approval survived TUI exit; actual Neovim diff, acceptance, Apply and original check passed |
-| One-child coding | 11 / 25,101 | Configured delegate completed checked artifacts under the same root budget; model calls advanced with TUI exited; actual Neovim review, root acceptance, Apply and original check passed |
-| Local-fact document | 4 / 8,019 | Immutable fact/provenance check passed; real Neovim diff, acceptance, Apply and original check passed |
+| Pilot               | Successful grant requests/tokens | Native check and physical result                                                                                                                                                                    |
+| ------------------- | -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Single coding       | 4 / 8,015                        | Addition including zero/negative/fractional values and explanation passed; two exact approvals; pending approval survived TUI exit; actual Neovim diff, acceptance, Apply and original check passed |
+| One-child coding    | 11 / 25,101                      | Configured delegate completed checked artifacts under the same root budget; model calls advanced with TUI exited; actual Neovim review, root acceptance, Apply and original check passed            |
+| Local-fact document | 4 / 8,019                        | Immutable fact/provenance check passed; real Neovim diff, acceptance, Apply and original check passed                                                                                               |
 
 Four earlier grants are retained: two harness interaction errors stopped before
 native tool release, one delegated token ceiling and one delegated request ceiling.
@@ -285,3 +283,14 @@ stopped; retained zombie has zero execution. No test service remains intentional
 running. Evidence: `mvp-followup/live-gpt/verification.json`, result/failure JSON,
 pricing receipts, logs and cleanup. Eleven actual captures/archive are in
 `/workspace/artifacts/cli-live-gpt/`.
+
+## Daily-use current supervised release
+
+Final application8b827aa83e / complete preview10 package passes all39 independent
+daily-use tasks with516 affected checks, production lint/format/build/package,
+actual native workflows, corrected10,005-node navigation, both palette modes/
+all-five layouts, one-hour bounded background, crash/stopped upgrade and fresh
+paused full restore. Read final daily-use qualification/status for hashes,
+failures, protected fixtures and safe resumption. Task13 real-host user-service/
+logout/reboot remains blocked; broader integration/platform/active-capacity and
+full-vision claims are not included. All owned services stopped; no new paid calls.

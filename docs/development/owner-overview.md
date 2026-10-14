@@ -36,7 +36,10 @@ Queue briefs now name actual missing prerequisite evidence, approvals, pause,
 blockers, uncertainty, recorded pressure and captured grant exhaustion/expiry.
 Missing grant/report evidence stays unavailable. Slot/completion times are not
 invented. Tree list rendering scans task records once per frame instead of once
-per visible row; actual large-tree measurements are in progress.
+per visible row; actual corrected preview10 large-tree measurements pass:10,005 stored nodes,
+verified graph/list selection and observed medians0.203/0.201 seconds including
+terminal settling. Sidebar/overview work is viewport/palette bounded; see current
+daily-use qualification for limitations.
 
 Approved daily-use tasks25–26/29–30 reuse existing mission, report, escalation,
 task/dependency and conversation records. The overview fits the existing five

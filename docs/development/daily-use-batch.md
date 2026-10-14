@@ -78,30 +78,32 @@ rendering to diagnose before changing production code. Smoke daemon stopped and
 temporary login removed. Historical homes/quarantines/packages/receipts/grants/
 accounting remain protected; never replay/restart/reset them or delete evidence.
 
-## Current checkpoint
+## Final delivery
 
-Initial GitHub push complete. Tasks1–2 have actual diagnosis/terminal evidence:
-the gap was incomplete driver readiness and paste+Enter submission, not a proved
-daemon defect. Corrected actual fork TUI displays a genuine GPT-5 mini reply and
-exits0. Two actual-editor driver checks pass; all failures remain. Task9 verified
-identical-asset dedup recovered18,256,592,896 bytes without changing package bytes
-or authoritative state. Read [qualification](daily-use-qualification.md).
-Task3 current GPT-5.4 Mini catalog/actual-TUI smoke passes, with official metadata
-and$0.008319 native-usage estimate retained. Task7 optional output cap has641
-passing provider/configuration/model/API checks,1 core reuse check and9 API
-integration checks. Actual packaged TUI/native request caps and immutable checks
-pass. Task4/10 package identity and diagnostics pass the actual walkthrough;
-130 doctor checks and28 package-builder checks pass. Fresh-prefix preview2 is a
-qualification candidate, not the final forty-task release. Remaining tasks are
-unfinished. Record
-source, commands, pass/fail/unrun outcomes and resumption.
+All independent tasks1–12/14–40 pass their bounded acceptance criteria on final
+application source8b827aa83e. Task13 remains blocked on a suitable designated
+host; no container reboot/logout test is substituted. No independent batch
+implementation remains. See the final daily-use qualification for exact source,
+package/assets,516 selected checks, native workflows, both palette modes,
+10,005-node measurements and3600.815-second background/crash/fresh restore.
 
-The clean53e37b68ab candidate passes native USD admission/paused restore and
-paid coding/approval/Neovim review/one Apply. The first delegation fails at its
-shared ceiling; the811b456376 runtime fix preserves the trusted coordination
-schema and fresh delegated/document pilots pass. c4f000e538 Owner overview/contact
-passes actual restart/persist/clear with no authority change. The human-assisted
-self-development fix is integrated as77d9d637fc; paid autonomous failures remain
-charged. Repository-preview qualification and remaining independent tasks are in
-progress. Read current status and qualification before resuming; never replay
-failed/completed grants, acceptance, Apply or local commits.
+| Tasks    | Final evidence                                                                                                                                                                                                 |
+| -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1–4/7/10 | Actual readiness/one-shot input, compatible low-cost provider, native output/retry limits and safe release diagnostics.                                                                                        |
+| 5–6      | Paid coding/delegation/document checks and native review; charged failed attempts retained, no new paid loop.                                                                                                  |
+| 8–9      | Captured USD admission, over-limit/endpoint refusal, inherited quotes, charged unknown/paused restore and verified cache/asset headroom.                                                                       |
+| 11–12/14 | Fresh package identity, quiescent managed release selection/rollback preflight, offline bundles/separate originals/config and final fresh restore.                                                             |
+| 13       | Blocked: PID1=tail and systemd user manager offline; actual suitable-host logout/reboot unrun.                                                                                                                 |
+| 15–18/24 | Fork-managed isolated worktree, captured meaningful argv, repository preview and human-assisted checked/reviewed local TOML improvement; failed paid attempts retained.                                        |
+| 19–23    | Captured-check advice, exact original-grant repair, pinned artifact feedback, fresh saved-byte native checks and protected exact local Git.                                                                    |
+| 25–30    | Native strategic brief/arbitrary contact, exact mission proposals/adoption, captured versioned escalation deadlines, finite/on-demand briefs and linked canonical evidence.                                    |
+| 31–35    | Exact role/model/workflow comparisons/adoption, actual queue advice, corrected measured10,005-node rendering, all-five layout/palette/resize/focus/restart and positive conversation/readiness/library/review. |
+| 36–38    | Official Neovim config/matchit/native LSP, abrupt private-swap dirty recovery and version-pinned bounded conflict buffer proposal/native undo.                                                                 |
+| 39–40    | One-hour six-run mixed background/native checks/approval/review/one Apply, owned crash/stopped upgrade/fresh paused full restore, all38-section coverage/status/resumption.                                    |
+
+Every failed driver/build remains. Historical homes, unknowns, grants, counters,
+Applications and local commits stay protected; never replay. Source/endurance
+homes are quarantined and all owned services stopped. Future review uses a fresh
+restore; external integrations/Dot/cloud workers/deploy/merge/larger active
+capacity/automatic root acceptance or Apply remain deferred. A new local feature
+batch needs owner direction; already-approved host13 needs the actual host.

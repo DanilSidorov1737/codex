@@ -50,7 +50,6 @@ refusal. Final production lint/build/package/CLI qualification is underway.
 Idle post-self-development immutable-package dedup records nine identical files
 and2,246,262,784 allocated bytes reclaimed, preserving SHA/mode/ownership.
 
-
 The next original-grant repair/check-advice checkpoint passes full state345,
 app-server19, CLI2 and TUI109 selected checks with actual official Neovim. Runtime
 file validation refuses changed result artifacts and immutable inputs. Source
@@ -3106,3 +3105,33 @@ with actual native tools/editor; no model-quality/billing/host-reboot claim.
 Screenshots:40 unmodified PNG/text pairs/84 CRC/hash-checked entries under
 `/workspace/artifacts/cli-mission-batch/`. Retained failed drivers and overwritten
 failure-capture limitations are documented. No push/publication/install occurred.
+
+## Daily-use/self-development final independent qualification
+
+Application source8b827aa83e passes all39 independent tasks of the approved40;
+suitable-host13 stays blocked. The [final daily-use evidence](daily-use-qualification.md#final-independent-daily-use-delivery-and-safe-resumption)
+records exact commands/versions/packages/failed logs and safe recovery.
+516 affected checks pass: unchanged state349, current app-server20/CLI3/TUI115
+(including real Neovim), schema4 and Python contracts25. Production CLI Clippy
+`--locked --offline --profile dev-small -j1 -D warnings` and full formatting pass.
+Clean stamped build78.94s; all five package assets verified. Full unrelated
+repository/Bazel/platform suites were not run.
+
+Actual native evidence covers feedback/fresh saved checks/exact local Git,
+strategy/rules/model adoption, positive conversations/readiness/library/review,
+Neovim conflict/undo/config/LSP/private-swap recovery, ANSI-256/truecolor all-five
+layouts/72 final switches/resize/restart, and10,005-node graph/list stable-tail
+search (median0.203/0.201s including driver settling; no SLA). A3600.815-second
+six-run mixed background test retains14 known localhost requests/210 synthetic
+tokens and one explicitly reviewed Application within500 tokens/20 requests/
+two active. Owned idle crash, stopped package upgrade and complete fresh paused
+restore preserve grants/quotes/results/actions/approvals/usage/Application; actual
+restored Neovim diff/CLI exit0/daemon stop0 pass. Separate priced crash covers
+one charged unknown request/100-token reservation. No new paid call.
+
+Compiler OOM/full-disk link failures and label/focus/modal/paused-upgrade driver
+failures remain. Verified idle generated relocations and obsolete unreferenced
+cache pruning restore headroom before passing reruns; no assertions or security
+fences were weakened. All owned services stopped; source homes quarantined.
+Never replay historical authority/counters/Applications or pretend container
+lifecycle establishes suitable-host logout/reboot.
