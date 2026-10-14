@@ -101,6 +101,7 @@ impl Dashboard {
 
     fn sidebar(&self, area: Rect, buffer: &mut Buffer) {
         let regions = Layout::vertical([Constraint::Min(1), Constraint::Length(5)]).split(area);
+        let visible_rows = usize::from(regions[0].height.saturating_sub(2));
         let mut lines = vec![
             Line::styled(" WORKSPACE", Style::default().fg(foreground(MUTED))),
             Line::default(),
@@ -206,25 +207,37 @@ impl Dashboard {
             Line::styled(" PROJECTS      N +", Style::default().fg(foreground(MUTED))),
         ]);
         let selected = self.selected_project().map(|p| p.id.as_str());
-        for record in &self.snapshot.records {
-            if let OrganizationRecord::Project(p) = record {
-                lines.push(Line::styled(
-                    clean(&format!(
-                        " {} {}",
-                        if selected == Some(p.id.as_str()) {
-                            "›"
-                        } else {
-                            "·"
-                        },
-                        p.name
-                    )),
-                    Style::default().fg(if selected == Some(p.id.as_str()) {
-                        foreground(BLUE)
+        let mut projects = self
+            .snapshot
+            .records
+            .iter()
+            .filter_map(|record| match record {
+                OrganizationRecord::Project(project) => Some(project),
+                _ => None,
+            });
+        for p in projects
+            .by_ref()
+            .take(visible_rows.saturating_sub(lines.len() + 1))
+        {
+            lines.push(Line::styled(
+                clean(&format!(
+                    " {} {}",
+                    if selected == Some(p.id.as_str()) {
+                        "›"
                     } else {
-                        foreground(TEXT)
-                    }),
-                ));
-            }
+                        "·"
+                    },
+                    p.name
+                )),
+                Style::default().fg(if selected == Some(p.id.as_str()) {
+                    foreground(BLUE)
+                } else {
+                    foreground(TEXT)
+                }),
+            ));
+        }
+        if lines.len() < visible_rows && projects.next().is_some() {
+            lines.push(Line::from(" … more in Projects"));
         }
         lines.extend([
             Line::default(),
@@ -233,22 +246,36 @@ impl Dashboard {
                 Style::default().fg(foreground(MUTED)),
             ),
         ]);
-        for record in &self.snapshot.records {
-            if let OrganizationRecord::Node(n) = record
-                && n.kind == OrganizationNodeKind::Agent
-            {
-                lines.push(Line::from(vec![
-                    Span::styled(
-                        if n.enabled { " ● " } else { " ○ " },
-                        Style::default().fg(if n.enabled {
-                            foreground(GREEN)
-                        } else {
-                            foreground(MUTED)
-                        }),
-                    ),
-                    Span::raw(clean(&n.label)),
-                ]));
-            }
+        let mut agents = self
+            .snapshot
+            .records
+            .iter()
+            .filter_map(|record| match record {
+                OrganizationRecord::Node(node) if node.kind == OrganizationNodeKind::Agent => {
+                    Some(node)
+                }
+                _ => None,
+            });
+        let enabled_color = foreground(GREEN);
+        let disabled_color = foreground(MUTED);
+        for n in agents
+            .by_ref()
+            .take(visible_rows.saturating_sub(lines.len() + 1))
+        {
+            lines.push(Line::from(vec![
+                Span::styled(
+                    if n.enabled { " ● " } else { " ○ " },
+                    Style::default().fg(if n.enabled {
+                        enabled_color
+                    } else {
+                        disabled_color
+                    }),
+                ),
+                Span::raw(clean(&n.label)),
+            ]));
+        }
+        if lines.len() < visible_rows && agents.next().is_some() {
+            lines.push(Line::from(" … more in Operations"));
         }
         Paragraph::new(lines)
             .block(panel("Navigation", false))

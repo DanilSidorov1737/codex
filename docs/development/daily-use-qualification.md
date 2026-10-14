@@ -841,3 +841,24 @@ Actual source/rendered labels and modal completion are now used. All screenshots
 are actual official-Neovim terminal cells; the five PNG concepts were inspected
 again. Console still retains upstream chat rather than the art's full sidebar/
 inspector shell, and unsupported timeline/domain metrics are not invented.
+
+Visible-sidebar rerun3 now passes, exit0 in166.16s:20 app-server,3 CLI and115
+TUI checks, including actual official Neovim and the new full-definition/sidebar/
+search regression. Existing unchanged state349/schema4/SDK25 evidence brings
+the distinct affected selection to516. The second run compiled correctly but
+failed at native linking when root storage filled (Bus error, exit101); cgroup
+OOM counters stayed2. Its logs remain. A subsequent stale-process stop check
+found that Cargo had already exited and sent no signal.
+
+After all compiler writers stopped,94 more obsolete unreferenced generated files
+were SHA/mtime-journaled and pruned (3,660,879,609 recorded bytes), and36 current
+needed generated files were verified/relocated with intact content/mtime/cache
+paths (2,839,935,589 recorded bytes). Current needed variants and all authoritative
+state/originals/packages/receipts remain. Root headroom and RAM are now sufficient
+for the passing rerun; no check/permission is disabled. Production lint, clean
+package and actual corrected scale/recovery gates continue.
+
+Production CLI Clippy with warnings denied now passes on the corrected rendering
+source, exit0 in38.99s. No new dependency/schema/SDK/state-format change is
+introduced. Full formatting is checked before the logical source commit; the
+clean stamped package and corrected actual navigation measurements follow.

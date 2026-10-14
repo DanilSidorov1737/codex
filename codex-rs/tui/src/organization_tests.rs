@@ -2268,6 +2268,43 @@ async fn refreshed_snapshot_preserves_selection_but_removes_deleted_selection() 
 }
 
 #[tokio::test]
+async fn large_sidebar_shows_visible_navigation_without_hiding_tree_definitions() {
+    let mut d = dashboard();
+    d.preferences.preset = Preset::Operations;
+    d.snapshot.records = vec![OrganizationRecord::Node(node("root", None))];
+    d.snapshot.records.extend((0..10_000).map(|index| {
+        OrganizationRecord::Node(OrganizationNode {
+            kind: OrganizationNodeKind::Agent,
+            label: format!("Sidebar agent {index:05}"),
+            ..node(&format!("agent-{index}"), Some("root"))
+        })
+    }));
+    d.rebuild();
+    let area = Rect::new(0, 0, 160, 40);
+    let mut buffer = Buffer::empty(area);
+    d.render(area, &mut buffer);
+    let sidebar = buffer
+        .content
+        .chunks(160)
+        .map(|row| {
+            row[..24]
+                .iter()
+                .map(|cell| cell.symbol())
+                .collect::<String>()
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+    assert!(sidebar.contains("Sidebar agent 00000"));
+    assert!(sidebar.contains("more in Operations"));
+    assert!(!sidebar.contains("Sidebar agent 09999"));
+    assert_eq!(d.snapshot.records.len(), 10_001);
+    assert_eq!(d.graph.cards.len(), 10_001);
+    d.search = "Sidebar agent 09999".into();
+    d.rebuild();
+    assert!(d.rows.iter().any(|row| row.id == "agent-9999"));
+}
+
+#[tokio::test]
 async fn all_dashboard_presets_render_narrow_empty_and_untrusted_content_safely() {
     let mut d = dashboard();
     d.snapshot

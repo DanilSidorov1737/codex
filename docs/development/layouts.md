@@ -251,3 +251,10 @@ panels/tree/editor/diff, translating graphical type/icons/shadows to cells.
 Live CPU belongs to the server process; cost remains a sourced estimate and
 definition counts do not imply running agents. Milestone/timeline graphics and
 broader semantic fields appear only where backed by actual product behavior.
+
+New daily-use scale source bounds sidebar project/agent rows to the actual
+viewport and points overflow to the complete main views. It preserves all
+canonical records and full tree/search navigation. Enabled/disabled/overview
+colors reuse existing contrast-aware helpers once per draw/state rather than
+quantizing thousands of hidden entries.516 selected checks pass; final packaged
+native scale proof is still pending. No default pane setting changes.

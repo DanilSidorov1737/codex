@@ -536,6 +536,14 @@ impl Graph {
             settings.size = (inner.width, inner.height);
         }
         if settings.overview {
+            let colors: BTreeMap<_, _> = self
+                .cards
+                .iter()
+                .map(|card| card.state)
+                .collect::<BTreeSet<_>>()
+                .into_iter()
+                .map(|state| (state, state_color(state)))
+                .collect();
             for c in &self.cards {
                 let x = inner.x
                     + ((u64::from(c.position.0) * u64::from(inner.width.saturating_sub(1)))
@@ -543,7 +551,7 @@ impl Graph {
                 let y = inner.y
                     + ((u64::from(c.position.1) * u64::from(inner.height.saturating_sub(1)))
                         / u64::from(self.height.max(1))) as u16;
-                buffer[(x, y)].set_symbol("·").set_fg(state_color(c.state));
+                buffer[(x, y)].set_symbol("·").set_fg(colors[c.state]);
             }
             if let Some(c) = self.cards.iter().find(|c| Some(c.id.as_str()) == selected) {
                 let x = inner.x

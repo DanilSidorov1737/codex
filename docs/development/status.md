@@ -140,9 +140,12 @@ Defaults and owner customization remain; no new layout abstraction is needed.
 The actual all-layout/resize/focus/restart walkthrough now passes36 switches
 across three sizes and two normal exits. Task33 measurements expose an unbounded
 sidebar color/render loop; the smallest viewport/color reuse correction and a
-complete-tree/search regression are under qualification. Its first compiler
-OOM is retained; obsolete unreferenced generated caches are reclaimed and checks
-rerun. Final package/scale/endurance/coverage remain. The whole forty-task batch
+complete-tree/search regression are under qualification. Its compiler OOM and subsequent full-disk linker failure are retained; obsolete
+unreferenced generated caches are reclaimed and current outputs preserved.
+Rerun3 passes20 app-server/3 CLI/115 TUI checks in166.16s, including actual
+Neovim and the complete-tree/sidebar/search regression. Distinct affected
+selection is516 with unchanged349 state/4 schema/25 SDK evidence. Production
+lint, final package/scale/endurance/recovery/coverage remain. The whole forty-task batch
 is unfinished; continue every independent item. Task13 still needs a suitable host.
 
 All completed paid/lifecycle/LSP fixtures are stopped. Never rerun their setup,
