@@ -125,8 +125,24 @@ missing evidence/timing unavailable. Task33's list rendering scans task records
 once per frame; actual baseline/candidate large-tree measurements are running.
 Task35's real scoped conversation/reply/readiness/library/review checks are in
 progress, with three localhost responses/45 synthetic tokens retained. No paid
-loop is planned. Task8 priced unknown usage, all-layout comparison, final mixed
-endurance/recovery and final evidence coverage remain. The whole forty-task batch
+loop is planned. Task8 priced unknown usage now passes one admitted unknown request, preserved
+quote/grant/unreleased100-token reservation and paused full fresh restore with
+actual TUI/normal exit. Its source is quarantined. Task35 positive scoped reply,
+readiness, artifact search, Review inbox and real Neovim diff/persisted transcript
+after restart also pass; no replay/new paid calls. A fresh one-hour mixed run is
+in progress: six finite background documents and a physically approved native
+code result with exactly one owner-confirmed Apply. Global500 tokens/20 requests/
+two active remains. Never replay that Application.
+
+Task34 uses existing saved pane controls to qualify70/30 main/inspector
+proportions after navigation, matching the art more closely at wide sizes.
+Defaults and owner customization remain; no new layout abstraction is needed.
+The actual all-layout/resize/focus/restart walkthrough now passes36 switches
+across three sizes and two normal exits. Task33 measurements expose an unbounded
+sidebar color/render loop; the smallest viewport/color reuse correction and a
+complete-tree/search regression are under qualification. Its first compiler
+OOM is retained; obsolete unreferenced generated caches are reclaimed and checks
+rerun. Final package/scale/endurance/coverage remain. The whole forty-task batch
 is unfinished; continue every independent item. Task13 still needs a suitable host.
 
 All completed paid/lifecycle/LSP fixtures are stopped. Never rerun their setup,

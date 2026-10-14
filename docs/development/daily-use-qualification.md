@@ -741,3 +741,103 @@ setup, grants, approvals, acceptance, strategy/model adoption or reset counters.
 Tree scale, all-layout walkthrough, positive conversation/restart, priced unknown
 usage and final mixed endurance/recovery are still in progress. Task13 requires
 a suitable host. These are qualified slices, not a completed forty-task batch.
+
+## Positive conversation, readiness and priced unknown usage
+
+`conversation-library-native/continuation/` records actual stored-readiness
+inspection, scoped conversation form/F6/y and a proposed planning task with no
+grant. Separate finite authorization permits the conversationReply tool, actual
+approved native command and independent artifact oracle. Its exact replyAttemptId
+links the stored reply to the checked result. Three localhost responses/45
+synthetic tokens, zero paid, unaccepted result, zero Applications and unchanged
+owner originals. Physical stored transcript, artifact search and Review inbox
+pass. The original readiness driver expected incorrect capitalization; its
+failure preceded any inference.
+
+`conversation-library-native/readonly-finish-v4/result.json` passes actual native
+Neovim diff, persisted transcript after restart, identical canonical execution
+view and normal CLI exit0/daemon stop0. No new grant, request, approval, acceptance
+or Apply. Earlier read-only failures remain: missing shell activation, forwarding
+dashboard input while Neovim held focus, and treating inspector text as proof
+that an asynchronous report modal had loaded. The corrected driver activates
+the official editor, returns host focus, waits for the actual report header and
+closes that modal before layout keys. Product safeguards are unchanged.
+
+Task8 now passes `priced-unknown-native/readonly-finish/result.json`: valid
+endpoint-bound owner quote,899/900-microdollar pre-admission refusal, exactly one
+unknown request with a100-token unreleased reservation, owned daemon SIGKILL,
+startup reconciliation and globally paused full backup/fresh restore. Exact
+grant/quote/counters and unresolved status survive; actual TUI shows
+needsReconciliation, normal exit0/daemon stop0. Zero paid requests, no tools or
+Applications. Original source is quarantined and must never restart. Its initial
+TUI predicate expected a nonexistent currency label; continuation only inspects
+the existing fresh restore. Neither crash nor authority is replayed.
+
+Four stopped immutable asset links free543,850,496 root bytes per retained home;
+all paths/bytes/state stay intact. Four idle generated test executable relocations
+free1,599,942,656 root bytes, preserving SHA/mtime/cache paths in shared memory.
+An initial move check incorrectly counted an old zombie compiler as active; it
+refused before moving a file. The corrected check still refuses live writers.
+No source/state/original/receipt or recovery package is deleted.
+
+The fresh one-hour mixed qualification is running: two local projects, one
+physically approved/checked/reviewed/accepted/Applied code result and six finite
+background document occurrences. Global500-token/20-request/two-active limits
+and captured scopes/quotes remain. Its current owner-workflow result passes
+normal CLI exit0, actual Neovim diff/reopen, stale forged-digest refusal and
+unrelated-file protection; the one completed Application must never replay.
+Final duration/scale/layout/crash/fresh-restore evidence is not yet complete.
+
+The visual-proportion adjustment reuses saved owner pane controls rather than
+changing default layout code. A provisional one-line default change was
+withdrawn before commit; application source remains7d7e7acd7c. Its two redundant
+Cargo rebuild attempts were stopped only in their recorded process groups when
+feature/build-info variants threatened disk headroom. Neither is a passing check,
+and all logs/generated cache remain. Existing515 source checks still describe
+the unchanged application source; full formatting again passes, exit0. Two
+additional idle generated CLI test relocations preserve hashes/mtime/paths and
+free424,783,872 root bytes. The actual pane/resize/focus walkthrough continues.
+
+## Large stored-tree bottleneck and final visual walkthrough
+
+Corrected read-only measurements verify every selected node change, not a
+heartbeat/screen difference. Preview8's10,005-node baseline passes normal exit0
+with8 graph/8 list samples: medians9.709/9.754 seconds including terminal
+settling. Preview9 passes normal exit0 with medians12.507/9.395 seconds. These
+sequential cloud observations are noisy and do not prove a graph improvement.
+They expose an actual bottleneck: sidebar rendering constructs/colors every
+loaded agent despite its small visible area.
+
+New source bounds project/agent sidebar rows to the viewport, points overflow to
+the complete Projects/Operations views and resolves enabled/disabled colors once
+per draw. Overview colors are resolved once per distinct recorded state, retaining
+existing palette/contrast helpers. Full canonical definitions remain searchable.
+A meaningful10,001-definition regression checks visible entries, overflow,
+unchanged complete records/tree and stable-tail search. New-source checks and
+clean package/native scale proof are in progress; this is not a completed gate.
+
+The first new-source test build is killed by the container memory limit, exit101
+after289.29s; cgroup oom/oom_kill rises1 to2. Only its compiler dies, and current
+bounded background work/accounting remains. With no live compiler,69 obsolete
+generated owner-review files with no workspace file/directory symlink reference
+are SHA/mtime-journaled and pruned (3,824,903,695 recorded bytes); current needed
+variants, source, packages, originals, state and receipts remain. Three obsolete
+generated test executables free1,028,997,120 volatile allocated bytes;15 unused
+nonincremental-build cache files free1,050,525,696 root bytes. The test rerun is
+active with more headroom; no assertion or sandbox check is disabled.
+
+`daily-endurance-native/layout-walkthrough-v4/result.json` passes all five actual
+layout captures,36 dashboard switches across160×50/100×36/72×26, native editor
+focus/motions/resize, saved70/30 proportions/restart and two normal CLI exits0.
+Every switch waits for the actual current layout heading, rather than the header
+which names all layouts. Owner code result/grant/counters/Application remain
+identical. No new inference authority, acceptance or Apply. Current actor
+requests are only the separately approved finite scheduled documents.
+
+Earlier visual failures remain: expecting the empty-view “Project plan” title
+after selecting an actual named project, wrong-case/offscreen queue headings,
+and expecting the sidebar's “Official Neovim” label after narrow mode hides it.
+Actual source/rendered labels and modal completion are now used. All screenshots
+are actual official-Neovim terminal cells; the five PNG concepts were inspected
+again. Console still retains upstream chat rather than the art's full sidebar/
+inspector shell, and unsupported timeline/domain metrics are not invented.

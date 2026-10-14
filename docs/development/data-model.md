@@ -93,3 +93,20 @@ expiry of a task lease does not prove an action failed.
 - Distinguish persisted wall-clock expiry from monotonic in-process timeout;
   restart/clock changes need lease reconciliation.
 - Do not silently rebuild lost canonical records from model output.
+
+## Qualified audit coverage
+
+The native organization SQLite store records definitions/versions, task/grant
+lineage, attempts/leases, model admission and reported or unresolved usage, tool
+intents/receipts, approvals, checkpoints, results/checks, owner acceptance and
+Applications. Transaction-linked audit events reference these canonical records;
+`organization execution-read <task-id>` and `organization report` expose linked
+evidence. The current Owner overview connects mission/goal/project/task/grant/
+result; it does not invent missing links or expose private model reasoning.
+
+This is not a universal recording of everything on the host. Ordinary manual
+terminal commands, editor keystrokes and unobserved external actions are outside
+that ledger. Native reviewed owner Git commands retain separate private JSON
+intents/receipts, and those files are separately backed up. The host owner can
+modify local storage; an independent tamper-proof audit service is not claimed.
+See security-and-recovery.md, owner-review-and-git.md and current qualification.

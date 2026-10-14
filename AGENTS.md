@@ -281,6 +281,18 @@ Never replay setup/grants/approvals/acceptance/adoption or reset counters. Initi
 failed drivers remain evidence, not permission to rerun successful mutations.
 Continue all remaining independent forty-task tasks; this is not batch completion.
 
+Daily-use positive conversation/readiness/library/review/diff/restart now passes
+on preview9. Preserve conversation-library-native's three synthetic requests/45
+tokens, unaccepted result/transcript and no Applications; never replay its grants
+or approved tool. priced-unknown-native source is quarantined: NEVER restart it.
+Its one unknown request/unreleased100-token reservation/captured quote survives
+paused full restore; retain bundle/restores and use a fresh restore for review.
+The fresh daily-endurance-native run is active with500-token/20-request/two-active
+limits and six finite scheduled documents. Owner workflow has one completed
+Application; NEVER replay acceptance/Apply or reset counters. Read current
+receipts before any continuation. Finish the duration/crash/restore/layout/scale
+gates before claiming the forty-task batch complete.
+
 Then read [decisions](docs/development/decisions-and-risks.md),
 [MVP plan](docs/development/mvp.md), [testing](docs/development/testing.md) and
 [process](docs/development/process.md). Reconcile current user instructions with

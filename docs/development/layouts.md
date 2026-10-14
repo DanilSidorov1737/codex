@@ -232,3 +232,22 @@ basis; first/unsupported/restarted samples are unavailable. Values may exceed
 never an invoice. Recent audit exposes at most 200 metadata references without
 arbitrary payload bodies; current subtree references are distinct from captured
 attempt-owner scorecards. Older daemons leave new dimensions unavailable.
+
+## Daily-use visual qualification in progress
+
+All five primary concept images were inspected again beside actual preview9
+workflow captures. The actual saved-pane walkthrough selects70/30 of the space after the24-cell
+navigation column for main/inspector through the existing `]` key. At
+160 columns this gives approximately59% main/25% inspector/15% navigation, closer
+to the supplied58%/26%/16% art. The default remains65/35 and `0` restores it; `[ ]`, `{ }`, `i` and sidebar
+controls remain adjustable. Actual preview9 resize/focus/restart proof passes, including36 dashboard
+switches, three sizes and two normal exits; see daily-use-qualification.md.
+
+Console retains the upstream conversation/composer surface; it does not yet
+replicate the art's simultaneous project sidebar and task inspector. That is an
+explicit remaining visual difference, not a completed pixel-match claim. The
+other four layouts preserve the reference information hierarchy and native
+panels/tree/editor/diff, translating graphical type/icons/shadows to cells.
+Live CPU belongs to the server process; cost remains a sourced estimate and
+definition counts do not imply running agents. Milestone/timeline graphics and
+broader semantic fields appear only where backed by actual product behavior.

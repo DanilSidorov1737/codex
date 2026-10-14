@@ -1,6 +1,6 @@
 # Captured USD admission estimates
 
-Daily-use task8 is in progress. The new source adds an optional `costBudget` to
+Daily-use task8 passes bounded local native qualification. The new source adds an optional `costBudget` to
 the existing execution scope, with no separate financial service or dependency.
 Shared state validates it before creating a canonical grant. A quote captures
 provider ID/endpoint fingerprint, model, rate revision/source, highest applicable
@@ -76,5 +76,17 @@ See [paid evidence](daily-use-qualification.md#real-provider-coding-and-retained
 Corrected native delegation now passes inherited exact quotes,7 root/child
 requests/18,038 reported tokens and checked artifact import; document work passes
 3 requests/7,256 tokens. Native usage estimate for both is$0.01086, excluding no
-known charged failure. Priced unknown-usage qualification remains pending.
-Do not mark task8 complete or replay completed native-cap/paid fixtures.
+known charged failure. Priced unknown-usage qualification now passes on application source7d7e7acd7c.
+The fresh one-request fixture rejects899 microdollars before authorization when
+its captured100-token ceiling plus100-token reserve estimates900 microdollars.
+The valid quote admits exactly one request, receives no usage receipt, and an
+owned daemon SIGKILL/start reconciles it without another request. Grant/quote,
+unreleased100-token reservation, zero reported usage and unresolved request
+survive a globally paused full backup/fresh restore. Actual restored TUI status
+and normal exit0/daemon stop0 pass in priced-unknown-native/readonly-finish.
+No paid request, tool dispatch, acceptance or Apply occurs. The initial native
+driver expected an invented “micro” label; the read-only continuation verifies
+actual state without replaying crash, authorization or backup/restore.
+Keep the source paused/stopped and quarantined; further inspection uses a fresh
+restore. These results do not turn an estimate into a provider invoice cap.
+Never replay completed native-cap/paid/unknown fixtures or reset their accounting.
